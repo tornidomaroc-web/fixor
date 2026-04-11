@@ -1,0 +1,5 @@
+{
+  "name": "fixor-realtest-vulnerable-sqli",
+  "private": true,
+  "description": "Minimal Node snapshot: string concatenation SQL (common insecure pattern)."
+}

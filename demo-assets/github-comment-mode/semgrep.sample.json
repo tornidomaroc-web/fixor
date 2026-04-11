@@ -1,0 +1,35 @@
+{
+  "version": "1.122.0",
+  "results": [
+    {
+      "check_id": "javascript.express.security.audit.sql-injection",
+      "path": "src/routes/reports.js",
+      "start": { "line": 18, "col": 3 },
+      "end": { "line": 18, "col": 72 },
+      "extra": {
+        "message": "Unsanitized query: dynamic SQL built with string concatenation",
+        "metadata": {
+          "category": "security",
+          "cwe": ["CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"],
+          "technology": ["sql", "nodejs"],
+          "owasp": ["A03:2021 Injection"]
+        },
+        "lines": "  return pool.query('SELECT total FROM payouts WHERE merchant_id = ' + merchantId + ' AND day = ' + dayStr);"
+      }
+    },
+    {
+      "check_id": "eslint.security.detect-object-injection",
+      "path": "src/utils/config.js",
+      "start": { "line": 5, "col": 10 },
+      "end": { "line": 5, "col": 45 },
+      "extra": {
+        "message": "Generic object injection sink (not SQL-specific)",
+        "metadata": {
+          "category": "security",
+          "technology": ["nodejs"]
+        },
+        "lines": "  return globalConfig[userSuppliedKey];"
+      }
+    }
+  ]
+}

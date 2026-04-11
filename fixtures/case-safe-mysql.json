@@ -1,0 +1,25 @@
+{
+  "id": "safe-mysql",
+  "dialect": "mysql",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "performance.query.n-plus-one-hint",
+        "path": "src/db/users.js",
+        "start": { "line": 5 },
+        "end": { "line": 5 },
+        "extra": {
+          "message": "Consider eager loading to avoid repeated database round-trips",
+          "metadata": {
+            "category": "performance",
+            "technology": ["nodejs"]
+          },
+          "lines": "await connection.query('SELECT * FROM users WHERE id = ?', [userId]);"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 0
+  }
+}

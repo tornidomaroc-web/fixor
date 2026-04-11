@@ -1,0 +1,5 @@
+{
+  "name": "fixor-realtest-mixed-patterns",
+  "private": true,
+  "description": "Minimal Node snapshot: one unsafe concatenation and one parameterized query."
+}

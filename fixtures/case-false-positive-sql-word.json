@@ -1,0 +1,25 @@
+{
+  "id": "false-positive-sql-word",
+  "dialect": "mysql",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "documentation.style.sql-terminology-check",
+        "path": "docs/rules/overview.md",
+        "start": { "line": 3 },
+        "end": { "line": 3 },
+        "extra": {
+          "message": "This guideline mentions sql only for glossary cross-referencing; not an injection finding",
+          "metadata": {
+            "category": "documentation",
+            "subcategory": "style"
+          },
+          "lines": "See also: ORM vs raw SQL terminology in our style guide."
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 0
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "postgres-concat",
+  "dialect": "postgres",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "javascript.express.security.audit.sql-injection",
+        "path": "src/repos/orders.ts",
+        "start": { "line": 7 },
+        "end": { "line": 7 },
+        "extra": {
+          "message": "Unsanitized query: dynamic SQL built with string concatenation",
+          "metadata": {
+            "category": "sql-injection",
+            "cwe": ["CWE-89"],
+            "technology": ["sql", "nodejs"]
+          },
+          "lines": "pool.query('DELETE FROM orders WHERE tenant_id = ' + tenantId + ' AND id = ' + orderId + '');"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 1,
+    "minClassificationConfidence": "high",
+    "fixConfidence": "high",
+    "parameterValuesEqual": ["tenantId", "orderId"],
+    "fixedCodeContains": "$1"
+  }
+}

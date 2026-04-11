@@ -1,0 +1,24 @@
+{
+  "id": "safe-postgres",
+  "dialect": "postgres",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "typescript.best-practice.use-strict",
+        "path": "src/data/client.ts",
+        "start": { "line": 30 },
+        "end": { "line": 30 },
+        "extra": {
+          "message": "Prefer strict mode for clearer semantics",
+          "metadata": {
+            "category": "best-practice"
+          },
+          "lines": "await pool.query('INSERT INTO logs (msg) VALUES ($1)', [msg]);"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 0
+  }
+}

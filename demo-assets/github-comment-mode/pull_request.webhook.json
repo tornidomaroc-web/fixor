@@ -1,0 +1,26 @@
+{
+  "action": "opened",
+  "number": 1,
+  "repository": {
+    "name": "scan-and-action",
+    "full_name": "tornidomaroc-web/scan-and-action",
+    "owner": {
+      "login": "tornidomaroc-web"
+    },
+    "default_branch": "main"
+  },
+  "pull_request": {
+    "number": 1,
+    "state": "open",
+    "head": {
+      "ref": "fix-test",
+      "sha": "8e2bbd8a342ae9e3438c0dd3960ff1329aac7229"
+    },
+    "base": {
+      "ref": "main"
+    }
+  },
+  "sender": {
+    "login": "tornidomaroc-web"
+  }
+}

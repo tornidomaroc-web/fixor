@@ -1,0 +1,25 @@
+{
+  "id": "sql-words-nonquery",
+  "dialect": "mysql",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "documentation.style.sql-keyword-in-text",
+        "path": "docs/style.md",
+        "start": { "line": 2 },
+        "end": { "line": 2 },
+        "extra": {
+          "message": "This sentence mentions SELECT only as documentation; not an injection finding",
+          "metadata": {
+            "category": "documentation",
+            "subcategory": "style"
+          },
+          "lines": "const tip = \"Remember: SELECT is a SQL keyword in examples\";"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 0
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "mysql-concat",
+  "dialect": "mysql",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "javascript.lang.security.audit.sqli-nodejs-concat",
+        "path": "src/db/users.js",
+        "start": { "line": 12 },
+        "end": { "line": 12 },
+        "extra": {
+          "message": "SQL injection: user input concatenated into query string",
+          "metadata": {
+            "category": "security",
+            "cwe": [
+              "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+            ],
+            "owasp": ["A03:2021 Injection"]
+          },
+          "lines": "connection.query('SELECT * FROM users WHERE id = ' + userId + ' AND active = 1');"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 1,
+    "minClassificationConfidence": "high",
+    "fixConfidence": "high",
+    "parameterValuesEqual": ["userId"],
+    "fixedCodeContains": "?"
+  }
+}

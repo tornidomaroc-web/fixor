@@ -1,0 +1,15 @@
+{
+  "name": "fixor",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "test:fixtures": "npm run build && node dist/test/run-fixture-tests.js",
+    "test:real": "npm run build && node dist/real-tests/run-real-tests.js",
+    "demo:github-pr-webhook": "npm run build && node dist/integrations/github/demo/run-pr-webhook-dry-run.js",
+    "demo:validate-github-comment": "npm run build && node dist/integrations/github/demo/validate-github-comment-demo.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^5.4.5"
+  }
+}

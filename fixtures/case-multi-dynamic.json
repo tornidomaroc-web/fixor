@@ -1,0 +1,29 @@
+{
+  "id": "multi-dynamic",
+  "dialect": "postgres",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "javascript.express.security.audit.sql-injection",
+        "path": "src/report.js",
+        "start": { "line": 9 },
+        "end": { "line": 9 },
+        "extra": {
+          "message": "SQL injection vulnerability: multiple dynamic fragments in SELECT",
+          "metadata": {
+            "category": "security",
+            "cwe": ["CWE-89: SQL Injection"]
+          },
+          "lines": "run(`SELECT ${cols} FROM ${table} WHERE id = ${id}`);"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 1,
+    "minClassificationConfidence": "high",
+    "parameterValuesEqual": ["cols", "table", "id"],
+    "fixedCodeContains": "$1",
+    "expectedPatchQuality": "high"
+  }
+}

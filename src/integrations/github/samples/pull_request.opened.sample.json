@@ -1,0 +1,15 @@
+{
+  "action": "opened",
+  "repository": {
+    "name": "demo-app",
+    "owner": {
+      "login": "acme-corp"
+    }
+  },
+  "pull_request": {
+    "number": 7,
+    "head": {
+      "sha": "abc123def4567890abc123def4567890abcd1234"
+    }
+  }
+}

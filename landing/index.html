@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fixor — SQL injection fixes on every PR</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --bg-elevated: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --text-muted: #8b949e;
+        --accent: #f97316;
+        --accent-hover: #fb923c;
+        --radius: 10px;
+        --font-sans: "Instrument Sans", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        color: var(--accent-hover);
+      }
+
+      .wrap {
+        width: min(1100px, 100% - 2rem);
+        margin-inline: auto;
+      }
+
+      header {
+        padding: 1.25rem 0;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: color-mix(in srgb, var(--bg) 92%, transparent);
+        backdrop-filter: blur(10px);
+        z-index: 10;
+      }
+
+      .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        font-size: 1.125rem;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+
+      .logo-text {
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .nav-cta {
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--bg) !important;
+      }
+
+      .nav-cta:hover {
+        background: var(--accent-hover);
+        color: var(--bg) !important;
+      }
+
+      section {
+        padding: clamp(3rem, 8vw, 5.5rem) 0;
+      }
+
+      .hero {
+        text-align: center;
+        padding-top: clamp(2.5rem, 6vw, 4rem);
+      }
+
+      .hero h1 {
+        font-size: clamp(1.85rem, 5vw, 2.75rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        max-width: 18ch;
+        margin: 0 auto 1rem;
+      }
+
+      .hero p.lead {
+        font-size: clamp(1rem, 2.2vw, 1.2rem);
+        color: var(--text-muted);
+        max-width: 36rem;
+        margin: 0 auto 2rem;
+      }
+
+      .btn {
+        display: inline-block;
+        font-family: var(--font-sans);
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 0.85rem 1.75rem;
+        border-radius: var(--radius);
+        border: none;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+      }
+
+      .btn:active {
+        transform: scale(0.98);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+      }
+
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+
+      .section-title {
+        font-size: clamp(1.35rem, 3vw, 1.75rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+        text-align: center;
+      }
+
+      .section-sub {
+        text-align: center;
+        color: var(--text-muted);
+        margin: 0 auto 2.5rem;
+        max-width: 32rem;
+      }
+
+      .steps {
+        display: grid;
+        gap: 1.25rem;
+        grid-template-columns: 1fr;
+      }
+
+      @media (min-width: 768px) {
+        .steps {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+        }
+      }
+
+      .step {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+      }
+
+      .step-num {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+      }
+
+      .step h3 {
+        font-size: 1.05rem;
+        margin: 0 0 0.5rem;
+      }
+
+      .step p {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+      }
+
+      .demo-block {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .demo-block header {
+        position: static;
+        padding: 0.65rem 1rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg) 100%, transparent);
+      }
+
+      .demo-block pre {
+        margin: 0;
+        padding: 1.25rem;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      .pricing-grid {
+        display: grid;
+        gap: 1.25rem;
+        max-width: 720px;
+        margin: 0 auto;
+        grid-template-columns: 1fr;
+      }
+
+      @media (min-width: 600px) {
+        .pricing-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .price-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .price-card.featured {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+      }
+
+      .price-card h3 {
+        margin: 0 0 0.25rem;
+        font-size: 1.15rem;
+      }
+
+      .price {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.75rem 0;
+        letter-spacing: -0.02em;
+      }
+
+      .price small {
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      .price-card ul {
+        margin: 0 0 1.25rem;
+        padding-left: 1.1rem;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        flex-grow: 1;
+      }
+
+      .price-card li {
+        margin-bottom: 0.4rem;
+      }
+
+      .waitlist {
+        text-align: center;
+        padding-bottom: 4rem;
+      }
+
+      .waitlist form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+
+      .waitlist input[type="email"] {
+        flex: 1 1 220px;
+        min-width: 0;
+        padding: 0.85rem 1rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 1rem;
+      }
+
+      .waitlist input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .waitlist input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      footer {
+        padding: 2rem 0;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap header-inner">
+        <a class="logo" href="#">
+          <svg
+            class="logo-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              fill="#f97316"
+              d="M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z"
+            />
+            <path
+              fill="#fff"
+              d="m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z"
+            />
+          </svg>
+          <span class="logo-text">Fixor</span>
+        </a>
+        <a class="nav-cta" href="#waitlist">Join Waitlist</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap" id="top">
+        <h1>Your PR has a SQL injection. Here's the fix.</h1>
+        <p class="lead">
+          Fixor detects vulnerabilities in pull requests and posts the exploit +
+          fix automatically. No setup. No noise.
+        </p>
+        <a class="btn btn-primary" href="#waitlist">Join the waitlist — it's free</a>
+      </section>
+
+      <section class="wrap" id="how">
+        <h2 class="section-title">How it works</h2>
+        <p class="section-sub">
+          Three steps from push to patched insight—right in the thread your team
+          already uses.
+        </p>
+        <div class="steps">
+          <article class="step">
+            <div class="step-num">01</div>
+            <h3>PR opened</h3>
+            <p>
+              Someone opens or updates a pull request. Your normal review flow
+              stays the same.
+            </p>
+          </article>
+          <article class="step">
+            <div class="step-num">02</div>
+            <h3>Fixor detects</h3>
+            <p>
+              We analyze the diff for risky SQL patterns, generate a concrete fix,
+              and model exploit impact.
+            </p>
+          </article>
+          <article class="step">
+            <div class="step-num">03</div>
+            <h3>Comment posted</h3>
+            <p>
+              A single, structured comment lands on the PR with the suggested
+              patch and proof-of-concept context.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="wrap" id="demo">
+        <h2 class="section-title">What you’ll see on GitHub</h2>
+        <p class="section-sub">
+          Preview of the kind of report Fixor posts (placeholder—screenshot goes
+          here).
+        </p>
+        <div class="demo-block">
+          <header>Sample PR comment</header>
+          <pre>## Fixor · SQL injection report
+
+**Repository:** `acme/demo` · **PR:** #42
+
+### Suggested fixes
+
+**Original**
+```text
+db.query('SELECT * FROM users WHERE id = ' + userId);
+```
+
+**Suggested**
+```text
+db.query('SELECT * FROM users WHERE id = ?', [userId]);
+```
+
+**⚠️ Exploit risk**
+
+| **Severity** | 🔴 critical |
+| **Payload**  | `1' OR '1'='1` |
+
+<details>
+<summary>Proof of concept</summary>
+
+Attacker-controlled `userId` breaks out of the string and alters the query.
+
+</details></pre>
+        </div>
+      </section>
+
+      <section class="wrap" id="pricing">
+        <h2 class="section-title">Pricing</h2>
+        <p class="section-sub">
+          Start free. Upgrade when you want deeper automation and priority
+          support.
+        </p>
+        <div class="pricing-grid">
+          <div class="price-card">
+            <h3>Free</h3>
+            <p class="price">$0 <small>/ month</small></p>
+            <ul>
+              <li>PR diff analysis</li>
+              <li>Fix + exploit summaries on PRs</li>
+              <li>Community support</li>
+            </ul>
+            <a class="btn btn-primary" href="#waitlist" style="text-align: center"
+              >Get started</a
+            >
+          </div>
+          <div class="price-card featured">
+            <h3>Pro</h3>
+            <p class="price">$49 <small>/ month</small></p>
+            <ul>
+              <li>Everything in Free</li>
+              <li>Higher limits &amp; priority queue</li>
+              <li>Email support</li>
+            </ul>
+            <a class="btn btn-primary" href="#waitlist" style="text-align: center"
+              >Join waitlist</a
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="waitlist wrap" id="waitlist">
+        <h2 class="section-title">Join the waitlist</h2>
+        <p class="section-sub">
+          Be first to get access. We’ll only email you about Fixor.
+        </p>
+        <form
+          action="https://formspree.io/f/meepngwr"
+          method="POST"
+        >
+          <input type="email" name="email" placeholder="you@company.com" required />
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">© Fixor. Built for teams who ship fast and stay secure.</div>
+    </footer>
+  </body>
+</html>

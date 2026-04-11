@@ -1,0 +1,5 @@
+{
+  "name": "fixor-realtest-safe-parameterized",
+  "private": true,
+  "description": "Minimal Node snapshot: parameterized queries only."
+}

@@ -1,0 +1,239 @@
+import { analyzePrDiff } from "../../services/pr-diff-analyzer";
+import { runAuditorWorkflow } from "../../workflows/auditor-workflow";
+import type { ScanMetadata, WorkflowResult } from "../../types/workflow.types";
+import type { GitHubApiErrorDetails } from "./github-api-error";
+import { GitHubApiError } from "./github-api-error";
+import { postFixorPullRequestComment } from "./post-pr-comment.service";
+import type { PostPrCommentResult } from "./github-types";
+import { validateGitHubPullRequestPayload } from "./github-payload-validation";
+import { buildFixorExecutionKey } from "./persistence/pilot-store";
+import { verifyGitHubWebhookSignature256 } from "./webhook-signature";
+import { fetchPrDiff } from "./github-client";
+
+export type SemgrepPayloadResolver = (ctx: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  headSha: string;
+  action?: string;
+}) => Promise<unknown> | unknown;
+
+export type HandlePullRequestWebhookOptions = {
+  rawBody: string | Buffer;
+  payload: unknown;
+  signatureHeader?: string | null;
+  webhookSecret?: string;
+  /** When true, `X-Hub-Signature-256` is not verified (local demos / tests). */
+  skipSignatureVerification?: boolean;
+  /** Actual dry-run mode for comment posting (mirrored on result). */
+  dryRun: boolean;
+  /** When omitted, the PR diff is fetched from GitHub via {@link fetchPrDiff}. */
+  resolveSemgrep?: SemgrepPayloadResolver;
+  workflowMetadata?: ScanMetadata;
+  token?: string;
+  apiBaseUrl?: string;
+  updateExisting?: boolean;
+  maxDetailedFixes?: number;
+  /** Overrides default `owner/repo/pr-N/sha` idempotency key. */
+  executionKey?: string;
+  usePrDiffFallback?: boolean;
+  pilotPersistence?: boolean;
+  pilotStorePath?: string;
+  forceRepost?: boolean;
+  maxCommentUtf8Bytes?: number;
+};
+
+export type WebhookSignatureState = "skipped" | "valid" | "invalid";
+
+export type HandlePullRequestWebhookSuccess = {
+  ok: true;
+  dryRun: boolean;
+  signatureState: WebhookSignatureState;
+  data: {
+    owner: string;
+    repo: string;
+    pullNumber: number;
+    headSha: string;
+  };
+  workflow: WorkflowResult;
+  comment: PostPrCommentResult;
+};
+
+export type HandlePullRequestWebhookFailure = {
+  ok: false;
+  dryRun: boolean;
+  signatureState: WebhookSignatureState;
+  error: string;
+  missingFields?: string[];
+  /** Present when GitHub REST returned a non-2xx response. */
+  githubError?: GitHubApiErrorDetails;
+};
+
+export type HandlePullRequestWebhookResult =
+  | HandlePullRequestWebhookSuccess
+  | HandlePullRequestWebhookFailure;
+
+/**
+ * Validates webhook payload (and optionally signature), resolves Semgrep JSON, runs Fixor workflow,
+ * then builds and posts/updates the aggregated PR comment (or dry-run preview).
+ */
+export async function handlePullRequestWebhook(
+  options: HandlePullRequestWebhookOptions
+): Promise<HandlePullRequestWebhookResult> {
+  const dryRun = options.dryRun === true;
+
+  let signatureState: WebhookSignatureState = "skipped";
+  if (!options.skipSignatureVerification) {
+    const secret = options.webhookSecret?.trim();
+    if (!secret) {
+      return {
+        ok: false,
+        dryRun,
+        signatureState: "invalid",
+        error:
+          "Webhook signature verification required but GITHUB_WEBHOOK_SECRET (or webhookSecret) is missing",
+      };
+    }
+    const valid = verifyGitHubWebhookSignature256(
+      options.rawBody,
+      options.signatureHeader,
+      secret
+    );
+    signatureState = valid ? "valid" : "invalid";
+    if (!valid) {
+      return {
+        ok: false,
+        dryRun,
+        signatureState: "invalid",
+        error: "Invalid or missing X-Hub-Signature-256",
+      };
+    }
+  }
+
+  const validated = validateGitHubPullRequestPayload(options.payload);
+  if (!validated.ok) {
+    return {
+      ok: false,
+      dryRun,
+      signatureState,
+      error: validated.error,
+      missingFields: validated.missingFields,
+    };
+  }
+
+  const { owner, repo, pullNumber, headSha, action } = validated.data;
+
+  const token = options.token?.trim() ?? process.env.GITHUB_TOKEN?.trim() ?? "";
+
+  let semgrepPayload: unknown;
+  try {
+    if (options.resolveSemgrep) {
+      semgrepPayload = await Promise.resolve(
+        options.resolveSemgrep({
+          owner,
+          repo,
+          pullNumber,
+          headSha,
+          action,
+        })
+      );
+      if (
+        (semgrepPayload === null || semgrepPayload === undefined) &&
+        options.usePrDiffFallback === true &&
+        token
+      ) {
+        const diffFindings = await analyzePrDiff(owner, repo, pullNumber, token);
+        if (diffFindings.length > 0) {
+          semgrepPayload = {
+            results: [],
+            findings: diffFindings,
+            _source: "pr-diff",
+          };
+        }
+      }
+    } else {
+      if (!token) {
+        return {
+          ok: false,
+          dryRun,
+          signatureState,
+          error:
+            "GITHUB_TOKEN (or token option) is required when resolveSemgrep is not provided",
+        };
+      }
+      semgrepPayload = await fetchPrDiff(
+        owner,
+        repo,
+        pullNumber,
+        token,
+        options.apiBaseUrl
+      );
+    }
+  } catch (e) {
+    if (e instanceof GitHubApiError) {
+      return {
+        ok: false,
+        dryRun,
+        signatureState,
+        error: e.message,
+        githubError: e.details,
+      };
+    }
+    throw e;
+  }
+
+  const metadata: ScanMetadata = {
+    ...options.workflowMetadata,
+    repoName: `${owner}/${repo}`,
+    commitId: headSha,
+  };
+
+  const workflow = await runAuditorWorkflow(semgrepPayload, metadata);
+
+  const executionKey =
+    options.executionKey?.trim() ??
+    buildFixorExecutionKey(owner, repo, pullNumber, headSha);
+
+  try {
+    const comment = await postFixorPullRequestComment({
+      metadata: {
+        owner,
+        repo,
+        pullNumber,
+        commitSha: headSha,
+        scanId: options.workflowMetadata?.scanId,
+      },
+      workflow,
+      dryRun,
+      token: options.token,
+      apiBaseUrl: options.apiBaseUrl,
+      updateExisting: options.updateExisting,
+      maxDetailedFixes: options.maxDetailedFixes,
+      executionKey,
+      pilotPersistence: options.pilotPersistence,
+      pilotStorePath: options.pilotStorePath,
+      forceRepost: options.forceRepost,
+      maxCommentUtf8Bytes: options.maxCommentUtf8Bytes,
+    });
+
+    return {
+      ok: true,
+      dryRun,
+      signatureState,
+      data: { owner, repo, pullNumber, headSha },
+      workflow,
+      comment,
+    };
+  } catch (e) {
+    if (e instanceof GitHubApiError) {
+      return {
+        ok: false,
+        dryRun,
+        signatureState,
+        error: e.message,
+        githubError: e.details,
+      };
+    }
+    throw e;
+  }
+}

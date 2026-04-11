@@ -1,0 +1,25 @@
+{
+  "id": "safe-sequelize-orm",
+  "dialect": "mysql",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "sequelize.best-practice.use-model-scopes",
+        "path": "src/models/User.js",
+        "start": { "line": 5 },
+        "end": { "line": 5 },
+        "extra": {
+          "message": "User.findAll uses ORM criteria objects (bound at framework layer)",
+          "metadata": {
+            "category": "best-practice",
+            "technology": ["sequelize", "nodejs"]
+          },
+          "lines": "return User.findAll({ where: { id: userId }, limit: 1 });"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 0
+  }
+}

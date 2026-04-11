@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "results": [
+    {
+      "check_id": "performance.database.possible-n-plus-one",
+      "path": "src/users.js",
+      "start": { "line": 4, "col": 1 },
+      "end": { "line": 4, "col": 70 },
+      "extra": {
+        "message": "Consider batching related queries to reduce database round-trips",
+        "metadata": {
+          "category": "performance",
+          "technology": ["nodejs"]
+        },
+        "lines": "  return connection.query(\"SELECT * FROM users WHERE id = ?\", [userId]);"
+      }
+    },
+    {
+      "check_id": "typescript.best-practice.prefer-const",
+      "path": "src/users.js",
+      "start": { "line": 1, "col": 1 },
+      "end": { "line": 1, "col": 40 },
+      "extra": {
+        "message": "Prefer const where bindings are not reassigned",
+        "metadata": {
+          "category": "best-practice"
+        },
+        "lines": "const mysql = require(\"mysql2\");"
+      }
+    }
+  ]
+}

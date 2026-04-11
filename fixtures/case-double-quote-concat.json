@@ -1,0 +1,30 @@
+{
+  "id": "double-quote-concat",
+  "dialect": "mysql",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "javascript.lang.security.audit.sqli-nodejs-concat",
+        "path": "src/api.js",
+        "start": { "line": 6 },
+        "end": { "line": 6 },
+        "extra": {
+          "message": "SQL injection: double-quoted SQL string concatenated with user input",
+          "metadata": {
+            "category": "security",
+            "cwe": ["CWE-89"]
+          },
+          "lines": "const q = \"SELECT * FROM accounts WHERE email = \" + email + \" LIMIT 1\";"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 1,
+    "minClassificationConfidence": "high",
+    "fixConfidence": "medium",
+    "parameterValuesEqual": ["email"],
+    "fixedCodeContains": "?",
+    "expectedPatchQuality": "high"
+  }
+}

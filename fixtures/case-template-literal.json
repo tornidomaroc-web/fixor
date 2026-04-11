@@ -1,0 +1,30 @@
+{
+  "id": "template-literal",
+  "dialect": "mysql",
+  "semgrep": {
+    "results": [
+      {
+        "check_id": "eslint.security.detect-sql-injection",
+        "path": "src/api/search.js",
+        "start": { "line": 22 },
+        "end": { "line": 22 },
+        "extra": {
+          "message": "SQL injection vulnerability: template literal interpolates into SELECT",
+          "metadata": {
+            "category": "security",
+            "cwe": ["CWE-89: SQL Injection"]
+          },
+          "lines": "db.query(`SELECT * FROM products WHERE name LIKE '%${term}%'`);"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "findingCount": 1,
+    "minClassificationConfidence": "high",
+    "fixConfidence": "medium",
+    "parameterValuesEqual": ["term"],
+    "fixedCodeContains": "?",
+    "expectedPatchQuality": "medium"
+  }
+}
