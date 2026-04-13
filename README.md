@@ -1,10 +1,20 @@
-# Fixor — Automated Security Vulnerability Detection for GitHub PRs
+<div align="center">
 
-> Fixor automatically analyzes every Pull Request for security vulnerabilities and posts a detailed report as a PR comment — no setup required beyond installation.
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d0d0d,50:7f1d1d,100:dc2626&height=160&section=header&text=Fixor&fontSize=56&fontColor=ffffff&fontAlignY=40&desc=Automated%20Security%20Detection%20for%20GitHub%20PRs&descAlignY=62&descColor=fca5a5&animation=fadeIn" width="100%"/>
 
-![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Security](https://img.shields.io/badge/security-SQL%20%7C%20XSS%20%7C%20CMDi%20%7C%20Path%20Traversal-red)
+<br/>
+
+[![Live](https://img.shields.io/badge/●_LIVE-1D9E75?style=for-the-badge)](https://github.com/tornidomaroc-web/fixor)
+[![Claude AI](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-100%25-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://github.com/tornidomaroc-web/fixor)
+[![Security](https://img.shields.io/badge/Detects-SQL%20%7C%20XSS%20%7C%20CMDi%20%7C%20Path%20Traversal-dc2626?style=for-the-badge)](https://github.com/tornidomaroc-web/fixor)
+[![License](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
+
+> **Automatically analyzes every Pull Request for security vulnerabilities — reports posted directly on the PR.**
+
+</div>
+
+---
 
 ## What it detects
 
@@ -81,3 +91,9 @@ PRs are welcome. See [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 ## License
 
 MIT © 2025 Fixor
+
+---
+
+<div align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d0d0d,50:7f1d1d,100:dc2626&height=100&section=footer&animation=fadeIn" width="100%"/>
+</div>
