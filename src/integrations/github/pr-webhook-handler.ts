@@ -1,4 +1,5 @@
 import { analyzePrDiff } from "../../services/pr-diff-analyzer";
+import { getInstallationToken } from "./app-auth.service";
 import { runAuditorWorkflow } from "../../workflows/auditor-workflow";
 import type { ScanMetadata, WorkflowResult } from "../../types/workflow.types";
 import type { GitHubApiErrorDetails } from "./github-api-error";
@@ -123,7 +124,21 @@ export async function handlePullRequestWebhook(
 
   const { owner, repo, pullNumber, headSha, action } = validated.data;
 
-  const token = options.token?.trim() ?? process.env.GITHUB_TOKEN?.trim() ?? "";
+  const payloadObj = options.payload as Record<string, unknown> | null;
+  const installation = payloadObj && typeof payloadObj === "object"
+    ? (payloadObj as any).installation
+    : null;
+  const installationId = installation && typeof installation.id === "number"
+    ? installation.id
+    : null;
+
+  let token = options.token?.trim() ?? "";
+  if (!token && installationId !== null) {
+    token = await getInstallationToken(installationId);
+  }
+  if (!token) {
+    token = process.env.GITHUB_TOKEN?.trim() ?? "";
+  }
 
   let semgrepPayload: unknown;
   try {

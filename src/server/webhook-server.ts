@@ -64,7 +64,12 @@ function summarizeWebhookResult(
 }
 
 async function main(): Promise<void> {
-  requireEnv("GITHUB_TOKEN");
+  const hasAppAuth = !!(process.env.GITHUB_APP_ID?.trim() && process.env.GITHUB_APP_PRIVATE_KEY?.trim());
+  const hasPatAuth = !!process.env.GITHUB_TOKEN?.trim();
+  if (!hasAppAuth && !hasPatAuth) {
+    console.error("Missing auth: set either GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY, or GITHUB_TOKEN");
+    process.exit(1);
+  }
   requireEnv("ANTHROPIC_API_KEY");
 
   const portRaw = process.env.PORT?.trim() || "3000";
@@ -106,6 +111,13 @@ async function main(): Promise<void> {
             ? gitHubEvent[0] ?? ""
             : "";
 
+      if (eventStr === "installation" || eventStr === "installation_repositories") {
+        const action = (payload as any)?.action;
+        const instId = (payload as any)?.installation?.id;
+        console.log(`[Webhook] installation event: ${action}, id: ${instId}`);
+        jsonResponse(res, 200, { status: "installation_acknowledged", action, installationId: instId });
+        return;
+      }
       if (eventStr !== "pull_request") {
         jsonResponse(res, 200, { status: "ignored" });
         return;
@@ -128,7 +140,6 @@ async function main(): Promise<void> {
         webhookSecret: webhookSecret || undefined,
         skipSignatureVerification,
         dryRun,
-        token: process.env.GITHUB_TOKEN!.trim(),
         updateExisting: true,
         usePrDiffFallback: true,
       });
