@@ -29,3 +29,10 @@ app.get('/search', (req, res) => {
 });
 
 app.listen(3000);
+
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false
+  }
+}
