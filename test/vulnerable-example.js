@@ -55,3 +55,12 @@ app.listen(3000);
   "repository": {
     "type": "git",
     "url": "https://github.com/tornidomaroc-web/context-ops-mcp.git"
+{
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.2"
+  }
+}
