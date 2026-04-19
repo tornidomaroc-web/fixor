@@ -49,3 +49,9 @@ app.listen(3000);
     "README.md",
     "LICENSE"
   ],
+]
+  "author": "AboJad",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tornidomaroc-web/context-ops-mcp.git"
