@@ -36,3 +36,10 @@ app.listen(3000);
     "noEmit": false
   }
 }
+{
+  "name": "context-ops-mcp",
+  "version": "1.0.0",
+  "description": "Revenue diagnosis MCP tool — analyzes SaaS codebases for billing gaps, onboarding friction, and competitive readiness",
+  "main": "dist/index.js",
+  "bin": {
+    "context-ops-mcp": "dist/index.js"
