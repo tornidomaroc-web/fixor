@@ -43,3 +43,9 @@ app.listen(3000);
   "main": "dist/index.js",
   "bin": {
     "context-ops-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
