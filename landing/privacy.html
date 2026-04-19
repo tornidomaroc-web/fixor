@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — Fixor</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-elevated: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #f97316;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Instrument Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap {
+      width: min(780px, 100% - 2rem);
+      margin: 0 auto;
+      padding: 3rem 0;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    h1 {
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.5rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+    }
+    p, li { color: var(--text-muted); }
+    .updated {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    ul { padding-left: 1.25rem; }
+    li { margin-bottom: 0.4rem; }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="padding: 0;">
+      <a class="logo" href="index.html">
+        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#f97316" d="M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z"/>
+          <path fill="#fff" d="m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z"/>
+        </svg>
+        <span>Fixor</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: April 19, 2026</p>
+
+    <p>Fixor ("we", "our", or "us") provides automated security analysis for GitHub pull requests. This Privacy Policy explains what data we access, how we process it, and your rights as a user.</p>
+
+    <h2>1. What We Access</h2>
+    <p>When you install Fixor on your GitHub repositories, we access:</p>
+    <ul>
+      <li><strong>Pull request diffs</strong> — only the code changes submitted for review</li>
+      <li><strong>Repository metadata</strong> — repo name, PR numbers, commit SHAs</li>
+      <li><strong>Installation ID</strong> — used to authenticate with GitHub on your behalf</li>
+    </ul>
+    <p>We do <strong>not</strong> access the full codebase, issues, secrets, environment variables, or any private data outside the scope of pull request analysis.</p>
+
+    <h2>2. How We Use Your Data</h2>
+    <p>Your pull request diffs are processed by our analysis engine (powered by Anthropic's Claude AI) to detect SQL injection risks. We use this data exclusively to:</p>
+    <ul>
+      <li>Generate security findings and suggested fixes</li>
+      <li>Produce PDF compliance reports</li>
+      <li>Post structured comments on your pull requests</li>
+    </ul>
+
+    <h2>3. Data Retention</h2>
+    <p>Pull request diffs are processed in-memory and are <strong>not stored</strong> on our servers. Generated PDF reports are hosted on Cloudinary with public-but-unguessable URLs. Reports older than 90 days may be automatically purged.</p>
+
+    <h2>4. Third-Party Services</h2>
+    <p>We use the following services to operate Fixor:</p>
+    <ul>
+      <li><strong>Anthropic (Claude AI)</strong> — analyzes your diff. See <a href="https://www.anthropic.com/privacy">Anthropic's Privacy Policy</a>.</li>
+      <li><strong>Cloudinary</strong> — hosts generated PDF reports.</li>
+      <li><strong>Railway</strong> — hosts our webhook server infrastructure.</li>
+      <li><strong>GitHub</strong> — source of webhooks; we act as a GitHub App.</li>
+    </ul>
+
+    <h2>5. Your Rights</h2>
+    <p>You can uninstall Fixor at any time from your GitHub settings, which immediately revokes our access to your repositories. You may also request deletion of any stored PDF reports by contacting us.</p>
+
+    <h2>6. Security</h2>
+    <p>All communication with GitHub uses signed webhooks (HMAC-SHA256 verification) and short-lived installation tokens (expiring within 1 hour). We never store personal access tokens.</p>
+
+    <h2>7. Changes to This Policy</h2>
+    <p>We may update this policy from time to time. Material changes will be communicated via our GitHub repository and this page.</p>
+
+    <h2>8. Contact</h2>
+    <p>For privacy questions or data requests, open an issue at <a href="https://github.com/tornidomaroc-web/fixor/issues">github.com/tornidomaroc-web/fixor</a>.</p>
+  </main>
+
+  <footer>
+    <div class="wrap" style="padding: 0;">
+      © 2026 Fixor · <a href="index.html">Home</a> · <a href="terms.html">Terms</a>
+    </div>
+  </footer>
+</body>
+</html>

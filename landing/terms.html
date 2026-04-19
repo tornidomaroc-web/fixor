@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terms of Service — Fixor</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-elevated: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #f97316;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Instrument Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap {
+      width: min(780px, 100% - 2rem);
+      margin: 0 auto;
+      padding: 3rem 0;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    h1 {
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.5rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+    }
+    p, li { color: var(--text-muted); }
+    .updated {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    ul { padding-left: 1.25rem; }
+    li { margin-bottom: 0.4rem; }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="padding: 0;">
+      <a class="logo" href="index.html">
+        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#f97316" d="M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z"/>
+          <path fill="#fff" d="m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z"/>
+        </svg>
+        <span>Fixor</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1>Terms of Service</h1>
+    <p class="updated">Last updated: April 19, 2026</p>
+
+    <p>By installing or using Fixor (the "Service"), you agree to these Terms of Service.</p>
+
+    <h2>1. Service Description</h2>
+    <p>Fixor is a GitHub App that automatically analyzes pull request diffs for SQL injection risks and posts structured findings with suggested fixes. The Service is provided on an "as-is" basis.</p>
+
+    <h2>2. Eligibility</h2>
+    <p>You must be authorized to install GitHub Apps on the repositories where you deploy Fixor. You are responsible for the code and data in your repositories.</p>
+
+    <h2>3. Free Tier</h2>
+    <p>The free tier includes analysis for up to 3 repositories. Additional usage requires a paid plan (Pro or Enterprise).</p>
+
+    <h2>4. Fair Use</h2>
+    <p>Automated abuse, scanning of repositories you do not own or have permission to scan, or usage that overloads our infrastructure is prohibited and may result in termination.</p>
+
+    <h2>5. No Warranty</h2>
+    <p>Fixor performs automated analysis using AI. Findings are <strong>suggestions</strong>, not guarantees. We do not guarantee:</p>
+    <ul>
+      <li>Detection of all vulnerabilities in your code</li>
+      <li>Absence of false positives</li>
+      <li>That suggested fixes are syntactically or semantically correct in your context</li>
+    </ul>
+    <p>You are solely responsible for reviewing, validating, and applying any suggested fixes.</p>
+
+    <h2>6. Limitation of Liability</h2>
+    <p>To the maximum extent permitted by law, Fixor and its authors are not liable for any direct, indirect, incidental, or consequential damages arising from use of the Service, including but not limited to data loss, security breaches, or business interruption.</p>
+
+    <h2>7. Intellectual Property</h2>
+    <p>Fixor is open-source software released under the MIT License. See the repository at <a href="https://github.com/tornidomaroc-web/fixor">github.com/tornidomaroc-web/fixor</a> for the full license text.</p>
+
+    <h2>8. Termination</h2>
+    <p>You may uninstall Fixor at any time from your GitHub settings. We reserve the right to suspend or terminate access for violations of these Terms.</p>
+
+    <h2>9. Changes to Terms</h2>
+    <p>We may update these Terms from time to time. Continued use after changes constitutes acceptance. Material changes will be announced on our GitHub repository.</p>
+
+    <h2>10. Governing Law</h2>
+    <p>These Terms are governed by the laws of the jurisdiction where the Service operator resides, without regard to conflict-of-law provisions.</p>
+
+    <h2>11. Contact</h2>
+    <p>For questions about these Terms, open an issue at <a href="https://github.com/tornidomaroc-web/fixor/issues">github.com/tornidomaroc-web/fixor</a>.</p>
+  </main>
+
+  <footer>
+    <div class="wrap" style="padding: 0;">
+      © 2026 Fixor · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a>
+    </div>
+  </footer>
+</body>
+</html>
