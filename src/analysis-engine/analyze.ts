@@ -3,29 +3,31 @@ import type { AnalysisResult, Finding, FindingType } from "./types";
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 const REQUEST_TIMEOUT_MS = 45_000;
-const SYSTEM_PROMPT = `You are a defensive security analyzer. Detect these vulnerability types in code diffs:
-- sql_injection_risk: raw SQL built from user input, string concatenation in queries
-- xss_risk: unescaped user input rendered in HTML, dangerouslySetInnerHTML, innerHTML
-- command_injection_risk: user input passed to exec(), spawn(), eval(), or shell commands
-- path_traversal_risk: user input used in file paths without sanitization
+const SYSTEM_PROMPT = `You are a defensive security analyzer. Detect SQL injection risks only.
 
 Return ONLY valid JSON matching this schema:
 {
   "findings": [
     {
-      "type": "sql_injection_risk | xss_risk | command_injection_risk | path_traversal_risk",
-      "file": "string",
-      "line": number,
-      "confidence": "high | medium | low",
-      "severity": "critical | high | medium",
-      "explanation": "string",
-      "why_it_matters": "string",
-      "suggested_fix": "string",
-      "example_fix": "string"
+      "type": "sql_injection_risk",
+      "file": "path/to/file",
+      "line": 42,
+      "confidence": "high" | "medium" | "low",
+      "severity": "critical" | "high" | "medium",
+      "explanation": "Brief explanation of the issue",
+      "why_it_matters": "Why this is a security concern",
+      "suggested_fix": "Short description of the fix",
+      "example_fix": "const safe = 'SELECT * FROM users WHERE id = ?';",
+      "original_snippet": "const unsafe = \`SELECT * FROM users WHERE id = \${userId}\`;"
     }
   ]
 }
-Never include exploits, payloads, or attack instructions.`;
+
+Rules:
+- original_snippet MUST contain the exact vulnerable line(s) from the diff, as-is
+- example_fix MUST contain the corrected safe version
+- Never include exploits, payloads, or attack instructions
+- If no SQL injection risks found, return {"findings": []}`;
 
 function extractAssistantText(parsed: unknown): string | null {
   if (!parsed || typeof parsed !== "object") return null;
@@ -81,6 +83,7 @@ function toFinding(raw: Record<string, unknown>): Finding | null {
   if (!asTrimmedString(raw.why_it_matters)) return null;
   if (!asTrimmedString(raw.suggested_fix)) return null;
   if (!asTrimmedString(raw.example_fix)) return null;
+  if (!asTrimmedString(raw.original_snippet)) return null;
   return {
     type: raw.type as FindingType,
     file: asTrimmedString(raw.file),
@@ -91,6 +94,7 @@ function toFinding(raw: Record<string, unknown>): Finding | null {
     why_it_matters: asTrimmedString(raw.why_it_matters),
     suggested_fix: asTrimmedString(raw.suggested_fix),
     example_fix: asTrimmedString(raw.example_fix),
+    original_snippet: asTrimmedString(raw.original_snippet),
   };
 }
 

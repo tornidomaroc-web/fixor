@@ -13,7 +13,7 @@ function findingToNormalized(f: Finding): NormalizedSqlInjectionFinding {
   const score =
     f.confidence === "high" ? 90 : f.confidence === "medium" ? 50 : 20;
   const msg = f.explanation.slice(0, 500);
-  const originalCode = f.example_fix || `// ${f.file}:${f.line}`;
+  const originalCode = f.original_snippet || `// ${f.file}:${f.line}`;
   return {
     type: "SQL_INJECTION",
     file: f.file,

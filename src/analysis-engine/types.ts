@@ -14,6 +14,7 @@ export interface Finding {
   why_it_matters: string;
   suggested_fix: string;
   example_fix: string;
+  original_snippet: string;
 }
 
 export interface AnalysisResult {
