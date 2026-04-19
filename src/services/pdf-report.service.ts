@@ -157,7 +157,7 @@ export async function generatePdfReport(
       const truncateStr = (str: string, max: number) => str.length > max ? str.substring(0, max - 3) + "..." : str;
 
       // Original code (red-tinted)
-      doc.font("Helvetica-Bold").fontSize(12).fillColor(COLOR_DANGER).text("✗ Original (vulnerable)");
+      doc.font("Helvetica-Bold").fontSize(12).fillColor(COLOR_DANGER).text("Original (vulnerable)");
       doc.moveDown(0.3);
       const origY = doc.y;
       const origText = truncateStr(fix.originalCode, 500);
@@ -167,7 +167,7 @@ export async function generatePdfReport(
       doc.moveDown(1.5);
 
       // Suggested fix (green-tinted)
-      doc.font("Helvetica-Bold").fontSize(12).fillColor(COLOR_SUCCESS).text("✓ Suggested fix");
+      doc.font("Helvetica-Bold").fontSize(12).fillColor(COLOR_SUCCESS).text("Suggested fix");
       doc.moveDown(0.3);
       const fixY = doc.y;
       const fixText = truncateStr(fix.fixedCode, 500);
