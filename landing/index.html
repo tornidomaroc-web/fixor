@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Fixor — SQL injection fixes on every PR</title>
+    <title>Fixor — Automated security analysis for GitHub PRs</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -255,6 +255,32 @@
         }
       }
 
+      @media (min-width: 900px) {
+        .pricing-grid-3 {
+          grid-template-columns: 1fr 1fr 1fr;
+          max-width: 1000px;
+        }
+      }
+
+      .price-card {
+        position: relative;
+      }
+
+      .badge-popular {
+        position: absolute;
+        top: -0.65rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--accent);
+        color: var(--bg);
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
       .price-card {
         background: var(--bg-elevated);
         border: 1px solid var(--border);
@@ -371,10 +397,9 @@
 
     <main>
       <section class="hero wrap" id="top">
-        <h1>Your PR has a SQL injection. Here's the fix.</h1>
+        <h1>Catch SQL injection before it ships.</h1>
         <p class="lead">
-          Fixor detects vulnerabilities in pull requests and posts the exploit +
-          fix automatically. No setup. No noise.
+          Fixor analyzes every pull request, flags security risks, and posts a structured report with suggested fixes + downloadable PDF. No setup. No noise.
         </p>
         <a class="btn btn-primary" href="#waitlist">Join the waitlist — it's free</a>
       </section>
@@ -398,56 +423,85 @@
             <div class="step-num">02</div>
             <h3>Fixor detects</h3>
             <p>
-              We analyze the diff for risky SQL patterns, generate a concrete fix,
-              and model exploit impact.
+              We analyze the diff for risky SQL patterns and generate concrete, safe fixes using Claude AI.
             </p>
           </article>
           <article class="step">
             <div class="step-num">03</div>
             <h3>Comment posted</h3>
             <p>
-              A single, structured comment lands on the PR with the suggested
-              patch and proof-of-concept context.
+              A professional report lands on the PR — fix suggestions, risk assessment, and a downloadable PDF for compliance.
             </p>
           </article>
         </div>
       </section>
 
       <section class="wrap" id="demo">
-        <h2 class="section-title">What you’ll see on GitHub</h2>
+        <h2 class="section-title">What lands on your PR</h2>
         <p class="section-sub">
-          Preview of the kind of report Fixor posts (placeholder—screenshot goes
-          here).
+          A clean, structured security report — right where your team already reviews code.
         </p>
         <div class="demo-block">
-          <header>Sample PR comment</header>
-          <pre>## Fixor · SQL injection report
+          <header>Sample PR comment · auto-posted by Fixor</header>
+          <pre>## 🛡️ Fixor Security Report
 
-**Repository:** `acme/demo` · **PR:** #42
+**Repository:** `acme/payments-api` · **PR:** #42
+**Commit:** `a1b2c3d4e5f6...`
+
+### Summary
+
+| | |
+|-|-|
+| **Workflow status** | ✅ `success` |
+| **Vulnerabilities found** | 2 |
+| **Fixes generated** | 2 |
+| **Patch quality** | high: 1 · medium: 1 |
+| **Duration** | 13.5s |
 
 ### Suggested fixes
 
-**Original**
-```text
-db.query('SELECT * FROM users WHERE id = ' + userId);
-```
+▸ 1. `src/users.js:42` · **high** · `SQL_INJECTION`
+▸ 2. `src/products.js:87` · **medium** · `SQL_INJECTION`
 
-**Suggested**
-```text
-db.query('SELECT * FROM users WHERE id = ?', [userId]);
-```
+---
 
-**⚠️ Exploit risk**
+### 📄 Download full report
 
-| **Severity** | 🔴 critical |
-| **Payload**  | `1' OR '1'='1` |
+**Download PDF Report →**
 
-<details>
-<summary>Proof of concept</summary>
+_Professional report suitable for sharing with your team or compliance review._
 
-Attacker-controlled `userId` breaks out of the string and alters the query.
+<sub>🔒 Analyzed by Fixor · 2026-04-19T00:03:31Z</sub></pre>
+        </div>
+      </section>
 
-</details></pre>
+      <section class="wrap" id="features">
+        <h2 class="section-title">Built for production teams</h2>
+        <p class="section-sub">
+          More than a scanner — Fixor ships everything your team needs to act fast.
+        </p>
+        <div class="steps">
+          <article class="step">
+            <div class="step-num">AI</div>
+            <h3>Claude-powered analysis</h3>
+            <p>
+              Backed by Claude Sonnet 4 — contextual reasoning, not just regex. Understands frameworks, ORMs, and intent.
+            </p>
+          </article>
+          <article class="step">
+            <div class="step-num">PDF</div>
+            <h3>Compliance-ready reports</h3>
+            <p>
+              Every scan generates a professional PDF — perfect for audits, SOC 2 evidence, or stakeholder updates.
+            </p>
+          </article>
+          <article class="step">
+            <div class="step-num">APP</div>
+            <h3>Native GitHub App</h3>
+            <p>
+              Install once per org. No tokens to rotate, no webhooks to configure. Secure by default.
+            </p>
+          </article>
         </div>
       </section>
 
@@ -457,30 +511,40 @@ Attacker-controlled `userId` breaks out of the string and alters the query.
           Start free. Upgrade when you want deeper automation and priority
           support.
         </p>
-        <div class="pricing-grid">
+        <div class="pricing-grid pricing-grid-3">
           <div class="price-card">
             <h3>Free</h3>
             <p class="price">$0 <small>/ month</small></p>
             <ul>
-              <li>PR diff analysis</li>
-              <li>Fix + exploit summaries on PRs</li>
+              <li>3 repositories</li>
+              <li>SQL injection detection</li>
+              <li>PR comments with fixes</li>
               <li>Community support</li>
             </ul>
-            <a class="btn btn-primary" href="#waitlist" style="text-align: center"
-              >Get started</a
-            >
+            <a class="btn btn-primary" href="#waitlist" style="text-align: center">Install free</a>
           </div>
           <div class="price-card featured">
+            <div class="badge-popular">Most Popular</div>
             <h3>Pro</h3>
-            <p class="price">$49 <small>/ month</small></p>
+            <p class="price">$19 <small>/ month</small></p>
             <ul>
-              <li>Everything in Free</li>
-              <li>Higher limits &amp; priority queue</li>
+              <li>Unlimited repositories</li>
+              <li>PDF compliance reports</li>
+              <li>Priority analysis queue</li>
               <li>Email support</li>
             </ul>
-            <a class="btn btn-primary" href="#waitlist" style="text-align: center"
-              >Join waitlist</a
-            >
+            <a class="btn btn-primary" href="#waitlist" style="text-align: center">Start Pro trial</a>
+          </div>
+          <div class="price-card">
+            <h3>Enterprise</h3>
+            <p class="price">$99 <small>/ month</small></p>
+            <ul>
+              <li>Everything in Pro</li>
+              <li>Custom rules &amp; policies</li>
+              <li>SSO &amp; audit logs</li>
+              <li>Dedicated support</li>
+            </ul>
+            <a class="btn btn-primary" href="#waitlist" style="text-align: center">Contact sales</a>
           </div>
         </div>
       </section>
@@ -501,7 +565,7 @@ Attacker-controlled `userId` breaks out of the string and alters the query.
     </main>
 
     <footer>
-      <div class="wrap">© Fixor. Built for teams who ship fast and stay secure.</div>
+      <div class="wrap">© 2026 Fixor · <a href="https://github.com/tornidomaroc-web/fixor">GitHub</a> · Built for teams who ship fast and stay secure.</div>
     </footer>
   </body>
 </html>
