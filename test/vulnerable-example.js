@@ -60,7 +60,4 @@ app.listen(3000);
     "@prisma/client": "^6.19.2",
     "zod": "^4.3.6"
   },
-  "devDependencies": {
-    "prisma": "^6.19.2"
-  }
 }
