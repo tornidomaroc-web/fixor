@@ -10,6 +10,11 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
+    "@types/pdfkit": "^0.17.6",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "cloudinary": "^2.9.0",
+    "pdfkit": "^0.18.0"
   }
 }

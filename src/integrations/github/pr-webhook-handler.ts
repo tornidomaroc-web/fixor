@@ -1,5 +1,7 @@
 import { analyzePrDiff } from "../../services/pr-diff-analyzer";
 import { getInstallationToken } from "./app-auth.service";
+import { generatePdfReport } from "../../services/pdf-report.service";
+import { uploadPdfBuffer, buildReportPublicId } from "../../services/cloudinary-upload.service";
 import { runAuditorWorkflow } from "../../workflows/auditor-workflow";
 import type { ScanMetadata, WorkflowResult } from "../../types/workflow.types";
 import type { GitHubApiErrorDetails } from "./github-api-error";
@@ -204,6 +206,24 @@ export async function handlePullRequestWebhook(
   };
 
   const workflow = await runAuditorWorkflow(semgrepPayload, metadata);
+
+  let pdfUrl: string | null = null;
+  if (workflow.fixes.length > 0) {
+    try {
+      const pdfBuffer = await generatePdfReport(workflow, {
+        owner,
+        repo,
+        pullNumber,
+        commitSha: headSha,
+      });
+      const publicId = buildReportPublicId(owner, repo, pullNumber, headSha);
+      pdfUrl = await uploadPdfBuffer(pdfBuffer, publicId);
+      console.log(`[Webhook] PDF report uploaded: ${pdfUrl}`);
+    } catch (pdfError) {
+      console.warn(`[Webhook] PDF generation/upload failed:`, pdfError);
+    }
+  }
+  (workflow as any).pdfUrl = pdfUrl;
 
   const executionKey =
     options.executionKey?.trim() ??

@@ -112,8 +112,23 @@ export function buildPullRequestCommentMarkdown(
     lines.push("");
   }
 
+  const pdfUrl = (workflow as any).pdfUrl as string | null | undefined;
+
   if (list.length === 0) {
     lines.push("_No SQL injection fixes in this run._", "");
+    if (pdfUrl) {
+      lines.push(
+        "",
+        "---",
+        "",
+        `### 📄 Download full report`,
+        "",
+        `[**Download PDF Report →**](${pdfUrl})`,
+        "",
+        "_Professional report suitable for sharing with your team or compliance review._",
+        ""
+      );
+    }
     lines.push(
       FIXOR_PR_COMMENT_MARKER,
       `<sub>🔒 Analyzed by [Fixor](https://github.com/tornidomaroc-web/fixor) · ${workflow.timing.finishedAt || "—"}</sub>`
@@ -189,6 +204,19 @@ export function buildPullRequestCommentMarkdown(
     );
   }
 
+  if (pdfUrl) {
+    lines.push(
+      "",
+      "---",
+      "",
+      `### 📄 Download full report`,
+      "",
+      `[**Download PDF Report →**](${pdfUrl})`,
+      "",
+      "_Professional report suitable for sharing with your team or compliance review._",
+      ""
+    );
+  }
   lines.push(
     FIXOR_PR_COMMENT_MARKER,
     `<sub>🔒 Analyzed by [Fixor](https://github.com/tornidomaroc-web/fixor) · ${workflow.timing.finishedAt || "—"}</sub>`
