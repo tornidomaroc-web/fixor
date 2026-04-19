@@ -48,7 +48,7 @@ export async function generatePdfReport(
        .stroke();
 
     // Main title
-    doc.moveDown(8);
+    doc.y = 230;
     doc.font("Helvetica-Bold").fontSize(34).fillColor(COLOR_DARK).text("Fixor Security Report", { align: "center" });
 
     // Subtitle
@@ -164,7 +164,7 @@ export async function generatePdfReport(
       const origHeight = doc.heightOfString(origText, { width: doc.page.width - 130 }) + 20;
       doc.rect(50, origY, doc.page.width - 100, origHeight).fillAndStroke("#fef2f2", "#fecaca");
       doc.font("Courier").fontSize(9).fillColor(COLOR_DARK).text(origText, 65, origY + 10, { width: doc.page.width - 130 });
-      doc.moveDown(1.5);
+      doc.y = origY + origHeight + 15;
 
       // Suggested fix (green-tinted)
       doc.font("Helvetica-Bold").fontSize(12).fillColor(COLOR_SUCCESS).text("Suggested fix");
@@ -174,6 +174,7 @@ export async function generatePdfReport(
       const fixHeight = doc.heightOfString(fixText, { width: doc.page.width - 130 }) + 20;
       doc.rect(50, fixY, doc.page.width - 100, fixHeight).fillAndStroke("#f0fdf4", "#bbf7d0");
       doc.font("Courier").fontSize(9).fillColor(COLOR_DARK).text(fixText, 65, fixY + 10, { width: doc.page.width - 130 });
+      doc.y = fixY + fixHeight + 15;
 
       if (i < workflow.fixes.length - 1) {
         doc.addPage();
