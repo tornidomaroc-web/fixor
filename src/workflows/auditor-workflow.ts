@@ -1,19 +1,13 @@
 import type { Finding } from "../analysis-engine/types.js";
 import { analyzeCode } from "../analysis-engine/analyze.js";
 import { getDetectorFor } from "../analysis-engine/detectors/registry.js";
-import type {
-  NormalizedFinding,
-  NormalizedFixSuggestion,
-} from "../analysis-engine/detector.types.js";
+import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import { extractSqlInjectionFromSemgrep } from "../services/vulnerability.service.js";
 import {
   generateSqlInjectionRiskExplanation,
   type SqlInjectionExploit,
 } from "../services/risk-explainer.js";
-import type {
-  NormalizedSqlInjectionFinding,
-  SqlInjectionFixSuggestion,
-} from "../types/vulnerability.types.js";
+import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types.js";
 import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
 
@@ -32,36 +26,6 @@ function findingToNormalized(f: Finding): NormalizedFinding {
     explanation: f.why_it_matters,
     confidence: f.confidence,
     severity: f.severity,
-  };
-}
-
-/**
- * Back-compat adapter: collapse a NormalizedFixSuggestion produced by a
- * SQL detector back into the legacy SqlInjectionFixSuggestion shape that
- * WorkflowResult.fixes and downstream consumers (PDF/comment builder)
- * still expect.
- */
-function toSqlFixSuggestion(
-  fix: NormalizedFixSuggestion
-): SqlInjectionFixSuggestion {
-  const meta = fix.metadata;
-  const dialect =
-    meta?.type === "sql_injection_risk" ? (meta.dialect ?? "mysql") : "mysql";
-  const parameterValues =
-    meta?.type === "sql_injection_risk" ? (meta.parameterValues ?? []) : [];
-  return {
-    type: "SQL_INJECTION",
-    findingType: "sql_injection_risk",
-    file: fix.file,
-    line: fix.line,
-    originalCode: fix.originalCode,
-    fixedCode: fix.fixedCode,
-    parameterValues,
-    dialect,
-    explanation: fix.explanation,
-    confidence: fix.confidence,
-    patchQuality: fix.patchQuality,
-    patchWarnings: fix.patchWarnings,
   };
 }
 
@@ -390,11 +354,7 @@ async function executeWorkflow(
 
   for (const r of fixResults) {
     if (r.kind === "ok") {
-      // Today every registered detector emits SQL-shaped fixes. When
-      // XSS/CMDi/PT detectors ship, the adapter below will branch by
-      // r.fix.findingType — or WorkflowResult.fixes will widen to a
-      // NormalizedFixSuggestion[] union.
-      result.fixes.push(toSqlFixSuggestion(r.fix));
+      result.fixes.push(r.fix);
       result.fixesGenerated++;
       if (r.fix.patchQuality === "high") result.highQualityPatches++;
       else if (r.fix.patchQuality === "medium") result.mediumQualityPatches++;

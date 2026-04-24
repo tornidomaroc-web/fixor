@@ -1,5 +1,5 @@
 import type { SqlInjectionExploit } from "../services/risk-explainer.js";
-import { SqlInjectionFixSuggestion } from "./vulnerability.types.js";
+import type { NormalizedFixSuggestion } from "../analysis-engine/detector.types.js";
 
 export interface ScanMetadata {
   repoName?: string;
@@ -26,7 +26,12 @@ export interface WorkflowResult {
   highQualityPatches: number;
   mediumQualityPatches: number;
   lowQualityPatches: number;
-  fixes: SqlInjectionFixSuggestion[];
+  /**
+   * All fixes produced this run, regardless of vulnerability family.
+   * Consumers discriminate on `fix.findingType`; SQL-specific details
+   * (dialect, parameterValues) live on `fix.metadata`.
+   */
+  fixes: NormalizedFixSuggestion[];
   exploits?: SqlInjectionExploit[];
   /** Optional URL to the PDF report uploaded for this run. */
   pdfUrl?: string | null;

@@ -10,27 +10,31 @@
 
 import { buildSarifLog, sarifToJson } from "../services/sarif-output.service";
 import type { WorkflowResult } from "../types/workflow.types";
-import type { SqlInjectionFixSuggestion } from "../types/vulnerability.types";
+import type { NormalizedFixSuggestion } from "../analysis-engine/detector.types";
 
 function fix(
   file: string,
   line: number,
   original: string,
   fixed: string
-): SqlInjectionFixSuggestion {
+): NormalizedFixSuggestion {
   return {
-    type: "SQL_INJECTION",
+    findingId: `sql-injection-js-ts:sql_injection_risk:${file}:${line}`,
+    detectorId: "sql-injection-js-ts",
     findingType: "sql_injection_risk",
     file,
     line,
     originalCode: original,
     fixedCode: fixed,
-    parameterValues: ["userId"],
-    dialect: "mysql",
     explanation: "Replaced dynamic string concatenation with placeholders.",
     confidence: "high",
     patchQuality: "high",
     patchWarnings: [],
+    metadata: {
+      type: "sql_injection_risk",
+      dialect: "mysql",
+      parameterValues: ["userId"],
+    },
   };
 }
 
