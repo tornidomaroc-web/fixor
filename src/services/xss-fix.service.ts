@@ -86,7 +86,7 @@ function buildUserPrompt(finding: NormalizedFinding): string {
   ].join("\n");
 }
 
-function fallbackSuggestion(
+export function fallbackSuggestion(
   finding: NormalizedFinding
 ): NormalizedFixSuggestion {
   return {
@@ -115,7 +115,7 @@ function fallbackSuggestion(
   };
 }
 
-function coerceContext(
+export function coerceContext(
   raw: unknown
 ): "html" | "attribute" | "js" | "url" | undefined {
   if (raw === "html" || raw === "attribute" || raw === "js" || raw === "url") {
@@ -124,7 +124,7 @@ function coerceContext(
   return undefined;
 }
 
-function coerceConfidence(raw: unknown): "high" | "medium" | "low" {
+export function coerceConfidence(raw: unknown): "high" | "medium" | "low" {
   if (raw === "high" || raw === "medium" || raw === "low") return raw;
   return "medium";
 }
@@ -134,9 +134,9 @@ function coerceConfidence(raw: unknown): "high" | "medium" | "low" {
  * sanitizer, or still call document.write, or still use
  * dangerouslySetInnerHTML unwrapped? If so, the fix is not safe.
  */
-function residualXssRisk(fixedCode: string): string | null {
+export function residualXssRisk(fixedCode: string): string | null {
   if (
-    /\.innerHTML\s*=\s*[^"'`]/.test(fixedCode) &&
+    /\.innerHTML\s*=\s*[^"'`\s]/.test(fixedCode) &&
     !/DOMPurify\.sanitize|\.textContent|createElement/.test(fixedCode)
   ) {
     return "Fixed code still assigns to innerHTML without sanitization";
