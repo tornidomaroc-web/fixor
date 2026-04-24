@@ -4,6 +4,7 @@ import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types
 async function main() {
   const finding: NormalizedSqlInjectionFinding = {
     type: "SQL_INJECTION",
+    findingType: "sql_injection_risk",
     file: "test.js",
     startLine: 1,
     endLine: 1,

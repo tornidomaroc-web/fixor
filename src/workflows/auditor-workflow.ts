@@ -17,6 +17,7 @@ function findingToNormalized(f: Finding): NormalizedSqlInjectionFinding {
   const originalCode = f.original_snippet || `// ${f.file}:${f.line}`;
   return {
     type: "SQL_INJECTION",
+    findingType: f.type,
     file: f.file,
     startLine: f.line,
     endLine: f.line,
@@ -211,17 +212,17 @@ async function executeWorkflow(
   };
 
   const diffStr = extractDiffString(semgrepPayload);
-  let sqlFindings: NormalizedSqlInjectionFinding[];
+  let findings: NormalizedSqlInjectionFinding[];
   let legacyRoot: any = null;
 
   if (diffStr) {
     console.log("[Workflow] Using Claude analysis engine on PR diff.");
     const analysis = await analyzeCode(diffStr);
     result.totalFindings = analysis.findings.length;
-    sqlFindings = analysis.findings.map(findingToNormalized);
+    findings = analysis.findings.map(findingToNormalized);
     result.skippedFindings = 0;
     console.log(
-      `[Workflow] Analysis findings: ${result.totalFindings}; SQL injection (classified): ${sqlFindings.length}`
+      `[Workflow] Analysis findings: ${result.totalFindings}; SQL injection (classified): ${findings.length}`
     );
   } else {
     const { root, error } = parseSemgrepPayload(semgrepPayload);
@@ -242,10 +243,10 @@ async function executeWorkflow(
     )
       ? (root.findings as NormalizedSqlInjectionFinding[])
       : [];
-    sqlFindings = [...semgrepFindings, ...diffFindings];
+    findings = [...semgrepFindings, ...diffFindings];
   }
 
-  result.sqlInjectionFindings = sqlFindings.length;
+  result.sqlInjectionFindings = findings.length;
   console.log(`[Workflow] SQL Injection findings count: ${result.sqlInjectionFindings}`);
   if (legacyRoot) {
     result.skippedFindings =
@@ -261,7 +262,7 @@ async function executeWorkflow(
    */
   const FIX_CONCURRENCY = 4;
   const fixResults = await runWithConcurrency(
-    sqlFindings,
+    findings,
     FIX_CONCURRENCY,
     async (finding) => {
       try {
@@ -299,7 +300,7 @@ async function executeWorkflow(
   const exploits: SqlInjectionExploit[] = [];
   if (result.fixes.length > 0) {
     const riskResults = await Promise.allSettled(
-      sqlFindings.slice(0, result.fixes.length).map((finding) =>
+      findings.slice(0, result.fixes.length).map((finding) =>
         generateSqlInjectionRiskExplanation(finding, {
           dialect: "mysql",
           includeProof: true,

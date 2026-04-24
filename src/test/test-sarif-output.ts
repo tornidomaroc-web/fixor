@@ -20,6 +20,7 @@ function fix(
 ): SqlInjectionFixSuggestion {
   return {
     type: "SQL_INJECTION",
+    findingType: "sql_injection_risk",
     file,
     line,
     originalCode: original,
