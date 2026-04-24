@@ -11,9 +11,11 @@
     "test:fixtures": "npm run build && node dist/test/run-fixture-tests.js",
     "test:sarif": "npm run build && node dist/test/test-sarif-output.js",
     "test:xss": "npm run build && node dist/test/test-xss-fix.js",
+    "test:cmdi": "npm run build && node dist/test/test-cmdi-fix.js",
+    "test:pt": "npm run build && node dist/test/test-pt-fix.js",
     "test:real": "npm run build && node dist/real-tests/run-real-tests.js",
-    "test": "npm run typecheck && npm run test:fixtures && npm run test:sarif && npm run test:xss",
-    "validate:e2e": "npm run build && node dist/test/validate-e2e-xss.js",
+    "test": "npm run typecheck && npm run test:fixtures && npm run test:sarif && npm run test:xss && npm run test:cmdi && npm run test:pt",
+    "validate:e2e": "npm run build && node dist/test/validate-e2e.js",
     "demo:github-pr-webhook": "npm run build && node dist/integrations/github/demo/run-pr-webhook-dry-run.js",
     "demo:validate-github-comment": "npm run build && node dist/integrations/github/demo/validate-github-comment-demo.js"
   },

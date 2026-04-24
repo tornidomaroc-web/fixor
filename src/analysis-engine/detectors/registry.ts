@@ -9,10 +9,14 @@ import type { Detector } from "../detector.types";
 import type { FindingType } from "../types";
 import { SqlInjectionDetector } from "./sql-injection.detector";
 import { XssDetector } from "./xss.detector";
+import { CommandInjectionDetector } from "./command-injection.detector";
+import { PathTraversalDetector } from "./path-traversal.detector";
 
 export const DETECTORS: readonly Detector[] = [
   new SqlInjectionDetector(),
   new XssDetector(),
+  new CommandInjectionDetector(),
+  new PathTraversalDetector(),
 ];
 
 /**
