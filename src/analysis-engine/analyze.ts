@@ -1,69 +1,99 @@
+/**
+ * Detection engine: runs Claude against a raw PR diff and returns typed
+ * findings.
+ *
+ * Uses tool_use to force structured output (no JSON-parsing of free-form
+ * text) and prompt caching on the system prompt for ~90% read-time savings
+ * on warm calls.
+ */
+
 import type { AnalysisResult, Finding, FindingType } from "./types";
-import {
-  ANTHROPIC_API_VERSION,
-  CLAUDE_MODELS,
-  MODEL_DEFAULTS,
-} from "../config/models";
+import { CLAUDE_MODELS } from "../config/models";
+import { cachedSystem, callClaude } from "./anthropic-client";
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
-const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_MODEL = CLAUDE_MODELS.DETECTION;
-const REQUEST_TIMEOUT_MS = MODEL_DEFAULTS[CLAUDE_MODELS.DETECTION].timeoutMs;
-const SYSTEM_PROMPT = `You are a defensive security analyzer. Detect SQL injection risks only.
+const SYSTEM_PROMPT = `You are a defensive security analyzer embedded in a code review pipeline.
 
-Return ONLY valid JSON matching this schema:
-{
-  "findings": [
-    {
-      "type": "sql_injection_risk",
-      "file": "path/to/file",
-      "line": 42,
-      "confidence": "high" | "medium" | "low",
-      "severity": "critical" | "high" | "medium",
-      "explanation": "Brief explanation of the issue",
-      "why_it_matters": "Why this is a security concern",
-      "suggested_fix": "Short description of the fix",
-      "example_fix": "const safe = 'SELECT * FROM users WHERE id = ?';",
-      "original_snippet": "const unsafe = \`SELECT * FROM users WHERE id = \${userId}\`;"
-    }
-  ]
-}
+Goals
+1. Detect real vulnerabilities in a unified diff: SQL injection (primary),
+   XSS, command injection, and path traversal.
+2. Be conservative. Prefer no finding over a speculative one. Only flag
+   clear data-flow from a user-controlled source into a dangerous sink.
+3. Each finding MUST include the exact vulnerable snippet (as-is from the
+   diff) and a safe parameterized replacement.
 
-Rules:
-- original_snippet MUST contain the exact vulnerable line(s) from the diff, as-is
-- example_fix MUST contain the corrected safe version
-- Never include exploits, payloads, or attack instructions
-- If no SQL injection risks found, return {"findings": []}`;
+Output
+Call the record_findings tool exactly once. Never emit plain text. If you
+find no real vulnerabilities, call the tool with an empty findings array.
 
-function extractAssistantText(parsed: unknown): string | null {
-  if (!parsed || typeof parsed !== "object") return null;
-  const content = (parsed as { content?: unknown }).content;
-  if (!Array.isArray(content)) return null;
-  const parts: string[] = [];
-  for (const block of content) {
-    if (block && typeof block === "object") {
-      const o = block as { type?: unknown; text?: unknown };
-      if (o.type === "text" && typeof o.text === "string") {
-        parts.push(o.text);
-      }
-    }
-  }
-  return parts.length > 0 ? parts.join("\n") : null;
-}
+Rules
+- original_snippet MUST contain the exact vulnerable line(s) from the diff.
+- example_fix MUST contain a corrected version using parameterized queries
+  (for SQL), safe escaping (for XSS), or hardened API calls.
+- Never include exploit payloads or attack instructions in any field.
+- Confidence ladder: "high" only for textbook cases with visible taint;
+  "medium" when the sink is clear but the source is implicit; "low"
+  otherwise. Omit the finding if you would otherwise mark it below "low".`;
 
-function stripCodeFences(text: string): string {
-  let t = text.trim();
-  if (t.startsWith("```")) {
-    const lines = t.split("\n");
-    if (lines.length >= 2) {
-      lines.shift();
-      if (lines.length && lines[lines.length - 1].trim().startsWith("```")) {
-        lines.pop();
-      }
-      t = lines.join("\n").trim();
-    }
-  }
-  return t;
-}
+const RECORD_FINDINGS_TOOL: Tool = {
+  name: "record_findings",
+  description:
+    "Record structured vulnerability findings from the PR diff. Call exactly once.",
+  input_schema: {
+    type: "object",
+    properties: {
+      findings: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            type: {
+              type: "string",
+              enum: [
+                "sql_injection_risk",
+                "xss_risk",
+                "command_injection_risk",
+                "path_traversal_risk",
+              ],
+            },
+            file: { type: "string" },
+            line: { type: "integer", minimum: 1 },
+            confidence: { type: "string", enum: ["high", "medium", "low"] },
+            severity: {
+              type: "string",
+              enum: ["critical", "high", "medium"],
+            },
+            explanation: { type: "string", maxLength: 500 },
+            why_it_matters: { type: "string", maxLength: 500 },
+            suggested_fix: { type: "string", maxLength: 500 },
+            example_fix: { type: "string", maxLength: 2000 },
+            original_snippet: { type: "string", maxLength: 2000 },
+          },
+          required: [
+            "type",
+            "file",
+            "line",
+            "confidence",
+            "severity",
+            "explanation",
+            "why_it_matters",
+            "suggested_fix",
+            "example_fix",
+            "original_snippet",
+          ],
+        },
+      },
+    },
+    required: ["findings"],
+  },
+};
+
+const VALID_FINDING_TYPES: readonly FindingType[] = [
+  "sql_injection_risk",
+  "xss_risk",
+  "command_injection_risk",
+  "path_traversal_risk",
+] as const;
 
 function isConfidence(v: unknown): v is Finding["confidence"] {
   return v === "high" || v === "medium" || v === "low";
@@ -78,8 +108,8 @@ function asTrimmedString(v: unknown): string {
 }
 
 function toFinding(raw: Record<string, unknown>): Finding | null {
-  const VALID_TYPES = ["sql_injection_risk", "xss_risk", "command_injection_risk", "path_traversal_risk"];
-  if (!VALID_TYPES.includes(raw.type as string)) return null;
+  const type = raw.type as string;
+  if (!VALID_FINDING_TYPES.includes(type as FindingType)) return null;
   if (!asTrimmedString(raw.file)) return null;
   if (typeof raw.line !== "number" || !Number.isFinite(raw.line)) return null;
   if (!isConfidence(raw.confidence)) return null;
@@ -90,7 +120,7 @@ function toFinding(raw: Record<string, unknown>): Finding | null {
   if (!asTrimmedString(raw.example_fix)) return null;
   if (!asTrimmedString(raw.original_snippet)) return null;
   return {
-    type: raw.type as FindingType,
+    type: type as FindingType,
     file: asTrimmedString(raw.file),
     line: raw.line,
     confidence: raw.confidence,
@@ -103,86 +133,43 @@ function toFinding(raw: Record<string, unknown>): Finding | null {
   };
 }
 
-function parseAnalysisResult(payload: unknown): AnalysisResult {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+function parseToolInput(input: unknown): AnalysisResult {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
     return { findings: [] };
   }
-  const findingsRaw = (payload as { findings?: unknown }).findings;
-  if (!Array.isArray(findingsRaw)) {
-    return { findings: [] };
-  }
+  const findingsRaw = (input as { findings?: unknown }).findings;
+  if (!Array.isArray(findingsRaw)) return { findings: [] };
+
   const findings: Finding[] = [];
   for (const item of findingsRaw) {
     if (!item || typeof item !== "object" || Array.isArray(item)) continue;
-    const rec = item as Record<string, unknown>;
-    const f = toFinding(rec);
+    const f = toFinding(item as Record<string, unknown>);
     if (f) findings.push(f);
   }
   return { findings };
 }
 
 /**
- * Analyze a raw PR diff for SQL injection risks via Claude.
- * On missing API key, HTTP errors, timeouts, or invalid JSON → `{ findings: [] }`.
+ * Analyze a raw PR diff for vulnerabilities via Claude.
+ * On any failure (missing API key, timeout, HTTP error, bad tool input),
+ * returns `{ findings: [] }` so the caller can fall back to heuristics.
  */
 export async function analyzeCode(diff: string): Promise<AnalysisResult> {
   const trimmed = typeof diff === "string" ? diff.trim() : "";
   if (!trimmed) return { findings: [] };
 
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) return { findings: [] };
-
-  try {
-    const signal =
-      typeof AbortSignal !== "undefined" &&
-      typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-        : undefined;
-
-    const res = await fetch(ANTHROPIC_MESSAGES_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_API_VERSION,
+  const result = await callClaude({
+    model: CLAUDE_MODELS.DETECTION,
+    system: cachedSystem(SYSTEM_PROMPT),
+    tool: RECORD_FINDINGS_TOOL,
+    messages: [
+      {
+        role: "user",
+        content: `Analyze this pull request diff and call record_findings.\n\n${trimmed}`,
       },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: MODEL_DEFAULTS[CLAUDE_MODELS.DETECTION].maxTokens,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: `Analyze this pull request diff and respond with JSON only.\n\n${trimmed}`,
-          },
-        ],
-      }),
-      signal,
-    });
+    ],
+  });
 
-    const rawBody = await res.text();
-    let envelope: unknown;
-    try {
-      envelope = JSON.parse(rawBody) as unknown;
-    } catch {
-      return { findings: [] };
-    }
-
-    if (!res.ok) return { findings: [] };
-
-    const text = extractAssistantText(envelope);
-    if (!text?.trim()) return { findings: [] };
-
-    const jsonSlice = stripCodeFences(text.trim());
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(jsonSlice) as unknown;
-    } catch {
-      return { findings: [] };
-    }
-
-    return parseAnalysisResult(parsed);
-  } catch {
-    return { findings: [] };
-  }
+  if (!result.ok) return { findings: [] };
+  return parseToolInput(result.toolInput);
 }

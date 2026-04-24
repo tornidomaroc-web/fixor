@@ -4,141 +4,104 @@ import type {
   SqlDialect,
   SqlInjectionFixSuggestion,
 } from "../types/vulnerability.types";
-import {
-  ANTHROPIC_API_VERSION,
-  CLAUDE_MODELS,
-  MODEL_DEFAULTS,
-} from "../config/models";
+import { CLAUDE_MODELS } from "../config/models";
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
+import { cachedSystem, callClaude } from "../analysis-engine/anthropic-client";
 
-const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_MODEL = CLAUDE_MODELS.REASONING;
-const LLM_TIMEOUT_MS = MODEL_DEFAULTS[CLAUDE_MODELS.REASONING].timeoutMs;
+const FIX_SYSTEM_PROMPT = `You rewrite a single vulnerable snippet into a
+parameterized, safe equivalent for Node.js database drivers.
 
-function buildAnthropicUserPrompt(
+Rules
+- Use "?" placeholders for MySQL/MariaDB; use "$1", "$2", ... for Postgres.
+- Never concatenate or interpolate user-controlled expressions into SQL.
+- Preserve surrounding code style (semicolons, quotes, await) as much as
+  reasonable.
+- Return only the rewritten code via the emit_fix tool. No prose, no
+  markdown fences, no commentary.`;
+
+const EMIT_FIX_TOOL: Tool = {
+  name: "emit_fix",
+  description:
+    "Emit the rewritten safe code plus the ordered list of bound parameter expressions.",
+  input_schema: {
+    type: "object",
+    properties: {
+      fixed_code: {
+        type: "string",
+        description: "The rewritten safe code snippet (no markdown fences).",
+      },
+      parameter_values: {
+        type: "array",
+        description:
+          "Original expressions (in order) to pass as the driver's bound-parameter array.",
+        items: { type: "string" },
+      },
+    },
+    required: ["fixed_code", "parameter_values"],
+  },
+};
+
+function buildFixUserPrompt(
   finding: NormalizedSqlInjectionFinding,
   dialect: SqlDialect
 ): string {
   return [
-    "You are fixing a SQL injection vulnerability in a Node.js application.",
-    `SQL dialect for placeholders: ${dialect} (use ? for mysql, $1 $2 ... for postgres as appropriate).`,
+    `SQL dialect: ${dialect} (use "?" for mysql/mariadb, "$1"..."$N" for postgres).`,
     "",
-    "Original vulnerable code:",
+    "Vulnerable snippet (as-is from the repo):",
     finding.originalCode,
     "",
-    "Return ONLY the fixed code as a single code snippet.",
-    "Do not add explanation, markdown fences, backticks, or commentary.",
+    "Rewrite it safely and call emit_fix with the result.",
   ].join("\n");
-}
-
-function extractAssistantTextFromAnthropic(parsed: unknown): string | null {
-  if (!parsed || typeof parsed !== "object") return null;
-  const content = (parsed as { content?: unknown }).content;
-  if (!Array.isArray(content)) return null;
-  const parts: string[] = [];
-  for (const block of content) {
-    if (block && typeof block === "object") {
-      const o = block as { type?: unknown; text?: unknown };
-      if (o.type === "text" && typeof o.text === "string") {
-        parts.push(o.text);
-      }
-    }
-  }
-  return parts.length > 0 ? parts.join("\n") : null;
-}
-
-function stripMarkdownFences(text: string): string {
-  let t = text.trim();
-  if (t.startsWith("```")) {
-    const lines = t.split("\n");
-    if (lines.length >= 2) {
-      lines.shift();
-      if (lines.length && lines[lines.length - 1].trim() === "```") {
-        lines.pop();
-      }
-      t = lines.join("\n").trim();
-    }
-  }
-  return t;
 }
 
 /**
  * Async LLM fallback when regex-based rewrites do not apply.
- * On missing key, HTTP error, timeout, or parse failure, returns {@link fallbackSuggestion}.
+ * On missing key, HTTP error, timeout, or parse failure, returns
+ * {@link fallbackSuggestion}.
  */
 export async function llmFallbackSuggestion(
   finding: NormalizedSqlInjectionFinding,
   dialect: SqlDialect
 ): Promise<SqlInjectionFixSuggestion> {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) {
-    return fallbackSuggestion(finding, dialect);
-  }
+  const result = await callClaude({
+    model: CLAUDE_MODELS.REASONING,
+    system: cachedSystem(FIX_SYSTEM_PROMPT),
+    tool: EMIT_FIX_TOOL,
+    messages: [
+      { role: "user", content: buildFixUserPrompt(finding, dialect) },
+    ],
+  });
 
-  try {
-    const prompt = buildAnthropicUserPrompt(finding, dialect);
-    const signal =
-      typeof AbortSignal !== "undefined" &&
-      typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(LLM_TIMEOUT_MS)
-        : undefined;
+  if (!result.ok) return fallbackSuggestion(finding, dialect);
 
-    const res = await fetch(ANTHROPIC_MESSAGES_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_API_VERSION,
-      },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: MODEL_DEFAULTS[CLAUDE_MODELS.REASONING].maxTokens,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal,
-    });
+  const input = result.toolInput as
+    | { fixed_code?: unknown; parameter_values?: unknown }
+    | undefined;
+  const fixedCode =
+    typeof input?.fixed_code === "string" ? input.fixed_code.trim() : "";
+  if (!fixedCode) return fallbackSuggestion(finding, dialect);
 
-    const rawBody = await res.text();
+  const parameterValues = Array.isArray(input?.parameter_values)
+    ? input.parameter_values.filter((v): v is string => typeof v === "string")
+    : [];
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawBody) as unknown;
-    } catch {
-      return fallbackSuggestion(finding, dialect);
-    }
-
-    if (!res.ok) {
-      return fallbackSuggestion(finding, dialect);
-    }
-
-    const extracted = extractAssistantTextFromAnthropic(parsed);
-    if (!extracted?.trim()) {
-      return fallbackSuggestion(finding, dialect);
-    }
-
-    const fixedCode = stripMarkdownFences(extracted);
-    if (!fixedCode) {
-      return fallbackSuggestion(finding, dialect);
-    }
-
-    return {
-      type: "SQL_INJECTION",
-      file: finding.file,
-      line: finding.startLine,
-      originalCode: finding.originalCode,
-      fixedCode,
-      parameterValues: [],
-      dialect,
-      explanation:
-        "Claude-generated fix suggestion. Verify against your driver, schema, and parameters before applying.",
-      confidence: "medium",
-      patchQuality: "medium",
-      patchWarnings: [
-        "LLM-generated code; review for correctness and alignment with your query API.",
-      ],
-    };
-  } catch {
-    return fallbackSuggestion(finding, dialect);
-  }
+  return {
+    type: "SQL_INJECTION",
+    file: finding.file,
+    line: finding.startLine,
+    originalCode: finding.originalCode,
+    fixedCode,
+    parameterValues,
+    dialect,
+    explanation:
+      "Claude-generated parameterized rewrite. Verify against your driver, schema, and parameters before applying.",
+    confidence: "medium",
+    patchQuality: "medium",
+    patchWarnings: [
+      "LLM-generated code; review for correctness and alignment with your query API.",
+    ],
+  };
 }
 
 const SQLISH =

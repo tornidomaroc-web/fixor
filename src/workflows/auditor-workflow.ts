@@ -8,6 +8,7 @@ import {
 import { generateSqlInjectionFix } from "../services/fix.service.js";
 import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types.js";
 import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
+import { runWithConcurrency } from "../lib/concurrency.js";
 
 function findingToNormalized(f: Finding): NormalizedSqlInjectionFinding {
   const score =
@@ -124,23 +125,28 @@ export async function runAuditorWorkflow(
     `[Workflow] Started execution.${metadata.scanId ? ` Scan ID: ${metadata.scanId}` : ""}`
   );
 
-  return Promise.race([
-    executeWorkflow(semgrepPayload, metadata, startedAt, startTimeMs),
-    new Promise<WorkflowResult>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Workflow timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      )
-    ),
-  ]).catch((err) => {
-    console.error("[Workflow] Execution failed or timed out:", err.message);
+  let timeoutHandle: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<WorkflowResult>((_, reject) => {
+    timeoutHandle = setTimeout(
+      () => reject(new Error(`Workflow timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
+  });
+
+  try {
+    return await Promise.race([
+      executeWorkflow(semgrepPayload, metadata, startedAt, startTimeMs),
+      timeoutPromise,
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[Workflow] Execution failed or timed out:", message);
     const finishedAt = new Date().toISOString();
     return {
       status: "failed",
       automationReady: false,
       automationDecisionReason:
-        (err.message || "").includes("timed out") ||
-        (err.message || "").includes("timeout")
+        message.includes("timed out") || message.includes("timeout")
           ? "Workflow timed out"
           : "Workflow failed",
       totalFindings: 0,
@@ -151,7 +157,7 @@ export async function runAuditorWorkflow(
       mediumQualityPatches: 0,
       lowQualityPatches: 0,
       fixes: [],
-      errors: [{ message: err.message || "Unknown workflow error" }],
+      errors: [{ message: message || "Unknown workflow error" }],
       metadata,
       timing: {
         startedAt,
@@ -159,7 +165,9 @@ export async function runAuditorWorkflow(
         durationMs: Date.now() - startTimeMs,
       },
     };
-  });
+  } finally {
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+  }
 }
 
 /**
@@ -246,23 +254,40 @@ async function executeWorkflow(
 
   console.log("[Workflow] Fix generation started.");
 
-  for (const finding of sqlFindings) {
-    try {
-      const fix = await generateSqlInjectionFix(finding);
-      result.fixes.push(fix);
-      result.fixesGenerated++;
+  /**
+   * Bounded concurrency: we don't want a 100-finding PR to open 100
+   * simultaneous Claude connections. 4 keeps wall time low while
+   * staying well under per-account rate limits.
+   */
+  const FIX_CONCURRENCY = 4;
+  const fixResults = await runWithConcurrency(
+    sqlFindings,
+    FIX_CONCURRENCY,
+    async (finding) => {
+      try {
+        return { kind: "ok" as const, finding, fix: await generateSqlInjectionFix(finding) };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { kind: "err" as const, finding, message };
+      }
+    }
+  );
 
-      if (fix.patchQuality === "high") result.highQualityPatches++;
-      else if (fix.patchQuality === "medium") result.mediumQualityPatches++;
+  for (const r of fixResults) {
+    if (r.kind === "ok") {
+      result.fixes.push(r.fix);
+      result.fixesGenerated++;
+      if (r.fix.patchQuality === "high") result.highQualityPatches++;
+      else if (r.fix.patchQuality === "medium") result.mediumQualityPatches++;
       else result.lowQualityPatches++;
-    } catch (err: any) {
+    } else {
       console.warn(
-        `[Workflow] Failed to generate fix for finding in ${finding.file}:${finding.startLine}`
+        `[Workflow] Failed to generate fix for finding in ${r.finding.file}:${r.finding.startLine}`
       );
       result.errors.push({
-        findingId: finding.ruleId || "unknown",
+        findingId: r.finding.ruleId || "unknown",
         message: "Failed to generate fix",
-        details: err.message,
+        details: r.message,
       });
     }
   }
