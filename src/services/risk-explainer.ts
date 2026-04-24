@@ -2,10 +2,9 @@ import type {
   NormalizedSqlInjectionFinding,
   SqlDialect,
 } from "../types/vulnerability.types";
-
-const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_MODEL = "claude-opus-4-5";
-const REQUEST_TIMEOUT_MS = 45_000;
+import { CLAUDE_MODELS } from "../config/models";
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
+import { cachedSystem, callClaude } from "../analysis-engine/anthropic-client";
 
 export type RiskExplanationOptions = {
   dialect?: SqlDialect;
@@ -24,39 +23,46 @@ export type SqlInjectionExploit = {
   severity: "critical" | "high" | "medium";
 };
 
-function extractAssistantText(parsed: unknown): string | null {
-  if (!parsed || typeof parsed !== "object") return null;
-  const content = (parsed as { content?: unknown }).content;
-  if (!Array.isArray(content)) return null;
-  const parts: string[] = [];
-  for (const block of content) {
-    if (block && typeof block === "object") {
-      const o = block as { type?: unknown; text?: unknown };
-      if (o.type === "text" && typeof o.text === "string") {
-        parts.push(o.text);
-      }
-    }
-  }
-  return parts.length > 0 ? parts.join("\n") : null;
-}
+const RISK_SYSTEM_PROMPT = `You are a senior defensive security analyst.
+Produce a short, structured risk write-up that helps the engineer fix
+a SQL injection finding — not exploit it.
 
-function stripCodeFences(text: string): string {
-  let t = text.trim();
-  if (t.startsWith("```")) {
-    const lines = t.split("\n");
-    if (lines.length >= 2) {
-      lines.shift();
-      if (lines.length && lines[lines.length - 1].trim().startsWith("```")) {
-        lines.pop();
-      }
-      t = lines.join("\n").trim();
-    }
-  }
-  return t;
-}
+Never emit weaponized payloads. "payload" must describe the risk shape
+at a high level (or "N/A"). "proofOfConcept" must describe safe,
+defensive verification — never step-by-step attack instructions.
+
+Call the emit_risk_explanation tool exactly once.`;
+
+const EMIT_RISK_TOOL: Tool = {
+  name: "emit_risk_explanation",
+  description: "Emit a structured, defensive risk explanation.",
+  input_schema: {
+    type: "object",
+    properties: {
+      vulnerability: { type: "string" },
+      payload: { type: "string" },
+      attackDescription: { type: "string" },
+      proofOfConcept: { type: "string" },
+      impact: { type: "string" },
+      severity: { type: "string", enum: ["critical", "high", "medium"] },
+    },
+    required: [
+      "vulnerability",
+      "payload",
+      "attackDescription",
+      "proofOfConcept",
+      "impact",
+      "severity",
+    ],
+  },
+};
 
 function isSeverity(s: unknown): s is SqlInjectionExploit["severity"] {
   return s === "critical" || s === "high" || s === "medium";
+}
+
+function asTrimmedString(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
 }
 
 function staticRiskExplanationFallback(): SqlInjectionExploit {
@@ -74,20 +80,19 @@ function staticRiskExplanationFallback(): SqlInjectionExploit {
   };
 }
 
-function asTrimmedString(v: unknown): string {
-  return typeof v === "string" ? v.trim() : "";
-}
-
-function normalizeRiskExplanationJson(
-  raw: Record<string, unknown>,
+function normalizeFromToolInput(
+  raw: unknown,
   includeProof: boolean
 ): SqlInjectionExploit | null {
-  const vulnerability = asTrimmedString(raw.vulnerability);
-  const payload = asTrimmedString(raw.payload);
-  const attackDescription = asTrimmedString(raw.attackDescription);
-  let proofOfConcept = asTrimmedString(raw.proofOfConcept);
-  const impact = asTrimmedString(raw.impact);
-  const sev = isSeverity(raw.severity) ? raw.severity : "medium";
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+
+  const vulnerability = asTrimmedString(r.vulnerability);
+  const payload = asTrimmedString(r.payload);
+  const attackDescription = asTrimmedString(r.attackDescription);
+  let proofOfConcept = asTrimmedString(r.proofOfConcept);
+  const impact = asTrimmedString(r.impact);
+  const sev = isSeverity(r.severity) ? r.severity : "medium";
 
   if (!includeProof) {
     proofOfConcept =
@@ -114,38 +119,31 @@ function normalizeRiskExplanationJson(
   };
 }
 
-function buildRiskExplanationPrompt(
+function buildUserPrompt(
   finding: NormalizedSqlInjectionFinding,
   dialect: SqlDialect,
   includeProof: boolean
 ): string {
   const proofLine = includeProof
-    ? "Include proofOfConcept as safe, defensive verification guidance (no step-by-step attack instructions)."
-    : "Set proofOfConcept to a one-line note that detailed verification was omitted.";
+    ? 'Include proofOfConcept as safe, defensive verification guidance (no step-by-step attack instructions).'
+    : 'Set proofOfConcept to a one-line note that detailed verification was omitted.';
 
   return [
-    "You are a senior security analyst producing a defensive risk explanation for SQL injection.",
-    "Respond with a single JSON object only. No markdown, no code fences, no text before or after the JSON.",
-    "",
     `SQL dialect context: ${dialect}.`,
     "",
     "Relevant code snippet:",
     finding.originalCode,
     "",
-    "The JSON object must have exactly these string keys:",
-    "vulnerability, payload, attackDescription, proofOfConcept, impact, severity",
-    "",
-    'severity must be one of: "critical", "high", "medium" (use conservative judgment).',
-    "payload must describe the risk pattern at a high level (or say N/A); do not provide weaponized input.",
     proofLine,
     "",
-    "Focus on why the pattern is risky and how defenders should remediate.",
+    "Call emit_risk_explanation with the structured result.",
   ].join("\n");
 }
 
 /**
- * Uses Anthropic Messages API to produce structured SQLi risk context for reports.
- * On any failure returns {@link staticRiskExplanationFallback} (severity "medium").
+ * Produce structured SQLi risk context for reports using the
+ * emit_risk_explanation tool. Falls back to a static generic explanation
+ * on any error.
  */
 export async function generateSqlInjectionRiskExplanation(
   finding: NormalizedSqlInjectionFinding,
@@ -153,75 +151,22 @@ export async function generateSqlInjectionRiskExplanation(
 ): Promise<SqlInjectionExploit> {
   const dialect: SqlDialect = options?.dialect ?? "mysql";
   const includeProof = options?.includeProof !== false;
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) {
-    return staticRiskExplanationFallback();
-  }
 
-  try {
-    const prompt = buildRiskExplanationPrompt(finding, dialect, includeProof);
-    const signal =
-      typeof AbortSignal !== "undefined" &&
-      typeof AbortSignal.timeout === "function"
-        ? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-        : undefined;
-
-    const res = await fetch(ANTHROPIC_MESSAGES_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+  const result = await callClaude({
+    model: CLAUDE_MODELS.REASONING,
+    system: cachedSystem(RISK_SYSTEM_PROMPT),
+    tool: EMIT_RISK_TOOL,
+    messages: [
+      {
+        role: "user",
+        content: buildUserPrompt(finding, dialect, includeProof),
       },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: 4096,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal,
-    });
+    ],
+  });
 
-    const rawBody = await res.text();
-    let envelope: unknown;
-    try {
-      envelope = JSON.parse(rawBody) as unknown;
-    } catch {
-      return staticRiskExplanationFallback();
-    }
-
-    if (!res.ok) {
-      return staticRiskExplanationFallback();
-    }
-
-    const text = extractAssistantText(envelope);
-    if (!text?.trim()) {
-      return staticRiskExplanationFallback();
-    }
-
-    const jsonSlice = stripCodeFences(text.trim());
-    let payload: unknown;
-    try {
-      payload = JSON.parse(jsonSlice) as unknown;
-    } catch {
-      return staticRiskExplanationFallback();
-    }
-
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      return staticRiskExplanationFallback();
-    }
-
-    const normalized = normalizeRiskExplanationJson(
-      payload as Record<string, unknown>,
-      includeProof
-    );
-    if (!normalized) {
-      return staticRiskExplanationFallback();
-    }
-
-    return normalized;
-  } catch {
-    return staticRiskExplanationFallback();
-  }
+  if (!result.ok) return staticRiskExplanationFallback();
+  const normalized = normalizeFromToolInput(result.toolInput, includeProof);
+  return normalized ?? staticRiskExplanationFallback();
 }
 
 /** @deprecated Use {@link generateSqlInjectionRiskExplanation}. */

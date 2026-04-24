@@ -28,6 +28,10 @@ export interface WorkflowResult {
   lowQualityPatches: number;
   fixes: SqlInjectionFixSuggestion[];
   exploits?: SqlInjectionExploit[];
+  /** Optional URL to the PDF report uploaded for this run. */
+  pdfUrl?: string | null;
+  /** Optional URL to the SARIF log uploaded for this run. */
+  sarifUrl?: string | null;
   errors: WorkflowError[];
   metadata: ScanMetadata;
   timing: {

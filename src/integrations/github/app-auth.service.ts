@@ -1,80 +1,114 @@
-import * as crypto from 'crypto';
+/**
+ * GitHub App authentication: RS256 JWT minting + installation access token
+ * caching. We use `jose` for JWT signing instead of hand-rolling base64url
+ * + crypto.createSign because `jose` handles edge cases (key formats,
+ * clock skew, RFC-correct JSON encoding) that used to be our problem.
+ */
+
+import { SignJWT, importPKCS8 } from "jose";
 
 interface CachedToken {
   token: string;
   expiresAt: number;
 }
 
-const tokenCache = new Map<number, CachedToken>();
-
-export function generateAppJwt(): string {
-  const appId = process.env.GITHUB_APP_ID;
-  const rawKey = process.env.GITHUB_APP_PRIVATE_KEY;
-  const privateKey = rawKey?.replace(/\\n/g, '\n');
-
-  if (!appId || !privateKey) {
-    throw new Error('GITHUB_APP_ID or GITHUB_APP_PRIVATE_KEY is missing from environment variables.');
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const iat = now - 60;
-  const exp = now + 600;
-
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const payload = { iat, exp, iss: appId };
-
-  const base64UrlEncode = (obj: any) => 
-    Buffer.from(JSON.stringify(obj))
-      .toString('base64')
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
-
-  const encodedHeader = base64UrlEncode(header);
-  const encodedPayload = base64UrlEncode(payload);
-
-  const sign = crypto.createSign('RSA-SHA256');
-  sign.update(`${encodedHeader}.${encodedPayload}`);
-  sign.end();
-
-  const signature = sign.sign(privateKey, 'base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-  return `${encodedHeader}.${encodedPayload}.${signature}`;
+interface InstallationTokenResponse {
+  token: string;
+  expires_at: string;
 }
 
-export async function getInstallationToken(installationId: number): Promise<string> {
-  const cached = tokenCache.get(installationId);
-  if (cached && cached.expiresAt > Date.now() + 60000) {
-    return cached.token;
-  }
+const tokenCache = new Map<number, CachedToken>();
+/** Concurrent callers for the same installation share one in-flight fetch. */
+const inflightFetches = new Map<number, Promise<string>>();
 
-  const jwt = generateAppJwt();
-  
-  const response = await fetch(`https://api.github.com/app/installations/${installationId}/access_tokens`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'Authorization': `Bearer ${jwt}`
+const JWT_LIFETIME_SECONDS = 600;
+const JWT_CLOCK_SKEW_SECONDS = 60;
+
+function readPrivateKeyPem(): string {
+  const raw = process.env.GITHUB_APP_PRIVATE_KEY;
+  if (!raw) {
+    throw new Error(
+      "GITHUB_APP_PRIVATE_KEY is missing from environment variables."
+    );
+  }
+  // GitHub Actions / .env files escape newlines as `\n`; normalize them back.
+  return raw.replace(/\\n/g, "\n");
+}
+
+function readAppId(): string {
+  const appId = process.env.GITHUB_APP_ID?.trim();
+  if (!appId) {
+    throw new Error("GITHUB_APP_ID is missing from environment variables.");
+  }
+  return appId;
+}
+
+/**
+ * Mints a short-lived (10 minute) RS256 JWT signed with the GitHub App's
+ * private key. Includes a 60-second backdated iat to absorb clock skew.
+ */
+export async function generateAppJwt(): Promise<string> {
+  const appId = readAppId();
+  const pem = readPrivateKeyPem();
+  const privateKey = await importPKCS8(pem, "RS256");
+
+  const now = Math.floor(Date.now() / 1000);
+  return new SignJWT({})
+    .setProtectedHeader({ alg: "RS256", typ: "JWT" })
+    .setIssuedAt(now - JWT_CLOCK_SKEW_SECONDS)
+    .setExpirationTime(now + JWT_LIFETIME_SECONDS)
+    .setIssuer(appId)
+    .sign(privateKey);
+}
+
+async function fetchInstallationToken(installationId: number): Promise<string> {
+  const jwt = await generateAppJwt();
+  const response = await fetch(
+    `https://api.github.com/app/installations/${installationId}/access_tokens`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        Authorization: `Bearer ${jwt}`,
+      },
     }
-  });
+  );
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`GitHub API returned ${response.status}: ${response.statusText} - ${errorBody}`);
+    throw new Error(
+      `GitHub API returned ${response.status}: ${response.statusText} - ${errorBody}`
+    );
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as InstallationTokenResponse;
   const expiresAt = new Date(data.expires_at).getTime();
-  
-  tokenCache.set(installationId, {
-    token: data.token,
-    expiresAt
-  });
 
+  tokenCache.set(installationId, { token: data.token, expiresAt });
   return data.token;
+}
+
+/**
+ * Fetches (or returns cached) installation access token. Concurrent calls
+ * for the same installation share one in-flight request, so we don't burn
+ * App rate-limit quota on a race.
+ */
+export async function getInstallationToken(
+  installationId: number
+): Promise<string> {
+  const cached = tokenCache.get(installationId);
+  if (cached && cached.expiresAt > Date.now() + 60_000) {
+    return cached.token;
+  }
+
+  const inflight = inflightFetches.get(installationId);
+  if (inflight) return inflight;
+
+  const p = fetchInstallationToken(installationId).finally(() => {
+    inflightFetches.delete(installationId);
+  });
+  inflightFetches.set(installationId, p);
+  return p;
 }
 
 export function clearInstallationTokenCache(installationId?: number): void {

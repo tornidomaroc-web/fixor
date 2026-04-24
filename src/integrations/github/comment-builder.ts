@@ -112,23 +112,27 @@ export function buildPullRequestCommentMarkdown(
     lines.push("");
   }
 
-  const pdfUrl = (workflow as any).pdfUrl as string | null | undefined;
+  const pdfUrl = workflow.pdfUrl;
+  const sarifUrl = workflow.sarifUrl;
+
+  const renderDownloadsBlock = (): string[] => {
+    if (!pdfUrl && !sarifUrl) return [];
+    const block: string[] = ["", "---", "", "### 📥 Downloads", ""];
+    if (pdfUrl) {
+      block.push(`- [📄 **PDF report**](${pdfUrl}) — human-readable, sharable`);
+    }
+    if (sarifUrl) {
+      block.push(
+        `- [🧾 **SARIF 2.1.0 log**](${sarifUrl}) — feed into GitHub Code Scanning, IDE viewers, or security triage pipelines`
+      );
+    }
+    block.push("");
+    return block;
+  };
 
   if (list.length === 0) {
     lines.push("_No SQL injection fixes in this run._", "");
-    if (pdfUrl) {
-      lines.push(
-        "",
-        "---",
-        "",
-        `### 📄 Download full report`,
-        "",
-        `[**Download PDF Report →**](${pdfUrl})`,
-        "",
-        "_Professional report suitable for sharing with your team or compliance review._",
-        ""
-      );
-    }
+    lines.push(...renderDownloadsBlock());
     lines.push(
       FIXOR_PR_COMMENT_MARKER,
       `<sub>🔒 Analyzed by [Fixor](https://github.com/tornidomaroc-web/fixor) · ${workflow.timing.finishedAt || "—"}</sub>`
@@ -204,19 +208,7 @@ export function buildPullRequestCommentMarkdown(
     );
   }
 
-  if (pdfUrl) {
-    lines.push(
-      "",
-      "---",
-      "",
-      `### 📄 Download full report`,
-      "",
-      `[**Download PDF Report →**](${pdfUrl})`,
-      "",
-      "_Professional report suitable for sharing with your team or compliance review._",
-      ""
-    );
-  }
+  lines.push(...renderDownloadsBlock());
   lines.push(
     FIXOR_PR_COMMENT_MARKER,
     `<sub>🔒 Analyzed by [Fixor](https://github.com/tornidomaroc-web/fixor) · ${workflow.timing.finishedAt || "—"}</sub>`

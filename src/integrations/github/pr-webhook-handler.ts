@@ -1,7 +1,15 @@
 import { analyzePrDiff } from "../../services/pr-diff-analyzer";
 import { getInstallationToken } from "./app-auth.service";
 import { generatePdfReport } from "../../services/pdf-report.service";
-import { uploadPdfBuffer, buildReportPublicId } from "../../services/cloudinary-upload.service";
+import {
+  uploadPdfBuffer,
+  uploadSarifText,
+  buildReportPublicId,
+} from "../../services/cloudinary-upload.service";
+import {
+  buildSarifLog,
+  sarifToJson,
+} from "../../services/sarif-output.service";
 import { runAuditorWorkflow } from "../../workflows/auditor-workflow";
 import type { ScanMetadata, WorkflowResult } from "../../types/workflow.types";
 import type { GitHubApiErrorDetails } from "./github-api-error";
@@ -208,7 +216,10 @@ export async function handlePullRequestWebhook(
   const workflow = await runAuditorWorkflow(semgrepPayload, metadata);
 
   let pdfUrl: string | null = null;
+  let sarifUrl: string | null = null;
   if (workflow.fixes.length > 0) {
+    const publicId = buildReportPublicId(owner, repo, pullNumber, headSha);
+
     try {
       const pdfBuffer = await generatePdfReport(workflow, {
         owner,
@@ -216,14 +227,25 @@ export async function handlePullRequestWebhook(
         pullNumber,
         commitSha: headSha,
       });
-      const publicId = buildReportPublicId(owner, repo, pullNumber, headSha);
       pdfUrl = await uploadPdfBuffer(pdfBuffer, publicId);
       console.log(`[Webhook] PDF report uploaded: ${pdfUrl}`);
     } catch (pdfError) {
       console.warn(`[Webhook] PDF generation/upload failed:`, pdfError);
     }
+
+    try {
+      const sarif = buildSarifLog(workflow, {
+        repoSlug: `${owner}/${repo}`,
+        commitSha: headSha,
+      });
+      sarifUrl = await uploadSarifText(sarifToJson(sarif), publicId);
+      console.log(`[Webhook] SARIF log uploaded: ${sarifUrl}`);
+    } catch (sarifError) {
+      console.warn(`[Webhook] SARIF generation/upload failed:`, sarifError);
+    }
   }
-  (workflow as any).pdfUrl = pdfUrl;
+  workflow.pdfUrl = pdfUrl;
+  workflow.sarifUrl = sarifUrl;
 
   const executionKey =
     options.executionKey?.trim() ??

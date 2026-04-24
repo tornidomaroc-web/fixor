@@ -1,20 +1,29 @@
 {
   "name": "fixor",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/server/webhook-server.js",
     "test:fixtures": "npm run build && node dist/test/run-fixture-tests.js",
+    "test:sarif": "npm run build && node dist/test/test-sarif-output.js",
     "test:real": "npm run build && node dist/real-tests/run-real-tests.js",
+    "test": "npm run typecheck && npm run test:fixtures && npm run test:sarif",
     "demo:github-pr-webhook": "npm run build && node dist/integrations/github/demo/run-pr-webhook-dry-run.js",
     "demo:validate-github-comment": "npm run build && node dist/integrations/github/demo/validate-github-comment-demo.js"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^20.14.0",
     "@types/pdfkit": "^0.17.6",
-    "typescript": "^5.4.5"
+    "typescript": "^5.6.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "cloudinary": "^2.9.0",
+    "jose": "^5.9.6",
     "pdfkit": "^0.18.0"
   }
 }
