@@ -1,8 +1,13 @@
 import type { AnalysisResult, Finding, FindingType } from "./types";
+import {
+  ANTHROPIC_API_VERSION,
+  CLAUDE_MODELS,
+  MODEL_DEFAULTS,
+} from "../config/models";
 
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
-const REQUEST_TIMEOUT_MS = 45_000;
+const ANTHROPIC_MODEL = CLAUDE_MODELS.DETECTION;
+const REQUEST_TIMEOUT_MS = MODEL_DEFAULTS[CLAUDE_MODELS.DETECTION].timeoutMs;
 const SYSTEM_PROMPT = `You are a defensive security analyzer. Detect SQL injection risks only.
 
 Return ONLY valid JSON matching this schema:
@@ -139,11 +144,11 @@ export async function analyzeCode(diff: string): Promise<AnalysisResult> {
       headers: {
         "content-type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": ANTHROPIC_API_VERSION,
       },
       body: JSON.stringify({
         model: ANTHROPIC_MODEL,
-        max_tokens: 8192,
+        max_tokens: MODEL_DEFAULTS[CLAUDE_MODELS.DETECTION].maxTokens,
         system: SYSTEM_PROMPT,
         messages: [
           {

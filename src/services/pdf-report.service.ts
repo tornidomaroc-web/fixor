@@ -1,4 +1,4 @@
-import * as PDFDocument from "pdfkit";
+import PDFDocument from "pdfkit";
 import type { WorkflowResult } from "../types/workflow.types";
 
 export async function generatePdfReport(

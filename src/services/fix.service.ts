@@ -4,10 +4,15 @@ import type {
   SqlDialect,
   SqlInjectionFixSuggestion,
 } from "../types/vulnerability.types";
+import {
+  ANTHROPIC_API_VERSION,
+  CLAUDE_MODELS,
+  MODEL_DEFAULTS,
+} from "../config/models";
 
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_MODEL = "claude-opus-4-5";
-const LLM_TIMEOUT_MS = 45_000;
+const ANTHROPIC_MODEL = CLAUDE_MODELS.REASONING;
+const LLM_TIMEOUT_MS = MODEL_DEFAULTS[CLAUDE_MODELS.REASONING].timeoutMs;
 
 function buildAnthropicUserPrompt(
   finding: NormalizedSqlInjectionFinding,
@@ -82,11 +87,11 @@ export async function llmFallbackSuggestion(
       headers: {
         "content-type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": ANTHROPIC_API_VERSION,
       },
       body: JSON.stringify({
         model: ANTHROPIC_MODEL,
-        max_tokens: 4096,
+        max_tokens: MODEL_DEFAULTS[CLAUDE_MODELS.REASONING].maxTokens,
         messages: [{ role: "user", content: prompt }],
       }),
       signal,
