@@ -116,7 +116,7 @@ function computeAutomationDecisionReason(
     return "Partial success: errors occurred during fix generation";
   }
   if (finalStatus === "no_action") {
-    return "No SQL injection findings to automate";
+    return "No classified vulnerabilities to automate";
   }
   if (finalStatus === "success" && lowQualityPatches > 0) {
     return "Low-quality patches detected";
@@ -171,6 +171,7 @@ export async function runAuditorWorkflow(
           : "Workflow failed",
       totalFindings: 0,
       sqlInjectionFindings: 0,
+      classifiedFindings: 0,
       skippedFindings: 0,
       fixesGenerated: 0,
       highQualityPatches: 0,
@@ -205,6 +206,7 @@ async function executeWorkflow(
     automationDecisionReason: "",
     totalFindings: 0,
     sqlInjectionFindings: 0,
+    classifiedFindings: 0,
     skippedFindings: 0,
     fixesGenerated: 0,
     highQualityPatches: 0,
@@ -301,6 +303,7 @@ async function executeWorkflow(
   result.sqlInjectionFindings = findings.filter(
     (f) => f.type === "sql_injection_risk"
   ).length;
+  result.classifiedFindings = routed.length;
   const unsupportedTotal = Array.from(unsupportedByType.values()).reduce(
     (a, b) => a + b,
     0
@@ -319,7 +322,7 @@ async function executeWorkflow(
     }
   }
   console.log(
-    `[Workflow] Routable findings: ${routed.length}; SQL injection: ${result.sqlInjectionFindings}; skipped: ${result.skippedFindings}.`
+    `[Workflow] Classified findings: ${result.classifiedFindings}; SQL injection: ${result.sqlInjectionFindings}; skipped: ${result.skippedFindings}.`
   );
 
   console.log("[Workflow] Fix generation started.");
@@ -375,29 +378,38 @@ async function executeWorkflow(
     `[Workflow] Fix generation completed. Generated ${result.fixesGenerated} fixes.`
   );
 
-  const exploits: SqlInjectionExploit[] = [];
-  if (result.fixes.length > 0 && sqlFindingsForExplainer.length > 0) {
+  // Risk explanations apply only to SQL fixes (no XSS equivalent exists
+  // yet). Key the map by the SQL fix's findingId so the comment builder
+  // attaches exploit text to the RIGHT fix even when the fixes array
+  // interleaves SQL and XSS findings.
+  const sqlFixesInOrder = result.fixes.filter(
+    (f) => f.findingType === "sql_injection_risk"
+  );
+  const exploits: Record<string, SqlInjectionExploit> = {};
+  if (sqlFixesInOrder.length > 0 && sqlFindingsForExplainer.length > 0) {
+    const pairs = sqlFindingsForExplainer
+      .slice(0, sqlFixesInOrder.length)
+      .map((finding, i) => ({ finding, fixId: sqlFixesInOrder[i]!.findingId }));
     const riskResults = await Promise.allSettled(
-      sqlFindingsForExplainer
-        .slice(0, result.fixes.length)
-        .map((finding) =>
-          generateSqlInjectionRiskExplanation(finding, {
-            dialect: "mysql",
-            includeProof: true,
-          })
-        )
+      pairs.map(async (p) => ({
+        fixId: p.fixId,
+        exploit: await generateSqlInjectionRiskExplanation(p.finding, {
+          dialect: "mysql",
+          includeProof: true,
+        }),
+      }))
     );
     for (const r of riskResults) {
-      if (r.status === "fulfilled") exploits.push(r.value);
+      if (r.status === "fulfilled") exploits[r.value.fixId] = r.value.exploit;
     }
   }
   result.exploits = exploits;
 
   let finalStatus: WorkflowResult["status"] = "failed";
 
-  if (result.sqlInjectionFindings === 0 && result.errors.length === 0) {
+  if (result.classifiedFindings === 0 && result.errors.length === 0) {
     finalStatus = "no_action";
-  } else if (result.sqlInjectionFindings > 0 && result.fixesGenerated === 0) {
+  } else if (result.classifiedFindings > 0 && result.fixesGenerated === 0) {
     finalStatus = "failed";
   } else if (result.fixesGenerated > 0 && result.errors.length > 0) {
     finalStatus = "partial_success";

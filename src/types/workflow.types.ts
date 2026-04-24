@@ -20,7 +20,18 @@ export interface WorkflowResult {
   /** Why automation is or is not allowed (patch quality + warnings + status). */
   automationDecisionReason: string;
   totalFindings: number;
+  /**
+   * SQL-injection findings specifically (kept for backwards-compatible
+   * webhook response shape). For the total number of findings that had a
+   * registered detector across all families, use `classifiedFindings`.
+   */
   sqlInjectionFindings: number;
+  /**
+   * Findings that had a detector registered for their type across every
+   * family (SQL, XSS, CMDi, Path Traversal). `classifiedFindings -
+   * fixesGenerated === errors.length` when every failure is logged.
+   */
+  classifiedFindings: number;
   skippedFindings: number;
   fixesGenerated: number;
   highQualityPatches: number;
@@ -32,7 +43,13 @@ export interface WorkflowResult {
    * (dialect, parameterValues) live on `fix.metadata`.
    */
   fixes: NormalizedFixSuggestion[];
-  exploits?: SqlInjectionExploit[];
+  /**
+   * SQL-specific risk explanations keyed by the `findingId` of the fix
+   * they belong to. Non-SQL fixes have no entry. Keying by id (rather
+   * than array index) prevents exploit text from attaching to the
+   * wrong fix when mixed-family runs interleave SQL and XSS fixes.
+   */
+  exploits?: Record<string, SqlInjectionExploit>;
   /** Optional URL to the PDF report uploaded for this run. */
   pdfUrl?: string | null;
   /** Optional URL to the SARIF log uploaded for this run. */

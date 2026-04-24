@@ -52,6 +52,7 @@ function run(): void {
     automationDecisionReason: "All patches high quality; no warnings",
     totalFindings: 2,
     sqlInjectionFindings: 2,
+    classifiedFindings: 2,
     skippedFindings: 0,
     fixesGenerated: 2,
     highQualityPatches: 2,

@@ -116,7 +116,7 @@ export interface Detector {
 
   /**
    * Optional per-detector detection pass. The central LLM analyzer
-   * (analyze-engine/analyze.ts) already covers SQL/XSS/CMDi/PathTraversal
+   * (analysis-engine/analyze.ts) already covers SQL/XSS/CMDi/PathTraversal
    * in a single call, so most detectors can skip this. Implement it only
    * when the detector wants to add regex/AST-based findings on top.
    */

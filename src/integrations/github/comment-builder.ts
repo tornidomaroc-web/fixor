@@ -10,7 +10,8 @@ export const DEFAULT_MAX_DETAILED_FIXES = 10;
 
 export type BuildCommentOptions = {
   maxDetailedFixes?: number;
-  exploits?: SqlInjectionExploit[];
+  /** SQL risk explanations keyed by the fix's `findingId`. */
+  exploits?: Record<string, SqlInjectionExploit>;
 };
 
 /** Longest run of backticks in `s` plus one, for valid nested fences. */
@@ -94,7 +95,7 @@ export function buildPullRequestCommentMarkdown(
     `| **Automation ready** | ${autoEmoji} \`${workflow.automationReady}\` |`,
     `| **Automation note** | ${cell(workflow.automationDecisionReason)} |`,
     `| **Findings scanned** | ${workflow.totalFindings} |`,
-    `| **Vulnerabilities found** | ${workflow.sqlInjectionFindings} |`,
+    `| **Vulnerabilities classified** | ${workflow.classifiedFindings} |`,
     `| **Fixes generated** | ${workflow.fixesGenerated} |`,
     `| **Patch quality** | high: ${workflow.highQualityPatches} · medium: ${workflow.mediumQualityPatches} · low: ${workflow.lowQualityPatches} |`,
     `| **Duration** | ${workflow.timing.durationMs} ms |`,
@@ -177,8 +178,7 @@ export function buildPullRequestCommentMarkdown(
     lines.push("");
     lines.push("**Original**", "", fencedCodeBlock(truncate(fix.originalCode, 4000)), "");
     lines.push("**Suggested**", "", fencedCodeBlock(truncate(fix.fixedCode, 4000)), "");
-    const exploitIdx = list.indexOf(fix);
-    const exploit = options?.exploits?.[exploitIdx];
+    const exploit = options?.exploits?.[fix.findingId];
     if (exploit) {
       const sev = severityEmoji(exploit.severity);
       const impactCell = cell(exploit.impact);

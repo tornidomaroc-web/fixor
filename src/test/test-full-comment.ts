@@ -51,6 +51,7 @@ async function main() {
     automationDecisionReason: "Test harness — full comment preview",
     totalFindings: 1,
     sqlInjectionFindings: 1,
+    classifiedFindings: 1,
     skippedFindings: 0,
     fixesGenerated: 1,
     highQualityPatches: fix.patchQuality === "high" ? 1 : 0,
@@ -76,7 +77,7 @@ async function main() {
     metadata,
     workflow,
     [fix],
-    { exploits: [exploit] }
+    { exploits: { [fix.findingId]: exploit } }
   );
 
   console.log(markdown);

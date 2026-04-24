@@ -52,7 +52,9 @@ function summarizeWebhookResult(
       status: result.workflow.status,
       sqlInjectionFindings: result.workflow.sqlInjectionFindings,
       fixesGenerated: result.workflow.fixesGenerated,
-      riskExplanationsCount: result.workflow.exploits?.length ?? 0,
+      riskExplanationsCount: result.workflow.exploits
+        ? Object.keys(result.workflow.exploits).length
+        : 0,
     },
     comment: {
       commentAction: result.comment.commentAction,

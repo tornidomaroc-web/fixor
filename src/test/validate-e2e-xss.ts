@@ -122,6 +122,7 @@ async function main(): Promise<void> {
     automationDecisionReason: "Two findings across two vulnerability families",
     totalFindings: 2,
     sqlInjectionFindings: 1,
+    classifiedFindings: 2,
     skippedFindings: 0,
     fixesGenerated: 2,
     highQualityPatches: sqlFix.patchQuality === "high" ? 1 : 0,
@@ -174,6 +175,11 @@ async function main(): Promise<void> {
     "Comment mentions XSS registry name"
   );
   expect(markdown.includes("**Dialect:**"), "SQL-specific dialect row rendered");
+  expect(
+    markdown.includes("**Vulnerabilities classified**"),
+    "summary label updated to classifiedFindings"
+  );
+  expect(markdown.includes("| 2 |"), "classified count reflects 2 findings");
   // XSS block should NOT have a Dialect line (only applies to SQL).
   const xssBlockStart = markdown.indexOf("Cross-site scripting (XSS)");
   const nextDetailsClose = markdown.indexOf("</details>", xssBlockStart);
