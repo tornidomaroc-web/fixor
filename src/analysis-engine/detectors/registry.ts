@@ -8,8 +8,12 @@
 import type { Detector } from "../detector.types";
 import type { FindingType } from "../types";
 import { SqlInjectionDetector } from "./sql-injection.detector";
+import { XssDetector } from "./xss.detector";
 
-export const DETECTORS: readonly Detector[] = [new SqlInjectionDetector()];
+export const DETECTORS: readonly Detector[] = [
+  new SqlInjectionDetector(),
+  new XssDetector(),
+];
 
 /**
  * Returns the first detector that claims to support the given finding
