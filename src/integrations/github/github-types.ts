@@ -1,5 +1,5 @@
 import type { WorkflowResult } from "../../types/workflow.types";
-import type { SqlInjectionFixSuggestion } from "../../types/vulnerability.types";
+import type { NormalizedFixSuggestion } from "../../analysis-engine/detector.types";
 
 /** Identifies the PR and optional scan context for the comment header. */
 export type GitHubRepoMetadata = {
@@ -14,7 +14,7 @@ export type PostPrCommentInput = {
   metadata: GitHubRepoMetadata;
   workflow: WorkflowResult;
   /** When omitted, `workflow.fixes` is used. */
-  fixes?: SqlInjectionFixSuggestion[];
+  fixes?: NormalizedFixSuggestion[];
   /** When true, builds the body but does not call the GitHub API. */
   dryRun?: boolean;
   /**

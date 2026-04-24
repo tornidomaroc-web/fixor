@@ -1,31 +1,51 @@
 import type { Finding } from "../analysis-engine/types.js";
 import { analyzeCode } from "../analysis-engine/analyze.js";
+import { getDetectorFor } from "../analysis-engine/detectors/registry.js";
+import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import { extractSqlInjectionFromSemgrep } from "../services/vulnerability.service.js";
 import {
   generateSqlInjectionRiskExplanation,
   type SqlInjectionExploit,
 } from "../services/risk-explainer.js";
-import { generateSqlInjectionFix } from "../services/fix.service.js";
 import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types.js";
 import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
 
-function findingToNormalized(f: Finding): NormalizedSqlInjectionFinding {
-  const score =
-    f.confidence === "high" ? 90 : f.confidence === "medium" ? 50 : 20;
+function findingToNormalized(f: Finding): NormalizedFinding {
   const msg = f.explanation.slice(0, 500);
   const originalCode = f.original_snippet || `// ${f.file}:${f.line}`;
   return {
-    type: "SQL_INJECTION",
+    detectorId: "central-llm-analyzer",
+    type: f.type,
     file: f.file,
     startLine: f.line,
     endLine: f.line,
-    ruleId: "claude-analysis-sql-injection-risk",
-    message: msg,
     originalCode,
+    ruleId: `claude-analysis-${f.type}`,
+    message: msg,
     explanation: f.why_it_matters,
-    classificationConfidence: f.confidence,
-    classificationScore: score,
+    confidence: f.confidence,
+    severity: f.severity,
+  };
+}
+
+/** Convert a SQL-specific finding back into the generic NormalizedFinding
+ *  shape. Used for the legacy Semgrep path so it can reuse the registry. */
+function sqlFindingToNormalized(
+  f: NormalizedSqlInjectionFinding
+): NormalizedFinding {
+  return {
+    detectorId: "semgrep-legacy",
+    type: "sql_injection_risk",
+    file: f.file,
+    startLine: f.startLine,
+    endLine: f.endLine,
+    originalCode: f.originalCode,
+    ruleId: f.ruleId,
+    message: f.message,
+    explanation: f.explanation,
+    confidence: f.classificationConfidence,
+    severity: "high",
   };
 }
 
@@ -96,7 +116,7 @@ function computeAutomationDecisionReason(
     return "Partial success: errors occurred during fix generation";
   }
   if (finalStatus === "no_action") {
-    return "No SQL injection findings to automate";
+    return "No classified vulnerabilities to automate";
   }
   if (finalStatus === "success" && lowQualityPatches > 0) {
     return "Low-quality patches detected";
@@ -151,6 +171,7 @@ export async function runAuditorWorkflow(
           : "Workflow failed",
       totalFindings: 0,
       sqlInjectionFindings: 0,
+      classifiedFindings: 0,
       skippedFindings: 0,
       fixesGenerated: 0,
       highQualityPatches: 0,
@@ -185,6 +206,7 @@ async function executeWorkflow(
     automationDecisionReason: "",
     totalFindings: 0,
     sqlInjectionFindings: 0,
+    classifiedFindings: 0,
     skippedFindings: 0,
     fixesGenerated: 0,
     highQualityPatches: 0,
@@ -211,17 +233,36 @@ async function executeWorkflow(
   };
 
   const diffStr = extractDiffString(semgrepPayload);
-  let sqlFindings: NormalizedSqlInjectionFinding[];
+  let findings: NormalizedFinding[];
+  /** SQL-shaped findings retained for the risk explainer (SQL-only today). */
+  let sqlFindingsForExplainer: NormalizedSqlInjectionFinding[] = [];
   let legacyRoot: any = null;
 
   if (diffStr) {
     console.log("[Workflow] Using Claude analysis engine on PR diff.");
     const analysis = await analyzeCode(diffStr);
     result.totalFindings = analysis.findings.length;
-    sqlFindings = analysis.findings.map(findingToNormalized);
-    result.skippedFindings = 0;
+    findings = analysis.findings.map(findingToNormalized);
+    sqlFindingsForExplainer = analysis.findings
+      .filter((f) => f.type === "sql_injection_risk")
+      .map(
+        (f): NormalizedSqlInjectionFinding => ({
+          type: "SQL_INJECTION",
+          findingType: "sql_injection_risk",
+          file: f.file,
+          startLine: f.line,
+          endLine: f.line,
+          ruleId: "claude-analysis-sql-injection-risk",
+          message: f.explanation.slice(0, 500),
+          originalCode: f.original_snippet || `// ${f.file}:${f.line}`,
+          explanation: f.why_it_matters,
+          classificationConfidence: f.confidence,
+          classificationScore:
+            f.confidence === "high" ? 90 : f.confidence === "medium" ? 50 : 20,
+        })
+      );
     console.log(
-      `[Workflow] Analysis findings: ${result.totalFindings}; SQL injection (classified): ${sqlFindings.length}`
+      `[Workflow] Analysis findings: ${result.totalFindings}; SQL injection (classified): ${sqlFindingsForExplainer.length}`
     );
   } else {
     const { root, error } = parseSemgrepPayload(semgrepPayload);
@@ -242,15 +283,47 @@ async function executeWorkflow(
     )
       ? (root.findings as NormalizedSqlInjectionFinding[])
       : [];
-    sqlFindings = [...semgrepFindings, ...diffFindings];
+    sqlFindingsForExplainer = [...semgrepFindings, ...diffFindings];
+    findings = sqlFindingsForExplainer.map(sqlFindingToNormalized);
   }
 
-  result.sqlInjectionFindings = sqlFindings.length;
-  console.log(`[Workflow] SQL Injection findings count: ${result.sqlInjectionFindings}`);
+  // Partition findings by detector availability. Unsupported types are
+  // counted as skipped until a detector for them ships (Phase 4A+).
+  const routed: { finding: NormalizedFinding; detectorId: string }[] = [];
+  const unsupportedByType = new Map<string, number>();
+  for (const f of findings) {
+    const detector = getDetectorFor(f.type);
+    if (detector) {
+      routed.push({ finding: f, detectorId: detector.id });
+    } else {
+      unsupportedByType.set(f.type, (unsupportedByType.get(f.type) ?? 0) + 1);
+    }
+  }
+
+  result.sqlInjectionFindings = findings.filter(
+    (f) => f.type === "sql_injection_risk"
+  ).length;
+  result.classifiedFindings = routed.length;
+  const unsupportedTotal = Array.from(unsupportedByType.values()).reduce(
+    (a, b) => a + b,
+    0
+  );
   if (legacyRoot) {
     result.skippedFindings =
       result.totalFindings - result.sqlInjectionFindings;
+  } else {
+    result.skippedFindings = unsupportedTotal;
   }
+  if (unsupportedByType.size > 0) {
+    for (const [type, count] of unsupportedByType) {
+      console.log(
+        `[Workflow] ${count} finding(s) of type '${type}' have no registered detector; skipped.`
+      );
+    }
+  }
+  console.log(
+    `[Workflow] Classified findings: ${result.classifiedFindings}; SQL injection: ${result.sqlInjectionFindings}; skipped: ${result.skippedFindings}.`
+  );
 
   console.log("[Workflow] Fix generation started.");
 
@@ -261,11 +334,20 @@ async function executeWorkflow(
    */
   const FIX_CONCURRENCY = 4;
   const fixResults = await runWithConcurrency(
-    sqlFindings,
+    routed,
     FIX_CONCURRENCY,
-    async (finding) => {
+    async ({ finding }) => {
+      const detector = getDetectorFor(finding.type);
+      if (!detector) {
+        return {
+          kind: "err" as const,
+          finding,
+          message: `No detector registered for type '${finding.type}'`,
+        };
+      }
       try {
-        return { kind: "ok" as const, finding, fix: await generateSqlInjectionFix(finding) };
+        const fix = await detector.fix(finding);
+        return { kind: "ok" as const, finding, fix };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return { kind: "err" as const, finding, message };
@@ -296,27 +378,38 @@ async function executeWorkflow(
     `[Workflow] Fix generation completed. Generated ${result.fixesGenerated} fixes.`
   );
 
-  const exploits: SqlInjectionExploit[] = [];
-  if (result.fixes.length > 0) {
+  // Risk explanations apply only to SQL fixes (no XSS equivalent exists
+  // yet). Key the map by the SQL fix's findingId so the comment builder
+  // attaches exploit text to the RIGHT fix even when the fixes array
+  // interleaves SQL and XSS findings.
+  const sqlFixesInOrder = result.fixes.filter(
+    (f) => f.findingType === "sql_injection_risk"
+  );
+  const exploits: Record<string, SqlInjectionExploit> = {};
+  if (sqlFixesInOrder.length > 0 && sqlFindingsForExplainer.length > 0) {
+    const pairs = sqlFindingsForExplainer
+      .slice(0, sqlFixesInOrder.length)
+      .map((finding, i) => ({ finding, fixId: sqlFixesInOrder[i]!.findingId }));
     const riskResults = await Promise.allSettled(
-      sqlFindings.slice(0, result.fixes.length).map((finding) =>
-        generateSqlInjectionRiskExplanation(finding, {
+      pairs.map(async (p) => ({
+        fixId: p.fixId,
+        exploit: await generateSqlInjectionRiskExplanation(p.finding, {
           dialect: "mysql",
           includeProof: true,
-        })
-      )
+        }),
+      }))
     );
     for (const r of riskResults) {
-      if (r.status === "fulfilled") exploits.push(r.value);
+      if (r.status === "fulfilled") exploits[r.value.fixId] = r.value.exploit;
     }
   }
   result.exploits = exploits;
 
   let finalStatus: WorkflowResult["status"] = "failed";
 
-  if (result.sqlInjectionFindings === 0 && result.errors.length === 0) {
+  if (result.classifiedFindings === 0 && result.errors.length === 0) {
     finalStatus = "no_action";
-  } else if (result.sqlInjectionFindings > 0 && result.fixesGenerated === 0) {
+  } else if (result.classifiedFindings > 0 && result.fixesGenerated === 0) {
     finalStatus = "failed";
   } else if (result.fixesGenerated > 0 && result.errors.length > 0) {
     finalStatus = "partial_success";

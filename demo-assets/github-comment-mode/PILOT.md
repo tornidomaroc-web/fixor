@@ -19,7 +19,7 @@ This guide is for running Fixor’s **issue-comment** integration on a **small, 
 | `FIXOR_PILOT_ENABLED` | Set `true` to enable **file-backed** comment-id cache and **execution idempotency** (see below). |
 | `FIXOR_PILOT_STORE_PATH` | Optional path to the JSON store (default: `data/fixor-pilot-store.json` under the process cwd). |
 
-Optional workflow flags (see `WebhookConfig` in `src/workflows/github-webhook.ts`): `pilotPersistence`, `pilotStorePath`, `maxCommentUtf8Bytes`, `FORCE_RUN` (also bypasses pilot duplicate skip when reposting the same execution key).
+Optional workflow flags (see `HandlePullRequestWebhookOptions` in `src/integrations/github/pr-webhook-handler.ts`): `pilotPersistence`, `pilotStorePath`, `maxCommentUtf8Bytes`, `forceRepost` (bypasses pilot duplicate skip when reposting the same execution key).
 
 ## Pilot persistence (what gets stored)
 

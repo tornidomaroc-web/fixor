@@ -1,13 +1,15 @@
 import { buildPullRequestCommentMarkdown } from "../integrations/github/comment-builder";
 import type { GitHubRepoMetadata } from "../integrations/github/github-types";
 import { generateSqlInjectionRiskExplanation } from "../services/risk-explainer";
-import { generateSqlInjectionFix } from "../services/fix.service";
+import { SqlInjectionDetector } from "../analysis-engine/detectors/sql-injection.detector";
+import type { NormalizedFinding } from "../analysis-engine/detector.types";
 import type { WorkflowResult } from "../types/workflow.types";
 import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types";
 
 async function main() {
-  const finding: NormalizedSqlInjectionFinding = {
+  const sqlFinding: NormalizedSqlInjectionFinding = {
     type: "SQL_INJECTION",
+    findingType: "sql_injection_risk",
     file: "routes/users.js",
     startLine: 14,
     endLine: 14,
@@ -20,9 +22,24 @@ async function main() {
     classificationScore: 55,
   };
 
+  const normalized: NormalizedFinding = {
+    detectorId: "sql-injection-js-ts",
+    type: "sql_injection_risk",
+    file: sqlFinding.file,
+    startLine: sqlFinding.startLine,
+    endLine: sqlFinding.endLine,
+    originalCode: sqlFinding.originalCode,
+    ruleId: sqlFinding.ruleId,
+    message: sqlFinding.message,
+    explanation: sqlFinding.explanation,
+    confidence: sqlFinding.classificationConfidence,
+    severity: "high",
+  };
+
+  const detector = new SqlInjectionDetector();
   const [fix, exploit] = await Promise.all([
-    generateSqlInjectionFix(finding, { dialect: "mysql" }),
-    generateSqlInjectionRiskExplanation(finding, {
+    detector.fix(normalized),
+    generateSqlInjectionRiskExplanation(sqlFinding, {
       dialect: "mysql",
       includeProof: true,
     }),
@@ -34,6 +51,7 @@ async function main() {
     automationDecisionReason: "Test harness — full comment preview",
     totalFindings: 1,
     sqlInjectionFindings: 1,
+    classifiedFindings: 1,
     skippedFindings: 0,
     fixesGenerated: 1,
     highQualityPatches: fix.patchQuality === "high" ? 1 : 0,
@@ -59,7 +77,7 @@ async function main() {
     metadata,
     workflow,
     [fix],
-    { exploits: [exploit] }
+    { exploits: { [fix.findingId]: exploit } }
   );
 
   console.log(markdown);

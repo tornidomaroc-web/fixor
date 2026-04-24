@@ -1,5 +1,6 @@
 import PDFDocument from "pdfkit";
 import type { WorkflowResult } from "../types/workflow.types";
+import { metadataFor } from "../config/vulnerability-registry";
 
 export async function generatePdfReport(
   workflow: WorkflowResult,
@@ -136,7 +137,7 @@ export async function generatePdfReport(
       const tagY = doc.y;
       let tagX = 50;
       const tags = [
-        { text: fix.type.toUpperCase(), bg: "#fef3c7", fg: "#92400e" },
+        { text: metadataFor(fix.findingType).name.toUpperCase(), bg: "#fef3c7", fg: "#92400e" },
         { text: fix.patchQuality.toUpperCase(), bg: "#dbeafe", fg: "#1e40af" },
         { text: fix.confidence.toUpperCase(), bg: "#e0e7ff", fg: "#3730a3" },
       ];

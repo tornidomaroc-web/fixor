@@ -88,6 +88,7 @@ export async function llmFallbackSuggestion(
 
   return {
     type: "SQL_INJECTION",
+    findingType: "sql_injection_risk",
     file: finding.file,
     line: finding.startLine,
     originalCode: finding.originalCode,
@@ -471,6 +472,7 @@ function fallbackSuggestion(
 
   return {
     type: "SQL_INJECTION",
+    findingType: "sql_injection_risk",
     file: finding.file,
     line: finding.startLine,
     originalCode: finding.originalCode,
@@ -509,6 +511,7 @@ function buildFix(
   );
   return {
     type: "SQL_INJECTION",
+    findingType: "sql_injection_risk",
     file: finding.file,
     line: finding.startLine,
     originalCode: finding.originalCode,

@@ -16,7 +16,17 @@ import {
 } from "../config/vulnerability-registry";
 import type { FindingType } from "../analysis-engine/types";
 import type { WorkflowResult } from "../types/workflow.types";
-import type { SqlInjectionFixSuggestion } from "../types/vulnerability.types";
+/**
+ * Minimal shape SARIF needs from a fix. Any concrete fix type (SQL today,
+ * XSS/CMDi/Path Traversal in Phase 4A) satisfies this structurally.
+ */
+interface SarifFixInput {
+  findingType: FindingType;
+  file: string;
+  line: number;
+  fixedCode: string;
+  explanation: string;
+}
 
 const FIXOR_VERSION = "0.2.0";
 const FIXOR_INFORMATION_URI = "https://github.com/tornidomaroc-web/fixor";
@@ -147,11 +157,9 @@ export function buildSarifLog(
   const results: SarifResult[] = [];
 
   for (const fix of workflow.fixes) {
-    // Today workflow.fixes is SqlInjectionFixSuggestion; type stays SQL
-    // until Phase 3b adds per-type generators.
-    const ruleType: FindingType = "sql_injection_risk";
+    const ruleType = fix.findingType;
     usedTypes.add(ruleType);
-    results.push(sqlFixToSarifResult(fix, ruleType));
+    results.push(fixToSarifResult(fix, ruleType));
   }
 
   return {
@@ -174,8 +182,8 @@ export function buildSarifLog(
   };
 }
 
-function sqlFixToSarifResult(
-  fix: SqlInjectionFixSuggestion,
+function fixToSarifResult(
+  fix: SarifFixInput,
   ruleType: FindingType
 ): SarifResult {
   const meta = VULNERABILITY_REGISTRY[ruleType];
@@ -197,7 +205,7 @@ function sqlFixToSarifResult(
     partialFingerprints: { fixorFingerprintV1: fp },
     fixes: [
       {
-        description: { text: "Fixor suggested parameterized rewrite" },
+        description: { text: `Fixor suggested rewrite (${meta.name})` },
         artifactChanges: [
           {
             artifactLocation: { uri: fix.file },

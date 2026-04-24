@@ -76,6 +76,7 @@ function parsePatchForSqli(
       if (RE_SQL_KW.test(content) && RE_SQL_VULN.test(content)) {
         findings.push({
           type: "SQL_INJECTION",
+          findingType: "sql_injection_risk",
           file: filename,
           startLine: newLine,
           endLine: newLine,

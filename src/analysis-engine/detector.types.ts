@@ -1,5 +1,5 @@
 /**
- * Detector module interface — the foundation for Phase 3b/3c.
+ * Detector module interface — the foundation for Phase 4A.
  *
  * A Detector owns detection and fix generation for one vulnerability
  * family. Keeping this interface stable lets us plug in additional
@@ -7,14 +7,48 @@
  * multi-language variants) without rewriting the workflow.
  *
  * The workflow (auditor-workflow.ts) still uses the SQL-specific pipeline
- * today. Phase 3c replaces that with an iteration over detectors.
+ * today. Phase 4A replaces that with an iteration over registered detectors.
  */
 
 import type { FindingType } from "./types";
-import type { PatchQuality } from "../types/vulnerability.types";
+import type { PatchQuality, SqlDialect } from "../types/vulnerability.types";
 
 export type Severity = "critical" | "high" | "medium" | "low";
 export type Confidence = "high" | "medium" | "low";
+
+/**
+ * Discriminated metadata carried alongside a finding/fix. Each `FindingType`
+ * owns its own optional payload. Keeping this a discriminated union (rather
+ * than a loose `Record<string, unknown>`) prevents detectors from quietly
+ * drifting into incompatible metadata shapes.
+ */
+export type FindingMetadata =
+  | {
+      type: "sql_injection_risk";
+      /** MySQL vs Postgres changes placeholder syntax. */
+      dialect?: SqlDialect;
+      /** Ordered expressions the caller must bind to placeholders. */
+      parameterValues?: string[];
+    }
+  | {
+      type: "xss_risk";
+      /** HTML/attribute/JS/URL context determines the correct encoder. */
+      context?: "html" | "attribute" | "js" | "url";
+      /** Library/framework-specific sink (e.g. "dangerouslySetInnerHTML"). */
+      sink?: string;
+    }
+  | {
+      type: "command_injection_risk";
+      /** child_process API the vulnerable call uses. */
+      sink?: "exec" | "execSync" | "spawn" | "spawnSync" | "execFile" | "shell";
+      /** True when the fix replaces a shell form with an argv-array form. */
+      argvFormApplied?: boolean;
+    }
+  | {
+      type: "path_traversal_risk";
+      /** Directory the resolved path must remain within. */
+      baseDir?: string;
+    };
 
 /** A normalized finding shape covering every vulnerability family. */
 export interface NormalizedFinding {
@@ -35,16 +69,18 @@ export interface NormalizedFinding {
   cwe?: string;
   /** Optional CVSS vector override; registry default used when absent. */
   cvssVector?: string;
-  /** Optional extra context the detector wants to pass to its fixer. */
-  metadata?: Record<string, unknown>;
+  /** Family-specific payload, discriminated by `type`. */
+  metadata?: FindingMetadata;
 }
 
 /** Universal fix suggestion shape, agnostic to vulnerability family. */
 export interface NormalizedFixSuggestion {
-  /** Back-reference to the finding this fixes. */
+  /** Back-reference to the finding this fixes — see `deriveFindingId`. */
   findingId: string;
   /** Which detector produced this fix. */
   detectorId: string;
+  /** Carried through from the finding so downstream (SARIF/PDF) can discriminate. */
+  findingType: FindingType;
   file: string;
   line: number;
   originalCode: string;
@@ -53,8 +89,8 @@ export interface NormalizedFixSuggestion {
   confidence: Confidence;
   patchQuality: PatchQuality;
   patchWarnings: string[];
-  /** Family-specific payload (e.g., SQL parameterValues + dialect). */
-  metadata?: Record<string, unknown>;
+  /** Family-specific payload, discriminated by `findingType`. */
+  metadata?: FindingMetadata;
 }
 
 export interface DetectorContext {
@@ -75,9 +111,24 @@ export interface Detector {
   /** Languages this detector targets (file extensions w/o dot). */
   languages: readonly string[];
 
-  /** Detect findings in the given context. */
-  detect(ctx: DetectorContext): Promise<NormalizedFinding[]>;
-
   /** Generate a fix suggestion for one finding. */
   fix(finding: NormalizedFinding): Promise<NormalizedFixSuggestion>;
+
+  /**
+   * Optional per-detector detection pass. The central LLM analyzer
+   * (analysis-engine/analyze.ts) already covers SQL/XSS/CMDi/PathTraversal
+   * in a single call, so most detectors can skip this. Implement it only
+   * when the detector wants to add regex/AST-based findings on top.
+   */
+  detect?(ctx: DetectorContext): Promise<NormalizedFinding[]>;
+}
+
+/**
+ * Canonical `findingId` derivation. The shape is `detectorId:type:file:line`
+ * so that two runs over the same commit produce the same id, and so that the
+ * id is self-descriptive in logs. Detectors MUST use this helper instead of
+ * rolling their own scheme.
+ */
+export function deriveFindingId(finding: NormalizedFinding): string {
+  return `${finding.detectorId}:${finding.type}:${finding.file}:${finding.startLine}`;
 }

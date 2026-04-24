@@ -52,7 +52,9 @@ function summarizeWebhookResult(
       status: result.workflow.status,
       sqlInjectionFindings: result.workflow.sqlInjectionFindings,
       fixesGenerated: result.workflow.fixesGenerated,
-      riskExplanationsCount: result.workflow.exploits?.length ?? 0,
+      riskExplanationsCount: result.workflow.exploits
+        ? Object.keys(result.workflow.exploits).length
+        : 0,
     },
     comment: {
       commentAction: result.comment.commentAction,
@@ -80,7 +82,22 @@ async function main(): Promise<void> {
   }
 
   const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET?.trim() ?? "";
+  const allowUnsigned = process.env.ALLOW_UNSIGNED_WEBHOOKS?.trim() === "true";
+  const nodeEnv = process.env.NODE_ENV?.trim() ?? "production";
   const skipSignatureVerification = !webhookSecret;
+
+  if (skipSignatureVerification) {
+    if (nodeEnv === "production" || !allowUnsigned) {
+      console.error(
+        "Refusing to start: GITHUB_WEBHOOK_SECRET is required. " +
+          "For local development set ALLOW_UNSIGNED_WEBHOOKS=true and NODE_ENV!=production."
+      );
+      process.exit(1);
+    }
+    console.warn(
+      "[Webhook] Starting with signature verification DISABLED (ALLOW_UNSIGNED_WEBHOOKS=true). Dev only."
+    );
+  }
 
   const server = http.createServer(async (req, res) => {
     try {

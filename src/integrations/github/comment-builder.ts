@@ -2,14 +2,16 @@ import { FIXOR_PR_COMMENT_MARKER } from "./comment-constants";
 import type { GitHubRepoMetadata } from "./github-types";
 import type { WorkflowResult } from "../../types/workflow.types";
 import type { SqlInjectionExploit } from "../../services/risk-explainer";
-import type { SqlInjectionFixSuggestion } from "../../types/vulnerability.types";
+import type { NormalizedFixSuggestion } from "../../analysis-engine/detector.types";
+import { metadataFor } from "../../config/vulnerability-registry";
 
 /** Maximum number of fixes rendered with full `<details>` (remainder summarized). */
 export const DEFAULT_MAX_DETAILED_FIXES = 10;
 
 export type BuildCommentOptions = {
   maxDetailedFixes?: number;
-  exploits?: SqlInjectionExploit[];
+  /** SQL risk explanations keyed by the fix's `findingId`. */
+  exploits?: Record<string, SqlInjectionExploit>;
 };
 
 /** Longest run of backticks in `s` plus one, for valid nested fences. */
@@ -56,7 +58,7 @@ function severityEmoji(severity: SqlInjectionExploit["severity"]): string {
 export function buildPullRequestCommentMarkdown(
   metadata: GitHubRepoMetadata,
   workflow: WorkflowResult,
-  fixes?: SqlInjectionFixSuggestion[],
+  fixes?: NormalizedFixSuggestion[],
   options?: BuildCommentOptions
 ): string {
   const maxDetailed =
@@ -93,7 +95,7 @@ export function buildPullRequestCommentMarkdown(
     `| **Automation ready** | ${autoEmoji} \`${workflow.automationReady}\` |`,
     `| **Automation note** | ${cell(workflow.automationDecisionReason)} |`,
     `| **Findings scanned** | ${workflow.totalFindings} |`,
-    `| **Vulnerabilities found** | ${workflow.sqlInjectionFindings} |`,
+    `| **Vulnerabilities classified** | ${workflow.classifiedFindings} |`,
     `| **Fixes generated** | ${workflow.fixesGenerated} |`,
     `| **Patch quality** | high: ${workflow.highQualityPatches} · medium: ${workflow.mediumQualityPatches} · low: ${workflow.lowQualityPatches} |`,
     `| **Duration** | ${workflow.timing.durationMs} ms |`,
@@ -131,7 +133,7 @@ export function buildPullRequestCommentMarkdown(
   };
 
   if (list.length === 0) {
-    lines.push("_No SQL injection fixes in this run._", "");
+    lines.push("_No vulnerability fixes produced in this run._", "");
     lines.push(...renderDownloadsBlock());
     lines.push(
       FIXOR_PR_COMMENT_MARKER,
@@ -157,17 +159,26 @@ export function buildPullRequestCommentMarkdown(
 
   detailedList.forEach((fix, i) => {
     const globalNum = list.indexOf(fix) + 1;
-    const title = `${globalNum}. \`${fix.file}:${fix.line}\` · **${fix.patchQuality}** · \`${fix.type}\``;
+    const family = metadataFor(fix.findingType).name;
+    const title = `${globalNum}. \`${fix.file}:${fix.line}\` · **${fix.patchQuality}** · \`${family}\``;
     lines.push(`<details>`, `<summary><strong>${title}</strong></summary>`, "");
-    lines.push(`- **Dialect:** \`${fix.dialect}\` · **Detection confidence:** \`${fix.confidence}\``);
-    if (fix.parameterValues.length > 0) {
-      lines.push(`- **Parameter expressions:** \`${fix.parameterValues.join("`, `")}\``);
+    const meta = fix.metadata;
+    if (meta?.type === "sql_injection_risk") {
+      lines.push(
+        `- **Dialect:** \`${meta.dialect ?? "mysql"}\` · **Detection confidence:** \`${fix.confidence}\``
+      );
+      if ((meta.parameterValues ?? []).length > 0) {
+        lines.push(
+          `- **Parameter expressions:** \`${(meta.parameterValues ?? []).join("`, `")}\``
+        );
+      }
+    } else {
+      lines.push(`- **Detection confidence:** \`${fix.confidence}\``);
     }
     lines.push("");
     lines.push("**Original**", "", fencedCodeBlock(truncate(fix.originalCode, 4000)), "");
     lines.push("**Suggested**", "", fencedCodeBlock(truncate(fix.fixedCode, 4000)), "");
-    const exploitIdx = list.indexOf(fix);
-    const exploit = options?.exploits?.[exploitIdx];
+    const exploit = options?.exploits?.[fix.findingId];
     if (exploit) {
       const sev = severityEmoji(exploit.severity);
       const impactCell = cell(exploit.impact);
