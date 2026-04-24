@@ -39,3 +39,6 @@ jobs:
 
       - name: Run fixture tests
         run: npm run test:fixtures
+
+      - name: Run SARIF smoke test
+        run: npm run test:sarif
