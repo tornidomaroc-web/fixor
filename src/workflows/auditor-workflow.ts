@@ -136,7 +136,14 @@ function computeAutomationDecisionReason(
 export async function runAuditorWorkflow(
   semgrepPayload: any,
   metadata: ScanMetadata = {},
-  timeoutMs: number = 30000
+  /**
+   * Wall-clock budget for the whole workflow. Must exceed the sum of
+   * per-phase model timeouts in MODEL_DEFAULTS — one Opus call alone can
+   * take up to 60s, and we run detection + ≤4 parallel fix services +
+   * risk explainer. 120s leaves comfortable headroom for real LLM runs
+   * while still failing fast on a truly stuck call.
+   */
+  timeoutMs: number = 120_000
 ): Promise<WorkflowResult> {
   const startedAt = new Date().toISOString();
   const startTimeMs = Date.now();
