@@ -17,24 +17,38 @@ export const CLAUDE_MODELS = {
 
 export type ClaudeModelId = (typeof CLAUDE_MODELS)[keyof typeof CLAUDE_MODELS];
 
-/** Per-model generation defaults. */
-export const MODEL_DEFAULTS = {
+/**
+ * Per-model generation defaults.
+ *
+ * `temperature` is OPTIONAL. Anthropic deprecated the parameter on the
+ * Claude 4-era reasoning/haiku models (Opus 4.7, Haiku 4.5), and sending
+ * it now returns HTTP 400 "temperature is deprecated for this model".
+ * Sonnet 4.6 still accepts it; we keep `temperature: 0` there until
+ * Anthropic deprecates it Sonnet-side too.
+ */
+export interface ModelDefaults {
+  maxTokens: number;
+  temperature?: number;
+  timeoutMs: number;
+}
+
+export const MODEL_DEFAULTS: Record<ClaudeModelId, ModelDefaults> = {
   [CLAUDE_MODELS.DETECTION]: {
     maxTokens: 8192,
     temperature: 0,
     timeoutMs: 45_000,
   },
   [CLAUDE_MODELS.REASONING]: {
+    // Opus 4.7 deprecated `temperature`; rely on the API server-side default.
     maxTokens: 4096,
-    temperature: 0,
     timeoutMs: 60_000,
   },
   [CLAUDE_MODELS.HAIKU]: {
+    // Haiku 4.5 deprecated `temperature` (same Claude 4 era as Opus 4.7).
     maxTokens: 2048,
-    temperature: 0,
     timeoutMs: 20_000,
   },
-} as const;
+};
 
 /** `anthropic-version` header. Bump deliberately. */
 export const ANTHROPIC_API_VERSION = "2023-06-01";
