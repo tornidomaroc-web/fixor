@@ -15,7 +15,12 @@ export interface WorkflowError {
 }
 
 export interface WorkflowResult {
-  status: "success" | "partial_success" | "failed" | "no_action";
+  status:
+    | "success"
+    | "partial_success"
+    | "failed"
+    | "no_action"
+    | "budget_exceeded";
   automationReady: boolean;
   /** Why automation is or is not allowed (patch quality + warnings + status). */
   automationDecisionReason: string;
@@ -55,6 +60,18 @@ export interface WorkflowResult {
   /** Optional URL to the SARIF log uploaded for this run. */
   sarifUrl?: string | null;
   errors: WorkflowError[];
+  /**
+   * Present only when status === "budget_exceeded": the live spend that
+   * tripped the cap and the configured cap values. The handler renders
+   * these into the PR comment.
+   */
+  budget?: {
+    reason: "monthly_exceeded" | "daily_exceeded";
+    monthlySpend: number;
+    dailySpend: number;
+    monthlyCapUsd: number;
+    dailyCapUsd: number;
+  };
   metadata: ScanMetadata;
   timing: {
     startedAt: string;

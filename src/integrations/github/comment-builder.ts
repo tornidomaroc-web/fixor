@@ -85,6 +85,29 @@ export function buildPullRequestCommentMarkdown(
   if (scanBits) {
     lines.push(scanBits);
   }
+  if (workflow.status === "budget_exceeded" && workflow.budget) {
+    const b = workflow.budget;
+    const reasonText =
+      b.reason === "monthly_exceeded"
+        ? `monthly cap of $${b.monthlyCapUsd.toFixed(2)} reached (spent $${b.monthlySpend.toFixed(2)} this month)`
+        : `daily cap of $${b.dailyCapUsd.toFixed(2)} reached (spent $${b.dailySpend.toFixed(2)} today)`;
+    lines.push(
+      "",
+      "> ⏸️ **Fixor scan paused - budget reached**",
+      ">",
+      `> This installation has hit its ${reasonText}.`,
+      "> Scans resume automatically next " +
+        (b.reason === "monthly_exceeded" ? "month" : "day") +
+        ".",
+      "> To raise the cap or get instant resume, contact the Fixor admin or set" +
+        " `FIXOR_MONTHLY_CAP_USD` / `FIXOR_DAILY_CAP_USD`.",
+      "",
+      FIXOR_PR_COMMENT_MARKER,
+      `<sub>🔒 Analyzed by [Fixor](https://github.com/tornidomaroc-web/fixor) · ${workflow.timing.finishedAt || "—"}</sub>`
+    );
+    return lines.join("\n");
+  }
+
   lines.push(
     "",
     "### Summary",

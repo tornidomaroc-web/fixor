@@ -20,6 +20,8 @@ import { validateGitHubPullRequestPayload } from "./github-payload-validation";
 import { buildFixorExecutionKey } from "./persistence/pilot-store";
 import { verifyGitHubWebhookSignature256 } from "./webhook-signature";
 import { fetchPrDiff } from "./github-client";
+import { costContext } from "../../lib/cost-context";
+import { checkBudget } from "../../services/cost-store";
 
 export type SemgrepPayloadResolver = (ctx: {
   owner: string;
@@ -213,7 +215,48 @@ export async function handlePullRequestWebhook(
     commitId: headSha,
   };
 
-  const workflow = await runAuditorWorkflow(semgrepPayload, metadata);
+  let workflow: WorkflowResult;
+  if (installationId === null) {
+    // Should not happen for properly authenticated GitHub App webhooks,
+    // but degrade gracefully without recording cost.
+    workflow = await runAuditorWorkflow(semgrepPayload, metadata);
+  } else {
+    const budget = checkBudget(installationId);
+    if (!budget.withinBudget && budget.reason !== "exempt") {
+      const now = new Date().toISOString();
+      workflow = {
+        status: "budget_exceeded",
+        automationReady: false,
+        automationDecisionReason:
+          budget.reason === "monthly_exceeded"
+            ? "Monthly Anthropic budget reached for this installation"
+            : "Daily Anthropic budget reached for this installation",
+        totalFindings: 0,
+        sqlInjectionFindings: 0,
+        classifiedFindings: 0,
+        skippedFindings: 0,
+        fixesGenerated: 0,
+        highQualityPatches: 0,
+        mediumQualityPatches: 0,
+        lowQualityPatches: 0,
+        fixes: [],
+        errors: [],
+        metadata: metadata ?? {},
+        budget: {
+          reason: budget.reason as "monthly_exceeded" | "daily_exceeded",
+          monthlySpend: budget.monthlySpend,
+          dailySpend: budget.dailySpend,
+          monthlyCapUsd: budget.caps.monthlyCapUsd,
+          dailyCapUsd: budget.caps.dailyCapUsd,
+        },
+        timing: { startedAt: now, finishedAt: now, durationMs: 0 },
+      };
+    } else {
+      workflow = await costContext.run({ installationId }, async () =>
+        runAuditorWorkflow(semgrepPayload, metadata)
+      );
+    }
+  }
 
   let pdfUrl: string | null = null;
   let sarifUrl: string | null = null;
