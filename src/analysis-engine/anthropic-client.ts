@@ -111,11 +111,14 @@ export async function callClaude(
     // SDK 0.32.x doesn't type cache_control on stable TextBlockParam,
     // but the API accepts it; cast to the SDK's expected shape.
     const systemForSdk = opts.system as unknown as string | TextBlockParam[];
+    const resolvedTemperature = opts.temperature ?? defaults.temperature;
     const message = await client.messages.create(
       {
         model: opts.model,
         max_tokens: opts.maxTokens ?? defaults.maxTokens,
-        temperature: opts.temperature ?? defaults.temperature,
+        ...(resolvedTemperature !== undefined
+          ? { temperature: resolvedTemperature }
+          : {}),
         system: systemForSdk,
         messages: opts.messages,
         ...(opts.tool
