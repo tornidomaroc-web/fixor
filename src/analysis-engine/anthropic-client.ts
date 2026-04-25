@@ -24,6 +24,9 @@ import {
   MODEL_DEFAULTS,
   type ClaudeModelId,
 } from "../config/models";
+import { currentInstallationId } from "../lib/cost-context";
+import { calculateCost } from "../services/cost-tracking.service";
+import { recordCost } from "../services/cost-store";
 
 let _client: Anthropic | null = null;
 
@@ -138,6 +141,26 @@ export async function callClaude(
       .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
       .map((b) => b.text)
       .join("\n");
+
+    const installationId = currentInstallationId();
+    if (installationId !== undefined && message.usage) {
+      const usage = message.usage as typeof message.usage & {
+        cache_creation_input_tokens?: number;
+        cache_read_input_tokens?: number;
+        cacheCreationInputTokens?: number;
+        cacheReadInputTokens?: number;
+      };
+      const costUsd = calculateCost({
+        model: opts.model,
+        inputTokens: message.usage.input_tokens ?? 0,
+        outputTokens: message.usage.output_tokens ?? 0,
+        cacheCreationInputTokens:
+          usage.cache_creation_input_tokens ?? usage.cacheCreationInputTokens ?? 0,
+        cacheReadInputTokens:
+          usage.cache_read_input_tokens ?? usage.cacheReadInputTokens ?? 0,
+      });
+      recordCost(installationId, costUsd);
+    }
 
     return {
       ok: true,
