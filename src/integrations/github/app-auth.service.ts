@@ -5,7 +5,8 @@
  * clock skew, RFC-correct JSON encoding) that used to be our problem.
  */
 
-import { SignJWT, importPKCS8 } from "jose";
+import { SignJWT } from "jose";
+import { createPrivateKey } from "node:crypto";
 
 interface CachedToken {
   token: string;
@@ -50,7 +51,11 @@ function readAppId(): string {
 export async function generateAppJwt(): Promise<string> {
   const appId = readAppId();
   const pem = readPrivateKeyPem();
-  const privateKey = await importPKCS8(pem, "RS256");
+  // GitHub Apps export private keys in PKCS#1 (-----BEGIN RSA PRIVATE KEY-----)
+  // by default; jose.importPKCS8 only accepts PKCS#8. node:crypto.createPrivateKey
+  // accepts both formats transparently and returns a KeyObject that jose's SignJWT
+  // can sign with directly.
+  const privateKey = createPrivateKey({ key: pem, format: "pem" });
 
   const now = Math.floor(Date.now() / 1000);
   return new SignJWT({})
