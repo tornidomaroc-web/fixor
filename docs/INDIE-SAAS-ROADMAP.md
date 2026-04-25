@@ -64,7 +64,7 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 **Goal**: Fixor production is observable, durable, and recoverable. No more silent failures, no lost ledgers on redeploy.
 
 **Tasks**:
-- [ ] **5A-1** Install `gh` CLI globally on dev machine + verify `gh auth login` works. (Removes the manual "open this URL" overhead going forward.)
+- [x] **5A-1** Install `gh` CLI globally on dev machine + verify `gh auth login` works. (Removes the manual "open this URL" overhead going forward.)
 - [ ] **5A-2** Create Neon Postgres project. Add `DATABASE_URL` to Railway env. Add to `.env.example`.
 - [ ] **5A-3** Add Drizzle: `npm i drizzle-orm pg`, `npm i -D drizzle-kit @types/pg`. Create `src/db/schema.ts` with tables: `installations`, `cost_ledger` (replacing JSON ledger), `scan_runs`. Generate + run migration.
 - [ ] **5A-4** Replace `src/services/cost-store.ts` JSON-file persistence with Drizzle Postgres queries. Keep API surface identical (`recordCost`, `getMonthlySpend`, `checkBudget`). Migrate data: small one-shot script `src/scripts/migrate-json-ledger-to-pg.ts`.
