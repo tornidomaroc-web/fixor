@@ -97,7 +97,10 @@ export async function callClaude(
   opts: MessagesCallOptions
 ): Promise<MessagesCallResult> {
   const client = getAnthropicClient();
-  if (!client) return { ok: false, reason: "no_api_key" };
+  if (!client) {
+    console.error("[Anthropic] callClaude failed: no_api_key (ANTHROPIC_API_KEY missing).");
+    return { ok: false, reason: "no_api_key" };
+  }
 
   const defaults = MODEL_DEFAULTS[opts.model];
   const controller = new AbortController();
@@ -141,8 +144,15 @@ export async function callClaude(
     };
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "AbortError") {
+      console.error(
+        `[Anthropic] callClaude timeout after ${opts.timeoutMs ?? defaults.timeoutMs}ms (model=${opts.model}).`
+      );
       return { ok: false, reason: "timeout", error: err };
     }
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[Anthropic] callClaude http_error (model=${opts.model}): ${msg}`
+    );
     return { ok: false, reason: "http_error", error: err };
   } finally {
     clearTimeout(timer);
