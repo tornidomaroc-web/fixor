@@ -8,6 +8,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import * as path from "path";
+import { logger } from "../lib/logger";
 
 async function main(): Promise<void> {
   // Best-effort load of a local .env file (Node 20.6+). Silent no-op when
@@ -20,9 +21,7 @@ async function main(): Promise<void> {
 
   const url = process.env.DATABASE_URL?.trim();
   if (!url) {
-    console.error(
-      "[db:migrate] DATABASE_URL is not set. Cannot apply migrations.",
-    );
+    logger.error("db:migrate failed: DATABASE_URL is not set");
     process.exit(1);
   }
 
@@ -35,14 +34,14 @@ async function main(): Promise<void> {
   // from the repo root, so this is stable in both environments.
   const migrationsFolder = path.resolve(process.cwd(), "src/db/migrations");
 
-  console.log(`[db:migrate] Applying migrations from ${migrationsFolder}...`);
+  logger.info({ migrationsFolder }, "applying migrations");
   await migrate(db, { migrationsFolder });
-  console.log("[db:migrate] Done.");
+  logger.info("migrations applied");
 
   await pool.end();
 }
 
 main().catch((err) => {
-  console.error("[db:migrate] Failed:", err);
+  logger.error({ err }, "db:migrate failed");
   process.exit(1);
 });

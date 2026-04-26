@@ -27,6 +27,7 @@ import {
 import { currentInstallationId } from "../lib/cost-context";
 import { calculateCost } from "../services/cost-tracking.service";
 import { recordCost } from "../services/cost-store";
+import { logger } from "../lib/logger";
 
 let _client: Anthropic | null = null;
 
@@ -101,7 +102,7 @@ export async function callClaude(
 ): Promise<MessagesCallResult> {
   const client = getAnthropicClient();
   if (!client) {
-    console.error("[Anthropic] callClaude failed: no_api_key (ANTHROPIC_API_KEY missing).");
+    logger.error("callClaude failed: no_api_key (ANTHROPIC_API_KEY missing)");
     return { ok: false, reason: "no_api_key" };
   }
 
@@ -165,9 +166,9 @@ export async function callClaude(
         // Cost-tracking is observability, not control flow. A DB
         // hiccup must not break the scan: we lose visibility on this
         // one call, not money.
-        console.warn(
-          `[Anthropic] recordCost failed for installation ${String(installationId)}:`,
-          err,
+        logger.warn(
+          { installationId: String(installationId), err },
+          "recordCost failed",
         );
       }
     }
@@ -180,15 +181,14 @@ export async function callClaude(
     };
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "AbortError") {
-      console.error(
-        `[Anthropic] callClaude timeout after ${opts.timeoutMs ?? defaults.timeoutMs}ms (model=${opts.model}).`
+      logger.error(
+        { model: opts.model, timeoutMs: opts.timeoutMs ?? defaults.timeoutMs },
+        "callClaude timeout",
       );
       return { ok: false, reason: "timeout", error: err };
     }
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(
-      `[Anthropic] callClaude http_error (model=${opts.model}): ${msg}`
-    );
+    logger.error({ model: opts.model, err: msg }, "callClaude http_error");
     return { ok: false, reason: "http_error", error: err };
   } finally {
     clearTimeout(timer);
