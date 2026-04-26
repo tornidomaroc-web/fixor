@@ -95,7 +95,7 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 - [x] **5B-2** On `installation_created` webhook event: insert/upsert an `orgs` row with default `plan_tier="free"`, default `monthly_cap_usd=5`. Audit log entry. (PR #23 — provisionOrgForInstallation, transactional, idempotent; 503-on-fail so GitHub retries.)
 - [x] **5B-3** `runAuditorWorkflow` reads tier-derived caps + per-org settings. `checkBudget` reads from `orgs.monthly_cap_usd` (override path env still wins for `EXEMPT`). (PR #24 — resolveMonthlyCapForInstallation; spend reads + cap lookup parallel via Promise.all; effective caps surfaced in BudgetCheck.caps.)
 - [x] **5B-4** Settings application: `auditor-workflow` skips findings whose file path matches any `ignored_globs`. Skips disabled detectors. Filters out findings below `severity_threshold`. (PR #25 — minimatch filter at the analysis-finding layer; no-op for default settings; 24-assertion unit suite.)
-- [ ] **5B-5** API tokens: `api_tokens` table (org_id, hash, name, last_used_at, revoked_at). Endpoint `POST /api/v1/scan` (auth via `Authorization: Bearer <token>`) — runs the workflow synchronously on a posted diff. Rate-limited per token.
+- [x] **5B-5** API tokens: `api_tokens` table (org_id, hash, name, last_used_at, revoked_at). Endpoint `POST /api/v1/scan` (auth via `Authorization: Bearer <token>`) — runs the workflow synchronously on a posted diff. Rate-limited per token. (PR #26 — fxr_ token format, SHA-256 hash, in-memory fixed-window limiter; CLI `npm run create-api-token`.)
 
 **Exit criterion**: Two test installations on two test repos. Each scan attributes correctly. One has `severity_threshold=high` set; verify only high+critical findings appear in its PR comment.
 
