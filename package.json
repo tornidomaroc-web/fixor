@@ -21,7 +21,8 @@
     "demo:validate-github-comment": "npm run build && node dist/integrations/github/demo/validate-github-comment-demo.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "npm run build && node dist/db/migrate.js",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "migrate:json-ledger": "npm run build && node dist/scripts/migrate-json-ledger-to-pg.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

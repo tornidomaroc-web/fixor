@@ -221,7 +221,7 @@ export async function handlePullRequestWebhook(
     // but degrade gracefully without recording cost.
     workflow = await runAuditorWorkflow(semgrepPayload, metadata);
   } else {
-    const budget = checkBudget(installationId);
+    const budget = await checkBudget(installationId);
     if (!budget.withinBudget && budget.reason !== "exempt") {
       const now = new Date().toISOString();
       workflow = {
