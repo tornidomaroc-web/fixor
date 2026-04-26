@@ -11,6 +11,7 @@ import * as http from "http";
 import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-handler";
 import { logger } from "../lib/logger";
 import { pingDb, runHealthChecks } from "../lib/health";
+import { provisionOrgForInstallation } from "../services/orgs.service";
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim();
@@ -154,6 +155,46 @@ async function main(): Promise<void> {
         const action = (payload as any)?.action;
         const instId = (payload as any)?.installation?.id;
         logger.info({ action, installationId: instId }, "installation event");
+
+        if (
+          eventStr === "installation" &&
+          action === "created" &&
+          instId !== undefined &&
+          instId !== null
+        ) {
+          try {
+            const result = await provisionOrgForInstallation(
+              String(instId),
+              eventStr,
+            );
+            jsonResponse(res, 200, {
+              status: "installation_acknowledged",
+              action,
+              installationId: instId,
+              orgId: result.orgId,
+              orgCreated: result.created,
+            });
+            return;
+          } catch (err) {
+            // Provisioning failed (DB outage, transient FK violation,
+            // etc). Return 5xx so GitHub retries the webhook — by 5B-2
+            // this path is the ONLY way an org gets a row, so a lost
+            // delivery would orphan the install.
+            Sentry.captureException(err, {
+              tags: { "fixor.phase": "org_provision" },
+              extra: { installationId: String(instId) },
+            });
+            logger.error(
+              { installationId: String(instId), err },
+              "org provisioning failed",
+            );
+            jsonResponse(res, 503, {
+              error: "org provisioning failed; will retry",
+            });
+            return;
+          }
+        }
+
         jsonResponse(res, 200, { status: "installation_acknowledged", action, installationId: instId });
         return;
       }
