@@ -45,6 +45,17 @@ Failed GitHub REST responses throw **`GitHubApiError`** with **`details`**: `sta
 
 Bodies are capped (default **58_000 UTF-8 bytes**). If exceeded, the text is truncated and a short **truncation notice** is inserted; the Fixor marker remains at the end. Override with `maxCommentUtf8Bytes` on the comment input / webhook config.
 
+## Report URL expiry (Phase 5A-7+)
+
+PDF and SARIF reports are uploaded to Cloudinary as `type=authenticated`. The PR comment links are **signed delivery URLs** that **expire after 1 hour** (configurable via `FIXOR_REPORT_URL_TTL_SECONDS`).
+
+- **What this means for reviewers**: clicking the link more than ~1 hour after the comment was posted returns **HTTP 401** from Cloudinary.
+- **How to recover**: re-trigger the scan (push a new commit, or close + reopen the PR). Each scan creates a fresh upload + a fresh signed URL.
+- **Why this default**: signed URLs limit blast radius if a comment URL leaks. 1h is enough for the typical "PR opened → reviewed within an hour" flow; longer windows trade off security for convenience.
+- **To extend**: set `FIXOR_REPORT_URL_TTL_SECONDS` to e.g. `86400` (24 hours) on Railway. Min effective floor is 60 seconds.
+
+The Cloudinary asset itself is not deleted — only the signing key embedded in the URL has elapsed. A fresh URL minted for the same `public_id` would work, but Fixor never re-mints; the public_id includes a `Date.now()` segment so each scan is its own upload.
+
 ## Rollback
 
 1. **Stop** the webhook or set **`GITHUB_COMMENT_DRY_RUN=true`** so no new posts occur.
