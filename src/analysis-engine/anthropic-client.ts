@@ -159,7 +159,17 @@ export async function callClaude(
         cacheReadInputTokens:
           usage.cache_read_input_tokens ?? usage.cacheReadInputTokens ?? 0,
       });
-      recordCost(installationId, costUsd);
+      try {
+        await recordCost(installationId, costUsd);
+      } catch (err) {
+        // Cost-tracking is observability, not control flow. A DB
+        // hiccup must not break the scan: we lose visibility on this
+        // one call, not money.
+        console.warn(
+          `[Anthropic] recordCost failed for installation ${String(installationId)}:`,
+          err,
+        );
+      }
     }
 
     return {
