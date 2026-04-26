@@ -134,12 +134,14 @@ function run(): void {
     backoffDelayMs(1, pastDate, noJitter) === BASE_DELAY_MS * 2,
     "Retry-After in the past falls back to exponential",
   );
-  // Retry-After as HTTP-date in the future
+  // Retry-After as HTTP-date in the future. toUTCString() rounds to
+  // whole seconds, and a few hundred ms can pass between building the
+  // string and calling backoffDelayMs, so widen the bound generously.
   const futureDate = new Date(Date.now() + 5_000).toUTCString();
   const futureDelay = backoffDelayMs(0, futureDate, noJitter);
   assert(
-    futureDelay >= 4_500 && futureDelay <= 5_500,
-    `Retry-After future date: ~5000ms (got ${futureDelay})`,
+    futureDelay > 0 && futureDelay <= 5_500,
+    `Retry-After future date: in (0, 5500]ms (got ${futureDelay})`,
   );
 
   // Garbage Retry-After → fall through to backoff

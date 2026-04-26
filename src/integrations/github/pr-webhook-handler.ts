@@ -327,7 +327,7 @@ async function handlePullRequestWebhookImpl(
 
   const executionKey =
     options.executionKey?.trim() ??
-    buildFixorExecutionKey(owner, repo, pullNumber, headSha);
+    buildFixorExecutionKey(owner, repo, pullNumber, headSha, installationId);
 
   try {
     const comment = await postFixorPullRequestComment({

@@ -72,13 +72,17 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 - [x] **5A-6** Add Sentry: `npm i @sentry/node`. Initialize in `src/server/webhook-server.ts` startup with DSN from env. Wrap workflow + handler in `Sentry.startSpan`. Add `Sentry.captureException` in every catch block that currently logs+swallows. (PR #17 — instrument.ts loaded first; 8 catches captureException; SIGTERM flushes.)
 - [x] **5A-7** Cloudinary signed URLs: replace public unsigned uploads with signed delivery (1h TTL). PR comment links should include the signature. Document URL expiry behaviour in PILOT.md. (PR #18 — type=authenticated + private_download_url; FIXOR_REPORT_URL_TTL_SECONDS knob.)
 - [x] **5A-8** Health endpoint: `GET /health` returns `{status: "ok", db: "ok|degraded", anthropic: "ok|degraded", uptime_s}`. Add `/ready` (just checks DB). (PR #19 — both endpoints, 503 on degraded; helpers in src/lib/health.ts.)
-- [ ] **5A-9** Retry with exponential backoff on Anthropic 429/5xx in `callClaude`: max 3 retries, 1s/2s/4s delays + jitter. Record all retry attempts in Sentry as breadcrumbs.
-- [ ] **5A-10** Resolve the Phase 4C pending items from the close-out:
-  - Add structured logs for `checkBudget` decisions and `recordCost` writes.
-  - Comment text: `"cap of $X reached (spent $Y)"` → `"$X cap (spent $Y)"`.
-  - Investigate duplicate-scan-on-reopen: scope idempotency around `installation+sha`, not raw payload.
+- [x] **5A-9** Retry with exponential backoff on Anthropic 429/5xx in `callClaude`: max 3 retries, 1s/2s/4s delays + jitter. Record all retry attempts in Sentry as breadcrumbs. (PR #20 — pure helpers in src/lib/anthropic-retry.ts; SDK retries set to 0; honors Retry-After.)
+- [x] **5A-10** Resolve the Phase 4C pending items from the close-out:
+  - Add structured logs for `checkBudget` decisions and `recordCost` writes. (done — pino info-level logs in cost-store.ts)
+  - Comment text: `"cap of $X reached (spent $Y)"` → `"$X cap (spent $Y)"`. (done — comment-builder.ts)
+  - Investigate duplicate-scan-on-reopen: scope idempotency around `installation+sha`, not raw payload. (partial — `buildFixorExecutionKey` now scopes to `inst-<id>/<sha>` when installationId is available; full Postgres-backed idempotency is tracked as a Phase 5B follow-up below.)
 
 **Exit criterion**: Push a deliberately broken PR; verify (a) Sentry captures the error, (b) Pino logs include `installationId`, (c) cost ledger entry survives a Railway redeploy, (d) `/health` returns 200, (e) Anthropic 429 simulation triggers retries visible in Sentry.
+
+#### Phase 5A close-out follow-ups (deferred, not blocking)
+
+- **Scan idempotency in production (Postgres-backed).** The JSON pilot store (`FIXOR_PILOT_ENABLED`) is opt-in and not used on Railway, so a `pull_request.reopened` event on the same head SHA currently triggers a fresh scan + duplicate Anthropic spend. Fix: query `scan_runs` for an existing recent row with `(installation_id, head_sha)` before launching the workflow; reuse its `comment_id` instead of re-running. Land this in **Phase 5B** alongside the `orgs` schema work since the same path will need org context anyway. (5A-10 narrowed the executionKey to `inst-<id>/<sha>` for the JSON store, which is a partial fix; the full fix needs the DB layer.)
 
 ---
 

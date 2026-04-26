@@ -142,12 +142,35 @@ export function resolvePilotStorePath(explicit?: string): string {
   return path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 }
 
-/** Stable idempotency key aligned with webhook `executionKey` convention. */
+/**
+ * Stable idempotency key aligned with webhook `executionKey` convention.
+ *
+ * When `installationId` is provided (the canonical case for live GitHub
+ * App webhooks), the key is scoped to `inst-<id>/<sha>`. SHAs are
+ * content-addressed so two different commits cannot collide; pinning to
+ * installation lets us share idempotency across PRs that share a head
+ * sha within the same customer install (e.g. a PR closed and reopened,
+ * or a stack of PRs targeting the same commit).
+ *
+ * When `installationId` is missing (CLI demos, integration tests), we
+ * fall back to the legacy `owner/repo/pr-N/sha` shape. Both shapes
+ * coexist in the JSON pilot store; the store is keyed by raw string,
+ * so old pilot-mode entries continue to work.
+ *
+ * NOTE — Production today does NOT use this store (FIXOR_PILOT_ENABLED
+ * defaults off on Railway). Postgres-backed scan_runs idempotency for
+ * the live webhook path is tracked as a Phase 5B follow-up; see the
+ * roadmap "Phase 5A close-out follow-ups" section.
+ */
 export function buildFixorExecutionKey(
   owner: string,
   repo: string,
   pullNumber: number,
-  headSha: string
+  headSha: string,
+  installationId?: number | string | null,
 ): string {
+  if (installationId !== undefined && installationId !== null) {
+    return `inst-${String(installationId)}/${headSha}`;
+  }
   return `${owner}/${repo}/pr-${pullNumber}/${headSha}`;
 }

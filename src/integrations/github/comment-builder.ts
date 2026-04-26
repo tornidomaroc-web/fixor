@@ -89,8 +89,8 @@ export function buildPullRequestCommentMarkdown(
     const b = workflow.budget;
     const reasonText =
       b.reason === "monthly_exceeded"
-        ? `monthly cap of $${b.monthlyCapUsd.toFixed(2)} reached (spent $${b.monthlySpend.toFixed(2)} this month)`
-        : `daily cap of $${b.dailyCapUsd.toFixed(2)} reached (spent $${b.dailySpend.toFixed(2)} today)`;
+        ? `$${b.monthlyCapUsd.toFixed(2)} monthly cap (spent $${b.monthlySpend.toFixed(2)} this month)`
+        : `$${b.dailyCapUsd.toFixed(2)} daily cap (spent $${b.dailySpend.toFixed(2)} today)`;
     lines.push(
       "",
       "> ⏸️ **Fixor scan paused - budget reached**",
