@@ -91,7 +91,7 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 **Goal**: One GitHub installation = one Org. Per-org settings + per-org ledger + audit log.
 
 **Tasks**:
-- [ ] **5B-1** Schema additions: `orgs` (id, github_installation_id, plan_tier, stripe_customer_id, stripe_subscription_id, monthly_cap_usd, created_at), `org_settings` (org_id FK, severity_threshold, ignored_globs, enabled_detectors[], slack_webhook_url), `audit_log` (id, org_id, actor_type, actor_id, action, target, metadata jsonb, created_at).
+- [x] **5B-1** Schema additions: `orgs` (id, github_installation_id, plan_tier, stripe_customer_id, stripe_subscription_id, monthly_cap_usd, created_at), `org_settings` (org_id FK, severity_threshold, ignored_globs, enabled_detectors[], slack_webhook_url), `audit_log` (id, org_id, actor_type, actor_id, action, target, metadata jsonb, created_at). (PR #22 — schema + 0001 migration; user applied to Neon.)
 - [ ] **5B-2** On `installation_created` webhook event: insert/upsert an `orgs` row with default `plan_tier="free"`, default `monthly_cap_usd=5`. Audit log entry.
 - [ ] **5B-3** `runAuditorWorkflow` reads tier-derived caps + per-org settings. `checkBudget` reads from `orgs.monthly_cap_usd` (override path env still wins for `EXEMPT`).
 - [ ] **5B-4** Settings application: `auditor-workflow` skips findings whose file path matches any `ignored_globs`. Skips disabled detectors. Filters out findings below `severity_threshold`.
