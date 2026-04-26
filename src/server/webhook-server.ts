@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/node";
 import * as http from "http";
 import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-handler";
 import { logger } from "../lib/logger";
+import { pingDb, runHealthChecks } from "../lib/health";
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim();
@@ -112,6 +113,19 @@ async function main(): Promise<void> {
       const host = req.headers.host ?? "localhost";
       const path =
         req.url !== undefined ? new URL(req.url, `http://${host}`).pathname : "";
+
+      if (req.method === "GET" && path === "/health") {
+        const report = await runHealthChecks();
+        jsonResponse(res, report.status === "ok" ? 200 : 503, report);
+        return;
+      }
+
+      if (req.method === "GET" && path === "/ready") {
+        const dbStatus = await pingDb();
+        const ready = dbStatus === "ok";
+        jsonResponse(res, ready ? 200 : 503, { ready, db: dbStatus });
+        return;
+      }
 
       if (req.method !== "POST" || path !== "/webhook") {
         res.writeHead(404);
