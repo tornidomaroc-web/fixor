@@ -22,6 +22,7 @@ import { verifyGitHubWebhookSignature256 } from "./webhook-signature";
 import { fetchPrDiff } from "./github-client";
 import { costContext } from "../../lib/cost-context";
 import { checkBudget } from "../../services/cost-store";
+import { logger } from "../../lib/logger";
 
 export type SemgrepPayloadResolver = (ctx: {
   owner: string;
@@ -271,9 +272,9 @@ export async function handlePullRequestWebhook(
         commitSha: headSha,
       });
       pdfUrl = await uploadPdfBuffer(pdfBuffer, publicId);
-      console.log(`[Webhook] PDF report uploaded: ${pdfUrl}`);
+      logger.info({ pdfUrl }, "PDF report uploaded");
     } catch (pdfError) {
-      console.warn(`[Webhook] PDF generation/upload failed:`, pdfError);
+      logger.warn({ err: pdfError }, "PDF generation/upload failed");
     }
 
     try {
@@ -282,9 +283,9 @@ export async function handlePullRequestWebhook(
         commitSha: headSha,
       });
       sarifUrl = await uploadSarifText(sarifToJson(sarif), publicId);
-      console.log(`[Webhook] SARIF log uploaded: ${sarifUrl}`);
+      logger.info({ sarifUrl }, "SARIF log uploaded");
     } catch (sarifError) {
-      console.warn(`[Webhook] SARIF generation/upload failed:`, sarifError);
+      logger.warn({ err: sarifError }, "SARIF generation/upload failed");
     }
   }
   workflow.pdfUrl = pdfUrl;

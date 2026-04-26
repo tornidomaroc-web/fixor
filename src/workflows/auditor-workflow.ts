@@ -10,6 +10,7 @@ import {
 import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types.js";
 import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
+import { logger } from "../lib/logger.js";
 
 function findingToNormalized(f: Finding): NormalizedFinding {
   const msg = f.explanation.slice(0, 500);
@@ -148,9 +149,7 @@ export async function runAuditorWorkflow(
   const startedAt = new Date().toISOString();
   const startTimeMs = Date.now();
 
-  console.log(
-    `[Workflow] Started execution.${metadata.scanId ? ` Scan ID: ${metadata.scanId}` : ""}`
-  );
+  logger.info({ scanId: metadata.scanId }, "workflow started");
 
   let timeoutHandle: NodeJS.Timeout | undefined;
   const timeoutPromise = new Promise<WorkflowResult>((_, reject) => {
@@ -167,7 +166,7 @@ export async function runAuditorWorkflow(
     ]);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[Workflow] Execution failed or timed out:", message);
+    logger.error({ err: message }, "workflow execution failed or timed out");
     const finishedAt = new Date().toISOString();
     return {
       status: "failed",
@@ -230,11 +229,11 @@ async function executeWorkflow(
     result.timing.finishedAt = new Date().toISOString();
     result.timing.durationMs = Date.now() - startTimeMs;
     if (status === "success" || status === "partial_success") {
-      console.log(`[Workflow] Workflow completed with ${status}.`);
+      logger.info({ status }, "workflow completed");
     } else if (status === "no_action") {
-      console.log(`[Workflow] Workflow finished: no_action.`);
+      logger.info("workflow finished: no_action");
     } else {
-      console.log(`[Workflow] Workflow failed.`);
+      logger.warn("workflow failed");
     }
     return result;
   };
@@ -246,7 +245,7 @@ async function executeWorkflow(
   let legacyRoot: any = null;
 
   if (diffStr) {
-    console.log("[Workflow] Using Claude analysis engine on PR diff.");
+    logger.debug("using Claude analysis engine on PR diff");
     const analysis = await analyzeCode(diffStr);
     result.totalFindings = analysis.findings.length;
     findings = analysis.findings.map(findingToNormalized);
@@ -268,21 +267,28 @@ async function executeWorkflow(
             f.confidence === "high" ? 90 : f.confidence === "medium" ? 50 : 20,
         })
       );
-    console.log(
-      `[Workflow] Analysis findings: ${result.totalFindings}; SQL injection (classified): ${sqlFindingsForExplainer.length}`
+    logger.info(
+      {
+        totalFindings: result.totalFindings,
+        sqlInjectionFindings: sqlFindingsForExplainer.length,
+      },
+      "analysis findings extracted",
     );
   } else {
     const { root, error } = parseSemgrepPayload(semgrepPayload);
     if (error || !root) {
-      console.error("[Workflow] Payload validation failed:", error);
+      logger.error({ err: error }, "payload validation failed");
       result.errors.push({ message: error || "Unknown validation error" });
       result.automationDecisionReason = "Workflow failed";
       return finalize("failed");
     }
     legacyRoot = root;
-    console.log("[Workflow] Legacy Semgrep payload validated successfully.");
+    logger.debug("legacy Semgrep payload validated");
     result.totalFindings = root.results.length;
-    console.log(`[Workflow] Total findings extracted: ${result.totalFindings}`);
+    logger.info(
+      { totalFindings: result.totalFindings },
+      "total findings extracted",
+    );
 
     const semgrepFindings = extractSqlInjectionFromSemgrep(root);
     const diffFindings: NormalizedSqlInjectionFinding[] = Array.isArray(
@@ -323,16 +329,22 @@ async function executeWorkflow(
   }
   if (unsupportedByType.size > 0) {
     for (const [type, count] of unsupportedByType) {
-      console.log(
-        `[Workflow] ${count} finding(s) of type '${type}' have no registered detector; skipped.`
+      logger.info(
+        { type, count },
+        "findings of type have no registered detector; skipped",
       );
     }
   }
-  console.log(
-    `[Workflow] Classified findings: ${result.classifiedFindings}; SQL injection: ${result.sqlInjectionFindings}; skipped: ${result.skippedFindings}.`
+  logger.info(
+    {
+      classifiedFindings: result.classifiedFindings,
+      sqlInjectionFindings: result.sqlInjectionFindings,
+      skippedFindings: result.skippedFindings,
+    },
+    "findings classified",
   );
 
-  console.log("[Workflow] Fix generation started.");
+  logger.debug("fix generation started");
 
   /**
    * Bounded concurrency: we don't want a 100-finding PR to open 100
@@ -370,8 +382,13 @@ async function executeWorkflow(
       else if (r.fix.patchQuality === "medium") result.mediumQualityPatches++;
       else result.lowQualityPatches++;
     } else {
-      console.warn(
-        `[Workflow] Failed to generate fix for finding in ${r.finding.file}:${r.finding.startLine}`
+      logger.warn(
+        {
+          file: r.finding.file,
+          line: r.finding.startLine,
+          err: r.message,
+        },
+        "failed to generate fix",
       );
       result.errors.push({
         findingId: r.finding.ruleId || "unknown",
@@ -381,8 +398,9 @@ async function executeWorkflow(
     }
   }
 
-  console.log(
-    `[Workflow] Fix generation completed. Generated ${result.fixesGenerated} fixes.`
+  logger.info(
+    { fixesGenerated: result.fixesGenerated },
+    "fix generation completed",
   );
 
   // Risk explanations apply only to SQL fixes (no XSS equivalent exists

@@ -3,11 +3,12 @@
  */
 import * as http from "http";
 import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-handler";
+import { logger } from "../lib/logger";
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim();
   if (!v) {
-    console.error(`Missing required environment variable: ${name}`);
+    logger.error({ name }, "missing required environment variable");
     process.exit(1);
   }
   return v;
@@ -69,7 +70,9 @@ async function main(): Promise<void> {
   const hasAppAuth = !!(process.env.GITHUB_APP_ID?.trim() && process.env.GITHUB_APP_PRIVATE_KEY?.trim());
   const hasPatAuth = !!process.env.GITHUB_TOKEN?.trim();
   if (!hasAppAuth && !hasPatAuth) {
-    console.error("Missing auth: set either GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY, or GITHUB_TOKEN");
+    logger.error(
+      "missing auth: set either GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY, or GITHUB_TOKEN",
+    );
     process.exit(1);
   }
   requireEnv("ANTHROPIC_API_KEY");
@@ -77,7 +80,7 @@ async function main(): Promise<void> {
   const portRaw = process.env.PORT?.trim() || "3000";
   const port = Number.parseInt(portRaw, 10);
   if (!Number.isFinite(port) || port < 1 || port > 65535) {
-    console.error("Invalid PORT");
+    logger.error({ portRaw }, "invalid PORT");
     process.exit(1);
   }
 
@@ -88,14 +91,13 @@ async function main(): Promise<void> {
 
   if (skipSignatureVerification) {
     if (nodeEnv === "production" || !allowUnsigned) {
-      console.error(
-        "Refusing to start: GITHUB_WEBHOOK_SECRET is required. " +
-          "For local development set ALLOW_UNSIGNED_WEBHOOKS=true and NODE_ENV!=production."
+      logger.error(
+        "refusing to start: GITHUB_WEBHOOK_SECRET is required. for local dev set ALLOW_UNSIGNED_WEBHOOKS=true and NODE_ENV!=production",
       );
       process.exit(1);
     }
-    console.warn(
-      "[Webhook] Starting with signature verification DISABLED (ALLOW_UNSIGNED_WEBHOOKS=true). Dev only."
+    logger.warn(
+      "starting with signature verification DISABLED (ALLOW_UNSIGNED_WEBHOOKS=true). dev only",
     );
   }
 
@@ -131,7 +133,7 @@ async function main(): Promise<void> {
       if (eventStr === "installation" || eventStr === "installation_repositories") {
         const action = (payload as any)?.action;
         const instId = (payload as any)?.installation?.id;
-        console.log(`[Webhook] installation event: ${action}, id: ${instId}`);
+        logger.info({ action, installationId: instId }, "installation event");
         jsonResponse(res, 200, { status: "installation_acknowledged", action, installationId: instId });
         return;
       }
@@ -169,7 +171,7 @@ async function main(): Promise<void> {
   });
 
   server.listen(port, () => {
-    console.log(`Fixor webhook server listening on port ${port}`);
+    logger.info({ port }, "Fixor webhook server listening");
   });
 
   const shutdown = (): void => {

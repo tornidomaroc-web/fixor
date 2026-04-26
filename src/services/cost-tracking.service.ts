@@ -9,6 +9,7 @@
  */
 
 import type { ClaudeModelId } from "../config/models";
+import { logger } from "../lib/logger";
 
 export interface ModelPricing {
   /** USD per 1M input tokens (base, no caching). */
@@ -40,7 +41,7 @@ export interface UsageRecord {
 export function calculateCost(usage: UsageRecord): number {
   const pricing = MODEL_PRICING[usage.model];
   if (!pricing) {
-    console.warn(`[CostTracking] No pricing for model '${usage.model}', counting as $0.`);
+    logger.warn({ model: usage.model }, "no pricing for model, counting as $0");
     return 0;
   }
 
