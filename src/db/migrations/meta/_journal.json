@@ -15,6 +15,13 @@
       "when": 1777223951944,
       "tag": "0001_tense_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777232572857,
+      "tag": "0002_boring_the_twelve",
+      "breakpoints": true
     }
   ]
 }

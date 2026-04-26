@@ -12,6 +12,22 @@ import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-hand
 import { logger } from "../lib/logger";
 import { pingDb, runHealthChecks } from "../lib/health";
 import { provisionOrgForInstallation } from "../services/orgs.service";
+import {
+  getInstallationIdForOrg,
+  markTokenUsed,
+  verifyApiToken,
+} from "../services/api-tokens.service";
+import { FixedWindowRateLimiter } from "../lib/rate-limiter";
+import { runAuditorWorkflow } from "../workflows/auditor-workflow";
+import { costContext } from "../lib/cost-context";
+import { checkBudget } from "../services/cost-store";
+
+// Per-token bucket. 60 requests / 60s default — plenty for a CI loop,
+// blocks runaway scripts. Override with FIXOR_API_RATE_LIMIT_PER_MIN.
+const apiRateLimit = new FixedWindowRateLimiter(
+  Number.parseInt(process.env.FIXOR_API_RATE_LIMIT_PER_MIN ?? "60", 10) || 60,
+  60_000,
+);
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim();
@@ -38,6 +54,104 @@ function jsonResponse(
 ): void {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(body));
+}
+
+async function handleApiScan(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): Promise<void> {
+  // 1. Bearer auth
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
+    jsonResponse(res, 401, { error: "missing bearer token" });
+    return;
+  }
+  const plainToken = authHeader.slice("Bearer ".length).trim();
+
+  let verified;
+  try {
+    verified = await verifyApiToken(plainToken);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { "fixor.phase": "api_token_verify" } });
+    logger.error({ err }, "api token verify failed");
+    jsonResponse(res, 503, { error: "auth backend unavailable" });
+    return;
+  }
+  if (!verified) {
+    jsonResponse(res, 401, { error: "invalid or revoked token" });
+    return;
+  }
+
+  // 2. Rate limit per token
+  if (!apiRateLimit.allow(verified.tokenId)) {
+    const retryAfter = apiRateLimit.retryAfterSeconds(verified.tokenId);
+    res.setHeader("Retry-After", String(retryAfter));
+    jsonResponse(res, 429, {
+      error: "rate_limit_exceeded",
+      retryAfterSeconds: retryAfter,
+    });
+    return;
+  }
+
+  // 3. Body
+  let body: unknown;
+  try {
+    const raw = await readRawBody(req);
+    body = JSON.parse(raw.toString("utf8"));
+  } catch {
+    jsonResponse(res, 400, { error: "invalid JSON body" });
+    return;
+  }
+  const diff = (body as { diff?: unknown } | null)?.diff;
+  if (typeof diff !== "string" || !diff.trim()) {
+    jsonResponse(res, 400, { error: "diff is required (string)" });
+    return;
+  }
+
+  // 4. Budget gate (mirrors pr-webhook-handler)
+  const installationId = await getInstallationIdForOrg(verified.orgId);
+  if (installationId) {
+    const budget = await checkBudget(installationId);
+    if (!budget.withinBudget && budget.reason !== "exempt") {
+      jsonResponse(res, 402, {
+        error: "monthly_budget_exceeded",
+        reason: budget.reason,
+        monthlySpend: budget.monthlySpend,
+        dailySpend: budget.dailySpend,
+        caps: budget.caps,
+      });
+      return;
+    }
+  }
+
+  // 5. Run workflow
+  const metadata = {
+    repoName: `api/v1/scan/${verified.orgId}`,
+    scanId: verified.tokenId,
+  };
+  const workflow = installationId
+    ? await costContext.run({ installationId }, () =>
+        runAuditorWorkflow(diff, metadata),
+      )
+    : await runAuditorWorkflow(diff, metadata);
+
+  // 6. Best-effort bookkeeping — update last_used_at without blocking
+  //    the response. A failed update only loses a timestamp.
+  void markTokenUsed(verified.tokenId).catch((err) => {
+    logger.warn({ tokenId: verified.tokenId, err }, "markTokenUsed failed");
+  });
+
+  jsonResponse(res, 200, {
+    status: workflow.status,
+    automationReady: workflow.automationReady,
+    totalFindings: workflow.totalFindings,
+    classifiedFindings: workflow.classifiedFindings,
+    skippedFindings: workflow.skippedFindings,
+    fixesGenerated: workflow.fixesGenerated,
+    fixes: workflow.fixes,
+    errors: workflow.errors,
+    timing: workflow.timing,
+  });
 }
 
 function summarizeWebhookResult(
@@ -125,6 +239,11 @@ async function main(): Promise<void> {
         const dbStatus = await pingDb();
         const ready = dbStatus === "ok";
         jsonResponse(res, ready ? 200 : 503, { ready, db: dbStatus });
+        return;
+      }
+
+      if (req.method === "POST" && path === "/api/v1/scan") {
+        await handleApiScan(req, res);
         return;
       }
 
