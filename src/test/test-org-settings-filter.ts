@@ -1,0 +1,183 @@
+/**
+ * Pure-function tests for the org_settings filter (5B-4).
+ *
+ * The integration into auditor-workflow.ts is exercised live by the
+ * existing fixture suite (no findings are filtered by the default
+ * settings = severity_threshold:"low" + no globs + enabledDetectors:null,
+ * so this PR is behavior-neutral for installations without configured
+ * settings).
+ */
+import {
+  filterFindings,
+  passesOrgSettings,
+  type FindingForFilter,
+  type OrgSettingsView,
+} from "../lib/org-settings-filter";
+
+let failures = 0;
+function assert(cond: unknown, msg: string): void {
+  if (!cond) {
+    console.error(`[FAIL] ${msg}`);
+    failures++;
+  }
+}
+
+const PERMISSIVE: OrgSettingsView = {
+  severityThreshold: "low",
+  ignoredGlobs: [],
+  enabledDetectors: null,
+};
+
+function f(
+  partial: Partial<FindingForFilter> & { file: string },
+): FindingForFilter {
+  return {
+    type: "sql_injection_risk",
+    severity: "high",
+    ...partial,
+  };
+}
+
+function run(): void {
+  // -- passesOrgSettings: severity gate -------------------------------
+  assert(
+    passesOrgSettings(f({ file: "a.ts", severity: "low" }), PERMISSIVE).passes,
+    "low severity passes when threshold=low",
+  );
+  {
+    const r = passesOrgSettings(f({ file: "a.ts", severity: "low" }), {
+      ...PERMISSIVE,
+      severityThreshold: "high",
+    });
+    assert(!r.passes, "low severity dropped when threshold=high");
+    assert(!r.passes && r.reason === "severity", "reason=severity");
+  }
+  assert(
+    passesOrgSettings(f({ file: "a.ts", severity: "critical" }), {
+      ...PERMISSIVE,
+      severityThreshold: "high",
+    }).passes,
+    "critical passes when threshold=high",
+  );
+
+  // -- passesOrgSettings: glob gate -----------------------------------
+  {
+    const r = passesOrgSettings(
+      f({ file: "src/foo.test.ts" }),
+      { ...PERMISSIVE, ignoredGlobs: ["**/*.test.ts"] },
+    );
+    assert(!r.passes, "test file matches glob -> drop");
+    assert(!r.passes && r.reason === "glob", "reason=glob");
+  }
+  assert(
+    passesOrgSettings(
+      f({ file: "src/foo.ts" }),
+      { ...PERMISSIVE, ignoredGlobs: ["**/*.test.ts"] },
+    ).passes,
+    "non-test file passes the test-file glob",
+  );
+  assert(
+    !passesOrgSettings(
+      f({ file: "node_modules/lib/index.js" }),
+      { ...PERMISSIVE, ignoredGlobs: ["node_modules/**"] },
+    ).passes,
+    "node_modules glob drops nested file",
+  );
+  // Multiple globs — any match drops
+  assert(
+    !passesOrgSettings(
+      f({ file: "dist/bundle.js" }),
+      { ...PERMISSIVE, ignoredGlobs: ["**/*.test.ts", "dist/**"] },
+    ).passes,
+    "any-of multiple globs drops",
+  );
+
+  // -- passesOrgSettings: detector allowlist gate ---------------------
+  // SQL injection has registered detector "sql-injection-js-ts"
+  {
+    const r = passesOrgSettings(
+      f({ file: "src/x.ts", type: "sql_injection_risk" }),
+      { ...PERMISSIVE, enabledDetectors: ["xss-js-ts"] },
+    );
+    assert(!r.passes, "SQL finding dropped when allowlist excludes it");
+    assert(!r.passes && r.reason === "detector", "reason=detector");
+  }
+  assert(
+    passesOrgSettings(
+      f({ file: "src/x.ts", type: "sql_injection_risk" }),
+      {
+        ...PERMISSIVE,
+        enabledDetectors: ["sql-injection-js-ts", "xss-js-ts"],
+      },
+    ).passes,
+    "SQL finding passes when in allowlist",
+  );
+  // null allowlist = all enabled
+  assert(
+    passesOrgSettings(
+      f({ file: "src/x.ts", type: "sql_injection_risk" }),
+      { ...PERMISSIVE, enabledDetectors: null },
+    ).passes,
+    "null allowlist = all detectors enabled",
+  );
+  // Empty allowlist = nothing matches
+  assert(
+    !passesOrgSettings(
+      f({ file: "src/x.ts", type: "sql_injection_risk" }),
+      { ...PERMISSIVE, enabledDetectors: [] },
+    ).passes,
+    "empty allowlist = no detectors enabled (everything dropped)",
+  );
+
+  // -- filterFindings: stats accumulation -----------------------------
+  const findings: FindingForFilter[] = [
+    f({ file: "src/a.ts", severity: "low" }),
+    f({ file: "src/b.test.ts", severity: "high" }),
+    f({ file: "src/c.ts", severity: "high", type: "sql_injection_risk" }),
+    f({ file: "src/d.ts", severity: "high", type: "xss_risk" }),
+    f({ file: "src/e.ts", severity: "critical" }),
+  ];
+  const result = filterFindings(findings, {
+    severityThreshold: "medium",
+    ignoredGlobs: ["**/*.test.ts"],
+    enabledDetectors: ["xss-js-ts"],
+  });
+  assert(
+    result.kept.length === 1,
+    `1 finding kept (got ${result.kept.length})`,
+  );
+  assert(result.kept[0]!.file === "src/d.ts", "kept the xss finding");
+  assert(
+    result.stats.droppedBySeverity === 1,
+    `severity drops = 1 (got ${result.stats.droppedBySeverity})`,
+  );
+  assert(
+    result.stats.droppedByGlob === 1,
+    `glob drops = 1 (got ${result.stats.droppedByGlob})`,
+  );
+  assert(
+    result.stats.droppedByDetector === 2,
+    `detector drops = 2 (got ${result.stats.droppedByDetector})`,
+  );
+
+  // -- short-circuit ordering -----------------------------------------
+  // A single finding is dropped by exactly ONE reason; the predicate
+  // must report the FIRST gate that fails (severity > glob > detector).
+  {
+    const r = passesOrgSettings(
+      // Low severity AND matches glob — severity gate hits first.
+      f({ file: "src/a.test.ts", severity: "low" }),
+      { ...PERMISSIVE, severityThreshold: "high", ignoredGlobs: ["**/*.test.ts"] },
+    );
+    assert(!r.passes && r.reason === "severity", "severity beats glob");
+  }
+
+  if (failures === 0) {
+    console.log("[PASS] org-settings-filter unit tests");
+  } else {
+    console.error(`[FAIL] ${failures} org-settings-filter unit test(s) failed`);
+    process.exit(1);
+  }
+}
+
+run();

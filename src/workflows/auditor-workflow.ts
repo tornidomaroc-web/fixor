@@ -12,6 +12,13 @@ import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
 import { logger } from "../lib/logger.js";
 import * as Sentry from "@sentry/node";
+import { currentInstallationId } from "../lib/cost-context.js";
+import { getOrgSettingsForInstallation } from "../services/orgs.service.js";
+import {
+  passesOrgSettings,
+  type OrgSettingsView,
+  type FilterStats,
+} from "../lib/org-settings-filter.js";
 
 function findingToNormalized(f: Finding): NormalizedFinding {
   const msg = f.explanation.slice(0, 500);
@@ -260,18 +267,70 @@ async function executeWorkflow(
     return result;
   };
 
+  // Per-org settings are looked up once per workflow. Failure to read
+  // them is non-fatal — we fall back to "no filter" (all findings pass)
+  // and surface the error to Sentry so we notice. installationId comes
+  // from costContext (set by the webhook handler).
+  const installationId = currentInstallationId();
+  let orgSettings: OrgSettingsView | null = null;
+  if (installationId !== undefined) {
+    try {
+      orgSettings = await getOrgSettingsForInstallation(String(installationId));
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { "fixor.phase": "org_settings_lookup" },
+        extra: { installationId: String(installationId) },
+      });
+      logger.warn(
+        { installationId: String(installationId), err },
+        "org settings lookup failed; running without filter",
+      );
+    }
+  }
+
   const diffStr = extractDiffString(semgrepPayload);
   let findings: NormalizedFinding[];
   /** SQL-shaped findings retained for the risk explainer (SQL-only today). */
   let sqlFindingsForExplainer: NormalizedSqlInjectionFinding[] = [];
   let legacyRoot: any = null;
+  /** Aggregated per-reason filter counts, populated when orgSettings is set. */
+  const filterStats: FilterStats = {
+    droppedBySeverity: 0,
+    droppedByGlob: 0,
+    droppedByDetector: 0,
+  };
+  function tallyFilter(reason: "severity" | "glob" | "detector"): void {
+    if (reason === "severity") filterStats.droppedBySeverity++;
+    else if (reason === "glob") filterStats.droppedByGlob++;
+    else filterStats.droppedByDetector++;
+  }
 
   if (diffStr) {
     logger.debug("using Claude analysis engine on PR diff");
     const analysis = await analyzeCode(diffStr);
     result.totalFindings = analysis.findings.length;
-    findings = analysis.findings.map(findingToNormalized);
-    sqlFindingsForExplainer = analysis.findings
+
+    // Apply org-settings filter at the analysis-finding level so both
+    // the NormalizedFinding[] and the SQL-shaped explainer array stay
+    // aligned (positional pairing in the explainer assumes alignment).
+    let analysisFindings = analysis.findings;
+    if (orgSettings) {
+      const settings = orgSettings;
+      analysisFindings = analysis.findings.filter((f) => {
+        const r = passesOrgSettings(
+          // Finding's severity union excludes "low" but the predicate
+          // accepts any Severity, so a widen-cast is safe here.
+          { file: f.file, type: f.type, severity: f.severity },
+          settings,
+        );
+        if (r.passes) return true;
+        tallyFilter(r.reason);
+        return false;
+      });
+    }
+
+    findings = analysisFindings.map(findingToNormalized);
+    sqlFindingsForExplainer = analysisFindings
       .filter((f) => f.type === "sql_injection_risk")
       .map(
         (f): NormalizedSqlInjectionFinding => ({
@@ -293,6 +352,7 @@ async function executeWorkflow(
       {
         totalFindings: result.totalFindings,
         sqlInjectionFindings: sqlFindingsForExplainer.length,
+        filterStats,
       },
       "analysis findings extracted",
     );
@@ -319,6 +379,30 @@ async function executeWorkflow(
       ? (root.findings as NormalizedSqlInjectionFinding[])
       : [];
     sqlFindingsForExplainer = [...semgrepFindings, ...diffFindings];
+
+    // Apply settings filter to the legacy path too, on the SQL-shaped
+    // array so the same array drives both `findings` and the
+    // explainer (preserves positional alignment).
+    if (orgSettings) {
+      const settings = orgSettings;
+      sqlFindingsForExplainer = sqlFindingsForExplainer.filter((f) => {
+        const r = passesOrgSettings(
+          {
+            file: f.file,
+            type: f.findingType,
+            // Legacy SQL findings carry classificationConfidence but not
+            // a severity field; we treat them as "high" since SQL
+            // injection's default registry severity is high.
+            severity: "high",
+          },
+          settings,
+        );
+        if (r.passes) return true;
+        tallyFilter(r.reason);
+        return false;
+      });
+    }
+
     findings = sqlFindingsForExplainer.map(sqlFindingToNormalized);
   }
 
