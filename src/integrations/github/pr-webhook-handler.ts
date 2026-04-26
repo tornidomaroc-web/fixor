@@ -5,6 +5,7 @@ import {
   uploadPdfBuffer,
   uploadSarifText,
   buildReportPublicId,
+  buildSignedReportUrl,
 } from "../../services/cloudinary-upload.service";
 import {
   buildSarifLog,
@@ -288,8 +289,12 @@ async function handlePullRequestWebhookImpl(
         pullNumber,
         commitSha: headSha,
       });
-      pdfUrl = await uploadPdfBuffer(pdfBuffer, publicId);
-      logger.info({ pdfUrl }, "PDF report uploaded");
+      const pdfReport = await uploadPdfBuffer(pdfBuffer, publicId);
+      pdfUrl = buildSignedReportUrl(pdfReport);
+      logger.info(
+        { publicId: pdfReport.publicId },
+        "PDF report uploaded (signed URL minted)",
+      );
     } catch (pdfError) {
       Sentry.captureException(pdfError, {
         tags: { "fixor.phase": "pdf_upload" },
@@ -303,8 +308,12 @@ async function handlePullRequestWebhookImpl(
         repoSlug: `${owner}/${repo}`,
         commitSha: headSha,
       });
-      sarifUrl = await uploadSarifText(sarifToJson(sarif), publicId);
-      logger.info({ sarifUrl }, "SARIF log uploaded");
+      const sarifReport = await uploadSarifText(sarifToJson(sarif), publicId);
+      sarifUrl = buildSignedReportUrl(sarifReport, { attachment: true });
+      logger.info(
+        { publicId: sarifReport.publicId },
+        "SARIF log uploaded (signed URL minted)",
+      );
     } catch (sarifError) {
       Sentry.captureException(sarifError, {
         tags: { "fixor.phase": "sarif_upload" },
