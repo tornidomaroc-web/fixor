@@ -193,3 +193,29 @@ export type OrgSettings = typeof orgSettings.$inferSelect;
 export type NewOrgSettings = typeof orgSettings.$inferInsert;
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 export type NewAuditLogEntry = typeof auditLog.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// Phase 5B-5 — API tokens
+// ---------------------------------------------------------------------------
+
+export const apiTokens = pgTable("api_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id")
+    .notNull()
+    .references(() => orgs.id, { onDelete: "cascade" }),
+  // SHA-256 hex of the plain token. The plain token is shown to the
+  // user exactly once at creation; only the hash lives in the DB.
+  // Tokens are 256-bit random + a `fxr_` prefix, so SHA-256 is enough
+  // — no per-row salt needed (no offline brute force on high-entropy
+  // randoms).
+  hash: text("hash").notNull().unique(),
+  name: text("name").notNull(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export type ApiToken = typeof apiTokens.$inferSelect;
+export type NewApiToken = typeof apiTokens.$inferInsert;

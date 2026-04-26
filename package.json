@@ -16,16 +16,18 @@
     "test:cost": "npm run build && node dist/test/test-cost-tracking.js",
     "test:retry": "npm run build && node dist/test/test-anthropic-retry.js",
     "test:filter": "npm run build && node dist/test/test-org-settings-filter.js",
+    "test:limiter": "npm run build && node dist/test/test-rate-limiter.js",
     "test:real": "npm run build && node dist/real-tests/run-real-tests.js",
     "lint:no-console": "node scripts/lint-no-console.mjs",
-    "test": "npm run lint:no-console && npm run typecheck && npm run test:fixtures && npm run test:sarif && npm run test:xss && npm run test:cmdi && npm run test:pt && npm run test:cost && npm run test:retry && npm run test:filter",
+    "test": "npm run lint:no-console && npm run typecheck && npm run test:fixtures && npm run test:sarif && npm run test:xss && npm run test:cmdi && npm run test:pt && npm run test:cost && npm run test:retry && npm run test:filter && npm run test:limiter",
     "validate:e2e": "npm run build && node dist/test/validate-e2e.js",
     "demo:github-pr-webhook": "npm run build && node dist/integrations/github/demo/run-pr-webhook-dry-run.js",
     "demo:validate-github-comment": "npm run build && node dist/integrations/github/demo/validate-github-comment-demo.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "npm run build && node dist/db/migrate.js",
     "db:studio": "drizzle-kit studio",
-    "migrate:json-ledger": "npm run build && node dist/scripts/migrate-json-ledger-to-pg.js"
+    "migrate:json-ledger": "npm run build && node dist/scripts/migrate-json-ledger-to-pg.js",
+    "create-api-token": "npm run build && node dist/scripts/create-api-token.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
