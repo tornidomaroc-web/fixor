@@ -1,6 +1,12 @@
 /**
  * Minimal GitHub PR webhook server (Node http only).
+ *
+ * NOTE: `import "../instrument"` MUST stay first — Sentry's auto-
+ * instrumentation hooks Node's http module at init time, so any module
+ * imported before it would skip the instrumentation.
  */
+import "../instrument";
+import * as Sentry from "@sentry/node";
 import * as http from "http";
 import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-handler";
 import { logger } from "../lib/logger";
@@ -165,7 +171,9 @@ async function main(): Promise<void> {
 
       jsonResponse(res, 200, summarizeWebhookResult(result));
     } catch (err) {
+      Sentry.captureException(err);
       const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, "unhandled error in webhook request");
       jsonResponse(res, 500, { error: message });
     }
   });
@@ -175,7 +183,10 @@ async function main(): Promise<void> {
   });
 
   const shutdown = (): void => {
-    server.close(() => process.exit(0));
+    server.close(() => {
+      // Flush any pending Sentry events before the process exits.
+      void Sentry.close(2000).finally(() => process.exit(0));
+    });
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);

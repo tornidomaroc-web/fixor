@@ -19,6 +19,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { costLedger, installations } from "../db/schema";
 import { logger } from "../lib/logger";
+import * as Sentry from "@sentry/node";
 
 function startOfMonthUtc(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -151,6 +152,10 @@ export async function checkBudget(
     monthlySpend = await getMonthlySpend(installationId);
     dailySpend = await getDailySpend(installationId);
   } catch (err) {
+    Sentry.captureException(err, {
+      tags: { "fixor.phase": "check_budget" },
+      extra: { installationId: String(installationId) },
+    });
     logger.warn(
       { installationId: String(installationId), err },
       "checkBudget failed; failing open",
