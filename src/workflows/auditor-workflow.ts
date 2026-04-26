@@ -11,6 +11,7 @@ import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types
 import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
 import { logger } from "../lib/logger.js";
+import * as Sentry from "@sentry/node";
 
 function findingToNormalized(f: Finding): NormalizedFinding {
   const msg = f.explanation.slice(0, 500);
@@ -146,55 +147,76 @@ export async function runAuditorWorkflow(
    */
   timeoutMs: number = 120_000
 ): Promise<WorkflowResult> {
-  const startedAt = new Date().toISOString();
-  const startTimeMs = Date.now();
-
-  logger.info({ scanId: metadata.scanId }, "workflow started");
-
-  let timeoutHandle: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<WorkflowResult>((_, reject) => {
-    timeoutHandle = setTimeout(
-      () => reject(new Error(`Workflow timed out after ${timeoutMs}ms`)),
-      timeoutMs
-    );
-  });
-
-  try {
-    return await Promise.race([
-      executeWorkflow(semgrepPayload, metadata, startedAt, startTimeMs),
-      timeoutPromise,
-    ]);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.error({ err: message }, "workflow execution failed or timed out");
-    const finishedAt = new Date().toISOString();
-    return {
-      status: "failed",
-      automationReady: false,
-      automationDecisionReason:
-        message.includes("timed out") || message.includes("timeout")
-          ? "Workflow timed out"
-          : "Workflow failed",
-      totalFindings: 0,
-      sqlInjectionFindings: 0,
-      classifiedFindings: 0,
-      skippedFindings: 0,
-      fixesGenerated: 0,
-      highQualityPatches: 0,
-      mediumQualityPatches: 0,
-      lowQualityPatches: 0,
-      fixes: [],
-      errors: [{ message: message || "Unknown workflow error" }],
-      metadata,
-      timing: {
-        startedAt,
-        finishedAt,
-        durationMs: Date.now() - startTimeMs,
+  return Sentry.startSpan(
+    {
+      name: "fixor.workflow.auditor",
+      op: "function",
+      attributes: {
+        "fixor.scan_id": metadata.scanId,
+        "fixor.repo": metadata.repoName,
+        "fixor.commit_id": metadata.commitId,
+        "fixor.timeout_ms": timeoutMs,
       },
-    };
-  } finally {
-    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
-  }
+    },
+    async () => {
+      const startedAt = new Date().toISOString();
+      const startTimeMs = Date.now();
+
+      logger.info({ scanId: metadata.scanId }, "workflow started");
+
+      let timeoutHandle: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<WorkflowResult>((_, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new Error(`Workflow timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      });
+
+      try {
+        return await Promise.race([
+          executeWorkflow(semgrepPayload, metadata, startedAt, startTimeMs),
+          timeoutPromise,
+        ]);
+      } catch (err) {
+        Sentry.captureException(err, {
+          tags: { "fixor.phase": "workflow" },
+          extra: { scanId: metadata.scanId, repo: metadata.repoName },
+        });
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error(
+          { err: message },
+          "workflow execution failed or timed out",
+        );
+        const finishedAt = new Date().toISOString();
+        return {
+          status: "failed",
+          automationReady: false,
+          automationDecisionReason:
+            message.includes("timed out") || message.includes("timeout")
+              ? "Workflow timed out"
+              : "Workflow failed",
+          totalFindings: 0,
+          sqlInjectionFindings: 0,
+          classifiedFindings: 0,
+          skippedFindings: 0,
+          fixesGenerated: 0,
+          highQualityPatches: 0,
+          mediumQualityPatches: 0,
+          lowQualityPatches: 0,
+          fixes: [],
+          errors: [{ message: message || "Unknown workflow error" }],
+          metadata,
+          timing: {
+            startedAt,
+            finishedAt,
+            durationMs: Date.now() - startTimeMs,
+          },
+        };
+      } finally {
+        if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+      }
+    },
+  );
 }
 
 /**

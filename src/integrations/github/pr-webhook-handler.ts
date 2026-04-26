@@ -23,6 +23,7 @@ import { fetchPrDiff } from "./github-client";
 import { costContext } from "../../lib/cost-context";
 import { checkBudget } from "../../services/cost-store";
 import { logger } from "../../lib/logger";
+import * as Sentry from "@sentry/node";
 
 export type SemgrepPayloadResolver = (ctx: {
   owner: string;
@@ -93,6 +94,22 @@ export type HandlePullRequestWebhookResult =
  */
 export async function handlePullRequestWebhook(
   options: HandlePullRequestWebhookOptions
+): Promise<HandlePullRequestWebhookResult> {
+  return Sentry.startSpan(
+    {
+      name: "fixor.handler.pr_webhook",
+      op: "http.webhook",
+      attributes: {
+        "fixor.dry_run": options.dryRun === true,
+        "fixor.skip_signature": options.skipSignatureVerification === true,
+      },
+    },
+    async () => handlePullRequestWebhookImpl(options),
+  );
+}
+
+async function handlePullRequestWebhookImpl(
+  options: HandlePullRequestWebhookOptions,
 ): Promise<HandlePullRequestWebhookResult> {
   const dryRun = options.dryRun === true;
 
@@ -274,6 +291,10 @@ export async function handlePullRequestWebhook(
       pdfUrl = await uploadPdfBuffer(pdfBuffer, publicId);
       logger.info({ pdfUrl }, "PDF report uploaded");
     } catch (pdfError) {
+      Sentry.captureException(pdfError, {
+        tags: { "fixor.phase": "pdf_upload" },
+        extra: { owner, repo, pullNumber, headSha },
+      });
       logger.warn({ err: pdfError }, "PDF generation/upload failed");
     }
 
@@ -285,6 +306,10 @@ export async function handlePullRequestWebhook(
       sarifUrl = await uploadSarifText(sarifToJson(sarif), publicId);
       logger.info({ sarifUrl }, "SARIF log uploaded");
     } catch (sarifError) {
+      Sentry.captureException(sarifError, {
+        tags: { "fixor.phase": "sarif_upload" },
+        extra: { owner, repo, pullNumber, headSha },
+      });
       logger.warn({ err: sarifError }, "SARIF generation/upload failed");
     }
   }

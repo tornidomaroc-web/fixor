@@ -28,6 +28,7 @@ import { currentInstallationId } from "../lib/cost-context";
 import { calculateCost } from "../services/cost-tracking.service";
 import { recordCost } from "../services/cost-store";
 import { logger } from "../lib/logger";
+import * as Sentry from "@sentry/node";
 
 let _client: Anthropic | null = null;
 
@@ -166,6 +167,10 @@ export async function callClaude(
         // Cost-tracking is observability, not control flow. A DB
         // hiccup must not break the scan: we lose visibility on this
         // one call, not money.
+        Sentry.captureException(err, {
+          tags: { "fixor.phase": "record_cost" },
+          extra: { installationId: String(installationId), costUsd },
+        });
         logger.warn(
           { installationId: String(installationId), err },
           "recordCost failed",
@@ -181,6 +186,13 @@ export async function callClaude(
     };
   } catch (err: unknown) {
     if (err instanceof Error && err.name === "AbortError") {
+      Sentry.captureException(err, {
+        tags: { "fixor.phase": "anthropic_call", "fixor.reason": "timeout" },
+        extra: {
+          model: opts.model,
+          timeoutMs: opts.timeoutMs ?? defaults.timeoutMs,
+        },
+      });
       logger.error(
         { model: opts.model, timeoutMs: opts.timeoutMs ?? defaults.timeoutMs },
         "callClaude timeout",
@@ -188,6 +200,10 @@ export async function callClaude(
       return { ok: false, reason: "timeout", error: err };
     }
     const msg = err instanceof Error ? err.message : String(err);
+    Sentry.captureException(err, {
+      tags: { "fixor.phase": "anthropic_call", "fixor.reason": "http_error" },
+      extra: { model: opts.model },
+    });
     logger.error({ model: opts.model, err: msg }, "callClaude http_error");
     return { ok: false, reason: "http_error", error: err };
   } finally {

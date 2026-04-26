@@ -29,6 +29,7 @@ const sensitivePaths = [
   "STRIPE_WEBHOOK_SECRET",
   "STRIPE_API_KEY",
   "DATABASE_URL",
+  "SENTRY_DSN",
   // Same keys nested one level deep — common when logging an
   // env / config object.
   "*.ANTHROPIC_API_KEY",
@@ -39,6 +40,7 @@ const sensitivePaths = [
   "*.STRIPE_WEBHOOK_SECRET",
   "*.STRIPE_API_KEY",
   "*.DATABASE_URL",
+  "*.SENTRY_DSN",
   // Auth-bearing headers when we log a request object.
   "headers.authorization",
   "*.headers.authorization",
