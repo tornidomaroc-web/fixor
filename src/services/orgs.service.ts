@@ -16,6 +16,8 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { auditLog, installations, orgSettings, orgs } from "../db/schema";
 import { logger } from "../lib/logger";
+import type { Severity } from "../analysis-engine/detector.types";
+import type { OrgSettingsView } from "../lib/org-settings-filter";
 
 export interface ProvisionResult {
   orgId: string;
@@ -106,6 +108,43 @@ export async function provisionOrgForInstallation(
 
     return { orgId, created };
   });
+}
+
+function isSeverity(s: string): s is Severity {
+  return s === "low" || s === "medium" || s === "high" || s === "critical";
+}
+
+/**
+ * Per-org settings used by the workflow filter (5B-4). Returns null
+ * when no org row exists (workflow then runs with no filter). DB
+ * errors are NOT caught here — callers decide how to recover.
+ */
+export async function getOrgSettingsForInstallation(
+  installationId: string,
+): Promise<OrgSettingsView | null> {
+  const rows = await db()
+    .select({
+      severityThreshold: orgSettings.severityThreshold,
+      ignoredGlobs: orgSettings.ignoredGlobs,
+      enabledDetectors: orgSettings.enabledDetectors,
+    })
+    .from(orgs)
+    .innerJoin(orgSettings, eq(orgSettings.orgId, orgs.id))
+    .where(eq(orgs.githubInstallationId, installationId))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  // severity_threshold is plain text in the DB so we validate at the
+  // boundary. A misconfig defaults to "low" (everything passes), which
+  // is the safer fallback than crashing or filtering aggressively.
+  const sev = isSeverity(row.severityThreshold)
+    ? row.severityThreshold
+    : "low";
+  return {
+    severityThreshold: sev,
+    ignoredGlobs: row.ignoredGlobs ?? [],
+    enabledDetectors: row.enabledDetectors,
+  };
 }
 
 /**
