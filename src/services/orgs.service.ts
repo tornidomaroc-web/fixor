@@ -8,9 +8,11 @@
  *
  * Idempotent — duplicate webhook deliveries (GitHub retries) reuse the
  * existing org row and do NOT write a duplicate audit_log entry.
+ *
+ * 5B-3 added `resolveMonthlyCapForInstallation` so cost-store can
+ * read per-org caps (still falling back to env when no org row exists).
  */
-import { eq } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { auditLog, installations, orgSettings, orgs } from "../db/schema";
 import { logger } from "../lib/logger";
@@ -104,4 +106,32 @@ export async function provisionOrgForInstallation(
 
     return { orgId, created };
   });
+}
+
+/**
+ * Per-installation monthly Anthropic cap (USD).
+ *
+ * Returns the org's `monthly_cap_usd` when a row exists for the
+ * installation; returns `null` when no org row is found. Callers
+ * should treat null as "fall back to env-default".
+ *
+ * No fallback / catch happens here on purpose — DB errors propagate
+ * so cost-store's existing fail-open path (`reason: "db_unavailable"`)
+ * still owns the recovery decision.
+ */
+export async function resolveMonthlyCapForInstallation(
+  installationId: string,
+): Promise<number | null> {
+  const rows = await db()
+    .select({ cap: orgs.monthlyCapUsd })
+    .from(orgs)
+    .where(eq(orgs.githubInstallationId, installationId))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  // monthly_cap_usd is NUMERIC, returned as a string — parseFloat to
+  // get the dollar value. Schema NOT NULL guarantees we never see
+  // null inside the row when the row exists.
+  const n = Number.parseFloat(row.cap);
+  return Number.isFinite(n) ? n : null;
 }

@@ -20,6 +20,7 @@ import { db } from "../db/client";
 import { costLedger, installations } from "../db/schema";
 import { logger } from "../lib/logger";
 import * as Sentry from "@sentry/node";
+import { resolveMonthlyCapForInstallation } from "./orgs.service";
 
 function startOfMonthUtc(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -155,9 +156,19 @@ export async function checkBudget(
 
   let monthlySpend = 0;
   let dailySpend = 0;
+  let resolvedMonthlyCap = caps.monthlyCapUsd;
   try {
-    monthlySpend = await getMonthlySpend(installationId);
-    dailySpend = await getDailySpend(installationId);
+    // Spend reads + per-org cap lookup are independent — issue them
+    // in parallel so the DB round-trip cost is one network hop, not
+    // three.
+    const [m, d, orgCap] = await Promise.all([
+      getMonthlySpend(installationId),
+      getDailySpend(installationId),
+      resolveMonthlyCapForInstallation(idStr),
+    ]);
+    monthlySpend = m;
+    dailySpend = d;
+    if (orgCap !== null) resolvedMonthlyCap = orgCap;
   } catch (err) {
     Sentry.captureException(err, {
       tags: { "fixor.phase": "check_budget" },
@@ -176,13 +187,21 @@ export async function checkBudget(
     };
   }
 
-  if (monthlySpend >= caps.monthlyCapUsd) {
+  // The effective caps reflect what was actually applied — important
+  // because the PR comment renders these (5A-10 wording). Daily cap
+  // is still env-only; per-org dailies were not in scope for 5B-3.
+  const effectiveCaps: BudgetCaps = {
+    monthlyCapUsd: resolvedMonthlyCap,
+    dailyCapUsd: caps.dailyCapUsd,
+  };
+
+  if (monthlySpend >= effectiveCaps.monthlyCapUsd) {
     const decision: BudgetCheck = {
       withinBudget: false,
       reason: "monthly_exceeded",
       monthlySpend,
       dailySpend,
-      caps,
+      caps: effectiveCaps,
     };
     logger.info(
       { installationId: idStr, decision },
@@ -190,13 +209,13 @@ export async function checkBudget(
     );
     return decision;
   }
-  if (dailySpend >= caps.dailyCapUsd) {
+  if (dailySpend >= effectiveCaps.dailyCapUsd) {
     const decision: BudgetCheck = {
       withinBudget: false,
       reason: "daily_exceeded",
       monthlySpend,
       dailySpend,
-      caps,
+      caps: effectiveCaps,
     };
     logger.info(
       { installationId: idStr, decision },
@@ -208,7 +227,7 @@ export async function checkBudget(
     withinBudget: true,
     monthlySpend,
     dailySpend,
-    caps,
+    caps: effectiveCaps,
   };
   logger.info(
     { installationId: idStr, decision },
