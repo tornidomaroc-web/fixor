@@ -55,6 +55,10 @@ export async function recordCost(
       installationId: id,
       costUsd: costUsd.toString(),
     });
+  logger.info(
+    { installationId: id, costUsd },
+    "recordCost: ledger row inserted",
+  );
 }
 
 async function sumSince(
@@ -136,14 +140,17 @@ export async function checkBudget(
   installationId: number | string,
   caps: BudgetCaps = defaultBudgetCaps(),
 ): Promise<BudgetCheck> {
+  const idStr = String(installationId);
   if (isExempt(installationId)) {
-    return {
+    const decision: BudgetCheck = {
       withinBudget: true,
       reason: "exempt",
       monthlySpend: 0,
       dailySpend: 0,
       caps,
     };
+    logger.info({ installationId: idStr, decision }, "checkBudget: exempt");
+    return decision;
   }
 
   let monthlySpend = 0;
@@ -154,10 +161,10 @@ export async function checkBudget(
   } catch (err) {
     Sentry.captureException(err, {
       tags: { "fixor.phase": "check_budget" },
-      extra: { installationId: String(installationId) },
+      extra: { installationId: idStr },
     });
     logger.warn(
-      { installationId: String(installationId), err },
+      { installationId: idStr, err },
       "checkBudget failed; failing open",
     );
     return {
@@ -170,22 +177,42 @@ export async function checkBudget(
   }
 
   if (monthlySpend >= caps.monthlyCapUsd) {
-    return {
+    const decision: BudgetCheck = {
       withinBudget: false,
       reason: "monthly_exceeded",
       monthlySpend,
       dailySpend,
       caps,
     };
+    logger.info(
+      { installationId: idStr, decision },
+      "checkBudget: monthly cap exceeded",
+    );
+    return decision;
   }
   if (dailySpend >= caps.dailyCapUsd) {
-    return {
+    const decision: BudgetCheck = {
       withinBudget: false,
       reason: "daily_exceeded",
       monthlySpend,
       dailySpend,
       caps,
     };
+    logger.info(
+      { installationId: idStr, decision },
+      "checkBudget: daily cap exceeded",
+    );
+    return decision;
   }
-  return { withinBudget: true, monthlySpend, dailySpend, caps };
+  const decision: BudgetCheck = {
+    withinBudget: true,
+    monthlySpend,
+    dailySpend,
+    caps,
+  };
+  logger.info(
+    { installationId: idStr, decision },
+    "checkBudget: within budget",
+  );
+  return decision;
 }
