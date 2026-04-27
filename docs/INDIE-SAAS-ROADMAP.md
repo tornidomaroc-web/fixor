@@ -27,7 +27,7 @@
 | Frontend host | **Vercel** | Best for Next.js, free tier covers indie |
 | Auth | **Clerk** | GitHub OAuth + sessions OOTB, 10k MAU free |
 | Email | **Resend** | 100/day free, simple API, React Email templates |
-| Payments | **Stripe** | Industry standard, Checkout + Customer Portal |
+| Payments | **Paddle** | Stripe unavailable in operator's country; Paddle is merchant-of-record so it also handles VAT/sales tax (see Decision Log 2026-04-27) |
 | Object storage | **Cloudinary** (already) | Migrate to **Cloudflare R2** in Phase 6 if scale demands |
 | Status page | **Better Uptime** | Free 10 monitors |
 | Docs site | **Mintlify** | Free for OSS, looks good |
@@ -40,7 +40,7 @@
 - [ ] Cloudflare (Phase 5A) — https://cloudflare.com, free
 - [ ] Vercel (Phase 5C) — https://vercel.com, free hobby
 - [ ] Clerk (Phase 5C) — https://clerk.com, free up to 10k MAU
-- [ ] Stripe (Phase 5D) — https://stripe.com, requires business info + ID
+- [x] Paddle (Phase 5D) — https://paddle.com, merchant-of-record (Stripe alt; handles VAT)
 - [ ] Resend (Phase 5D) — https://resend.com, free 100/day
 - [ ] Better Uptime (Phase 5G) — https://betterstack.com, free
 - [ ] Mintlify (Phase 5G) — https://mintlify.com, free for OSS
@@ -109,28 +109,32 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 - [x] **5C-1** Spin up Next.js 15 app at `apps/dashboard/` (turborepo or npm workspaces). Tailwind + shadcn/ui. Deploy hello world to Vercel at `app.fixor.dev` (or vercel subdomain initially). (PR #27 — Next.js 16 + Tailwind 4 + shadcn/ui; deployed at fixor-seven.vercel.app.)
 - [x] **5C-2** Clerk integration: GitHub OAuth as the only sign-in method. Sign-up flow: after OAuth → check if user has any GitHub installations of Fixor → if yes, list them as Orgs; if no, send to install page. (PR #28 — Clerk middleware as proxy.ts; listFixorInstallations via clerkClient → GitHub API.)
 - [x] **5C-3** Page `/` (after sign-in): list user's orgs with tier badge + this-month spend. (PR #29 — `<TierBadge/>` + `<SpendBar/>`; getOrgSummaries does one LEFT JOIN orgs↔cost_ledger with a start-of-month-UTC filtered aggregate; DB error → "spend unavailable" per row, page still renders. DATABASE_URL set on Vercel.)
-- [ ] **5C-4** Page `/orgs/[id]/scans`: scan history table (date, PR, repo, status, findings, fixes, cost). Click row → detail page with the SARIF + PDF links.
+- [x] **5C-4** Page `/orgs/[id]/scans`: scan history table (date, PR, repo, status, findings, fixes, cost). Click row → detail page with the SARIF + PDF links. (PR #30 — list + detail pages with auth scoped to the user's installations; getOrgForUser/getScansForOrg/getScanForOrg in scans-data.ts; ScanStatusPill component; org rows on `/` link to scans page when provisioned. Detail page links out to the PR for the SARIF/PDF — those URLs aren't durably stored since Cloudinary signs them with a 1h TTL; persisting them is a Phase-6 follow-up if/when reports outlive the PR comment.)
 - [ ] **5C-5** Page `/orgs/[id]/settings`: form to edit `severity_threshold`, `ignored_globs`, `enabled_detectors`, `slack_webhook_url`. Saves call API `PATCH /api/orgs/:id/settings` (auth via Clerk session passed as bearer to backend).
 - [ ] **5C-6** Page `/orgs/[id]/billing`: shows current plan + Stripe customer portal link (Phase 5D wires this up).
 - [ ] **5C-7** Trends widget on org page: line chart of findings/scans by week, pie of findings by family. Use `recharts`.
 
 **Exit criterion**: User can sign in with GitHub, see at least one org, change settings, see those settings respected on the next scan.
 
+#### Phase 5C close-out follow-ups (deferred, not blocking)
+
+- **Wire `scan_runs` writes from the workflow.** The table was scaffolded in 5A-3 but no code path inserts into it yet — the cost ledger and Sentry are the de-facto record. As a result, the 5C-4 history page renders the empty state on every org until this lands. Plan: in `runAuditorWorkflow` (or its caller in `pr-webhook-handler.ts`), insert one `scan_runs` row at start (`status="running"`, started_at=now), update on completion (`status`, totals, finished_at), and link `cost_ledger.scan_run_id`. Bundle this with the next backend phase that touches the workflow boundary.
+
 ---
 
-### 🟦 Phase 5D — Stripe Billing
+### 🟦 Phase 5D — Paddle Billing
 
-**Goal**: Self-serve upgrades, automatic tier provisioning, automatic suspension on payment failure.
+**Goal**: Self-serve upgrades, automatic tier provisioning, automatic suspension on payment failure. Paddle is merchant-of-record — they handle VAT/sales tax + dunning + chargeback liability, which is why the operator's geography forced this choice (see Decision Log 2026-04-27) but is also a real ergonomic win for an indie shop.
 
 **Tasks**:
-- [ ] **5D-1** Create 4 Stripe Products + Prices: `price_free`, `price_indie_29`, `price_pro_79`, `price_team_199`. Store IDs in env (`STRIPE_PRICE_INDIE`, etc.).
-- [ ] **5D-2** `POST /api/stripe/checkout`: create Checkout Session for org_id + selected tier. Redirect.
-- [ ] **5D-3** Webhook `POST /api/stripe/webhook` handling: `checkout.session.completed` → set `org.plan_tier` + `stripe_customer_id` + `stripe_subscription_id`. `customer.subscription.updated` → update tier. `customer.subscription.deleted` / `invoice.payment_failed` → downgrade to free + email user via Resend.
+- [ ] **5D-1** Create 3 paid Paddle Products + Prices in the Paddle dashboard: `price_indie_29`, `price_pro_79`, `price_team_199` (free tier needs no Paddle product). Store the Paddle price IDs in env (`PADDLE_PRICE_INDIE`, `PADDLE_PRICE_PRO`, `PADDLE_PRICE_TEAM`). Add `PADDLE_API_KEY` + `PADDLE_WEBHOOK_SECRET` to `.env.example` and Railway/Vercel envs. Rename the existing `orgs.stripe_customer_id` / `stripe_subscription_id` columns to `paddle_customer_id` / `paddle_subscription_id` (no rows yet, so it's a free migration).
+- [ ] **5D-2** `POST /api/billing/checkout`: build a Paddle checkout link (Paddle.js overlay or hosted checkout) for org_id + selected tier. Pass `customData={ org_id }` so the webhook can correlate. Redirect.
+- [ ] **5D-3** Webhook `POST /api/billing/webhook` (Paddle): verify signature with `PADDLE_WEBHOOK_SECRET`. Handle: `transaction.completed` → set `org.plan_tier` + `paddle_customer_id` + `paddle_subscription_id`. `subscription.updated` → update tier. `subscription.canceled` / `transaction.payment_failed` → downgrade to free + email user via Resend.
 - [ ] **5D-4** Tier-to-cap mapping: free=$5, indie=$30, pro=$80, team=$200 (round numbers — these are Anthropic budget caps, not what user pays). User pay > Anthropic cost = margin.
-- [ ] **5D-5** Customer Portal link on `/orgs/[id]/billing`: shortcut to `https://billing.stripe.com/p/login/...`.
+- [ ] **5D-5** Customer-portal link on `/orgs/[id]/billing`: Paddle's hosted update-payment / cancel page (the Paddle equivalent of Stripe's Customer Portal — link is per-subscription, fetched via the API or stored at checkout time).
 - [ ] **5D-6** Resend templates: welcome email, payment failed, suspended, scan limit reached (proactive at 80%), monthly digest.
 
-**Exit criterion**: Sign up → free tier auto-provisioned. Upgrade to Indie via Checkout → tier updated within 30s of payment. Cancel subscription → downgrade visible, scans capped at 5.
+**Exit criterion**: Sign up → free tier auto-provisioned. Upgrade to Indie via Paddle checkout → tier updated within 30s of payment. Cancel subscription via the Paddle portal → downgrade visible in dashboard within 30s, scans capped at 5.
 
 ---
 
@@ -198,3 +202,22 @@ If a task needs an external account/API key the user hasn't provided yet, ask on
 If uncertain about a decision NOT in "Locked decisions", surface it to user and DO NOT guess.
 
 If a task uncovers a need to change "Locked decisions", create a `## Decision Log` section at the bottom and propose the change with rationale; user approves explicitly before re-architecture.
+
+---
+
+## 📓 Decision Log
+
+### 2026-04-27 — Payments: Stripe → Paddle (approved)
+
+**Original decision** (Locked decisions table): Use **Stripe** for billing — Checkout + Customer Portal.
+
+**Change**: Use **Paddle** instead.
+
+**Reason**: The operator's country does not support Stripe accounts, so Stripe was never actually viable — the original "Locked decision" was made without that constraint visible. The user already has a Paddle account.
+
+**Side effects considered:**
+- Paddle is merchant-of-record (handles VAT/sales tax filing, chargebacks, dunning) — strictly nicer for an indie shop than rolling Stripe Tax + Radar + dunning ourselves. Net win on operational complexity.
+- API surface differs: Paddle Billing uses `transaction.*` and `subscription.*` events instead of Stripe's `checkout.session.completed` / `customer.subscription.*`. Phase 5D tasks updated to match (see 5D-1 through 5D-5).
+- Customer-portal flow differs: Paddle issues a per-subscription update/cancel URL rather than a global portal session. Stored at checkout time or fetched on demand via the API.
+- Schema columns `orgs.stripe_customer_id` / `stripe_subscription_id` exist from the 5B-1 migration but have never been written to (no rows in any environment). They will be renamed to `paddle_*` in the first migration of 5D-1 — free rename, no backfill.
+- Tier prices ($29 / $79 / $199) and tier-to-cap mapping unchanged.
