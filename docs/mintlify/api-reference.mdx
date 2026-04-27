@@ -1,0 +1,149 @@
+---
+title: "API reference"
+description: "Programmatic Fixor scans via the v1 API — token auth, one POST, one structured response."
+---
+
+Fixor's primary surface is the GitHub App webhook, but you can
+also trigger scans programmatically via the v1 API. Useful for:
+
+- CI runs on repos you don't (yet) want a GitHub App on
+- Local pre-commit hooks
+- One-off batch scans of legacy code
+
+## Authentication
+
+All v1 endpoints require a bearer token. Tokens are scoped to a
+single org and rate-limited per token.
+
+### Create a token
+
+Tokens are created from the operator's machine using the
+checked-in CLI in the repo:
+
+```bash
+git clone https://github.com/tornidomaroc-web/fixor
+cd fixor
+npm ci
+DATABASE_URL="postgres://…" npm run create-api-token -- --org-id <uuid> --name "ci-runner"
+```
+
+You'll get a `fxr_*` string back. **Store it immediately** — Fixor
+stores only the SHA-256 hash; the plain string is shown once and
+never recoverable. Lose it, generate a new one.
+
+The org id comes from the dashboard URL — visit
+`/orgs/<id>/scans` and the id is in the path.
+
+### Use the token
+
+Pass it as a bearer:
+
+```bash
+curl https://api.fixor.dev/api/v1/scan \
+  -H "Authorization: Bearer fxr_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{ ... }'
+```
+
+Tokens never expire on their own, but you can revoke one at any
+time by setting `revoked_at` on the `api_tokens` row directly
+(self-serve UI for revocation lands in a future phase).
+
+## Rate limiting
+
+The default is **60 scans per token per hour**, fixed window.
+Bursts above that return `429 Too Many Requests` with a
+`Retry-After` header. Email us if you need a higher limit for a
+real workload.
+
+## `POST /api/v1/scan`
+
+Run a scan against a posted diff and return findings + fixes
+synchronously. The endpoint streams its work but doesn't return
+until the scan completes — typical latency is 10–30 seconds.
+
+### Request
+
+```json
+{
+  "diff": "diff --git a/src/users.js b/src/users.js\nindex e69de29..a7e1f5d 100644\n--- a/src/users.js\n+++ b/src/users.js\n@@ ... @@\n+db.query(`SELECT * FROM users WHERE id = ${req.params.id}`)\n",
+  "metadata": {
+    "repo": "acme/payments-api",
+    "pr_number": 42,
+    "head_sha": "a1b2c3d4"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `diff` | string | yes | Unified-diff text. Standard `diff --git` headers expected. |
+| `metadata.repo` | string | recommended | `owner/repo` form. Used for log + report attribution. |
+| `metadata.pr_number` | integer | optional | Numeric PR id. Helps the report header. |
+| `metadata.head_sha` | string | optional | Commit SHA the diff is rooted at. |
+
+### Response
+
+```json
+{
+  "status": "success",
+  "totalFindings": 1,
+  "fixesGenerated": 1,
+  "fixes": [
+    {
+      "file": "src/users.js",
+      "line": 42,
+      "severity": "high",
+      "type": "SQL_INJECTION",
+      "rationale": "User-controlled value `req.params.id` interpolated into a SQL string.",
+      "patch": "db.query(\"SELECT * FROM users WHERE id = ?\", [req.params.id])"
+    }
+  ],
+  "report": {
+    "pdfUrl": "https://res.cloudinary.com/.../pdf?signed=...",
+    "sarifUrl": "https://res.cloudinary.com/.../sarif?signed=..."
+  },
+  "cost_usd": 0.018,
+  "duration_ms": 13540
+}
+```
+
+The `pdfUrl` and `sarifUrl` are signed URLs with a 1-hour TTL
+matching the Cloudinary policy described in the
+[security page](https://fixor.dev/security.html).
+
+### Error shape
+
+Errors return non-2xx with a structured body:
+
+```json
+{
+  "error": "validation_failed",
+  "details": ["diff: must be a non-empty string"]
+}
+```
+
+| HTTP | `error` | When |
+| --- | --- | --- |
+| 400 | `validation_failed` | `diff` missing/empty/not-unified, `metadata.*` malformed |
+| 401 | `invalid_token` | Bearer is missing, malformed, or hashed differently than any stored token |
+| 403 | `revoked_token` | Token was revoked since last use |
+| 429 | `rate_limited` | 60+ scans in the trailing hour |
+| 500 | `paddle_failed` / `db_unavailable` / `anthropic_error` | One of our subprocessors failed; safe to retry with backoff |
+
+### cURL example
+
+```bash
+curl -sS https://api.fixor.dev/api/v1/scan \
+  -H "Authorization: Bearer $FIXOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @scan-payload.json | jq
+```
+
+## Webhooks (the GitHub App path)
+
+If you'd rather not use the API token flow, install the
+[GitHub App](https://github.com/apps/fixor/installations/new) and
+let GitHub push diffs to us. Same scan, posted directly as a PR
+comment. The API path exists for cases where the GitHub App isn't
+the right fit; it's not required for normal use.

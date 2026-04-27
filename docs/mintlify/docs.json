@@ -1,0 +1,79 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Fixor",
+  "description": "AI-powered security review on every pull request — install once, get a structured report on every PR.",
+  "colors": {
+    "primary": "#f97316",
+    "light": "#fb923c",
+    "dark": "#0d1117"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Detection",
+            "pages": ["detectors", "languages"]
+          },
+          {
+            "group": "API",
+            "pages": ["api-reference"]
+          },
+          {
+            "group": "Help",
+            "pages": ["faq"]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/tornidomaroc-web/fixor",
+          "icon": "github"
+        },
+        {
+          "anchor": "Status",
+          "href": "https://status.fixor.dev",
+          "icon": "signal-stream"
+        }
+      ]
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/tornidomaroc-web/fixor"
+    },
+    "links": [
+      {
+        "header": "Fixor",
+        "items": [
+          { "label": "Privacy", "href": "https://fixor.dev/privacy.html" },
+          { "label": "Terms", "href": "https://fixor.dev/terms.html" },
+          { "label": "Security", "href": "https://fixor.dev/security.html" }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Sign in",
+        "href": "https://app.fixor.dev"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Install Fixor",
+      "href": "https://github.com/apps/fixor/installations/new"
+    }
+  }
+}
