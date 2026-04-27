@@ -62,6 +62,25 @@
     }
     ul { padding-left: 1.25rem; }
     li { margin-bottom: 0.4rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    th { color: var(--text); font-weight: 600; }
+    code {
+      background: var(--bg-elevated);
+      padding: 0.05rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
     footer {
       border-top: 1px solid var(--border);
       padding: 2rem 0;
@@ -86,53 +105,86 @@
 
   <main class="wrap">
     <h1>Terms of Service</h1>
-    <p class="updated">Last updated: April 19, 2026</p>
+    <p class="updated">Last updated: April 27, 2026</p>
 
-    <p>By installing or using Fixor (the "Service"), you agree to these Terms of Service.</p>
+    <p>By installing or using Fixor (the &ldquo;Service&rdquo;), you agree to these Terms. If you don't agree, uninstall the GitHub App and stop using the dashboard.</p>
 
-    <h2>1. Service Description</h2>
-    <p>Fixor is a GitHub App that automatically analyzes pull request diffs for SQL injection risks and posts structured findings with suggested fixes. The Service is provided on an "as-is" basis.</p>
+    <h2>1. Service description</h2>
+    <p>Fixor is a GitHub App that reviews pull request diffs for security issues across four detector families &mdash; SQL injection, cross-site scripting, command injection, and path traversal &mdash; and posts a structured comment with suggested fixes plus a downloadable PDF/SARIF report. The Service is provided on an &ldquo;as-is&rdquo; basis.</p>
 
     <h2>2. Eligibility</h2>
-    <p>You must be authorized to install GitHub Apps on the repositories where you deploy Fixor. You are responsible for the code and data in your repositories.</p>
+    <p>You must be authorized to install GitHub Apps on the repositories where you deploy Fixor. You are responsible for the code committed to those repositories and for any consequences of acting (or not acting) on Fixor's findings.</p>
 
-    <h2>3. Free Tier</h2>
-    <p>The free tier includes analysis for up to 3 repositories. Additional usage requires a paid plan (Pro or Enterprise).</p>
+    <h2>3. Pricing and tiers</h2>
+    <p>Pricing is in US dollars. Paid tiers are billed monthly via Paddle (see section 4):</p>
+    <table>
+      <thead>
+        <tr><th>Tier</th><th>Price</th><th>Scans / month</th><th>Repos</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Free</td><td>$0</td><td>5</td><td>Public repos only</td></tr>
+        <tr><td>Indie</td><td>$29 / mo</td><td>100</td><td>1 private + unlimited public</td></tr>
+        <tr><td>Pro</td><td>$79 / mo</td><td>500</td><td>5 private + unlimited public</td></tr>
+        <tr><td>Team</td><td>$199 / mo</td><td>2,000</td><td>Unlimited</td></tr>
+      </tbody>
+    </table>
+    <p>Each org has a hard monthly Anthropic budget cap; when reached, scans pause until the next calendar month or the user upgrades to a higher tier. The cap is shown in your dashboard's billing page.</p>
 
-    <h2>4. Fair Use</h2>
-    <p>Automated abuse, scanning of repositories you do not own or have permission to scan, or usage that overloads our infrastructure is prohibited and may result in termination.</p>
-
-    <h2>5. No Warranty</h2>
-    <p>Fixor performs automated analysis using AI. Findings are <strong>suggestions</strong>, not guarantees. We do not guarantee:</p>
+    <h2>4. Billing via Paddle</h2>
+    <p>Paddle is the merchant of record for Fixor. That means:</p>
     <ul>
-      <li>Detection of all vulnerabilities in your code</li>
-      <li>Absence of false positives</li>
-      <li>That suggested fixes are syntactically or semantically correct in your context</li>
+      <li>Your card statement will list Paddle, not Fixor.</li>
+      <li>Paddle handles VAT, sales tax, and chargebacks for your jurisdiction.</li>
+      <li>Refunds, payment-method updates, and cancellations go through Paddle's hosted portal &mdash; the dashboard's &ldquo;Update payment&rdquo; / &ldquo;Cancel&rdquo; buttons link directly to the per-subscription portal page.</li>
     </ul>
-    <p>You are solely responsible for reviewing, validating, and applying any suggested fixes.</p>
+    <p>Subscriptions auto-renew monthly until cancelled. Cancellation takes effect at the end of the current paid period; you keep your tier until then. We do not pro-rate partial months.</p>
 
-    <h2>6. Limitation of Liability</h2>
-    <p>To the maximum extent permitted by law, Fixor and its authors are not liable for any direct, indirect, incidental, or consequential damages arising from use of the Service, including but not limited to data loss, security breaches, or business interruption.</p>
+    <h2>5. Refund policy</h2>
+    <p>If Fixor was unusable for you in the first 14 days of a paid plan due to a defect on our side, email <a href="mailto:support@fixor.dev">support@fixor.dev</a> and we'll refund the most recent charge through Paddle. After 14 days or for &ldquo;changed my mind&rdquo; cancellations, no refunds &mdash; cancel before the next renewal instead. Statutory consumer rights in your jurisdiction (e.g., the EU 14-day distance-selling right) override this paragraph where applicable.</p>
 
-    <h2>7. Intellectual Property</h2>
-    <p>Fixor is open-source software released under the MIT License. See the repository at <a href="https://github.com/tornidomaroc-web/fixor">github.com/tornidomaroc-web/fixor</a> for the full license text.</p>
+    <h2>6. Acceptable use</h2>
+    <p>You may not:</p>
+    <ul>
+      <li>Install Fixor on repositories you don't own or aren't authorized to scan</li>
+      <li>Use Fixor to attempt to exfiltrate data or model weights from Anthropic, our hosting providers, or Paddle</li>
+      <li>Probe Fixor itself for vulnerabilities (we welcome responsible disclosures &mdash; email instead)</li>
+      <li>Resell access to Fixor without our written consent</li>
+      <li>Use Fixor in a way that overloads our infrastructure or violates Anthropic's usage policies</li>
+    </ul>
+    <p>Violations may result in immediate termination without refund.</p>
 
-    <h2>8. Termination</h2>
-    <p>You may uninstall Fixor at any time from your GitHub settings. We reserve the right to suspend or terminate access for violations of these Terms.</p>
+    <h2>7. No warranty</h2>
+    <p>Fixor's analysis is performed by a Large Language Model (Anthropic Claude). Findings are <strong>suggestions</strong>, not guarantees. We don't warrant that Fixor:</p>
+    <ul>
+      <li>Will catch every vulnerability in your diff</li>
+      <li>Will not produce false positives</li>
+      <li>Will produce fixes that are syntactically or semantically correct in your specific codebase</li>
+      <li>Will be available 24/7 (we target high availability but make no SLA on the free tier)</li>
+    </ul>
+    <p>You are solely responsible for reviewing every suggestion before merging code. Fixor is one signal among many in a security program, not a substitute for code review or pen-testing.</p>
 
-    <h2>9. Changes to Terms</h2>
-    <p>We may update these Terms from time to time. Continued use after changes constitutes acceptance. Material changes will be announced on our GitHub repository.</p>
+    <h2>8. Limitation of liability</h2>
+    <p>To the maximum extent permitted by applicable law, Fixor and its operator are not liable for any indirect, incidental, special, consequential, or punitive damages, or for lost profits, lost revenues, business interruption, or data loss arising from use of or inability to use the Service. Our total aggregate liability for any claim is capped at the amount you paid for Fixor in the 12 months preceding the claim. Some jurisdictions don't allow these limits; in those cases the limits apply only to the maximum extent allowed.</p>
 
-    <h2>10. Governing Law</h2>
-    <p>These Terms are governed by the laws of the jurisdiction where the Service operator resides, without regard to conflict-of-law provisions.</p>
+    <h2>9. Intellectual property</h2>
+    <p>Fixor's source is open source under the MIT License &mdash; see <a href="https://github.com/tornidomaroc-web/fixor">github.com/tornidomaroc-web/fixor</a>. Your code is yours; Fixor doesn't claim any rights to the diffs or repositories you scan, doesn't store the diff content beyond the in-memory analysis window, and doesn't share diffs with third parties beyond the subprocessors listed in the Privacy Policy.</p>
 
-    <h2>11. Contact</h2>
-    <p>For questions about these Terms, open an issue at <a href="https://github.com/tornidomaroc-web/fixor/issues">github.com/tornidomaroc-web/fixor</a>.</p>
+    <h2>10. Termination</h2>
+    <p>You can terminate at any time by uninstalling the GitHub App. We may suspend or terminate your access for violations of section 6, for non-payment after a reasonable cure period, or for any reason if we shut Fixor down (we'd give 30 days' notice on the GitHub repository in that case). On termination, your data is deleted on the schedule described in the Privacy Policy section 2.</p>
+
+    <h2>11. Changes</h2>
+    <p>Material changes to these Terms are announced on the GitHub repository and reflected on this page with an updated date at the top. Continued use after a change is acceptance of the updated Terms. If a change materially reduces your rights, we'll give 30 days' notice before it takes effect.</p>
+
+    <h2>12. Governing law</h2>
+    <p>These Terms are governed by the laws of the jurisdiction where the Service operator resides, without regard to conflict-of-law provisions. Disputes that cannot be resolved by emailing <a href="mailto:support@fixor.dev">support@fixor.dev</a> may be brought in the courts of that jurisdiction.</p>
+
+    <h2>13. Contact</h2>
+    <p>Email <a href="mailto:support@fixor.dev">support@fixor.dev</a> for billing, account, or terms questions. For technical issues, the GitHub issue tracker at <a href="https://github.com/tornidomaroc-web/fixor/issues">github.com/tornidomaroc-web/fixor</a> is also fine.</p>
   </main>
 
   <footer>
     <div class="wrap" style="padding: 0;">
-      © 2026 Fixor · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a>
+      &copy; 2026 Fixor &middot; <a href="index.html">Home</a> &middot; <a href="privacy.html">Privacy</a> &middot; <a href="mailto:support@fixor.dev">Contact</a>
     </div>
   </footer>
 </body>
