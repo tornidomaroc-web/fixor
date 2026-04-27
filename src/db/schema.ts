@@ -63,6 +63,14 @@ export const scanRuns = pgTable(
     headSha: text("head_sha").notNull(),
     status: text("status").notNull(),
     totalFindings: integer("total_findings").notNull().default(0),
+    // Per-detector finding counts, e.g. {"xss-js-ts": 3, "sql-injection-js-ts": 1}.
+    // Required by the dashboard's 5C-7 trends pie chart. Keys are the
+    // ids registered in src/analysis-engine/detectors/registry.ts; new
+    // detectors land without a backfill since unknown keys are fine.
+    findingsByFamily: jsonb("findings_by_family")
+      .$type<Record<string, number>>()
+      .notNull()
+      .default({}),
     fixesGenerated: integer("fixes_generated").notNull().default(0),
     costUsd: numeric("cost_usd", { precision: 12, scale: 6 })
       .notNull()
