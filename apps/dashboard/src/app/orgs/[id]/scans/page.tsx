@@ -68,6 +68,13 @@ export default async function OrgScansPage({ params }: PageProps) {
           >
             Settings
           </Link>
+          <span className="text-muted-foreground">·</span>
+          <Link
+            href={`/orgs/${org.id}/billing`}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Billing
+          </Link>
         </nav>
 
         <div>

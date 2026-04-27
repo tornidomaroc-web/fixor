@@ -56,6 +56,13 @@ export default async function OrgSettingsPage({ params }: PageProps) {
           </Link>
           <span className="text-muted-foreground">·</span>
           <span className="text-foreground font-medium">Settings</span>
+          <span className="text-muted-foreground">·</span>
+          <Link
+            href={`/orgs/${org.id}/billing`}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Billing
+          </Link>
         </nav>
 
         <div>
