@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Security — Fixor</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-elevated: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #f97316;
+      --emerald: #34d399;
+      --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Instrument Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap {
+      width: min(820px, 100% - 2rem);
+      margin: 0 auto;
+      padding: 3rem 0;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    h1 {
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.5rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin-top: 2.75rem;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+    }
+    p, li { color: var(--text-muted); }
+    .updated {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    ul { padding-left: 1.25rem; }
+    li { margin-bottom: 0.4rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0 1rem;
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+    th { color: var(--text); font-weight: 600; }
+    code {
+      background: var(--bg-elevated);
+      padding: 0.05rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    .pill {
+      display: inline-block;
+      padding: 0.05rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .pill.pos { color: var(--emerald); border-color: rgba(52,211,153,0.45); }
+    .pill.warn { color: var(--amber); border-color: rgba(251,191,36,0.45); }
+    .practice-grid {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: 1fr;
+      margin: 0.75rem 0 1rem;
+    }
+    @media (min-width: 640px) {
+      .practice-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .practice {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      background: var(--bg-elevated);
+    }
+    .practice h3 {
+      font-size: 0.95rem;
+      color: var(--text);
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.01em;
+    }
+    .practice p { font-size: 0.9rem; margin: 0; line-height: 1.55; }
+    .callout {
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      margin: 0.75rem 0 1rem;
+    }
+    .callout p { margin: 0.25rem 0; color: var(--text); }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="padding: 0;">
+      <a class="logo" href="index.html">
+        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#f97316" d="M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z"/>
+          <path fill="#fff" d="m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z"/>
+        </svg>
+        <span>Fixor</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1>Security &amp; Trust</h1>
+    <p class="updated">Last updated: April 27, 2026</p>
+
+    <p>Fixor reads pull request diffs and writes back security findings. Anyone trusting Fixor with their code has a right to know what we hold, who else touches it, and how to tell us when we&apos;ve done something wrong. This page is the short version &mdash; the longer narrative is in our <a href="privacy.html">Privacy Policy</a> and the operator-facing roadmap in our public repository.</p>
+
+    <h2>1. Security practices</h2>
+    <p>Concrete things shipped today, not aspirations:</p>
+    <div class="practice-grid">
+      <div class="practice">
+        <h3>HMAC-verified webhooks</h3>
+        <p>Both inbound webhook surfaces &mdash; GitHub (scan trigger) and Paddle (billing) &mdash; verify HMAC-SHA256 signatures on every request before parsing the body. The Paddle path enforces a 5-minute replay window.</p>
+      </div>
+      <div class="practice">
+        <h3>Short-lived GitHub tokens</h3>
+        <p>Fixor authenticates with GitHub via the App's installation tokens, which expire within 1 hour. We don&apos;t hold a long-lived personal access token for any user.</p>
+      </div>
+      <div class="practice">
+        <h3>Diffs are not stored</h3>
+        <p>The PR diff is processed in memory by the analysis engine and is not written to our database. Cost ledger and scan history rows track <em>that</em> a scan ran (and what it cost) without storing the code itself.</p>
+      </div>
+      <div class="practice">
+        <h3>Signed report URLs</h3>
+        <p>PDF + SARIF reports live on Cloudinary as authenticated assets. The PR comment links to a signed URL with a 1-hour TTL by default; the URL only proves the holder reached the comment within that window.</p>
+      </div>
+      <div class="practice">
+        <h3>Hashed API tokens</h3>
+        <p>API tokens (the <code>fxr_*</code> values) are 256-bit random strings. We store only their SHA-256 hashes; the plain token is shown once at creation and never again. A leaked DB dump can&apos;t be used as tokens.</p>
+      </div>
+      <div class="practice">
+        <h3>Per-org budget caps</h3>
+        <p>Every org has a hard monthly Anthropic spend cap (free=$5, indie=$30, pro=$80, team=$200). Scans pause at 100% rather than overspending; an 80% nudge fires earlier in the PR comment + email + dashboard.</p>
+      </div>
+      <div class="practice">
+        <h3>Redacted structured logs</h3>
+        <p>Server logs go through Pino with explicit redaction for <code>ANTHROPIC_API_KEY</code>, GitHub App private keys, and billing identifiers. <code>console.*</code> outside test scripts is banned in CI.</p>
+      </div>
+      <div class="practice">
+        <h3>TLS everywhere</h3>
+        <p>Database (Neon), Anthropic, Paddle, GitHub, Resend &mdash; every outbound connection runs over TLS. The marketing + dashboard surfaces enforce HTTPS via Vercel / GitHub Pages.</p>
+      </div>
+    </div>
+    <p>The full source is open, MIT-licensed, and reviewable at <a href="https://github.com/tornidomaroc-web/fixor">github.com/tornidomaroc-web/fixor</a> &mdash; the security claims above are checkable against the code.</p>
+
+    <h2>2. Subprocessors</h2>
+    <p>We use the following third parties to operate Fixor. Each has its own security posture and certifications &mdash; click through for theirs.</p>
+    <table>
+      <thead>
+        <tr><th>Subprocessor</th><th>Purpose</th><th>Region</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><a href="https://trust.anthropic.com/">Anthropic</a></td><td>Diff analysis (Claude API)</td><td>USA</td></tr>
+        <tr><td><a href="https://neon.tech/security">Neon</a></td><td>Postgres database</td><td>USA / EU</td></tr>
+        <tr><td><a href="https://railway.com/legal/privacy">Railway</a></td><td>Backend webhook + analysis runtime</td><td>USA</td></tr>
+        <tr><td><a href="https://vercel.com/security">Vercel</a></td><td>Dashboard hosting</td><td>USA / EU</td></tr>
+        <tr><td><a href="https://clerk.com/legal/security">Clerk</a></td><td>GitHub OAuth + dashboard sessions</td><td>USA</td></tr>
+        <tr><td><a href="https://www.paddle.com/trust-center">Paddle</a></td><td>Payments + merchant of record</td><td>USA / EU / UK</td></tr>
+        <tr><td><a href="https://resend.com/security">Resend</a></td><td>Transactional email</td><td>USA</td></tr>
+        <tr><td><a href="https://cloudinary.com/security">Cloudinary</a></td><td>PDF + SARIF report hosting</td><td>USA</td></tr>
+        <tr><td><a href="https://sentry.io/security/">Sentry</a></td><td>Error tracking</td><td>USA</td></tr>
+        <tr><td><a href="https://github.com/security">GitHub</a></td><td>Webhook source; Fixor is a GitHub App</td><td>USA</td></tr>
+      </tbody>
+    </table>
+
+    <h2>3. Compliance posture</h2>
+    <ul>
+      <li><span class="pill pos">In place</span> Open-source codebase under MIT &mdash; every claim on this page is verifiable against the source.</li>
+      <li><span class="pill pos">In place</span> Encrypted transport for all subprocessor traffic and customer-facing surfaces.</li>
+      <li><span class="pill pos">In place</span> Audit log for billing + settings changes (the <code>audit_log</code> table; per-row actor + action + metadata).</li>
+      <li><span class="pill warn">Not pursuing</span> SOC 2 / ISO 27001 / HIPAA &mdash; Fixor is built for indie + small-team customers, and pursuing those certifications would change the product economics. If a customer needs them, that&apos;s a conversation we&apos;d have on a paid Team contract.</li>
+      <li><span class="pill warn">Not pursuing</span> Data residency guarantees beyond the regions our subprocessors offer. EU customers concerned about residency should pick the EU region in their own subprocessor accounts (Neon, Vercel) where applicable.</li>
+    </ul>
+
+    <h2>4. Vulnerability disclosure</h2>
+    <div class="callout">
+      <p><strong>Email <a href="mailto:support@fixor.dev">support@fixor.dev</a></strong> with subject line <code>SECURITY:</code> followed by a one-line summary. Mention &ldquo;disclosure&rdquo; in the body.</p>
+      <p>We&apos;ll acknowledge within 72 hours and follow up with a triage decision within 5 business days.</p>
+    </div>
+    <h3 style="margin-top:1.25rem;font-size:1rem;">In scope</h3>
+    <ul>
+      <li>The Fixor GitHub App and its webhook endpoints (Railway)</li>
+      <li>The Fixor dashboard (Vercel) including <code>/api/billing/*</code> and <code>/api/orgs/[id]/settings</code></li>
+      <li>The Fixor source code in <a href="https://github.com/tornidomaroc-web/fixor">github.com/tornidomaroc-web/fixor</a></li>
+      <li>The marketing site at this domain</li>
+    </ul>
+    <h3 style="margin-top:1.25rem;font-size:1rem;">Out of scope</h3>
+    <ul>
+      <li>Findings against subprocessors &mdash; report those to the relevant vendor (Anthropic, Vercel, etc.) directly</li>
+      <li>Denial-of-service, volumetric attacks, social engineering of staff or customers</li>
+      <li>Reports based on outdated dependencies without a working proof-of-concept against Fixor</li>
+      <li>Self-XSS, missing security headers without exploit, &ldquo;informational&rdquo; findings (TLS configuration suggestions, etc.)</li>
+    </ul>
+    <h3 style="margin-top:1.25rem;font-size:1rem;">Safe harbor</h3>
+    <p>Good-faith research that follows this scope and stops at proof-of-concept will not result in legal action from us. Don&apos;t exfiltrate data, don&apos;t run automated scanners that affect availability, and don&apos;t go after other customers&apos; data &mdash; if you find a way to read another org&apos;s rows, stop, and tell us.</p>
+
+    <h2>5. Incident communication</h2>
+    <p>Live status: <a href="https://status.fixor.dev">status.fixor.dev</a> tracks four monitors (landing, dashboard, backend, Anthropic edge). Subscribe there for incident emails. Material data-breach notifications go to the email on each affected org&apos;s record (the installer email captured at first dashboard sign-in) within 72 hours of confirmation.</p>
+
+    <h2>6. Data subject requests</h2>
+    <p>For access, deletion, or export of data Fixor holds about your org, see the &ldquo;Your rights&rdquo; section of our <a href="privacy.html">Privacy Policy</a>. Requests go to <a href="mailto:support@fixor.dev">support@fixor.dev</a> and are answered within 30 days.</p>
+  </main>
+
+  <footer>
+    <div class="wrap" style="padding: 0;">
+      &copy; 2026 Fixor &middot; <a href="index.html">Home</a> &middot; <a href="privacy.html">Privacy</a> &middot; <a href="terms.html">Terms</a> &middot; <a href="mailto:support@fixor.dev">Contact</a>
+    </div>
+  </footer>
+</body>
+</html>
