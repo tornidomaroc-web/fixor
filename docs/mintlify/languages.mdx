@@ -1,0 +1,64 @@
+---
+title: "Supported languages"
+description: "What Fixor scans today, what's on the roadmap, and how to vote for the next language."
+---
+
+| Language | Status | Notes |
+| --- | --- | --- |
+| **JavaScript** | ✅ Shipping | All four detectors |
+| **TypeScript** | ✅ Shipping | All four detectors |
+| **Python** | 🚧 Roadmap | High demand; SQL injection + path traversal first |
+| **Java** | 🚧 Roadmap | After Python |
+| **Go** | 🚧 Roadmap | After Java |
+| **Ruby** | 🤔 Considering | Email us if you want it |
+| **PHP** | 🤔 Considering | Email us if you want it |
+
+## What "supports JS/TS" means
+
+Fixor's analysis uses Claude (Anthropic's LLM) to reason about
+diff context. So strictly speaking, Claude can read any
+mainstream language — what JS/TS-specific support buys you is:
+
+- **Tighter detector heuristics.** Each detector has a
+  `supports: FindingType[]` list and framework-aware fix templates.
+  These are JS/TS today.
+- **Tested fix templates.** The fix-shape examples in the
+  [detector catalogue](/detectors) reflect real patches Fixor has
+  been validated against.
+- **Lower false-positive rate.** When the language signals are
+  clearer, the LLM has less room to hallucinate.
+
+A scan against a Python or Go diff *will* still produce findings
+(Claude reads the diff regardless), but the patches won't be
+framework-aware and the false-positive rate will be higher. We
+don't recommend running Fixor on languages outside the table above
+yet.
+
+## How language coverage expands
+
+Each new language is tracked as a Phase 6+ task in the public
+roadmap. The order is set by paid-customer demand:
+
+1. **Customer asks** for a language not currently supported.
+2. We log the request internally.
+3. Once 3+ paying customers want the same language, it becomes
+   a sprint-sized task: write detectors per family, build fix
+   templates, run against a corpus of public repos to baseline
+   precision/recall.
+
+If a language matters to you, email
+<a href="mailto:support@fixor.dev">support@fixor.dev</a> with one sentence
+on what your stack looks like. Free-tier requests still count
+toward demand signal.
+
+## What we won't add
+
+- **Configuration languages** (YAML/JSON/HCL) — vulnerabilities in
+  config are real but the heuristic shape is different. Out of
+  scope.
+- **Compiled-only languages without source diffs.** Fixor reads
+  the diff; if the source isn't in the PR, there's nothing to
+  scan.
+- **Proprietary or legally restricted code** — Anthropic's terms
+  apply to what we send through Claude. Don't install Fixor on
+  repos you're not allowed to share with them.

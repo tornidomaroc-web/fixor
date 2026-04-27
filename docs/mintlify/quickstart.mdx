@@ -1,0 +1,93 @@
+---
+title: "Quickstart"
+description: "Install Fixor on GitHub and get your first scan in under 60 seconds."
+---
+
+## 1. Install the GitHub App
+
+<Steps>
+  <Step title="Open the install page">
+    <a href="https://github.com/apps/fixor/installations/new">github.com/apps/fixor/installations/new</a>
+    — pick the user account or organization where you want Fixor.
+  </Step>
+  <Step title="Choose repos">
+    All repos, or only specific ones. **Public repos are free.**
+    The first private repo needs the Indie tier ($29/mo).
+  </Step>
+  <Step title="Land on the dashboard">
+    GitHub redirects you to the Fixor dashboard. The first sign-in
+    captures your email so transactional notifications (first-scan,
+    billing, budget warnings) reach you.
+  </Step>
+</Steps>
+
+## 2. Open a pull request
+
+Open or update a PR on a watched repo. Within ~30 seconds Fixor:
+
+1. Receives the GitHub webhook
+2. Pulls the diff (only the changed lines — never the full repo)
+3. Sends it to Claude for analysis
+4. Posts a structured comment back
+
+There's no CI step to wire and no token to rotate. Fixor speaks
+GitHub's native install protocol.
+
+## 3. Read the report
+
+The PR comment looks like this:
+
+```
+## 🛡️ Fixor Security Report
+
+**Repository:** acme/payments-api · **PR:** #42
+**Commit:** a1b2c3d4
+
+### Summary
+| Workflow status | ✅ success |
+| Vulnerabilities | 2 |
+| Fixes generated | 2 |
+| Patch quality | high: 1 · medium: 1 |
+| Duration | 13.5s |
+
+### Suggested fixes
+▸ 1. src/users.js:42 · high · SQL_INJECTION
+▸ 2. src/products.js:87 · medium · SQL_INJECTION
+
+### 📄 Download full report  →  Download PDF Report
+```
+
+The PDF link uses a signed Cloudinary URL with a 1-hour TTL. After
+that, the comment regenerates the link on the next interaction. The
+SARIF file is attached too — drop it into any tool that speaks
+SARIF (Code Scanning, DefectDojo, etc.).
+
+## 4. Tune the noise (optional)
+
+In the dashboard at `/orgs/<id>/settings`:
+
+- **Severity threshold** — drop low-severity findings before they
+  reach the comment.
+- **Ignored paths** — globs like `vendor/**` or `**/*.test.ts`.
+- **Detector allowlist** — run a subset rather than all four.
+- **Slack webhook** — post a copy of each comment to your channel.
+
+Settings apply to the **next** scan. You don't need to reopen the
+PR.
+
+## 5. Watch the budget
+
+Each org has a monthly Anthropic spend cap. The dashboard's
+billing page shows a live progress bar. At 80% we send an
+email + put a soft notice in the next PR comment + show an amber
+banner in the dashboard. At 100% scans pause until next month or
+until you upgrade.
+
+<CardGroup cols={2}>
+  <Card title="Detectors" icon="shield" href="/detectors">
+    What each family flags + sample fixes.
+  </Card>
+  <Card title="Languages" icon="code" href="/languages">
+    What Fixor scans today and what's on the roadmap.
+  </Card>
+</CardGroup>
