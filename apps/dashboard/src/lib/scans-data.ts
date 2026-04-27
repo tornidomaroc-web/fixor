@@ -16,6 +16,11 @@ export interface OrgRef {
   id: string;
   installationId: string;
   planTier: string;
+  /** Set by 5D-3's webhook handler after the first successful Paddle
+   *  checkout. Null while the org has never paid; passed back into
+   *  createCheckoutTransaction so repeat purchases skip re-collecting
+   *  the email. */
+  paddleCustomerId: string | null;
 }
 
 export interface ScanRow {
@@ -50,6 +55,7 @@ export async function getOrgForUser(
       id: orgs.id,
       installationId: orgs.githubInstallationId,
       planTier: orgs.planTier,
+      paddleCustomerId: orgs.paddleCustomerId,
     })
     .from(orgs)
     .where(

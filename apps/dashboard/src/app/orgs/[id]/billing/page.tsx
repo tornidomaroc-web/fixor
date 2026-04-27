@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { TierBadge } from "@/components/tier-badge";
 import { SpendBar } from "@/components/spend-bar";
+import { UpgradeButton } from "@/components/upgrade-button";
 import { listFixorInstallations } from "@/lib/github";
 import { getOrgForUser } from "@/lib/scans-data";
 import { getOrgSummaries } from "@/lib/orgs-data";
@@ -11,10 +12,16 @@ import { cn } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ checkout?: string }>;
 }
 
-export default async function OrgBillingPage({ params }: PageProps) {
+export default async function OrgBillingPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { id: orgId } = await params;
+  const { checkout } = await searchParams;
+  const justCheckedOut = checkout === "success";
 
   const result = await listFixorInstallations();
   if (result.status !== "ok") notFound();
@@ -86,10 +93,12 @@ export default async function OrgBillingPage({ params }: PageProps) {
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Billing</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Fixor uses Paddle as the merchant of record — Paddle handles VAT
-            / sales tax and the customer portal once Phase 5D ships.
+            Fixor uses Paddle as the merchant of record — Paddle handles
+            VAT / sales tax and the cancel / update-payment portal.
           </p>
         </div>
+
+        {justCheckedOut ? <CheckoutSuccessBanner /> : null}
 
         <CurrentPlanCard
           tier={currentTier}
@@ -98,9 +107,7 @@ export default async function OrgBillingPage({ params }: PageProps) {
           monthlyCapUsd={monthlyCapUsd}
         />
 
-        <PricingGrid currentTierId={org.planTier} />
-
-        <Phase5dNotice />
+        <PricingGrid orgId={org.id} currentTierId={org.planTier} />
       </section>
     </main>
   );
@@ -164,16 +171,24 @@ function CurrentPlanCard({
   );
 }
 
-function PricingGrid({ currentTierId }: { currentTierId: string }) {
+function PricingGrid({
+  orgId,
+  currentTierId,
+}: {
+  orgId: string;
+  currentTierId: string;
+}) {
   return (
     <div>
       <h3 className="text-sm font-semibold tracking-tight">Plans</h3>
       <p className="text-muted-foreground mt-1 text-sm">
-        Upgrade options. Checkout opens once Phase 5D ships.
+        Upgrade opens Paddle&apos;s hosted checkout. Tier change takes effect
+        within ~30 seconds of payment, when Paddle&apos;s webhook fires.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         {TIERS.map((t) => {
           const isCurrent = t.id === currentTierId;
+          const isFree = t.priceUsd === 0;
           return (
             <div
               key={t.id}
@@ -196,7 +211,7 @@ function PricingGrid({ currentTierId }: { currentTierId: string }) {
               </div>
               <div>
                 <span className="text-2xl font-semibold tabular-nums">
-                  {t.priceUsd === 0 ? "$0" : `$${t.priceUsd}`}
+                  {isFree ? "$0" : `$${t.priceUsd}`}
                 </span>
                 <span className="text-muted-foreground ml-1 text-sm">
                   / mo
@@ -207,19 +222,19 @@ function PricingGrid({ currentTierId }: { currentTierId: string }) {
                   <li key={f}>· {f}</li>
                 ))}
               </ul>
-              <button
-                type="button"
-                disabled
-                title="Available once Phase 5D wires up Paddle"
-                className={cn(
-                  "mt-auto rounded-md px-3 py-1.5 text-xs font-medium",
-                  isCurrent
-                    ? "border border-border bg-muted text-muted-foreground cursor-not-allowed"
-                    : "border border-border bg-muted text-muted-foreground cursor-not-allowed",
-                )}
-              >
-                {isCurrent ? "Current plan" : `Upgrade to ${t.label}`}
-              </button>
+              <div className="mt-auto">
+                <UpgradeButton
+                  orgId={orgId}
+                  tier={t.id}
+                  label={`Upgrade to ${t.label}`}
+                  isCurrent={isCurrent}
+                  // Free tier has no Paddle product — show as inert.
+                  // Downgrade is handled by Paddle's portal in 5D-5,
+                  // not by this button.
+                  disabled={isFree}
+                  className="w-full"
+                />
+              </div>
             </div>
           );
         })}
@@ -228,14 +243,16 @@ function PricingGrid({ currentTierId }: { currentTierId: string }) {
   );
 }
 
-function Phase5dNotice() {
+function CheckoutSuccessBanner() {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card/50 p-4 text-sm">
-      <p className="font-medium">Checkout coming in Phase 5D</p>
-      <p className="text-muted-foreground mt-1">
-        Paddle accounts are configured. The checkout overlay, webhook
-        handler, and per-subscription portal link land in the next phase
-        and will hook into the disabled buttons above.
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950">
+      <p className="font-medium text-emerald-900 dark:text-emerald-100">
+        Thanks — your payment went through.
+      </p>
+      <p className="mt-1 text-emerald-900/80 dark:text-emerald-100/80">
+        Tier upgrade lands within ~30 seconds, once Paddle&apos;s webhook
+        reaches us. Refresh in a moment if your plan still shows the
+        previous tier.
       </p>
     </div>
   );
