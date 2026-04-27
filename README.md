@@ -4,11 +4,17 @@
 
 <br/>
 
-[![Claude AI](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
-[![TypeScript](https://img.shields.io/badge/TypeScript-100%25-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://github.com/tornidomaroc-web/fixor)
-[![License](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
+[![Install on GitHub](https://img.shields.io/badge/Install%20on%20GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/apps/fixor/installations/new)
+[![Powered by Claude](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
+[![License: MIT](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
 
-> **A GitHub App that reviews every Pull Request for security vulnerabilities, posts structured fixes, and generates a downloadable PDF report — powered by Claude.**
+> **A GitHub App that reviews every pull request for SQL injection, XSS, command injection, and path traversal — posts concrete fixes inline, generates a PDF/SARIF report, runs in &lt;30 seconds.**
+
+[Landing](https://tornidomaroc-web.github.io/fixor/) ·
+[Dashboard](https://app.fixor.dev) ·
+[Docs](https://docs.fixor.dev) ·
+[Status](https://status.fixor.dev) ·
+[Security](https://tornidomaroc-web.github.io/fixor/security.html)
 
 </div>
 
@@ -18,73 +24,120 @@
 
 | Capability | Status |
 |---|---|
-| 🛡️ SQL injection detection (JS/TS) | ✅ Shipping |
-| 🔧 Parameterized-query rewrites (MySQL, Postgres) | ✅ Shipping |
-| 📄 Branded PDF report per PR | ✅ Shipping |
-| 🔌 Native GitHub App (HMAC webhook, installation tokens) | ✅ Shipping |
-| 🛡️ XSS / Command injection / Path traversal | 🚧 On roadmap |
-| 🐍 Python, ☕ Java, 🐹 Go support | 🚧 On roadmap |
-| 📊 SARIF output + GitHub Code Scanning integration | 🚧 On roadmap |
-| 🤖 Auto-fix Pull Requests (commit back) | 🚧 On roadmap |
+| 🛡️ SQL injection (JS/TS) — parameterized rewrites for MySQL/Postgres/Knex/Prisma | ✅ Shipping |
+| 🌐 Cross-site scripting (DOM sinks, `innerHTML`, `dangerouslySetInnerHTML`) | ✅ Shipping |
+| ⚡ Command injection (`exec`, shell concat, unsafe `spawn`) | ✅ Shipping |
+| 📁 Path traversal (`fs.*`, `express.static`, `..` patterns) | ✅ Shipping |
+| 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
+| 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
+| 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
+| 💳 Paddle billing — free / $29 / $79 / $199, hosted checkout + portal | ✅ Shipping |
+| 🎛️ Dashboard — scan history, trends, settings, billing | ✅ Shipping |
+| 💸 Per-org Anthropic budget cap — 80% nudge + hard pause at 100% | ✅ Shipping |
+| 🐍 Python detectors | 🚧 On roadmap (Phase 6) |
+| ☕ Java / 🐹 Go / 🐘 PHP / 💎 Ruby | 🚧 On roadmap (Phase 6) |
+| 🤖 Auto-fix Pull Requests (commit back) | 🚧 On roadmap (Phase 6) |
 
-> Fixor is in active development. The roadmap above is public and tracked in `docs/ROADMAP.md`.
+The full plan and what's already shipped is in [`docs/INDIE-SAAS-ROADMAP.md`](docs/INDIE-SAAS-ROADMAP.md).
 
 ## How it works
 
-1. Install Fixor as a GitHub App on a repo or organization.
-2. When a PR opens, GitHub sends a signed webhook to Fixor.
-3. Claude analyzes the diff and Fixor generates parameterized-query fixes.
-4. A structured review comment is posted on the PR, with a link to a downloadable PDF.
+1. Install Fixor as a GitHub App on a repo or org.
+2. When a PR opens or updates, GitHub sends a signed webhook to Fixor.
+3. The diff (only the changed lines — never the full repo) is sent to Claude.
+4. Fixor's analysis engine produces findings + framework-aware fixes.
+5. A structured comment lands on the PR with the report inline + signed PDF/SARIF links.
+
+Total latency from PR push to comment: typically 10–30 seconds.
+
+## Screenshots
+
+> Asset capture is operator action — see [`docs/MARKETPLACE-LISTING.md`](docs/MARKETPLACE-LISTING.md) for the exact shots to grab. Drop them at `docs/screenshots/<name>.png` and uncomment the `<img>` tags below.
+
+<!-- ![PR comment](docs/screenshots/pr-comment.png) -->
+<!-- ![PDF report](docs/screenshots/pdf-report.png) -->
+<!-- ![Dashboard scans](docs/screenshots/dashboard-scans.png) -->
+
+## Compared to Snyk and Semgrep
+
+Fixor isn't competing with mature SAST/SCA suites on breadth — it competes on **fewest steps to a useful finding**.
+
+| | **Fixor** | Snyk Code | Semgrep (OSS / Pro) |
+|---|---|---|---|
+| Setup time | Install GitHub App, done | CLI / CI step + dashboard config | Add `.semgrep.yml` + CI step |
+| Languages | JS/TS today (more on roadmap) | 10+ | 30+ |
+| Detector families | SQLi · XSS · CMDI · Path traversal | 100+ rules | 2,000+ community + Pro rules |
+| False-positive driver | Claude reasoning (low) | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
+| Auto-suggested patches | ✅ Inline, framework-aware | Partial (Snyk Code Fix) | ❌ (rules describe; don't patch) |
+| PDF + SARIF | ✅ Both | ✅ SARIF | ✅ SARIF |
+| Pricing (entry) | $0 (free tier, real) | Free tier; $52/dev/mo Team | OSS free; $40/dev/mo Pro |
+| Open source | ✅ MIT | ❌ | ✅ rules engine |
+| Best for | Indie + small teams shipping JS/TS | Mid-market with multi-language stacks | Engineering teams who want full rule control |
+
+If you're at a 50-person company with a polyglot codebase, Snyk or Semgrep Pro is probably the right call. If you're a solo founder or a small team shipping a Node.js app and want a security review on every PR with zero ceremony, Fixor is built for you.
 
 ## Self-hosting
+
+Fixor is MIT-licensed; you can run the entire stack yourself. The hosted service exists because most operators don't want to run Postgres, manage GitHub App keys, and pay Anthropic directly — but if you do, the path is:
 
 ```bash
 git clone https://github.com/tornidomaroc-web/fixor.git
 cd fixor
 npm ci
-cp .env.example .env        # fill in your credentials
+cp .env.example .env        # fill in credentials per inline docs
 npm run build
-npm start
+npm run db:migrate          # apply schema to your Postgres
+npm start                   # webhook server on $PORT
 ```
 
-Requires Node.js 20+, a registered GitHub App, an Anthropic API key, and a Cloudinary account (for PDF hosting).
+Requires Node.js ≥ 20, a registered GitHub App, an Anthropic API key, a Postgres database (we use Neon; any Postgres works), and a Cloudinary account for report hosting. Optional: Sentry DSN for error tracking, Resend for transactional email, Paddle for billing if you want the same paid tiers as the hosted service.
 
-### Environment variables
+The dashboard is a separate Next.js app at [`apps/dashboard/`](apps/dashboard/) — see its `.env.example` for the Vercel-side requirements (Clerk, the same Postgres URL, Paddle public token).
 
-See [`.env.example`](./.env.example) — it lists every required and optional variable with inline docs.
+## Tech stack
+
+| Layer | Tech | Why |
+|---|---|---|
+| Runtime | Node.js 20 + TypeScript 5 | Boring, fast, well-supported |
+| AI | Claude (Anthropic SDK with prompt caching + tool use) | Reasons about diff context; lower FP rate than regex |
+| Database | Neon Postgres + Drizzle ORM | Serverless, branching, type-safe |
+| Auth (App) | GitHub App — RS256 JWT + ≤1h installation tokens | Standard for App-based GitHub integrations |
+| Auth (Dashboard) | Clerk — GitHub OAuth only | 10k MAU free, OOTB |
+| Backend host | Railway | Cheap, fast deploys, fits indie budget |
+| Frontend host | Vercel + Next.js 16 + Tailwind 4 | Standard for Next.js |
+| Logger | Pino with redaction for keys + secrets | JSON, fast, lint-banned `console.*` outside scripts |
+| Errors | Sentry | Free 5k events / month |
+| Payments | Paddle (merchant of record — handles VAT) | Stripe alt; geo-friendly |
+| Email | Resend | 100/day free; transactional only, no marketing |
+| Object storage | Cloudinary (signed URLs, 1h TTL) | PDF + SARIF reports |
+| Status page | Better Uptime | Four monitors at `status.fixor.dev` |
+| Security | HMAC-SHA256 on both webhook surfaces, hashed API tokens, TLS everywhere | See [security.html](landing/security.html) |
 
 ## Project structure
 
 ```
 src/
-  analysis-engine/    # Claude-powered detection engine
-  config/             # Model registry, tunables
-  integrations/
-    github/           # GitHub App auth, webhooks, PR comments
-  services/           # Fix generation, PDF, Cloudinary
-  server/             # Webhook server entry point
-  types/              # Shared TypeScript types
-  workflows/          # Auditor workflow orchestration
-landing/              # Landing + Privacy + Terms (GitHub Pages)
+  analysis-engine/        # Claude-powered detection (4 detector families)
+  config/                 # Model registry, tunables
+  db/                     # Drizzle schema + migrations
+  integrations/github/    # GitHub App auth, webhooks, PR comments
+  lib/                    # logger, retry, anthropic helpers, resend
+  services/               # Cost store, orgs, fix generation, PDF, SARIF, first-scan-email
+  server/                 # Webhook server entry + /health endpoint
+  test/                   # Self-runnable unit tests (no jest, no vitest)
+  workflows/              # Auditor workflow orchestration
+apps/dashboard/           # Next.js 16 dashboard (Vercel)
+landing/                  # Landing + Privacy + Terms + Security + .well-known/security.txt
+docs/                     # Roadmap, marketplace listing, status-page, legal, mintlify source
 ```
 
-## Tech stack
+## Security
 
-- **Runtime:** Node.js 20 (LTS) + TypeScript 5
-- **AI:** Claude (Sonnet 4.6 for detection, Opus 4.7 for reasoning) via `@anthropic-ai/sdk` with prompt caching & tool use
-- **Auth:** GitHub App (RS256 JWT + short-lived installation tokens)
-- **PDF:** PDFKit with branded layouts
-- **Storage:** Cloudinary (PDF reports); JSON file store for pilot persistence
-- **Deploy:** Railway (backend) + GitHub Pages (landing)
-- **Security:** HMAC-SHA256 webhook verification, timing-safe comparison, zero code retention
-
-## Security posture
-
-Fixor operates on PR diffs in memory only. No source code is written to disk. Reports are uploaded to Cloudinary under a per-PR public ID; see [Privacy Policy](landing/privacy.html) for the full retention story.
+Every claim in this README is checkable against the source — Fixor is fully open. The trust center page at [`landing/security.html`](landing/security.html) (live at `https://tornidomaroc-web.github.io/fixor/security.html`) has the full posture: HMAC-verified webhooks on both inbound surfaces, in-memory diff handling, signed report URLs, hashed API tokens, redacted Pino logs, audit trail in `audit_log`. Vulnerability disclosure: email `support@fixor.dev` with subject `SECURITY:`. Safe-harbor terms in the trust center page.
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+PRs welcome — see [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md). The `docs/INDIE-SAAS-ROADMAP.md` file is the source of truth for what's planned and what's already shipped; pick an unchecked item and propose an approach in an issue first if it's substantive.
 
 ## License
 
