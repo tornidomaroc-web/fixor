@@ -54,6 +54,11 @@
       margin-bottom: 0.75rem;
       letter-spacing: -0.01em;
     }
+    h3 {
+      font-size: 1rem;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
     p, li { color: var(--text-muted); }
     .updated {
       color: var(--text-muted);
@@ -62,6 +67,26 @@
     }
     ul { padding-left: 1.25rem; }
     li { margin-bottom: 0.4rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+    th { color: var(--text); font-weight: 600; }
+    code {
+      background: var(--bg-elevated);
+      padding: 0.05rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
     footer {
       border-top: 1px solid var(--border);
       padding: 2rem 0;
@@ -86,55 +111,130 @@
 
   <main class="wrap">
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: April 19, 2026</p>
+    <p class="updated">Last updated: April 27, 2026</p>
 
-    <p>Fixor ("we", "our", or "us") provides automated security analysis for GitHub pull requests. This Privacy Policy explains what data we access, how we process it, and your rights as a user.</p>
+    <p>Fixor (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) provides automated security review for GitHub pull requests. This Privacy Policy explains what data we access, what we store, who else processes it, and what control you have. We try to keep the policy short and concrete &mdash; if anything is unclear, contact us (section 9).</p>
 
-    <h2>1. What We Access</h2>
-    <p>When you install Fixor on your GitHub repositories, we access:</p>
+    <h2>1. What we access from GitHub</h2>
+    <p>When you install Fixor on a GitHub user account or organization, our GitHub App receives:</p>
     <ul>
-      <li><strong>Pull request diffs</strong> — only the code changes submitted for review</li>
-      <li><strong>Repository metadata</strong> — repo name, PR numbers, commit SHAs</li>
-      <li><strong>Installation ID</strong> — used to authenticate with GitHub on your behalf</li>
+      <li><strong>Pull request diffs</strong> &mdash; the changed lines for each PR Fixor scans.</li>
+      <li><strong>Repository metadata</strong> &mdash; repo full name, PR number, head commit SHA.</li>
+      <li><strong>Installation events</strong> &mdash; when Fixor is installed, updated, or uninstalled.</li>
+      <li><strong>Your installer email (optional)</strong> &mdash; when you sign in to the dashboard with GitHub OAuth, we receive your primary email from GitHub via Clerk.</li>
     </ul>
-    <p>We do <strong>not</strong> access the full codebase, issues, secrets, environment variables, or any private data outside the scope of pull request analysis.</p>
+    <p>Fixor does <strong>not</strong> access issues, discussions, releases, secrets, environment variables, GitHub Actions logs, or files outside the PR diff.</p>
 
-    <h2>2. How We Use Your Data</h2>
-    <p>Your pull request diffs are processed by our analysis engine (powered by Anthropic's Claude AI) to detect SQL injection risks. We use this data exclusively to:</p>
+    <h2>2. What we store, and for how long</h2>
+    <p>Fixor stores the minimum needed to deliver the service. Code from your diffs is processed in memory and is <strong>not stored</strong> on our database after the scan completes. Specifically, our database contains:</p>
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Why we store it</th><th>Retention</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>orgs</code> &mdash; one row per GitHub installation: installation id, plan tier, monthly cap, Paddle customer / subscription ids (when paid), installer email</td>
+          <td>Identify your account, route billing, send transactional email</td>
+          <td>Until you uninstall + 30 days, then deleted</td>
+        </tr>
+        <tr>
+          <td><code>org_settings</code> &mdash; severity threshold, ignored globs, enabled detectors, optional Slack webhook</td>
+          <td>Apply your filtering preferences to scans</td>
+          <td>Same as the org row</td>
+        </tr>
+        <tr>
+          <td><code>cost_ledger</code> &mdash; one row per Anthropic API call: timestamp, USD cost, token counts (no diff content)</td>
+          <td>Enforce monthly budget caps; show your spend in the dashboard</td>
+          <td>13 months (rolling), then aggregated and the row-level data is deleted</td>
+        </tr>
+        <tr>
+          <td><code>scan_runs</code> &mdash; one row per scan: repo + PR number, status, finding counts, head SHA, started/finished timestamps</td>
+          <td>Show scan history + trends in the dashboard</td>
+          <td>Same as cost_ledger</td>
+        </tr>
+        <tr>
+          <td><code>audit_log</code> &mdash; settings changes, plan changes, webhook events</td>
+          <td>Security trail for billing + settings</td>
+          <td>2 years</td>
+        </tr>
+        <tr>
+          <td><code>api_tokens</code> &mdash; SHA-256 hashes of any API tokens you generate (the plain token is shown to you once and never stored)</td>
+          <td>Authenticate API calls</td>
+          <td>Until you revoke + 30 days</td>
+        </tr>
+        <tr>
+          <td>Generated PDF + SARIF reports</td>
+          <td>Linked from the PR comment for download</td>
+          <td>90 days, then purged from object storage</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>The PR comment itself is owned by GitHub, not us; deleting the PR or the comment is a GitHub action and we don't retain a copy.</p>
+
+    <h2>3. How we use your data</h2>
     <ul>
-      <li>Generate security findings and suggested fixes</li>
-      <li>Produce PDF compliance reports</li>
-      <li>Post structured comments on your pull requests</li>
+      <li><strong>Analysis.</strong> The PR diff plus minimal repo context is sent to Anthropic's Claude API and Fixor's analysis engine to detect SQL injection, XSS, command injection, and path traversal. Diffs are not used to train models. (See Anthropic's Trust Center for their commitments.)</li>
+      <li><strong>Billing.</strong> When you upgrade to a paid plan, Paddle (our merchant of record) processes the payment. We send Paddle the price id and a correlation id; Paddle returns the customer + subscription ids we store on your <code>orgs</code> row.</li>
+      <li><strong>Transactional email.</strong> We email you on first scan, on payment events (welcome / payment failed / subscription canceled), and once per calendar month if you cross 80% of your monthly Anthropic budget. We do not send marketing email.</li>
+      <li><strong>Diagnostics.</strong> Server logs include installation id, PR number, and error stack traces. Sensitive values (API keys, GitHub App private keys, Stripe-style ids) are redacted at the logger layer.</li>
     </ul>
 
-    <h2>3. Data Retention</h2>
-    <p>Pull request diffs are processed in-memory and are <strong>not stored</strong> on our servers. Generated PDF reports are hosted on Cloudinary with public-but-unguessable URLs. Reports older than 90 days may be automatically purged.</p>
+    <h2>4. Subprocessors</h2>
+    <p>The following third parties process data on our behalf:</p>
+    <table>
+      <thead>
+        <tr><th>Subprocessor</th><th>Purpose</th><th>Region</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><a href="https://www.anthropic.com/privacy">Anthropic</a></td><td>Diff analysis (Claude API)</td><td>USA</td></tr>
+        <tr><td><a href="https://neon.tech/privacy-policy">Neon</a></td><td>Postgres database (orgs, settings, ledger, audit log)</td><td>USA / EU (your project's region)</td></tr>
+        <tr><td><a href="https://railway.com/legal/privacy">Railway</a></td><td>Backend webhook + analysis runtime</td><td>USA</td></tr>
+        <tr><td><a href="https://vercel.com/legal/privacy-policy">Vercel</a></td><td>Dashboard hosting</td><td>USA / EU</td></tr>
+        <tr><td><a href="https://clerk.com/legal/privacy">Clerk</a></td><td>GitHub OAuth + dashboard sessions</td><td>USA</td></tr>
+        <tr><td><a href="https://www.paddle.com/legal/privacy">Paddle</a></td><td>Payments + merchant of record (handles VAT / sales tax)</td><td>USA / EU / UK</td></tr>
+        <tr><td><a href="https://resend.com/legal/privacy-policy">Resend</a></td><td>Transactional email delivery</td><td>USA</td></tr>
+        <tr><td><a href="https://cloudinary.com/privacy">Cloudinary</a></td><td>PDF + SARIF report storage (signed URLs, 1h TTL)</td><td>USA</td></tr>
+        <tr><td><a href="https://sentry.io/privacy/">Sentry</a></td><td>Server error tracking</td><td>USA</td></tr>
+        <tr><td><a href="https://github.com/site/privacy">GitHub</a></td><td>Webhook source; we are a GitHub App</td><td>USA</td></tr>
+      </tbody>
+    </table>
+    <p>We don't sell your data to anyone, and we don't add tracking pixels or third-party analytics on the marketing site.</p>
 
-    <h2>4. Third-Party Services</h2>
-    <p>We use the following services to operate Fixor:</p>
+    <h2>5. International data transfers</h2>
+    <p>Most of our subprocessors process data in the United States. If you're an EU/UK/EEA user, transferring data outside those regions relies on the Standard Contractual Clauses each subprocessor publishes. Paddle, as merchant of record, additionally handles GDPR / UK-GDPR compliance for the billing relationship.</p>
+
+    <h2>6. Cookies and tracking</h2>
+    <p>The marketing site (<code>fixor.dev</code> or the GitHub Pages URL) sets no cookies and runs no analytics. The dashboard sets a Clerk session cookie when you sign in &mdash; required to keep you logged in &mdash; and nothing else. We do not use third-party trackers, ad networks, or fingerprinting.</p>
+
+    <h2>7. Your rights</h2>
     <ul>
-      <li><strong>Anthropic (Claude AI)</strong> — analyzes your diff. See <a href="https://www.anthropic.com/privacy">Anthropic's Privacy Policy</a>.</li>
-      <li><strong>Cloudinary</strong> — hosts generated PDF reports.</li>
-      <li><strong>Railway</strong> — hosts our webhook server infrastructure.</li>
-      <li><strong>GitHub</strong> — source of webhooks; we act as a GitHub App.</li>
+      <li><strong>Access.</strong> Email us and we'll send you a JSON export of every row in our database that references your org.</li>
+      <li><strong>Deletion.</strong> Uninstall Fixor from your GitHub settings. We delete the org and its associated rows after a 30-day grace window (kept in case of accidental uninstall). Uploaded reports purge on the same schedule plus the 90-day cap.</li>
+      <li><strong>Correction.</strong> Most settings are editable directly in the dashboard. For anything else, email us.</li>
+      <li><strong>Portability.</strong> The JSON export above doubles as your portability artifact.</li>
+      <li><strong>Objection.</strong> You can opt out of transactional email by uninstalling; we don't send marketing email so there is no separate opt-out for that.</li>
+    </ul>
+    <p>EU/UK/EEA residents have the additional rights granted by the GDPR / UK-GDPR &mdash; including the right to lodge a complaint with your local supervisory authority. California residents have the rights granted by the CCPA / CPRA. We respond to verified rights requests within 30 days.</p>
+
+    <h2>8. Security</h2>
+    <ul>
+      <li>GitHub webhooks are verified with HMAC-SHA256 against our shared secret (5A series).</li>
+      <li>Paddle webhooks are verified with HMAC-SHA256 against the Paddle webhook secret, with a 5-minute replay window.</li>
+      <li>Installation tokens are short-lived (≤1 hour) and never stored.</li>
+      <li>Database connections use TLS; report URLs are signed (1-hour TTL by default).</li>
+      <li>API token strings are stored only as SHA-256 hashes; the plain token is shown to you exactly once at creation.</li>
     </ul>
 
-    <h2>5. Your Rights</h2>
-    <p>You can uninstall Fixor at any time from your GitHub settings, which immediately revokes our access to your repositories. You may also request deletion of any stored PDF reports by contacting us.</p>
+    <h2>9. Contact</h2>
+    <p>Email <a href="mailto:support@fixor.dev">support@fixor.dev</a> for privacy questions, data export, or deletion requests. For non-privacy issues, you can also open a GitHub issue at <a href="https://github.com/tornidomaroc-web/fixor/issues">github.com/tornidomaroc-web/fixor</a>.</p>
 
-    <h2>6. Security</h2>
-    <p>All communication with GitHub uses signed webhooks (HMAC-SHA256 verification) and short-lived installation tokens (expiring within 1 hour). We never store personal access tokens.</p>
-
-    <h2>7. Changes to This Policy</h2>
-    <p>We may update this policy from time to time. Material changes will be communicated via our GitHub repository and this page.</p>
-
-    <h2>8. Contact</h2>
-    <p>For privacy questions or data requests, open an issue at <a href="https://github.com/tornidomaroc-web/fixor/issues">github.com/tornidomaroc-web/fixor</a>.</p>
+    <h2>10. Changes</h2>
+    <p>Material changes to this policy are announced on the GitHub repository and reflected on this page with an updated date at the top. Continued use of Fixor after a change constitutes acceptance of the updated policy.</p>
   </main>
 
   <footer>
     <div class="wrap" style="padding: 0;">
-      © 2026 Fixor · <a href="index.html">Home</a> · <a href="terms.html">Terms</a>
+      &copy; 2026 Fixor &middot; <a href="index.html">Home</a> &middot; <a href="terms.html">Terms</a> &middot; <a href="mailto:support@fixor.dev">Contact</a>
     </div>
   </footer>
 </body>
