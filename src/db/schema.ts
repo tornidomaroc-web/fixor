@@ -151,6 +151,13 @@ export const orgs = pgTable("orgs", {
   firstScanEmailSentAt: timestamp("first_scan_email_sent_at", {
     withTimezone: true,
   }),
+  // Last time we sent the 80%-of-budget nudge (5E-5). Compared
+  // against the current calendar month at send time — same calendar
+  // month means we've already nudged for THIS month, skip. Null
+  // means we've never sent. Resets implicitly on month rollover.
+  limitWarningEmailSentAt: timestamp("limit_warning_email_sent_at", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

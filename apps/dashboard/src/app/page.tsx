@@ -12,6 +12,10 @@ import { TierBadge } from "@/components/tier-badge";
 import { SpendBar } from "@/components/spend-bar";
 import { InstallWizard } from "@/components/install-wizard";
 import { WelcomeBanner } from "@/components/welcome-banner";
+import {
+  BudgetWarningBanner,
+  shouldShowBudgetWarning,
+} from "@/components/budget-warning-banner";
 
 interface HomeProps {
   searchParams: Promise<{ installed?: string }>;
@@ -73,6 +77,29 @@ export default async function Home({ searchParams }: HomeProps) {
         result.installations.length > 0 ? (
           <WelcomeBanner />
         ) : null}
+
+        {summaries
+          .filter(
+            (s) =>
+              s.orgId !== null &&
+              shouldShowBudgetWarning(s.monthlySpendUsd, s.monthlyCapUsd),
+          )
+          .map((s) => {
+            const inst = result.status === "ok"
+              ? result.installations.find(
+                  (i) => String(i.id) === s.installationId,
+                )
+              : undefined;
+            return (
+              <BudgetWarningBanner
+                key={s.installationId}
+                orgId={s.orgId!}
+                orgLabel={inst?.account.login ?? s.installationId}
+                monthlySpendUsd={s.monthlySpendUsd}
+                monthlyCapUsd={s.monthlyCapUsd}
+              />
+            );
+          })}
 
         {result.status === "ok" && result.installations.length > 0 ? (
           <ul className="flex flex-col gap-3">
