@@ -72,6 +72,20 @@ export interface WorkflowResult {
     monthlyCapUsd: number;
     dailyCapUsd: number;
   };
+  /**
+   * Soft 80%-of-budget nudge (5E-5). Set by the webhook handler
+   * after a successful scan when post-scan spend / cap is in
+   * [0.8, 1.0). The comment-builder renders a small "approaching
+   * cap" notice when this is present. Distinct from `budget`,
+   * which fires only on a HARD cap-reached state.
+   */
+  budgetWarning?: {
+    monthlySpend: number;
+    monthlyCapUsd: number;
+    /** spend / cap, clamped to [0, 1]. Lets the comment-builder
+     *  render a percentage without recomputing. */
+    ratio: number;
+  };
   metadata: ScanMetadata;
   timing: {
     startedAt: string;

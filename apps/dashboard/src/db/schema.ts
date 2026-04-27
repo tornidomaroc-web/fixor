@@ -36,6 +36,9 @@ export const orgs = pgTable("orgs", {
   firstScanEmailSentAt: timestamp("first_scan_email_sent_at", {
     withTimezone: true,
   }),
+  limitWarningEmailSentAt: timestamp("limit_warning_email_sent_at", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
 

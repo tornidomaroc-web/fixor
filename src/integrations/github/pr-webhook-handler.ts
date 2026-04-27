@@ -25,6 +25,10 @@ import { costContext } from "../../lib/cost-context";
 import { checkBudget } from "../../services/cost-store";
 import { logger } from "../../lib/logger";
 import { maybeSendFirstScanEmail } from "../../services/first-scan-email";
+import {
+  computeBudgetWarning,
+  triggerLimitWarningEmailIfNeeded,
+} from "../../services/scan-limit-warning";
 import * as Sentry from "@sentry/node";
 
 export type SemgrepPayloadResolver = (ctx: {
@@ -275,6 +279,25 @@ async function handlePullRequestWebhookImpl(
       workflow = await costContext.run({ installationId }, async () =>
         runAuditorWorkflow(semgrepPayload, metadata)
       );
+
+      // Re-read post-scan budget so the comment + email use the
+      // numbers AFTER this scan's costs landed. checkBudget caches
+      // nothing; the second call adds one DB round-trip per scan.
+      try {
+        const postBudget = await checkBudget(installationId);
+        const warning = computeBudgetWarning(
+          postBudget.monthlySpend,
+          postBudget.caps.monthlyCapUsd,
+        );
+        if (warning) {
+          workflow.budgetWarning = warning;
+        }
+      } catch (e) {
+        logger.warn(
+          { installationId, err: e },
+          "post-scan budget re-read failed; budgetWarning skipped",
+        );
+      }
     }
   }
 
@@ -366,6 +389,23 @@ async function handlePullRequestWebhookImpl(
         logger.warn(
           { installationId, owner, repo, pullNumber, err },
           "maybeSendFirstScanEmail unhandled rejection",
+        );
+      });
+    }
+
+    // Best-effort 80%-of-budget nudge email (5E-5). Same
+    // fire-and-forget shape; idempotent across the calendar month
+    // at the SQL layer.
+    if (!dryRun && installationId && workflow.budgetWarning) {
+      triggerLimitWarningEmailIfNeeded({
+        installationId: String(installationId),
+        warning: workflow.budgetWarning,
+        repoFullName: `${owner}/${repo}`,
+        pullNumber,
+      }).catch((err) => {
+        logger.warn(
+          { installationId, owner, repo, pullNumber, err },
+          "triggerLimitWarningEmailIfNeeded unhandled rejection",
         );
       });
     }

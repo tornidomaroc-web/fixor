@@ -108,6 +108,19 @@ export function buildPullRequestCommentMarkdown(
     return lines.join("\n");
   }
 
+  // 5E-5 soft nudge — rendered ABOVE the summary so it's the first
+  // thing the reader sees, before they scroll into the findings.
+  // Suppressed when the hard `budget_exceeded` block above already
+  // owns the page (the early return makes that path exclusive).
+  if (workflow.budgetWarning) {
+    const w = workflow.budgetWarning;
+    const pct = Math.round(w.ratio * 100);
+    lines.push(
+      "",
+      `> ⚠️ **Heads-up — Fixor is at ${pct}% of this month's budget** ($${w.monthlySpend.toFixed(2)} of $${w.monthlyCapUsd.toFixed(2)}). New scans pause when the budget is fully spent until next month's reset.`,
+    );
+  }
+
   lines.push(
     "",
     "### Summary",

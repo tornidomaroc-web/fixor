@@ -5,6 +5,10 @@ import { TierBadge } from "@/components/tier-badge";
 import { SpendBar } from "@/components/spend-bar";
 import { UpgradeButton } from "@/components/upgrade-button";
 import { ManageSubscriptionButtons } from "@/components/manage-subscription-buttons";
+import {
+  BudgetWarningBanner,
+  shouldShowBudgetWarning,
+} from "@/components/budget-warning-banner";
 import { listFixorInstallations } from "@/lib/github";
 import { getOrgForUser } from "@/lib/scans-data";
 import { getOrgSummaries } from "@/lib/orgs-data";
@@ -100,6 +104,17 @@ export default async function OrgBillingPage({
         </div>
 
         {justCheckedOut ? <CheckoutSuccessBanner /> : null}
+
+        {monthlySpendUsd !== null &&
+        monthlyCapUsd !== null &&
+        shouldShowBudgetWarning(monthlySpendUsd, monthlyCapUsd) ? (
+          <BudgetWarningBanner
+            orgId={org.id}
+            orgLabel={installation?.account.login ?? "this org"}
+            monthlySpendUsd={monthlySpendUsd}
+            monthlyCapUsd={monthlyCapUsd}
+          />
+        ) : null}
 
         <CurrentPlanCard
           orgId={org.id}
