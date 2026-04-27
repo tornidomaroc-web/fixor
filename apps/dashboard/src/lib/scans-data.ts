@@ -21,6 +21,12 @@ export interface OrgRef {
    *  createCheckoutTransaction so repeat purchases skip re-collecting
    *  the email. */
   paddleCustomerId: string | null;
+  /** Set by 5D-3 on `transaction.completed` and cleared on cancel /
+   *  payment-failed downgrades. 5D-5 needs this to resolve the
+   *  subscription's hosted update-payment / cancel URLs; null means
+   *  there's no active subscription so the "Manage" buttons stay
+   *  inert. */
+  paddleSubscriptionId: string | null;
 }
 
 export interface ScanRow {
@@ -56,6 +62,7 @@ export async function getOrgForUser(
       installationId: orgs.githubInstallationId,
       planTier: orgs.planTier,
       paddleCustomerId: orgs.paddleCustomerId,
+      paddleSubscriptionId: orgs.paddleSubscriptionId,
     })
     .from(orgs)
     .where(
