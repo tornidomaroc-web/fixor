@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,11 +46,12 @@ export default async function Home() {
               const summary = summaries.find(
                 (s) => s.installationId === String(inst.id),
               );
-              return (
-                <li
-                  key={inst.id}
-                  className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center"
-                >
+              const orgHref =
+                summary && summary.orgId
+                  ? `/orgs/${summary.orgId}/scans`
+                  : null;
+              const inner = (
+                <>
                   <div className="flex flex-1 items-center gap-4">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -86,6 +88,25 @@ export default async function Home() {
                       </div>
                     )}
                   </div>
+                </>
+              );
+              const baseClass =
+                "flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center";
+              return (
+                <li key={inst.id}>
+                  {orgHref ? (
+                    <Link
+                      href={orgHref}
+                      className={cn(
+                        baseClass,
+                        "transition-colors hover:bg-muted/30",
+                      )}
+                    >
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div className={baseClass}>{inner}</div>
+                  )}
                 </li>
               );
             })}

@@ -11,6 +11,7 @@
  * dashboard does not read can lag the backend without consequence.
  */
 import {
+  integer,
   numeric,
   pgTable,
   serial,
@@ -37,4 +38,19 @@ export const costLedger = pgTable("cost_ledger", {
   installationId: text("installation_id").notNull(),
   costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull(),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+});
+
+export const scanRuns = pgTable("scan_runs", {
+  id: uuid("id").primaryKey(),
+  installationId: text("installation_id").notNull(),
+  repoFullName: text("repo_full_name").notNull(),
+  pullNumber: integer("pull_number").notNull(),
+  headSha: text("head_sha").notNull(),
+  status: text("status").notNull(),
+  totalFindings: integer("total_findings").notNull(),
+  fixesGenerated: integer("fixes_generated").notNull(),
+  costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  errorMessage: text("error_message"),
 });
