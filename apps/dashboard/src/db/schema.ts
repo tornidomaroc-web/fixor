@@ -26,8 +26,8 @@ export const orgs = pgTable("orgs", {
   id: uuid("id").primaryKey(),
   githubInstallationId: text("github_installation_id").notNull(),
   planTier: text("plan_tier").notNull(),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
+  paddleCustomerId: text("paddle_customer_id"),
+  paddleSubscriptionId: text("paddle_subscription_id"),
   monthlyCapUsd: numeric("monthly_cap_usd", {
     precision: 10,
     scale: 2,

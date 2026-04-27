@@ -29,6 +29,13 @@
       "when": 1777300786954,
       "tag": "0003_dusty_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777304400000,
+      "tag": "0004_paddle_rename",
+      "breakpoints": true
     }
   ]
 }
