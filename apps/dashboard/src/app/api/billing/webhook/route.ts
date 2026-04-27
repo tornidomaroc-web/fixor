@@ -20,7 +20,7 @@
  * means we accepted the event (success or no-op-for-this-type).
  */
 import { NextResponse } from "next/server";
-import { tierFromPaddlePriceId } from "@/lib/tiers";
+import { getTier, tierFromPaddlePriceId } from "@/lib/tiers";
 import { verifyPaddleSignature } from "@/lib/paddle-webhook";
 import {
   applyDowngradeToFree,
@@ -29,6 +29,11 @@ import {
   findOrgById,
 } from "@/lib/billing-events";
 import { sendBillingEmail } from "@/lib/resend";
+import {
+  renderCancellationEmail,
+  renderPaymentFailedEmail,
+  renderWelcomeEmail,
+} from "@/lib/email-templates";
 
 interface PaddleEnvelope {
   event_id?: string;
@@ -111,6 +116,18 @@ export async function POST(req: Request) {
           tier,
           eventId,
         });
+        // Welcome email — sent on every successful checkout, not
+        // gated on "first paid". Re-up + tier change both warrant
+        // confirmation copy. Best-effort (Resend stub when unset).
+        const welcome = renderWelcomeEmail({
+          tier,
+          billingUrl: buildBillingUrl(req, orgId),
+        });
+        await sendBillingEmail({
+          to: data.customer?.email ?? null,
+          subject: welcome.subject,
+          text: welcome.text,
+        });
         return NextResponse.json({ ok: true });
       }
 
@@ -145,23 +162,21 @@ export async function POST(req: Request) {
         if (!existing) {
           return NextResponse.json({ ok: true, ignored: "org_not_found" });
         }
+        // Capture the tier the user is leaving so the cancellation
+        // email mentions it. Read BEFORE applyDowngradeToFree
+        // overwrites it.
+        const previousTier = getTier(existing.planTier) ?? null;
         await applyDowngradeToFree({ orgId, reason, eventId });
 
-        // Email is best-effort — Resend may not be configured yet
-        // (5D-6). Don't fail the webhook if the email send errors;
-        // we'd rather Paddle stop retrying.
-        const subject =
+        const billingUrl = buildBillingUrl(req, orgId);
+        const rendered =
           reason === "subscription.canceled"
-            ? "Your Fixor subscription was canceled"
-            : "We couldn't process your Fixor payment";
-        const text =
-          reason === "subscription.canceled"
-            ? `Your subscription was canceled. Your org has been moved to the free tier ($5/month Anthropic budget, 5 scans/month). You can re-subscribe any time from the billing page.`
-            : `Your latest Fixor payment failed and we've moved your org back to the free tier so scans aren't blocked. Update your payment method via the billing page to restore your previous tier.`;
+            ? renderCancellationEmail({ previousTier, billingUrl })
+            : renderPaymentFailedEmail({ billingUrl });
         await sendBillingEmail({
           to: data.customer?.email ?? null,
-          subject,
-          text,
+          subject: rendered.subject,
+          text: rendered.text,
         });
         return NextResponse.json({ ok: true });
       }
@@ -193,4 +208,15 @@ function readOrgIdFromCustomData(
 function readFirstPriceId(data: PaddleEventData): string | null {
   const id = data.items?.[0]?.price?.id;
   return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+/**
+ * Derives the absolute billing URL for an org from the incoming
+ * webhook request. Paddle always reaches us at the production /
+ * preview origin so `req.url.origin` is the right base — no need
+ * for an extra NEXT_PUBLIC_DASHBOARD_URL env var.
+ */
+function buildBillingUrl(req: Request, orgId: string): string {
+  const origin = new URL(req.url).origin;
+  return `${origin}/orgs/${orgId}/billing`;
 }
