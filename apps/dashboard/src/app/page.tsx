@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fixorInstallUrl, listFixorInstallations } from "@/lib/github";
 import { getOrgSummaries, type OrgSummary } from "@/lib/orgs-data";
 import { TierBadge } from "@/components/tier-badge";
 import { SpendBar } from "@/components/spend-bar";
+import { InstallWizard } from "@/components/install-wizard";
+import { WelcomeBanner } from "@/components/welcome-banner";
 
-export default async function Home() {
+interface HomeProps {
+  searchParams: Promise<{ installed?: string }>;
+}
+
+export default async function Home({ searchParams }: HomeProps) {
+  const { installed } = await searchParams;
+  const justInstalled = installed === "1";
+
   const result = await listFixorInstallations();
 
   // Fetch DB summaries only when GitHub returned installations. Defends
@@ -39,6 +47,12 @@ export default async function Home() {
             One row per GitHub installation Fixor has access to.
           </p>
         </div>
+
+        {justInstalled &&
+        result.status === "ok" &&
+        result.installations.length > 0 ? (
+          <WelcomeBanner />
+        ) : null}
 
         {result.status === "ok" && result.installations.length > 0 ? (
           <ul className="flex flex-col gap-3">
@@ -112,38 +126,19 @@ export default async function Home() {
             })}
           </ul>
         ) : (
-          <EmptyState status={result.status} />
+          <InstallWizard
+            state={
+              result.status === "ok"
+                ? justInstalled
+                  ? "waiting"
+                  : "ready"
+                : "error"
+            }
+            reason={result.status === "ok" ? undefined : result.status}
+            installUrl={fixorInstallUrl()}
+          />
         )}
       </section>
     </main>
-  );
-}
-
-function EmptyState({
-  status,
-}: {
-  status: "ok" | "no_token" | "error";
-}) {
-  return (
-    <div className="flex flex-col items-start gap-4 rounded-lg border border-dashed border-border bg-card/50 p-6">
-      <div>
-        <p className="font-medium">No Fixor installations yet</p>
-        <p className="text-muted-foreground text-sm">
-          {status === "no_token"
-            ? "We could not read your GitHub token. Sign out and back in with GitHub to retry."
-            : status === "error"
-              ? "We could not reach GitHub to list your installations. If this persists, check the dashboard logs."
-              : "Install Fixor on a GitHub user or organization to get started."}
-        </p>
-      </div>
-      <a
-        className={cn(buttonVariants({ variant: "default", size: "lg" }))}
-        href={fixorInstallUrl()}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Install Fixor on GitHub
-      </a>
-    </div>
   );
 }
