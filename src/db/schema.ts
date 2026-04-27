@@ -126,11 +126,15 @@ export const orgs = pgTable("orgs", {
   // free | indie | pro | team — kept as text rather than a Postgres
   // enum so adding a tier doesn't require a migration.
   planTier: text("plan_tier").notNull().default("free"),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
+  // Paddle is the merchant of record (see roadmap Decision Log
+  // 2026-04-27). The columns were originally `stripe_*` from 5B-1 but
+  // had no rows written, so 5D-1 renamed them in-place rather than
+  // dual-tracking.
+  paddleCustomerId: text("paddle_customer_id"),
+  paddleSubscriptionId: text("paddle_subscription_id"),
   // Resolved Anthropic budget cap. Defaults to the free-tier cap; 5B-3
-  // wires checkBudget to read this value, and 5D updates it on Stripe
-  // tier changes.
+  // wires checkBudget to read this value, and 5D-3 updates it on
+  // Paddle tier changes.
   monthlyCapUsd: numeric("monthly_cap_usd", { precision: 10, scale: 2 })
     .notNull()
     .default("5.00"),

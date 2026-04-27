@@ -22,6 +22,10 @@ export interface Tier {
   monthlyCapUsd: number;
   /** Customer-facing scans/month limit (independent of the cap). */
   scansPerMonth: number;
+  /** Name of the env var that holds this tier's Paddle price id —
+   *  e.g. `PADDLE_PRICE_INDIE`. `null` for the free tier (no Paddle
+   *  product needed). 5D-2's checkout call reads `process.env[name]`. */
+  paddlePriceEnv: string | null;
   /** One-line marketing copy. Kept short — the table is dense. */
   highlight: string;
   /** Bullet points rendered under the price. */
@@ -35,6 +39,7 @@ export const TIERS: readonly Tier[] = [
     priceUsd: 0,
     monthlyCapUsd: 5,
     scansPerMonth: 5,
+    paddlePriceEnv: null,
     highlight: "Try Fixor on a public repo",
     features: [
       "5 scans / month",
@@ -48,6 +53,7 @@ export const TIERS: readonly Tier[] = [
     priceUsd: 29,
     monthlyCapUsd: 30,
     scansPerMonth: 100,
+    paddlePriceEnv: "PADDLE_PRICE_INDIE",
     highlight: "One private repo, weekend-side-project pricing",
     features: [
       "100 scans / month",
@@ -61,6 +67,7 @@ export const TIERS: readonly Tier[] = [
     priceUsd: 79,
     monthlyCapUsd: 80,
     scansPerMonth: 500,
+    paddlePriceEnv: "PADDLE_PRICE_PRO",
     highlight: "Small teams shipping security daily",
     features: [
       "500 scans / month",
@@ -74,6 +81,7 @@ export const TIERS: readonly Tier[] = [
     priceUsd: 199,
     monthlyCapUsd: 200,
     scansPerMonth: 2000,
+    paddlePriceEnv: "PADDLE_PRICE_TEAM",
     highlight: "Unlimited repos, priority support",
     features: [
       "2,000 scans / month",
