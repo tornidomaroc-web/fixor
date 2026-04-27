@@ -10,6 +10,9 @@ const isPublic = createRouteMatcher([
   // Paddle posts here unauthenticated; the route handler verifies
   // the request body itself with PADDLE_WEBHOOK_SECRET (5D-3).
   "/api/billing/webhook",
+  // Better Uptime uptime probe (5F-1). Same exposure pattern as
+  // the backend's /health — public, no auth, no PII.
+  "/api/health",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

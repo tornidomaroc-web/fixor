@@ -168,7 +168,7 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 **Goal**: 100 sign-ups, 5 paying customers within 30 days of launch.
 
 **Tasks**:
-- [ ] **5F-1** Status page on `status.fixor.dev` via Better Uptime: monitors for landing, dashboard, webhook, Anthropic API.
+- [x] **5F-1** Status page on `status.fixor.dev` via Better Uptime: monitors for landing, dashboard, webhook, Anthropic API. (PR #44 — new `apps/dashboard/src/app/api/health/route.ts` mirrors the backend's `/health` (5A-8) shape so a single Better Uptime body assertion `"status":"ok"` works for both. Added to the public matcher in `proxy.ts` so Clerk doesn't 302-redirect probes. `docs/STATUS-PAGE.md` is the operator setup script — four monitors with exact specs (landing 60s/200/contains "Fixor"; dashboard 30s on `/api/health`; backend 30s on `/health`; Anthropic edge 60s on `https://api.anthropic.com/v1/messages` expecting 401), status-page branding, DNS for `status.fixor.dev`, escalation policy, deploy-window suppression, and a pre-launch checklist. Better Uptime account creation + monitor configuration + DNS itself is the operator's action.)
 - [ ] **5F-2** Privacy policy + ToS via Termly. Customize for Fixor specifics (data we store: scan results, ledger). Link from landing footer.
 - [ ] **5F-3** Trust center page on `fixor.dev/security`: list subprocessors (Anthropic, Vercel, Railway, Neon, Clerk, Stripe, Cloudinary, Resend), security practices, contact for vulnerability disclosures.
 - [ ] **5F-4** Mintlify docs site: setup guide, supported languages, detector catalogue, API reference, FAQ.
