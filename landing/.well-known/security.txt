@@ -1,0 +1,13 @@
+# RFC 9116 — Fixor security disclosure contact.
+# Full scope, safe-harbor, and process: see /security.html.
+#
+# Operator: when this file moves to fixor.dev (vs the current
+# GitHub Pages URL), uncomment the Canonical line below and
+# remove the Policy URL's leading domain so it stays relative.
+# Bump Expires to roughly one year out at the same time.
+
+Contact: mailto:support@fixor.dev
+Expires: 2027-04-27T00:00:00Z
+Preferred-Languages: en
+Policy: https://tornidomaroc-web.github.io/fixor/security.html
+# Canonical: https://fixor.dev/.well-known/security.txt
