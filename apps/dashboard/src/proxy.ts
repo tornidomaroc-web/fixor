@@ -4,7 +4,13 @@
  */
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+const isPublic = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  // Paddle posts here unauthenticated; the route handler verifies
+  // the request body itself with PADDLE_WEBHOOK_SECRET (5D-3).
+  "/api/billing/webhook",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublic(req)) {
