@@ -94,3 +94,23 @@ export const TIERS: readonly Tier[] = [
 export function getTier(id: string): Tier | undefined {
   return TIERS.find((t) => t.id === id);
 }
+
+/**
+ * Reverse lookup used by the Paddle webhook handler (5D-3): take a
+ * `pri_*` id from a transaction.completed / subscription.updated
+ * event and map it back to our tier definition by reading the
+ * configured `paddlePriceEnv` env vars.
+ *
+ * Returns null when the price id matches no tier — that's how the
+ * webhook handler distinguishes "Paddle event for a price we don't
+ * sell" from "valid event we should act on".
+ */
+export function tierFromPaddlePriceId(priceId: string): Tier | null {
+  if (!priceId) return null;
+  for (const t of TIERS) {
+    if (!t.paddlePriceEnv) continue;
+    const configured = process.env[t.paddlePriceEnv]?.trim();
+    if (configured && configured === priceId) return t;
+  }
+  return null;
+}
