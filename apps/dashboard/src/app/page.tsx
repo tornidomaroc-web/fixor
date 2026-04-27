@@ -1,16 +1,28 @@
 import { UserButton } from "@clerk/nextjs";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  fixorInstallUrl,
-  listFixorInstallations,
-} from "@/lib/github";
+import { fixorInstallUrl, listFixorInstallations } from "@/lib/github";
+import { getOrgSummaries, type OrgSummary } from "@/lib/orgs-data";
+import { TierBadge } from "@/components/tier-badge";
+import { SpendBar } from "@/components/spend-bar";
 
 export default async function Home() {
-  // The middleware enforces sign-in for "/" — by the time this runs we
-  // always have a Clerk session. listFixorInstallations defends against
-  // missing env vars / expired tokens with explicit status branches.
   const result = await listFixorInstallations();
+
+  // Fetch DB summaries only when GitHub returned installations. Defends
+  // the page against missing DATABASE_URL during the initial Vercel
+  // env-vars setup window.
+  let summaries: OrgSummary[] = [];
+  let dbStatus: "ok" | "error" = "ok";
+  if (result.status === "ok" && result.installations.length > 0) {
+    try {
+      summaries = await getOrgSummaries(
+        result.installations.map((i) => String(i.id)),
+      );
+    } catch {
+      dbStatus = "error";
+    }
+  }
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
@@ -29,27 +41,54 @@ export default async function Home() {
 
         {result.status === "ok" && result.installations.length > 0 ? (
           <ul className="flex flex-col gap-3">
-            {result.installations.map((inst) => (
-              <li
-                key={inst.id}
-                className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={inst.account.avatar_url}
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="rounded-full"
-                />
-                <div className="flex flex-col">
-                  <span className="font-medium">{inst.account.login}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {inst.account.type} · installation #{inst.id}
-                  </span>
-                </div>
-              </li>
-            ))}
+            {result.installations.map((inst) => {
+              const summary = summaries.find(
+                (s) => s.installationId === String(inst.id),
+              );
+              return (
+                <li
+                  key={inst.id}
+                  className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center"
+                >
+                  <div className="flex flex-1 items-center gap-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={inst.account.avatar_url}
+                      alt=""
+                      width={36}
+                      height={36}
+                      className="rounded-full"
+                    />
+                    <div className="flex flex-1 flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{inst.account.login}</span>
+                        <TierBadge tier={summary?.planTier ?? "free"} />
+                        {summary && summary.orgId === null ? (
+                          <span className="text-muted-foreground text-xs italic">
+                            provisioning…
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className="text-muted-foreground text-xs">
+                        {inst.account.type} · installation #{inst.id}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full sm:w-56">
+                    {summary ? (
+                      <SpendBar
+                        spendUsd={summary.monthlySpendUsd}
+                        capUsd={summary.monthlyCapUsd}
+                      />
+                    ) : (
+                      <div className="text-muted-foreground text-xs italic">
+                        {dbStatus === "error" ? "spend unavailable" : "—"}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <EmptyState status={result.status} />

@@ -107,7 +107,7 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 
 **Tasks**:
 - [x] **5C-1** Spin up Next.js 15 app at `apps/dashboard/` (turborepo or npm workspaces). Tailwind + shadcn/ui. Deploy hello world to Vercel at `app.fixor.dev` (or vercel subdomain initially). (PR #27 — Next.js 16 + Tailwind 4 + shadcn/ui; deployed at fixor-seven.vercel.app.)
-- [ ] **5C-2** Clerk integration: GitHub OAuth as the only sign-in method. Sign-up flow: after OAuth → check if user has any GitHub installations of Fixor → if yes, list them as Orgs; if no, send to install page.
+- [x] **5C-2** Clerk integration: GitHub OAuth as the only sign-in method. Sign-up flow: after OAuth → check if user has any GitHub installations of Fixor → if yes, list them as Orgs; if no, send to install page. (PR #28 — Clerk middleware as proxy.ts; listFixorInstallations via clerkClient → GitHub API.)
 - [ ] **5C-3** Page `/` (after sign-in): list user's orgs with tier badge + this-month spend.
 - [ ] **5C-4** Page `/orgs/[id]/scans`: scan history table (date, PR, repo, status, findings, fixes, cost). Click row → detail page with the SARIF + PDF links.
 - [ ] **5C-5** Page `/orgs/[id]/settings`: form to edit `severity_threshold`, `ignored_globs`, `enabled_detectors`, `slack_webhook_url`. Saves call API `PATCH /api/orgs/:id/settings` (auth via Clerk session passed as bearer to backend).
