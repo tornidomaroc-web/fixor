@@ -36,6 +36,13 @@
       "when": 1777304400000,
       "tag": "0004_paddle_rename",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777317064519,
+      "tag": "0005_omniscient_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

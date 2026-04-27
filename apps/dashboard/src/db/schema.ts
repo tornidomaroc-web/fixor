@@ -32,6 +32,10 @@ export const orgs = pgTable("orgs", {
     precision: 10,
     scale: 2,
   }).notNull(),
+  installerEmail: text("installer_email"),
+  firstScanEmailSentAt: timestamp("first_scan_email_sent_at", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
 

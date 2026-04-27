@@ -24,6 +24,7 @@ import { fetchPrDiff } from "./github-client";
 import { costContext } from "../../lib/cost-context";
 import { checkBudget } from "../../services/cost-store";
 import { logger } from "../../lib/logger";
+import { maybeSendFirstScanEmail } from "../../services/first-scan-email";
 import * as Sentry from "@sentry/node";
 
 export type SemgrepPayloadResolver = (ctx: {
@@ -350,6 +351,24 @@ async function handlePullRequestWebhookImpl(
       forceRepost: options.forceRepost,
       maxCommentUtf8Bytes: options.maxCommentUtf8Bytes,
     });
+
+    // Best-effort first-scan email (5E-4). Idempotent at the SQL
+    // layer; does not throw. Skipped on dry runs and when no
+    // installation is associated (PAT-only paths).
+    if (!dryRun && installationId) {
+      const prUrl = `https://github.com/${owner}/${repo}/pull/${pullNumber}`;
+      maybeSendFirstScanEmail({
+        installationId: String(installationId),
+        prUrl,
+        repoFullName: `${owner}/${repo}`,
+        pullNumber,
+      }).catch((err) => {
+        logger.warn(
+          { installationId, owner, repo, pullNumber, err },
+          "maybeSendFirstScanEmail unhandled rejection",
+        );
+      });
+    }
 
     return {
       ok: true,
