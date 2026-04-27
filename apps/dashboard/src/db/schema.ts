@@ -10,8 +10,10 @@
  * Rule: keep columns USED HERE in sync with the backend. Columns the
  * dashboard does not read can lag the backend without consequence.
  */
+import { sql } from "drizzle-orm";
 import {
   integer,
+  jsonb,
   numeric,
   pgTable,
   serial,
@@ -38,6 +40,33 @@ export const costLedger = pgTable("cost_ledger", {
   installationId: text("installation_id").notNull(),
   costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull(),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+});
+
+export const orgSettings = pgTable("org_settings", {
+  // 1:1 with orgs — same shape as src/db/schema.ts. We write here from
+  // 5C-5's settings form, so the column list is the full set the
+  // backend reads (not just a read-only mirror).
+  orgId: uuid("org_id").primaryKey(),
+  severityThreshold: text("severity_threshold").notNull(),
+  ignoredGlobs: text("ignored_globs")
+    .array()
+    .notNull()
+    .default(sql`ARRAY[]::text[]`),
+  enabledDetectors: text("enabled_detectors").array(),
+  slackWebhookUrl: text("slack_webhook_url"),
+});
+
+export const auditLog = pgTable("audit_log", {
+  id: serial("id").primaryKey(),
+  orgId: uuid("org_id").notNull(),
+  actorType: text("actor_type").notNull(),
+  actorId: text("actor_id").notNull(),
+  action: text("action").notNull(),
+  target: text("target"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const scanRuns = pgTable("scan_runs", {

@@ -59,6 +59,17 @@ export default async function OrgScansPage({ params }: PageProps) {
       </header>
 
       <section className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-12">
+        <nav className="flex items-center gap-2 text-sm">
+          <span className="text-foreground font-medium">Scans</span>
+          <span className="text-muted-foreground">·</span>
+          <Link
+            href={`/orgs/${org.id}/settings`}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Settings
+          </Link>
+        </nav>
+
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">
             Scan history
