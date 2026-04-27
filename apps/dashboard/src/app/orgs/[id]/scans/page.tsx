@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { TierBadge } from "@/components/tier-badge";
 import { ScanStatusPill } from "@/components/scan-status-pill";
+import { TrendsChart } from "@/components/trends-chart";
 import { listFixorInstallations } from "@/lib/github";
 import {
   getOrgForUser,
   getScansForOrg,
   type ScanRow,
 } from "@/lib/scans-data";
+import { getTrendsForOrg, type Trends } from "@/lib/trends-data";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -32,9 +34,13 @@ export default async function OrgScansPage({ params }: PageProps) {
   );
 
   let scans: ScanRow[] = [];
+  let trends: Trends | null = null;
   let dbStatus: "ok" | "error" = "ok";
   try {
-    scans = await getScansForOrg(org.installationId);
+    [scans, trends] = await Promise.all([
+      getScansForOrg(org.installationId),
+      getTrendsForOrg(org.installationId),
+    ]);
   } catch {
     dbStatus = "error";
   }
@@ -85,6 +91,15 @@ export default async function OrgScansPage({ params }: PageProps) {
             Every PR Fixor has scanned for this org, newest first.
           </p>
         </div>
+
+        {dbStatus === "ok" && trends ? (
+          <TrendsChart
+            weekly={trends.weekly}
+            byFamily={trends.byFamily}
+            totalScans={trends.totalScans}
+            weeks={trends.weeks}
+          />
+        ) : null}
 
         {dbStatus === "error" ? (
           <ErrorState />

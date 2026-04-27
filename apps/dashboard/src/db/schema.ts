@@ -77,6 +77,11 @@ export const scanRuns = pgTable("scan_runs", {
   headSha: text("head_sha").notNull(),
   status: text("status").notNull(),
   totalFindings: integer("total_findings").notNull(),
+  // Per-detector finding counts. Keys mirror src/lib/detectors.ts;
+  // 5C-7's trends pie chart sums these across the time window.
+  findingsByFamily: jsonb("findings_by_family")
+    .$type<Record<string, number>>()
+    .notNull(),
   fixesGenerated: integer("fixes_generated").notNull(),
   costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull(),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull(),

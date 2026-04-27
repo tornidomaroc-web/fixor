@@ -1,0 +1,1 @@
+ALTER TABLE "scan_runs" ADD COLUMN "findings_by_family" jsonb DEFAULT '{}'::jsonb NOT NULL;
