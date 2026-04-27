@@ -1,3 +1,12 @@
+<!--
+  Fixor landing page — static HTML hosted on GitHub Pages.
+
+  GitHub App install URL: every "Install on GitHub" CTA points at
+    https://github.com/apps/fixor/installations/new
+  If the live App's public slug differs from `fixor`, search-replace
+  that path. (The dashboard reads it from FIXOR_GITHUB_APP_SLUG; this
+  page is static, so the slug is hard-coded.)
+-->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -134,6 +143,12 @@
         color: var(--text-muted);
         max-width: 36rem;
         margin: 0 auto 2rem;
+      }
+
+      .hero-subnote {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-top: 1rem;
       }
 
       .btn {
@@ -325,39 +340,16 @@
         margin-bottom: 0.4rem;
       }
 
-      .waitlist {
+      .price-card .btn {
+        align-self: stretch;
         text-align: center;
-        padding-bottom: 4rem;
       }
 
-      .waitlist form {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: center;
-        max-width: 480px;
-        margin: 0 auto;
-      }
-
-      .waitlist input[type="email"] {
-        flex: 1 1 220px;
-        min-width: 0;
-        padding: 0.85rem 1rem;
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        background: var(--bg-elevated);
-        color: var(--text);
-        font-family: var(--font-sans);
-        font-size: 1rem;
-      }
-
-      .waitlist input::placeholder {
+      .pricing-foot {
+        margin-top: 1.5rem;
+        text-align: center;
         color: var(--text-muted);
-      }
-
-      .waitlist input:focus {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
+        font-size: 0.95rem;
       }
 
       footer {
@@ -391,17 +383,18 @@
           </svg>
           <span class="logo-text">Fixor</span>
         </a>
-        <a class="nav-cta" href="#waitlist">Join Waitlist</a>
+        <a class="nav-cta" href="https://github.com/apps/fixor/installations/new">Install on GitHub</a>
       </div>
     </header>
 
     <main>
       <section class="hero wrap" id="top">
-        <h1>Catch SQL injection before it ships.</h1>
+        <h1>Catch security bugs before they ship.</h1>
         <p class="lead">
-          Fixor analyzes every pull request, flags security risks, and posts a structured report with suggested fixes + downloadable PDF. No setup. No noise.
+          Fixor analyzes every pull request for SQL injection, XSS, command injection, and path traversal — then posts a structured report with concrete fix suggestions and a downloadable PDF. No setup. No noise.
         </p>
-        <a class="btn btn-primary" href="#waitlist">Join the waitlist — it's free</a>
+        <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Install Fixor on GitHub</a>
+        <p class="hero-subnote">Free tier covers 5 scans / month on public repos · no card required</p>
       </section>
 
       <section class="wrap" id="how">
@@ -505,26 +498,59 @@ _Professional report suitable for sharing with your team or compliance review._
         </div>
       </section>
 
-      <section class="wrap" id="early-access">
-        <h2 class="section-title">Early access</h2>
+      <section class="wrap" id="pricing">
+        <h2 class="section-title">Pricing</h2>
         <p class="section-sub">
-          Fixor is in private beta. Join the waitlist for an invite — early
-          users help shape the roadmap and get free access during the beta.
+          Start free, upgrade when you outgrow the budget. Paddle is our merchant of record — they handle VAT and the cancel / update-payment portal.
+        </p>
+        <div class="pricing-grid pricing-grid-3">
+          <article class="price-card">
+            <h3>Free</h3>
+            <div class="price">$0<small> / mo</small></div>
+            <ul>
+              <li>5 scans / month</li>
+              <li>Public repos only</li>
+              <li>All 4 detectors</li>
+            </ul>
+            <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Install free</a>
+          </article>
+          <article class="price-card featured">
+            <span class="badge-popular">Popular</span>
+            <h3>Indie</h3>
+            <div class="price">$29<small> / mo</small></div>
+            <ul>
+              <li>100 scans / month</li>
+              <li>1 private repo + unlimited public</li>
+              <li>All 4 detectors</li>
+            </ul>
+            <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Start with Indie</a>
+          </article>
+          <article class="price-card">
+            <h3>Pro</h3>
+            <div class="price">$79<small> / mo</small></div>
+            <ul>
+              <li>500 scans / month</li>
+              <li>5 private repos + unlimited public</li>
+              <li>All detectors + Slack / Jira</li>
+            </ul>
+            <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Start with Pro</a>
+          </article>
+        </div>
+        <p class="pricing-foot">
+          Need more headroom? <strong>Team — $199/mo</strong> ships 2,000 scans, unlimited repos, and priority support. <a href="https://github.com/apps/fixor/installations/new">Install &amp; pick Team in the dashboard.</a>
         </p>
       </section>
 
-      <section class="waitlist wrap" id="waitlist">
-        <h2 class="section-title">Join the waitlist</h2>
+      <!--
+        Social-proof slot. Drop in a row of testimonial cards or
+        customer logos here when we have them. Until then, render
+        the placeholder copy below — empty space looks broken.
+      -->
+      <section class="wrap" id="proof">
+        <h2 class="section-title">Trusted by builders shipping to production</h2>
         <p class="section-sub">
-          Be first to get access. We’ll only email you about Fixor.
+          Fixor is the security layer for indie hackers and small engineering teams who can&apos;t justify a full-time AppSec hire. Quotes from early users land here as we collect them.
         </p>
-        <form
-          action="https://formspree.io/f/meepngwr"
-          method="POST"
-        >
-          <input type="email" name="email" placeholder="you@company.com" required />
-          <button type="submit" class="btn btn-primary">Submit</button>
-        </form>
       </section>
     </main>
 

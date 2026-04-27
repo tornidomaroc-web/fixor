@@ -153,7 +153,7 @@ Each phase has explicit exit criteria. A phase is DONE when every box is checked
 **Goal**: Visitor → installed Fixor on at least one repo → first scan completed → upgrade prompt.
 
 **Tasks**:
-- [ ] **5E-1** Update existing `landing/` page: replace placeholder pricing with real $29/$79/$199 tiers, "Install on GitHub" CTA, social proof slot (testimonials when available).
+- [x] **5E-1** Update existing `landing/` page: replace placeholder pricing with real $29/$79/$199 tiers, "Install on GitHub" CTA, social proof slot (testimonials when available). (PR #39 — `landing/index.html` swaps the private-beta waitlist for a 3-card pricing grid (Free / Indie [popular] / Pro) plus a Team mention in the foot, all four CTAs wired to `https://github.com/apps/fixor/installations/new`. Hero H1 broadened from "SQL injection" to "security bugs", lead now lists all four detector families. New social-proof section with placeholder copy + an HTML comment marking where testimonial cards / customer logos drop in. Header nav CTA flipped from "Join Waitlist" to "Install on GitHub". Slug `fixor` is hard-coded with a top-of-file comment so the operator can find/replace if the live App's slug differs.)
 - [ ] **5E-2** GitHub App marketplace listing prep: screenshots of PR comment + PDF, 30-second demo GIF, install URL, support email.
 - [ ] **5E-3** Onboarding flow on dashboard: post-OAuth, if user has 0 orgs → "Install Fixor on GitHub" wizard → after install webhook fires → return to dashboard with success toast.
 - [ ] **5E-4** First-scan magic: as soon as the first PR scan succeeds for a new org, send a Resend email "Fixor just scanned your first PR — see results [link]".
