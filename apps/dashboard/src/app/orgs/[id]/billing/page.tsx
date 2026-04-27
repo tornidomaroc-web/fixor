@@ -4,6 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 import { TierBadge } from "@/components/tier-badge";
 import { SpendBar } from "@/components/spend-bar";
 import { UpgradeButton } from "@/components/upgrade-button";
+import { ManageSubscriptionButtons } from "@/components/manage-subscription-buttons";
 import { listFixorInstallations } from "@/lib/github";
 import { getOrgForUser } from "@/lib/scans-data";
 import { getOrgSummaries } from "@/lib/orgs-data";
@@ -101,10 +102,12 @@ export default async function OrgBillingPage({
         {justCheckedOut ? <CheckoutSuccessBanner /> : null}
 
         <CurrentPlanCard
+          orgId={org.id}
           tier={currentTier}
           rawTier={org.planTier}
           monthlySpendUsd={monthlySpendUsd}
           monthlyCapUsd={monthlyCapUsd}
+          hasSubscription={Boolean(org.paddleSubscriptionId)}
         />
 
         <PricingGrid orgId={org.id} currentTierId={org.planTier} />
@@ -114,15 +117,19 @@ export default async function OrgBillingPage({
 }
 
 function CurrentPlanCard({
+  orgId,
   tier,
   rawTier,
   monthlySpendUsd,
   monthlyCapUsd,
+  hasSubscription,
 }: {
+  orgId: string;
   tier: Tier | undefined;
   rawTier: string;
   monthlySpendUsd: number | null;
   monthlyCapUsd: number | null;
+  hasSubscription: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5">
@@ -145,14 +152,10 @@ function CurrentPlanCard({
             </p>
           ) : null}
         </div>
-        <button
-          type="button"
-          disabled
-          title="Available once Phase 5D wires up Paddle"
-          className="rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-not-allowed"
-        >
-          Manage subscription
-        </button>
+        <ManageSubscriptionButtons
+          orgId={orgId}
+          hasSubscription={hasSubscription}
+        />
       </div>
 
       {monthlyCapUsd !== null && monthlySpendUsd !== null ? (

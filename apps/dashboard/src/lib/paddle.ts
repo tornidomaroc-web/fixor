@@ -128,3 +128,70 @@ export async function createCheckoutTransaction(
   }
   return { transactionId: id, checkoutUrl: url };
 }
+
+export interface SubscriptionManagementUrls {
+  updatePaymentMethod: string;
+  cancel: string;
+}
+
+/**
+ * Pull a subscription's hosted-portal URLs (5D-5).
+ *
+ * Paddle returns these on every GET /subscriptions/{id} so we don't
+ * store them — fetching at click time means we always hand the
+ * customer the freshest signed URL, even if Paddle rotates them
+ * server-side. The trade is one extra round-trip on click vs.
+ * stale-URL risk; for an indie shop the round-trip wins.
+ */
+export async function getSubscriptionManagementUrls(
+  subscriptionId: string,
+): Promise<SubscriptionManagementUrls> {
+  if (!subscriptionId) {
+    throw new Error("paddle: missing subscription id");
+  }
+  const env = readEnvironment();
+  const base = PADDLE_BASES[env];
+  const apiKey = readApiKey();
+
+  const res = await fetch(
+    `${base}/subscriptions/${encodeURIComponent(subscriptionId)}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Paddle-Version": "1",
+      },
+    },
+  );
+
+  if (!res.ok) {
+    let message = `paddle_api_${res.status}`;
+    try {
+      const errBody = (await res.json()) as {
+        error?: { detail?: string; type?: string };
+      };
+      if (errBody.error?.detail) message = `paddle: ${errBody.error.detail}`;
+      else if (errBody.error?.type) message = `paddle: ${errBody.error.type}`;
+    } catch {
+      // keep generic
+    }
+    throw new Error(message);
+  }
+
+  const json = (await res.json()) as {
+    data?: {
+      management_urls?: {
+        update_payment_method?: string;
+        cancel?: string;
+      };
+    };
+  };
+  const update = json.data?.management_urls?.update_payment_method;
+  const cancel = json.data?.management_urls?.cancel;
+  if (!update || !cancel) {
+    throw new Error(
+      "paddle: subscription response missing management_urls — Paddle only returns these for active subscriptions",
+    );
+  }
+  return { updatePaymentMethod: update, cancel };
+}
