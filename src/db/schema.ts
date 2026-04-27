@@ -138,6 +138,19 @@ export const orgs = pgTable("orgs", {
   monthlyCapUsd: numeric("monthly_cap_usd", { precision: 10, scale: 2 })
     .notNull()
     .default("5.00"),
+  // Email address used for transactional notifications that don't
+  // route through Paddle (5E-4 first-scan email, future digests).
+  // Populated opportunistically by the dashboard when an authorised
+  // user lands on a page for an org without one set — first-come-
+  // first-served. Null when no Clerk-signed user has visited yet.
+  installerEmail: text("installer_email"),
+  // Set by maybeSendFirstScanEmail (5E-4) the moment the email
+  // is claimed for sending. Doubles as the idempotency key — a
+  // non-null value means we've already either sent or attempted
+  // the email; we do NOT retry to avoid duplicate sends.
+  firstScanEmailSentAt: timestamp("first_scan_email_sent_at", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

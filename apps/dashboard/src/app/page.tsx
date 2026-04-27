@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { cn } from "@/lib/utils";
 import { fixorInstallUrl, listFixorInstallations } from "@/lib/github";
 import { getOrgSummaries, type OrgSummary } from "@/lib/orgs-data";
+import {
+  populateInstallerEmailIfMissing,
+  readClerkUserEmail,
+} from "@/lib/onboarding-state";
 import { TierBadge } from "@/components/tier-badge";
 import { SpendBar } from "@/components/spend-bar";
 import { InstallWizard } from "@/components/install-wizard";
@@ -30,6 +35,21 @@ export default async function Home({ searchParams }: HomeProps) {
       );
     } catch {
       dbStatus = "error";
+    }
+
+    // 5E-4 plumbing: stamp the signed-in user's email onto any of
+    // their accessible orgs that don't have one yet. Best-effort —
+    // wraps any error inside the helper itself so the home page
+    // render isn't gated on it.
+    const { userId } = await auth();
+    if (userId) {
+      const email = await readClerkUserEmail(userId);
+      if (email) {
+        await populateInstallerEmailIfMissing(
+          result.installations.map((i) => String(i.id)),
+          email,
+        );
+      }
     }
   }
 
