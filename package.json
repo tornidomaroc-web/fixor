@@ -21,6 +21,7 @@
     "test:auth-bypass": "npm run build && node dist/test/test-auth-bypass.js",
     "test:secrets-exposure": "npm run build && node dist/test/test-secrets-exposure.js",
     "test:webhook-unverified": "npm run build && node dist/test/test-webhook-unverified.js",
+    "test:env-exposure": "npm run build && node dist/test/test-env-exposure.js",
     "test:real": "npm run build && node dist/real-tests/run-real-tests.js",
     "lint:no-console": "node scripts/lint-no-console.mjs",
     "test": "npm run lint:no-console && npm run typecheck && npm run test:fixtures && npm run test:sarif && npm run test:xss && npm run test:cmdi && npm run test:pt && npm run test:cost && npm run test:retry && npm run test:filter && npm run test:limiter && npm run test:limit-warning",

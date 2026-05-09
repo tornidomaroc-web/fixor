@@ -9,7 +9,7 @@
 // - auth-bypass.detector        (DONE — Phase 3)
 // - secrets-exposure.detector   (DONE — Phase 4)
 // - webhook-unverified.detector (DONE — Phase 5a)
-// - env-exposure.detector       (TBD)
+// - env-exposure.detector       (DONE — Phase 5b)
 // - admin-check.detector        (TBD)
 
 import type { Detector } from "../detector.types";
@@ -21,6 +21,7 @@ import { PathTraversalDetector } from "./path-traversal.detector";
 import { AuthBypassDetector } from "./auth-bypass.detector";
 import { SecretsExposureDetector } from "./secrets-exposure.detector";
 import { WebhookUnverifiedDetector } from "./webhook-unverified.detector";
+import { EnvExposureDetector } from "./env-exposure.detector";
 
 export const DETECTORS: readonly Detector[] = [
   new SqlInjectionDetector(),
@@ -30,6 +31,7 @@ export const DETECTORS: readonly Detector[] = [
   new AuthBypassDetector(),
   new SecretsExposureDetector(),
   new WebhookUnverifiedDetector(),
+  new EnvExposureDetector(),
 ];
 
 /**
