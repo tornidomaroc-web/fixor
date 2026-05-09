@@ -6,13 +6,63 @@ import { stdin as input, stdout as output } from "node:process";
 
 import { logger } from "../lib/logger.js";
 import { analyzeCode } from "../analysis-engine/analyze.js";
+import { DETECTORS } from "../analysis-engine/detectors/registry.js";
+import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
+import type { Finding } from "../analysis-engine/types.js";
 import { walkFiles } from "./file-walker.js";
 import { buildSyntheticDiff } from "./diff-builder.js";
 import { buildMarkdownReport, type FileScanResult } from "./report-builder.js";
 
 const DEFAULT_EXTENSIONS = ["ts", "tsx", "js", "jsx", "py", "go"];
-const DELAY_MS = 1500;
-const ESTIMATED_COST_PER_FILE_USD = 0.01;
+const DELAY_MS = 1500;            // between files
+const SUB_DELAY_MS = 800;         // between LLM-hitting detector calls within a file
+const ESTIMATED_COST_BEST_USD = 0.012;   // realistic — most detectors short-circuit
+const ESTIMATED_COST_WORST_USD = 0.02;   // worst case — all 5 detectors hit LLM
+
+// Phase 5 detectors: invoked here in addition to analyzeCode (which covers
+// the original SQL/XSS/CMDI/PT families). The 4 original detectors only
+// generate fixes — they have no detect() pass — so iterating DETECTORS by
+// id-allowlist is enough.
+const NEW_DETECTOR_IDS = new Set<string>([
+  "auth-bypass-multi",
+  "secrets-exposure-multi",
+  "webhook-unverified-multi",
+  "env-exposure-multi",
+  "admin-check-multi",
+]);
+
+const newDetectors = DETECTORS.filter(
+  (d) => NEW_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
+);
+
+function normalizedToFinding(n: NormalizedFinding): Finding {
+  const severity: Finding["severity"] =
+    n.severity === "low" ? "medium" : n.severity;
+  return {
+    type: n.type,
+    file: n.file,
+    line: n.startLine,
+    confidence: n.confidence,
+    severity,
+    explanation: n.explanation,
+    why_it_matters: n.message,
+    suggested_fix: "",
+    example_fix: "",
+    original_snippet: n.originalCode,
+  };
+}
+
+function dedupeFindings(findings: Finding[]): Finding[] {
+  const seen = new Set<string>();
+  const out: Finding[] = [];
+  for (const f of findings) {
+    const key = `${f.file}:${f.line}:${f.type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(f);
+  }
+  return out;
+}
 
 interface CliOpts {
   repoPath: string;
@@ -92,12 +142,24 @@ async function main(): Promise<void> {
     return;
   }
 
-  const estCostUsd = files.length * ESTIMATED_COST_PER_FILE_USD;
-  const estRuntimeSec = files.length * (DELAY_MS / 1000 + 2);
+  const estBestUsd = files.length * ESTIMATED_COST_BEST_USD;
+  const estWorstUsd = files.length * ESTIMATED_COST_WORST_USD;
+  // Worst-case runtime: per file = analyzeCode (~3s) + DELAY_MS sleep +
+  // up to N detectors × (~3s LLM + SUB_DELAY_MS sleep).
+  const estRuntimeSec =
+    files.length *
+    (3 + DELAY_MS / 1000 + newDetectors.length * (3 + SUB_DELAY_MS / 1000));
 
-  output.write(`\nFiles to scan: ${files.length}\n`);
-  output.write(`Estimated cost: ~$${estCostUsd.toFixed(2)} (rough)\n`);
-  output.write(`Estimated runtime: ~${formatRuntime(estRuntimeSec)}\n\n`);
+  output.write(`\nFiles to scan:       ${files.length}\n`);
+  output.write(
+    `Detectors per file:  1 central (analyzeCode) + ${newDetectors.length} specialized\n`,
+  );
+  output.write(
+    `Estimated cost:      ~$${estBestUsd.toFixed(2)} typical / ~$${estWorstUsd.toFixed(2)} worst-case\n`,
+  );
+  output.write(
+    `Estimated runtime:   ~${formatRuntime(estRuntimeSec)} (worst case)\n\n`,
+  );
 
   const proceed = await confirm('Proceed? Type "yes" to continue: ');
   if (!proceed) {
@@ -109,16 +171,65 @@ async function main(): Promise<void> {
   for (let i = 0; i < files.length; i++) {
     const filePath = files[i]!;
     const rel = relative(opts.repoPath, filePath);
-    logger.info({ file: rel, index: i + 1, total: files.length }, "scanning");
+    logger.info(
+      {
+        file: rel,
+        index: i + 1,
+        total: files.length,
+        detectors: 1 + newDetectors.length,
+      },
+      "scanning (analyzeCode + N specialized)",
+    );
+
+    const allFindings: Finding[] = [];
     try {
       const content = readFileSync(filePath, "utf8");
       const diff = buildSyntheticDiff(rel, content);
-      const result = await analyzeCode(diff);
-      results.push({ filePath: rel, findings: result.findings });
+
+      // 1. Central LLM analyzer — original 4 families (SQL/XSS/CMDI/PT).
+      const central = await analyzeCode(diff);
+      allFindings.push(...central.findings);
+
+      // 2. Phase 5 specialized detectors. Each has its own pre-filter +
+      //    LLM gate; most short-circuit on path/regex misses, so the
+      //    extra cost is small.
+      for (const detector of newDetectors) {
+        if (!detector.detect) continue;
+        try {
+          const dFindings = await detector.detect({ diff });
+          for (const nf of dFindings) {
+            const f = normalizedToFinding(nf);
+            allFindings.push(f);
+            logger.info(
+              { file: f.file, line: f.line, type: f.type, detector: detector.id },
+              "detector hit",
+            );
+          }
+          // Sleep only when the detector likely made an LLM call (no
+          // pre-filter shortcut). lastDiagnostics is exposed publicly by
+          // each Phase 5 detector for exactly this purpose.
+          const diag = (
+            detector as {
+              lastDiagnostics?: Array<{ preFilterReason?: string }>;
+            }
+          ).lastDiagnostics?.[0];
+          if (diag && !diag.preFilterReason) {
+            await sleep(SUB_DELAY_MS);
+          }
+        } catch (err) {
+          logger.warn(
+            { err, detector: detector.id, file: rel },
+            "detector failed; continuing",
+          );
+        }
+      }
     } catch (err) {
       logger.error({ err, file: rel }, "scan failed for file");
-      results.push({ filePath: rel, findings: [] });
     }
+
+    const merged = dedupeFindings(allFindings);
+    results.push({ filePath: rel, findings: merged });
+
     if (i < files.length - 1) {
       await sleep(DELAY_MS);
     }
@@ -128,9 +239,24 @@ async function main(): Promise<void> {
   const markdown = buildMarkdownReport(opts.repoPath, results);
   writeFileSync(reportPath, markdown, "utf8");
 
-  const totalFindings = results.reduce((n, r) => n + r.findings.length, 0);
+  const countsByType: Record<string, number> = {};
+  for (const r of results) {
+    for (const f of r.findings) {
+      countsByType[f.type] = (countsByType[f.type] ?? 0) + 1;
+    }
+  }
+  const totalFindings = Object.values(countsByType).reduce(
+    (a, b) => a + b,
+    0,
+  );
+
   logger.info(
-    { reportPath, totalFindings, filesScanned: results.length },
+    {
+      reportPath,
+      totalFindings,
+      filesScanned: results.length,
+      byType: countsByType,
+    },
     "scan complete",
   );
 }
