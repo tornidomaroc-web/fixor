@@ -7,7 +7,7 @@
 
 // Detector status:
 // - auth-bypass.detector       (DONE — Phase 3)
-// - secrets-exposure.detector  (TBD)
+// - secrets-exposure.detector  (DONE — Phase 4)
 // - webhook-unverified.detector (TBD)
 // - env-exposure.detector      (TBD)
 // - admin-check.detector       (TBD)
@@ -19,6 +19,7 @@ import { XssDetector } from "./xss.detector";
 import { CommandInjectionDetector } from "./command-injection.detector";
 import { PathTraversalDetector } from "./path-traversal.detector";
 import { AuthBypassDetector } from "./auth-bypass.detector";
+import { SecretsExposureDetector } from "./secrets-exposure.detector";
 
 export const DETECTORS: readonly Detector[] = [
   new SqlInjectionDetector(),
@@ -26,6 +27,7 @@ export const DETECTORS: readonly Detector[] = [
   new CommandInjectionDetector(),
   new PathTraversalDetector(),
   new AuthBypassDetector(),
+  new SecretsExposureDetector(),
 ];
 
 /**
