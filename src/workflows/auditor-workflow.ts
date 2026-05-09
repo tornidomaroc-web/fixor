@@ -335,7 +335,24 @@ async function executeWorkflow(
 
   if (diffStr) {
     logger.debug("using Claude analysis engine on PR diff");
-    const analysis = await analyzeCode(diffStr);
+
+    // Phase 7b — Stage A: run analyzeCode (Sonnet, ~15s) and the Phase 5
+    // detector pass (5 detectors, parallel internally) concurrently.
+    // Both consume only diffStr and produce independent finding arrays;
+    // merging happens in the sequential block below. Outer Promise.all
+    // (so analyzeCode failure rejects this stage and is caught by the
+    // existing executeWorkflow try/catch); inner allSettled keeps
+    // per-detector failure containment from Phase 7.
+    const [analysis, detectorResults] = await Promise.all([
+      analyzeCode(diffStr),
+      Promise.allSettled(
+        phase5Detectors.map((d) =>
+          d.detect
+            ? d.detect({ diff: diffStr })
+            : Promise.resolve([] as NormalizedFinding[]),
+        ),
+      ),
+    ]);
 
     // Apply org-settings filter at the analysis-finding level so both
     // the NormalizedFinding[] and the SQL-shaped explainer array stay
@@ -376,18 +393,10 @@ async function executeWorkflow(
         })
       );
 
-    // Phase 7: 5 specialized detectors merge into findings[]. Run in
-    // parallel via allSettled so one failure can't break the others and
-    // wall-clock added latency stays bounded by the slowest detector
-    // rather than the sum (sync webhook, ~24s budget).
+    // Phase 7b — Stage B (merge): detectorResults already resolved in
+    // Stage A above. Per-detector containment + orgSettings filter +
+    // dedupe identical to Phase 7.
     const settings = orgSettings;
-    const detectorResults = await Promise.allSettled(
-      phase5Detectors.map((d) =>
-        d.detect
-          ? d.detect({ diff: diffStr })
-          : Promise.resolve([] as NormalizedFinding[]),
-      ),
-    );
     for (let i = 0; i < detectorResults.length; i++) {
       const detector = phase5Detectors[i]!;
       const r = detectorResults[i]!;
