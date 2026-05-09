@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/07-redacted-diagnostics.js
 const express = require("express");
 const router = express.Router();
 

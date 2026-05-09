@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/07-default-admin-id-helper.js
 const DEFAULT_ADMIN_ID = "u_founder_001";
 
 function getCurrentUser(req) {

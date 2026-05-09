@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/03-fastify-logs-env.ts
 import { fastify, type FastifyRequest, type FastifyReply } from "fastify";
 import { logger } from "../lib/logger.js";
 

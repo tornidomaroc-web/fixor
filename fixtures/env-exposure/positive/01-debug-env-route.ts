@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/01-debug-env-route.ts
 import type { Request, Response } from "express";
 import { Router } from "express";
 

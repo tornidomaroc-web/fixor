@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/08-secrets-decrypted-from-kms.ts
 // src/server/secrets.ts
 import "server-only";
 import { readFileSync } from "node:fs";

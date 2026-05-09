@@ -1,3 +1,4 @@
+// ASSUMED-PATH: scripts/bootstrap-admins.js
 // scripts/bootstrap-admins.js
 // Run once after deploy to mark hardcoded founder emails as admin in the DB.
 // The HTTP handlers do NOT consult this list at runtime.

@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/env-exposure/09-fastapi-runtime.py
 import os
 from fastapi import APIRouter
 

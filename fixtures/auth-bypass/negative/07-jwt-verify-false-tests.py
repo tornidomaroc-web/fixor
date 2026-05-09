@@ -1,3 +1,4 @@
+# ASSUMED-PATH: tests/conftest.py
 # tests/conftest.py
 # Test-only helpers. Not imported by the application package.
 import jwt

@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/09-go-anon-delete.go
 package handlers
 
 import (

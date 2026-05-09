@@ -13,13 +13,13 @@
 - 10-go-admin-domain-suffix.go: Go middleware grants admin via strings.HasSuffix(email, "@acme.app")
 
 ## Negative (looks similar, actually safe)
-- 01-db-role-lookup.ts: requireAdmin reads role from user_roles table
-- 02-org-membership-rbac.ts: requires owner/admin in org_members for the URL's orgId
-- 03-email-match-invite-only.ts: email match used only to verify invite, grants member role
-- 04-jwt-claims-server-issued.ts: role read from server-signed JWT with issuer check
-- 05-db-role-on-delete.js: role checked via DB lookup before destructive call
-- 06-claims-middleware.js: dedicated verifyClaims middleware enforces requiredRole
-- 07-bootstrap-admins-script.js: hardcoded admins used only by one-shot bootstrap script
-- 08-flask-db-role.py: Flask before_request loads role from user_roles table
-- 09-fastapi-rbac-dep.py: FastAPI dependency injection enforces DB-backed role
-- 10-go-rbac-from-db.go: Go middleware checks role via db.QueryRole
+- 01-db-role-lookup.ts: requireAdmin reads role from user_roles table (Category B — context)
+- 02-org-membership-rbac.ts: requires owner/admin in org_members for the URL's orgId (Category B — context)
+- 03-email-match-invite-only.ts: email match used only to verify invite, grants member role (Category B — context)
+- 04-jwt-claims-server-issued.ts: role read from server-signed JWT with issuer check (Category B — context)
+- 05-db-role-on-delete.js: role checked via DB lookup before destructive call (Category B — context)
+- 06-claims-middleware.js: dedicated verifyClaims middleware enforces requiredRole (Category B — context)
+- 07-bootstrap-admins-script.js: hardcoded admins used only by one-shot bootstrap script (Category A — location)
+- 08-flask-db-role.py: Flask before_request loads role from user_roles table (Category B — context)
+- 09-fastapi-rbac-dep.py: FastAPI dependency injection enforces DB-backed role (Category B — context)
+- 10-go-rbac-from-db.go: Go middleware checks role via db.QueryRole (Category B — context)

@@ -1,5 +1,5 @@
 #!/usr/bin/env ts-node
-// scripts/dev/seed-demo-data.ts
+// ASSUMED-PATH: scripts/dev/seed-demo-data.ts
 // One-shot CLI used by the engineers to repopulate the local dev DB.
 // Not deployed and not exposed via HTTP.
 

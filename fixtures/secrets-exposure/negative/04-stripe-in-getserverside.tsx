@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/04-stripe-in-getserverside.tsx
 // src/pages/billing/checkout.tsx
 import type { GetServerSideProps } from "next";
 import Stripe from "stripe";

@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/10-jwt-secret-const.go
 package auth
 
 import (

@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/08-postgres-password-client.ts
 // src/lib/db.ts
 // Direct DB connection from the browser to bypass our slow REST API.
 export const DB_CONFIG = {

@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/01-hardcoded-admin-email.ts
 import type { Request, Response, NextFunction } from "express";
 
 const ADMIN_EMAIL = "founder@acme.app";

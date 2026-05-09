@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/01-admin-env-gated.ts
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { requireAdmin } from "../middleware/require-admin.js";

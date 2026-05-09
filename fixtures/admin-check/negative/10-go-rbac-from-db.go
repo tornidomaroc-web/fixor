@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/10-go-rbac-from-db.go
 package middleware
 
 import (

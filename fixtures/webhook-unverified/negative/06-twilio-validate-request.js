@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/webhook-unverified/06-twilio-validate-request.js
 const express = require("express");
 const twilio = require("twilio");
 const { recordReply } = require("../services/sms");

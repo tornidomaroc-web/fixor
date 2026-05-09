@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/05-anthropic-key-fallback.ts
 // src/services/claude.ts
 import Anthropic from "@anthropic-ai/sdk";
 

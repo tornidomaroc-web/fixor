@@ -1,3 +1,4 @@
+// ASSUMED-PATH: fixtures/mock-stripe-keys.test.ts
 // fixtures/mock-stripe-keys.test.ts
 import Stripe from "stripe";
 

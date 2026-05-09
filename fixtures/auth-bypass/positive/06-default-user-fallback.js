@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/06-default-user-fallback.js
 const { Pool } = require("pg");
 const pool = new Pool();
 

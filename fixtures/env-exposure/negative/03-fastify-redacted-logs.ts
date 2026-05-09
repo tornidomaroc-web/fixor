@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/03-fastify-redacted-logs.ts
 import { fastify } from "fastify";
 
 const SECRET_KEYS = new Set([

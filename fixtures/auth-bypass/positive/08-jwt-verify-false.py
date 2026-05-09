@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/auth-bypass/08-jwt-verify-false.py
 import jwt
 from functools import wraps
 from flask import request, g, jsonify

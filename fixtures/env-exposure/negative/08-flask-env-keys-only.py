@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/env-exposure/08-flask-env-keys-only.py
 import os
 from flask import Blueprint, jsonify
 

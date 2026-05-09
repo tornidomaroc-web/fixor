@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/04-jwt-claims-server-issued.ts
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 

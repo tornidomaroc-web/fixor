@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/04-stripe-secret-hardcoded.ts
 // src/lib/stripe.ts
 import Stripe from "stripe";
 

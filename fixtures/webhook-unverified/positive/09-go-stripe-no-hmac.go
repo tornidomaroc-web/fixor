@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/webhook-unverified/09-go-stripe-no-hmac.go
 package webhooks
 
 import (

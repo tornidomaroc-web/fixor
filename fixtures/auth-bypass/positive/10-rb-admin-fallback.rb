@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/auth-bypass/10-rb-admin-fallback.rb
 class InvoicesController < ApplicationController
   # GET /invoices/:id
   # Returns the requested invoice. Falls back to the admin account

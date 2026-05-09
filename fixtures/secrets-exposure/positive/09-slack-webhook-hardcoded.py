@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/secrets-exposure/09-slack-webhook-hardcoded.py
 import requests
 
 # Slack incoming webhook for the #ops channel. Hardcoded so cron jobs

@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/01-supabase-service-role-client.tsx
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";

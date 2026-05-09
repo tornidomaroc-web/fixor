@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/04-role-fallback-admin.ts
 import type { Request, Response } from "express";
 import { db } from "../db/index.js";
 

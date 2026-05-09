@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/02-public-config.ts
 import type { Request, Response } from "express";
 import { Router } from "express";
 

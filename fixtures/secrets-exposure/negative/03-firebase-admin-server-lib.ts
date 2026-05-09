@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/03-firebase-admin-server-lib.ts
 // src/lib/server/firebase-admin.ts
 import "server-only";
 import { initializeApp, cert, getApps } from "firebase-admin/app";

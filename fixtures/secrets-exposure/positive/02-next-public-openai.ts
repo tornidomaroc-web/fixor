@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/02-next-public-openai.ts
 // src/app/api/openai/route.ts
 import { OpenAI } from "openai";
 import type { NextRequest } from "next/server";

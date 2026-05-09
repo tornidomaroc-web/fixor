@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/webhook-unverified/05-lemon-no-sig.js
 const express = require("express");
 const router = express.Router();
 const { activateLicense } = require("../services/licenses");

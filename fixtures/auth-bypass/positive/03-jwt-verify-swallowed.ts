@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/03-jwt-verify-swallowed.ts
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 

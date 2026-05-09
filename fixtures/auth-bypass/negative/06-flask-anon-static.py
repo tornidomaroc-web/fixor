@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/auth-bypass/06-flask-anon-static.py
 from flask import Blueprint, jsonify, session
 
 bp = Blueprint("public", __name__)

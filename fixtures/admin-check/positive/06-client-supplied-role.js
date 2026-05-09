@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/06-client-supplied-role.js
 const express = require("express");
 const router = express.Router();
 

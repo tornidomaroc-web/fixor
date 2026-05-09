@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/03-email-includes-admin.ts
 import type { Request, Response } from "express";
 import { db } from "../db/index.js";
 

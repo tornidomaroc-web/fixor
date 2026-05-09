@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/05-missing-middleware.js
 const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../middleware/auth");

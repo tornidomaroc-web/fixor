@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/02-role-or-true.ts
 import type { Request, Response, NextFunction } from "express";
 import { getUserById } from "../db/users.js";
 

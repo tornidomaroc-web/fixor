@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/06-aws-keys-hardcoded.js
 const AWS = require("aws-sdk");
 
 // Founder's personal AWS access key. Will rotate before next investor demo.

@@ -5,12 +5,12 @@
  * instance to DETECTORS.
  */
 
-// Phase 1 prep: registry is ready to accept the following detectors:
-// - auth-bypass.detector (TBD)
-// - secrets-exposure.detector (TBD)
+// Detector status:
+// - auth-bypass.detector       (DONE — Phase 3)
+// - secrets-exposure.detector  (TBD)
 // - webhook-unverified.detector (TBD)
-// - env-exposure.detector (TBD)
-// - admin-check.detector (TBD)
+// - env-exposure.detector      (TBD)
+// - admin-check.detector       (TBD)
 
 import type { Detector } from "../detector.types";
 import type { FindingType } from "../types";
@@ -18,12 +18,14 @@ import { SqlInjectionDetector } from "./sql-injection.detector";
 import { XssDetector } from "./xss.detector";
 import { CommandInjectionDetector } from "./command-injection.detector";
 import { PathTraversalDetector } from "./path-traversal.detector";
+import { AuthBypassDetector } from "./auth-bypass.detector";
 
 export const DETECTORS: readonly Detector[] = [
   new SqlInjectionDetector(),
   new XssDetector(),
   new CommandInjectionDetector(),
   new PathTraversalDetector(),
+  new AuthBypassDetector(),
 ];
 
 /**

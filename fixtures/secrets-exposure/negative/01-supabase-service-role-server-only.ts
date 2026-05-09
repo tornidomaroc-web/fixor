@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/01-supabase-service-role-server-only.ts
 // src/server/admin/supabase.ts
 import { createClient } from "@supabase/supabase-js";
 import "server-only";

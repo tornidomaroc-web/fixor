@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/07-anthropic-server-only.ts
 // src/lib/server/anthropic.ts
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";

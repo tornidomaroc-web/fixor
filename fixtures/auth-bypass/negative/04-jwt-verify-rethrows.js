@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/04-jwt-verify-rethrows.js
 const jwt = require("jsonwebtoken");
 const SECRET = process.env.JWT_SECRET;
 

@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/auth-bypass/07-flask-anon-skip.py
 from flask import Blueprint, request, jsonify, session
 from app.db import get_db
 

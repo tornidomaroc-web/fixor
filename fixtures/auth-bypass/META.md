@@ -13,13 +13,13 @@
 - 10-rb-admin-fallback.rb: Rails owner_id falls back to "admin" when params[:user_id] missing
 
 ## Negative (looks similar, actually safe)
-- 01-anon-public-data.ts: anonymous returns public feed only (intended design)
-- 02-internal-dev-tool.ts: admin string check in non-HTTP CLI seed script
-- 03-defense-in-depth-role.ts: role re-check after upstream middleware already enforced it
-- 04-jwt-verify-rethrows.js: JWT verify catch returns 401 instead of downgrading
-- 05-default-id-in-seed.js: DEFAULT_USER_ID hardcoded only in local seed script
-- 06-flask-anon-static.py: anonymous returns static homepage payload (no auth needed)
-- 07-jwt-verify-false-tests.py: verify=False inside pytest helper, not runtime
-- 08-go-anon-healthcheck.go: anonymous allowed only on /healthz for the load balancer
-- 09-rb-admin-migration.rb: hardcoded admin emails inside one-shot migration only
-- 10-token-public-readonly.ts: token === 'public' permits read-only feed access by design
+- 01-anon-public-data.ts: anonymous returns public feed only (intended design) (Category B — context)
+- 02-internal-dev-tool.ts: admin string check in non-HTTP CLI seed script (Category A — location)
+- 03-defense-in-depth-role.ts: role re-check after upstream middleware already enforced it (Category B — context)
+- 04-jwt-verify-rethrows.js: JWT verify catch returns 401 instead of downgrading (Category B — context)
+- 05-default-id-in-seed.js: DEFAULT_USER_ID hardcoded only in local seed script (Category A — location)
+- 06-flask-anon-static.py: anonymous returns static homepage payload (no auth needed) (Category B — context)
+- 07-jwt-verify-false-tests.py: verify=False inside pytest helper, not runtime (Category A — location)
+- 08-go-anon-healthcheck.go: anonymous allowed only on /healthz for the load balancer (Category B — context)
+- 09-rb-admin-migration.rb: hardcoded admin emails inside one-shot migration only (Category A — location)
+- 10-token-public-readonly.ts: token === 'public' permits read-only feed access by design (Category B — context)

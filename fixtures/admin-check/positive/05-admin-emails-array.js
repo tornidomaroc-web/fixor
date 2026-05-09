@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/05-admin-emails-array.js
 const express = require("express");
 const router = express.Router();
 

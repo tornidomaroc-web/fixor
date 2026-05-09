@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/02-endswith-company-domain.ts
 import type { Request, Response, NextFunction } from "express";
 
 export function isInternalUser(email: string): boolean {

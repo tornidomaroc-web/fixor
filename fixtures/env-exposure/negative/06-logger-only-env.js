@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/06-logger-only-env.js
 const express = require("express");
 const pino = require("pino");
 

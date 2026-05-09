@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/02-error-handler-leaks-env.ts
 import type { Request, Response, NextFunction } from "express";
 
 export function errorHandler(

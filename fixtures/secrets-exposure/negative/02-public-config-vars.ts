@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/secrets-exposure/02-public-config-vars.ts
 // src/lib/site-config.ts
 // Public-by-design constants. Safe to ship in the client bundle.
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://acme.app";

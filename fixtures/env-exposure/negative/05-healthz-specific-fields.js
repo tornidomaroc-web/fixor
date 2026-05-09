@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/05-healthz-specific-fields.js
 const express = require("express");
 const router = express.Router();
 

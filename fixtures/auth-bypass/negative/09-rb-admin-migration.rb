@@ -1,3 +1,4 @@
+# ASSUMED-PATH: db/migrate/20251201_seed_admin_account.rb
 # db/migrate/20251201_seed_admin_account.rb
 # One-shot migration. Runs once at deploy and never again.
 class SeedAdminAccount < ActiveRecord::Migration[7.1]

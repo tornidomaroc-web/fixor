@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/env-exposure/10-go-public-env.go
 package handlers
 
 import (

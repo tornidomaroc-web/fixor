@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/06-claims-middleware.js
 const express = require("express");
 const { verifyClaims } = require("../middleware/verify-claims");
 

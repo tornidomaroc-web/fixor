@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/03-defense-in-depth-role.ts
 import type { Request, Response } from "express";
 import { db } from "../db/index.js";
 

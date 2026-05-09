@@ -1,3 +1,4 @@
+// ASSUMED-PATH: scripts/seed/seed-uploads.js
 // scripts/seed/seed-uploads.js
 // Local-only seed script. Not loaded by the application server.
 const { Pool } = require("pg");

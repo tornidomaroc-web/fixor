@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/webhook-unverified/03-custom-strict-hmac.ts
 import type { Request, Response } from "express";
 import express, { Router } from "express";
 import { createHmac, timingSafeEqual } from "node:crypto";

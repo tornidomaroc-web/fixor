@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/webhook-unverified/07-flask-stripe-construct-event.py
 import stripe
 from flask import Blueprint, request, jsonify, current_app
 

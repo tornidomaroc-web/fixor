@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/08-go-anon-healthcheck.go
 package handlers
 
 import (

@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/admin-check/09-fastapi-rbac-dep.py
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import current_user, User

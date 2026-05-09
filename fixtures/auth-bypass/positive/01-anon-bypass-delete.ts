@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/auth-bypass/01-anon-bypass-delete.ts
 import { Request, Response } from "express";
 import { Pool } from "pg";
 

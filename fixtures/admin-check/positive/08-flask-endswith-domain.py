@@ -1,3 +1,4 @@
+# ASSUMED-PATH: src/app/handlers/admin-check/08-flask-endswith-domain.py
 from flask import Blueprint, request, jsonify, g
 
 bp = Blueprint("admin", __name__)

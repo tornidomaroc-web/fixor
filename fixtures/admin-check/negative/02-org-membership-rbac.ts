@@ -1,3 +1,4 @@
+// ASSUMED-PATH: src/app/handlers/admin-check/02-org-membership-rbac.ts
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../db/index.js";
 
