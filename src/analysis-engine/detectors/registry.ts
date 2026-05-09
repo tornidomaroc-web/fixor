@@ -6,11 +6,11 @@
  */
 
 // Detector status:
-// - auth-bypass.detector       (DONE — Phase 3)
-// - secrets-exposure.detector  (DONE — Phase 4)
-// - webhook-unverified.detector (TBD)
-// - env-exposure.detector      (TBD)
-// - admin-check.detector       (TBD)
+// - auth-bypass.detector        (DONE — Phase 3)
+// - secrets-exposure.detector   (DONE — Phase 4)
+// - webhook-unverified.detector (DONE — Phase 5a)
+// - env-exposure.detector       (TBD)
+// - admin-check.detector        (TBD)
 
 import type { Detector } from "../detector.types";
 import type { FindingType } from "../types";
@@ -20,6 +20,7 @@ import { CommandInjectionDetector } from "./command-injection.detector";
 import { PathTraversalDetector } from "./path-traversal.detector";
 import { AuthBypassDetector } from "./auth-bypass.detector";
 import { SecretsExposureDetector } from "./secrets-exposure.detector";
+import { WebhookUnverifiedDetector } from "./webhook-unverified.detector";
 
 export const DETECTORS: readonly Detector[] = [
   new SqlInjectionDetector(),
@@ -28,6 +29,7 @@ export const DETECTORS: readonly Detector[] = [
   new PathTraversalDetector(),
   new AuthBypassDetector(),
   new SecretsExposureDetector(),
+  new WebhookUnverifiedDetector(),
 ];
 
 /**
