@@ -1,0 +1,23 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+)
+
+// HealthCheck is intentionally unauthenticated. The load balancer hits
+// /healthz on every container; we cannot require a session here.
+func HealthCheck(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		userID = "anonymous"
+	}
+
+	resp := map[string]any{
+		"status": "ok",
+		"caller": userID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
