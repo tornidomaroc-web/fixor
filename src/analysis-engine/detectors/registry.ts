@@ -5,6 +5,13 @@
  * instance to DETECTORS.
  */
 
+// Phase 1 prep: registry is ready to accept the following detectors:
+// - auth-bypass.detector (TBD)
+// - secrets-exposure.detector (TBD)
+// - webhook-unverified.detector (TBD)
+// - env-exposure.detector (TBD)
+// - admin-check.detector (TBD)
+
 import type { Detector } from "../detector.types";
 import type { FindingType } from "../types";
 import { SqlInjectionDetector } from "./sql-injection.detector";

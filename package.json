@@ -28,7 +28,8 @@
     "db:migrate": "npm run build && node dist/db/migrate.js",
     "db:studio": "drizzle-kit studio",
     "migrate:json-ledger": "npm run build && node dist/scripts/migrate-json-ledger-to-pg.js",
-    "create-api-token": "npm run build && node dist/scripts/create-api-token.js"
+    "create-api-token": "npm run build && node dist/scripts/create-api-token.js",
+    "scan": "npm run build && node dist/cli/scan.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
