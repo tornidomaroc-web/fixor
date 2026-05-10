@@ -10,7 +10,7 @@
  * that mapping is decided in 5D-4 and can drift independently from the
  * customer-facing scan limits below.
  */
-export type TierId = "free" | "indie" | "pro" | "team";
+export type TierId = "free" | "indie" | "team";
 
 export interface Tier {
   id: TierId;
@@ -44,7 +44,7 @@ export const TIERS: readonly Tier[] = [
     features: [
       "5 scans / month",
       "Public repos only",
-      "All 4 detectors",
+      "All 9 detectors",
     ],
   },
   {
@@ -58,21 +58,7 @@ export const TIERS: readonly Tier[] = [
     features: [
       "100 scans / month",
       "1 private repo + unlimited public",
-      "All 4 detectors",
-    ],
-  },
-  {
-    id: "pro",
-    label: "Pro",
-    priceUsd: 79,
-    monthlyCapUsd: 80,
-    scansPerMonth: 500,
-    paddlePriceEnv: "PADDLE_PRICE_PRO",
-    highlight: "Small teams shipping security daily",
-    features: [
-      "500 scans / month",
-      "5 private repos + unlimited public",
-      "All detectors + Slack / Jira",
+      "All 9 detectors",
     ],
   },
   {
@@ -86,7 +72,7 @@ export const TIERS: readonly Tier[] = [
     features: [
       "2,000 scans / month",
       "Unlimited repos",
-      "All detectors + priority support",
+      "All 9 detectors + priority support",
     ],
   },
 ];

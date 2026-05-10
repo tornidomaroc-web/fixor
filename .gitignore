@@ -24,3 +24,12 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Local scan outputs
+scan-report-*.md
+
+# Claude Code local state
+.claude/
+
+# Audit patch artifacts
+*.patch

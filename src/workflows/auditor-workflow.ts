@@ -1,6 +1,6 @@
 import type { Finding } from "../analysis-engine/types.js";
 import { analyzeCode } from "../analysis-engine/analyze.js";
-import { getDetectorFor } from "../analysis-engine/detectors/registry.js";
+import { getDetectorFor, DETECTORS } from "../analysis-engine/detectors/registry.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import { extractSqlInjectionFromSemgrep } from "../services/vulnerability.service.js";
 import {
@@ -56,6 +56,34 @@ function sqlFindingToNormalized(
     confidence: f.classificationConfidence,
     severity: "high",
   };
+}
+
+// Phase 7: Phase 5 specialized detectors invoked alongside the central
+// analyzer. Same id-allowlist pattern as src/cli/scan.ts (Phase 6).
+const PHASE5_DETECTOR_IDS = new Set<string>([
+  "auth-bypass-multi",
+  "secrets-exposure-multi",
+  "webhook-unverified-multi",
+  "env-exposure-multi",
+  "admin-check-multi",
+]);
+
+const phase5Detectors = DETECTORS.filter(
+  (d) => PHASE5_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
+);
+
+function dedupeNormalizedFindings(
+  arr: NormalizedFinding[],
+): NormalizedFinding[] {
+  const seen = new Set<string>();
+  const out: NormalizedFinding[] = [];
+  for (const f of arr) {
+    const key = `${f.file}:${f.startLine}:${f.type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(f);
+  }
+  return out;
 }
 
 function extractDiffString(payload: unknown): string | null {
@@ -307,8 +335,24 @@ async function executeWorkflow(
 
   if (diffStr) {
     logger.debug("using Claude analysis engine on PR diff");
-    const analysis = await analyzeCode(diffStr);
-    result.totalFindings = analysis.findings.length;
+
+    // Phase 7b — Stage A: run analyzeCode (Sonnet, ~15s) and the Phase 5
+    // detector pass (5 detectors, parallel internally) concurrently.
+    // Both consume only diffStr and produce independent finding arrays;
+    // merging happens in the sequential block below. Outer Promise.all
+    // (so analyzeCode failure rejects this stage and is caught by the
+    // existing executeWorkflow try/catch); inner allSettled keeps
+    // per-detector failure containment from Phase 7.
+    const [analysis, detectorResults] = await Promise.all([
+      analyzeCode(diffStr),
+      Promise.allSettled(
+        phase5Detectors.map((d) =>
+          d.detect
+            ? d.detect({ diff: diffStr })
+            : Promise.resolve([] as NormalizedFinding[]),
+        ),
+      ),
+    ]);
 
     // Apply org-settings filter at the analysis-finding level so both
     // the NormalizedFinding[] and the SQL-shaped explainer array stay
@@ -348,6 +392,42 @@ async function executeWorkflow(
             f.confidence === "high" ? 90 : f.confidence === "medium" ? 50 : 20,
         })
       );
+
+    // Phase 7b — Stage B (merge): detectorResults already resolved in
+    // Stage A above. Per-detector containment + orgSettings filter +
+    // dedupe identical to Phase 7.
+    const settings = orgSettings;
+    for (let i = 0; i < detectorResults.length; i++) {
+      const detector = phase5Detectors[i]!;
+      const r = detectorResults[i]!;
+      if (r.status === "rejected") {
+        Sentry.captureException(r.reason, {
+          tags: {
+            "fixor.phase": "phase5_detector",
+            "detector.id": detector.id,
+          },
+        });
+        logger.warn(
+          { err: r.reason, detector: detector.id },
+          "phase 5 detector failed; continuing",
+        );
+        continue;
+      }
+      const filtered = settings
+        ? r.value.filter((f) => {
+            const r2 = passesOrgSettings(
+              { file: f.file, type: f.type, severity: f.severity },
+              settings,
+            );
+            if (!r2.passes) tallyFilter(r2.reason);
+            return r2.passes;
+          })
+        : r.value;
+      findings.push(...filtered);
+    }
+    findings = dedupeNormalizedFindings(findings);
+    result.totalFindings = findings.length;
+
     logger.info(
       {
         totalFindings: result.totalFindings,

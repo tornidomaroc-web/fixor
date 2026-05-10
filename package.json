@@ -18,6 +18,11 @@
     "test:filter": "npm run build && node dist/test/test-org-settings-filter.js",
     "test:limiter": "npm run build && node dist/test/test-rate-limiter.js",
     "test:limit-warning": "npm run build && node dist/test/test-scan-limit-warning.js",
+    "test:auth-bypass": "npm run build && node dist/test/test-auth-bypass.js",
+    "test:secrets-exposure": "npm run build && node dist/test/test-secrets-exposure.js",
+    "test:webhook-unverified": "npm run build && node dist/test/test-webhook-unverified.js",
+    "test:env-exposure": "npm run build && node dist/test/test-env-exposure.js",
+    "test:admin-check": "npm run build && node dist/test/test-admin-check.js",
     "test:real": "npm run build && node dist/real-tests/run-real-tests.js",
     "lint:no-console": "node scripts/lint-no-console.mjs",
     "test": "npm run lint:no-console && npm run typecheck && npm run test:fixtures && npm run test:sarif && npm run test:xss && npm run test:cmdi && npm run test:pt && npm run test:cost && npm run test:retry && npm run test:filter && npm run test:limiter && npm run test:limit-warning",
@@ -28,7 +33,8 @@
     "db:migrate": "npm run build && node dist/db/migrate.js",
     "db:studio": "drizzle-kit studio",
     "migrate:json-ledger": "npm run build && node dist/scripts/migrate-json-ledger-to-pg.js",
-    "create-api-token": "npm run build && node dist/scripts/create-api-token.js"
+    "create-api-token": "npm run build && node dist/scripts/create-api-token.js",
+    "scan": "npm run build && node dist/cli/scan.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

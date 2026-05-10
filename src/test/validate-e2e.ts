@@ -33,7 +33,7 @@ function mkFinding(
   originalCode: string,
   message: string
 ): NormalizedFinding {
-  const explanations: Record<FindingType, string> = {
+  const explanations: Partial<Record<FindingType, string>> = {
     sql_injection_risk:
       "User input interpolated into SQL grants query-semantic control.",
     xss_risk:
@@ -52,7 +52,7 @@ function mkFinding(
     originalCode,
     ruleId: `claude-analysis-${type}`,
     message,
-    explanation: explanations[type],
+    explanation: explanations[type] ?? "(no test explanation)",
     confidence: "high",
     severity: "high",
   };
