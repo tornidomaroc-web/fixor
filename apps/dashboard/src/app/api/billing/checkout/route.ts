@@ -2,7 +2,7 @@
  * POST /api/billing/checkout — open a Paddle hosted checkout for an
  * org + paid tier.
  *
- * Body:  { orgId: string, tier: "indie" | "pro" | "team" }
+ * Body:  { orgId: string, tier: "indie" | "team" }
  * Reply: { url: string }   (browser redirects to it)
  *
  * Auth model mirrors PATCH /api/orgs/[id]/settings — Clerk session →

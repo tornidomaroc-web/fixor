@@ -12,7 +12,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Fixor reviews every GitHub pull request for nine classes of security bugs and posts a fix-suggestion report. Free tier covers five public scans per month." />
     <title>Fixor — Automated security analysis for GitHub PRs</title>
+    <link rel="canonical" href="https://fixor.dev/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://fixor.dev/" />
+    <meta property="og:title" content="Fixor — Security analysis for every GitHub PR" />
+    <meta property="og:description" content="Automated review of pull requests for nine classes of security bugs, with fix suggestions posted in-thread." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Fixor — Security analysis for every GitHub PR" />
+    <meta name="twitter:description" content="Automated review of pull requests for nine classes of security bugs, with fix suggestions posted in-thread." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -360,6 +369,22 @@
         color: var(--text-muted);
       }
     </style>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Fixor",
+      "description": "Automated security review for GitHub pull requests across nine vulnerability classes.",
+      "url": "https://fixor.dev/",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "offers": [
+        { "@type": "Offer", "name": "Free",  "price": "0",   "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
+        { "@type": "Offer", "name": "Indie", "price": "29",  "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
+        { "@type": "Offer", "name": "Team",  "price": "199", "priceCurrency": "USD", "availability": "https://schema.org/InStock" }
+      ]
+    }
+    </script>
   </head>
   <body>
     <header>
@@ -391,7 +416,7 @@
       <section class="hero wrap" id="top">
         <h1>Catch security bugs before they ship.</h1>
         <p class="lead">
-          Fixor analyzes every pull request for SQL injection, XSS, command injection, and path traversal — then posts a structured report with concrete fix suggestions and a downloadable PDF. No setup. No noise.
+          Fixor reviews every pull request across nine classes of security bugs — injection, auth, secrets, webhooks, environment exposure — then posts a fix-suggestion report and a downloadable PDF. No setup. No noise.
         </p>
         <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Install Fixor on GitHub</a>
         <p class="hero-subnote">Free tier covers 5 scans / month on public repos · no card required</p>
@@ -416,7 +441,7 @@
             <div class="step-num">02</div>
             <h3>Fixor detects</h3>
             <p>
-              We analyze the diff for risky SQL patterns and generate concrete, safe fixes using Claude AI.
+              The diff is scanned for nine classes of vulnerability and each finding gets a fix the reviewer can apply.
             </p>
           </article>
           <article class="step">
@@ -449,7 +474,6 @@
 | **Vulnerabilities found** | 2 |
 | **Fixes generated** | 2 |
 | **Patch quality** | high: 1 · medium: 1 |
-| **Duration** | 13.5s |
 
 ### Suggested fixes
 
@@ -478,7 +502,7 @@ _Professional report suitable for sharing with your team or compliance review._
             <div class="step-num">AI</div>
             <h3>Claude-powered analysis</h3>
             <p>
-              Backed by Claude Sonnet 4 — contextual reasoning, not just regex. Understands frameworks, ORMs, and intent.
+              Backed by Claude — context-aware analysis, not regex. Reads the diff the way a reviewer would.
             </p>
           </article>
           <article class="step">
@@ -510,7 +534,7 @@ _Professional report suitable for sharing with your team or compliance review._
             <ul>
               <li>5 scans / month</li>
               <li>Public repos only</li>
-              <li>All 4 detectors</li>
+              <li>All 9 detectors</li>
             </ul>
             <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Install free</a>
           </article>
@@ -521,45 +545,26 @@ _Professional report suitable for sharing with your team or compliance review._
             <ul>
               <li>100 scans / month</li>
               <li>1 private repo + unlimited public</li>
-              <li>All 4 detectors</li>
+              <li>All 9 detectors</li>
             </ul>
             <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Start with Indie</a>
           </article>
           <article class="price-card">
-            <h3>Pro</h3>
-            <div class="price">$79<small> / mo</small></div>
+            <h3>Team</h3>
+            <div class="price">$199<small> / mo</small></div>
             <ul>
-              <li>500 scans / month</li>
-              <li>5 private repos + unlimited public</li>
-              <li>All detectors + Slack / Jira</li>
+              <li>2,000 scans / month</li>
+              <li>Unlimited repos</li>
+              <li>All 9 detectors + priority support</li>
             </ul>
-            <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Start with Pro</a>
+            <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Start with Team</a>
           </article>
         </div>
-        <p class="pricing-foot">
-          Need more headroom? <strong>Team — $199/mo</strong> ships 2,000 scans, unlimited repos, and priority support. <a href="https://github.com/apps/fixor/installations/new">Install &amp; pick Team in the dashboard.</a>
-        </p>
       </section>
 
-      <!--
-        Social-proof slot. Drop in a row of testimonial cards or
-        customer logos here when we have them. Until then, render
-        the placeholder copy below — empty space looks broken.
-      -->
-      <section class="wrap" id="proof">
-        <h2 class="section-title">Trusted by builders shipping to production</h2>
-        <p class="section-sub">
-          Fixor is the security layer for indie hackers and small engineering teams who can&apos;t justify a full-time AppSec hire. Quotes from early users land here as we collect them.
-        </p>
-      </section>
     </main>
 
     <footer>
-      <!--
-        Support email: swap support@fixor.dev for your real address
-        before launch. Same address is used in the marketplace
-        listing draft (docs/MARKETPLACE-LISTING.md).
-      -->
       <div class="wrap">© 2026 Fixor · <a href="https://github.com/tornidomaroc-web/fixor">GitHub</a> · <a href="mailto:support@fixor.dev">Contact</a> · <a href="security.html">Security</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div>
     </footer>
   </body>
