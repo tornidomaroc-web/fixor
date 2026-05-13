@@ -66,6 +66,7 @@ const PHASE5_DETECTOR_IDS = new Set<string>([
   "webhook-unverified-multi",
   "env-exposure-multi",
   "admin-check-multi",
+  "idor-multi",
 ]);
 
 const phase5Detectors = DETECTORS.filter(
@@ -337,7 +338,7 @@ async function executeWorkflow(
     logger.debug("using Claude analysis engine on PR diff");
 
     // Phase 7b — Stage A: run analyzeCode (Sonnet, ~15s) and the Phase 5
-    // detector pass (5 detectors, parallel internally) concurrently.
+    // detector pass (6 detectors, parallel internally) concurrently.
     // Both consume only diffStr and produce independent finding arrays;
     // merging happens in the sequential block below. Outer Promise.all
     // (so analyzeCode failure rejects this stage and is caught by the
