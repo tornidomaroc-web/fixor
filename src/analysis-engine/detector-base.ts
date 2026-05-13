@@ -59,4 +59,5 @@ export const DEFAULT_SEVERITY_FOR_TYPE: Record<FindingType, Finding["severity"]>
   webhook_unverified_risk: "critical",
   env_exposure_risk: "critical",
   admin_check_risk: "critical",
+  idor_risk: "critical",
 };

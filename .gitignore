@@ -33,3 +33,6 @@ scan-report-*.md
 
 # Audit patch artifacts
 *.patch
+
+# Out-of-tree research / lead-gen data
+leads/

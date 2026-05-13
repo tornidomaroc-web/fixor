@@ -29,6 +29,7 @@ const NEW_DETECTOR_IDS = new Set<string>([
   "webhook-unverified-multi",
   "env-exposure-multi",
   "admin-check-multi",
+  "idor-multi",
 ]);
 
 const newDetectors = DETECTORS.filter(
