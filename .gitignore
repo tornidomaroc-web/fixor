@@ -36,3 +36,6 @@ scan-report-*.md
 
 # Out-of-tree research / lead-gen data
 leads/
+
+# Local smoke-test artifacts (cloned repos, scan reports, debug logs)
+test-output/

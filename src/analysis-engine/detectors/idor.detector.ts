@@ -115,6 +115,13 @@ const SOURCE_PATTERNS: PrefilterPattern[] = [
   // Next.js App Router (destructured params on the route handler's
   // second arg). Pages Router is covered by `req.query` / `req.params`.
   { id: "nextjs_destructured",     re: /\bparams\s*:\s*\{\s*\w+\s*:\s*string/ },
+  // tRPC v10+ procedures receive `{ input, ctx }` and dereference
+  // `input.X` to pass the request value into the DB query. The actual
+  // SOURCE is the property access inside the handler body, not the
+  // procedure declaration — schema-reference patterns (input(MyZod))
+  // make the declaration site harder to fingerprint than the
+  // dereference. `\b` boundary prevents `myinput.foo`-style FPs.
+  { id: "trpc_input_access",       re: /\binput\.\w+/ },
   // FastAPI / Starlette
   { id: "fastapi_path_params",     re: /\brequest\.path_params\[/ },
   { id: "fastapi_path_params_alt", re: /\bpath_params\s*\[\s*['"]/ },
