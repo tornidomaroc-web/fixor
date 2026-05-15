@@ -8,7 +8,7 @@
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
 [![License: MIT](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
 
-> **A GitHub App that reviews every pull request for SQL injection, XSS, command injection, and path traversal — posts concrete fixes inline, generates a PDF/SARIF report, runs in &lt;30 seconds.**
+> **A GitHub App that reviews every pull request for the business-logic vulnerabilities Snyk and Semgrep miss — auth bypass, IDOR, missing admin checks, env exposure, and hardcoded secrets. Posts concrete fixes inline, generates a PDF/SARIF report, runs in &lt;30 seconds.**
 
 [Landing](https://tornidomaroc-web.github.io/fixor/) ·
 [Dashboard](https://app.fixor.dev) ·
@@ -24,10 +24,11 @@
 
 | Capability | Status |
 |---|---|
-| 🛡️ SQL injection (JS/TS) — parameterized rewrites for MySQL/Postgres/Knex/Prisma | ✅ Shipping |
-| 🌐 Cross-site scripting (DOM sinks, `innerHTML`, `dangerouslySetInnerHTML`) | ✅ Shipping |
-| ⚡ Command injection (`exec`, shell concat, unsafe `spawn`) | ✅ Shipping |
-| 📁 Path traversal (`fs.*`, `express.static`, `..` patterns) | ✅ Shipping |
+| 🔓 Authentication bypass — protected routes missing auth middleware | ✅ Shipping (measured) |
+| 🔑 IDOR — resource access without an ownership check | ✅ Shipping (measured) |
+| 👮 Missing admin check — privileged endpoints without a role guard | ✅ Shipping (measured) |
+| 🌫️ Env exposure — secrets leaked through env vars into response bodies | ✅ Shipping (measured) |
+| 🗝️ Secrets exposure — hardcoded API keys, tokens, credentials | ✅ Shipping (measured) |
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
 | 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
 | 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
@@ -60,19 +61,19 @@ Total latency from PR push to comment: typically 10–30 seconds.
 
 ## Compared to Snyk and Semgrep
 
-Fixor isn't competing with mature SAST/SCA suites on breadth — it competes on **fewest steps to a useful finding**.
+Fixor doesn't compete with Snyk or Semgrep — it covers the class they structurally can't. CVE scanners and pattern matchers are strong on dependency vulns and known injection sinks (SQLi, XSS); they are blind to business-logic flaws, because catching those needs reasoning about auth, ownership, and role semantics — not patterns. **Run Snyk for dependencies, run Fixor for the logic in your own code.**
 
 | | **Fixor** | Snyk Code | Semgrep (OSS / Pro) |
 |---|---|---|---|
 | Setup time | Install GitHub App, done | CLI / CI step + dashboard config | Add `.semgrep.yml` + CI step |
 | Languages | JS/TS today (more on roadmap) | 10+ | 30+ |
-| Detector families | SQLi · XSS · CMDI · Path traversal | 100+ rules | 2,000+ community + Pro rules |
+| Detector focus | Business logic: auth-bypass · IDOR · admin-check · env-exposure · secrets | Dependency CVEs + injection patterns | 2,000+ pattern rules |
 | False-positive driver | Claude reasoning (low) | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
 | Auto-suggested patches | ✅ Inline, framework-aware | Partial (Snyk Code Fix) | ❌ (rules describe; don't patch) |
 | PDF + SARIF | ✅ Both | ✅ SARIF | ✅ SARIF |
 | Pricing (entry) | $0 (free tier, real) | Free tier; $52/dev/mo Team | OSS free; $40/dev/mo Pro |
 | Open source | ✅ MIT | ❌ | ✅ rules engine |
-| Best for | Indie + small teams shipping JS/TS | Mid-market with multi-language stacks | Engineering teams who want full rule control |
+| Best for | Catching logic flaws in your own JS/TS code | Dependency + known-CVE coverage | Teams who want full rule control |
 
 If you're at a 50-person company with a polyglot codebase, Snyk or Semgrep Pro is probably the right call. If you're a solo founder or a small team shipping a Node.js app and want a security review on every PR with zero ceremony, Fixor is built for you.
 
