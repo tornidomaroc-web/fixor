@@ -75,8 +75,6 @@ export function buildPullRequestCommentMarkdown(
     .filter(Boolean)
     .join(" · ");
 
-  const autoEmoji = workflow.automationReady ? "✅" : "⛔";
-
   const lines: string[] = [
     "## 🛡️ Fixor Security Report",
     "",
@@ -128,12 +126,9 @@ export function buildPullRequestCommentMarkdown(
     "| | |",
     "|-|-|",
     `| **Workflow status** | \`${workflow.status}\` |`,
-    `| **Automation ready** | ${autoEmoji} \`${workflow.automationReady}\` |`,
-    `| **Automation note** | ${cell(workflow.automationDecisionReason)} |`,
     `| **Findings scanned** | ${workflow.totalFindings} |`,
     `| **Vulnerabilities classified** | ${workflow.classifiedFindings} |`,
-    `| **Fixes generated** | ${workflow.fixesGenerated} |`,
-    `| **Patch quality** | high: ${workflow.highQualityPatches} · medium: ${workflow.mediumQualityPatches} · low: ${workflow.lowQualityPatches} |`,
+    `| **Findings reported** | ${workflow.fixesGenerated} |`,
     `| **Duration** | ${workflow.timing.durationMs} ms |`,
     ""
   );
@@ -169,7 +164,7 @@ export function buildPullRequestCommentMarkdown(
   };
 
   if (list.length === 0) {
-    lines.push("_No vulnerability fixes produced in this run._", "");
+    lines.push("_No findings in this run — no business-logic vulnerabilities detected._", "");
     lines.push(...renderDownloadsBlock());
     lines.push(
       FIXOR_PR_COMMENT_MARKER,
@@ -182,13 +177,13 @@ export function buildPullRequestCommentMarkdown(
   const detailedList = list.slice(0, maxDetailed);
 
   lines.push(
-    "### Suggested fixes",
+    "### Findings",
     "",
-    `_Expand a row for **original → suggested** code, warnings, and explanation._`
+    `_Expand a row for the affected code, detection confidence, and remediation guidance._`
   );
   if (omitted > 0) {
     lines.push(
-      `_Showing **${detailedList.length}** of **${list.length}** fixes with full detail._`
+      `_Showing **${detailedList.length}** of **${list.length}** findings with full detail._`
     );
   }
   lines.push("");
@@ -196,7 +191,7 @@ export function buildPullRequestCommentMarkdown(
   detailedList.forEach((fix, i) => {
     const globalNum = list.indexOf(fix) + 1;
     const family = metadataFor(fix.findingType).name;
-    const title = `${globalNum}. \`${fix.file}:${fix.line}\` · **${fix.patchQuality}** · \`${family}\``;
+    const title = `${globalNum}. \`${fix.file}:${fix.line}\` · **${fix.confidence}** confidence · \`${family}\``;
     lines.push(`<details>`, `<summary><strong>${title}</strong></summary>`, "");
     const meta = fix.metadata;
     if (meta?.type === "sql_injection_risk") {
@@ -212,8 +207,10 @@ export function buildPullRequestCommentMarkdown(
       lines.push(`- **Detection confidence:** \`${fix.confidence}\``);
     }
     lines.push("");
-    lines.push("**Original**", "", fencedCodeBlock(truncate(fix.originalCode, 4000)), "");
-    lines.push("**Suggested**", "", fencedCodeBlock(truncate(fix.fixedCode, 4000)), "");
+    lines.push("**Affected code**", "", fencedCodeBlock(truncate(fix.originalCode, 4000)), "");
+    if (fix.fixedCode.trim() !== fix.originalCode.trim()) {
+      lines.push("**Suggested fix**", "", fencedCodeBlock(truncate(fix.fixedCode, 4000)), "");
+    }
     const exploit = options?.exploits?.[fix.findingId];
     if (exploit) {
       const sev = severityEmoji(exploit.severity);
@@ -237,7 +234,7 @@ export function buildPullRequestCommentMarkdown(
       );
     }
     if (fix.patchWarnings.length > 0) {
-      lines.push("**Patch warnings**", "");
+      lines.push("**Remediation notes**", "");
       for (const w of fix.patchWarnings) {
         lines.push(`- ${w}`);
       }
@@ -250,7 +247,7 @@ export function buildPullRequestCommentMarkdown(
   if (omitted > 0) {
     lines.push(
       "",
-      `> **…and ${omitted} more fix(es) omitted for brevity.**`,
+      `> **…and ${omitted} more finding(s) omitted for brevity.**`,
       ""
     );
   }
