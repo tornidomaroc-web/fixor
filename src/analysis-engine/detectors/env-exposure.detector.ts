@@ -14,6 +14,8 @@
  *   4. LLM call
  */
 
+import { createHash } from "node:crypto";
+
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 import type {
@@ -114,6 +116,11 @@ IMPORTANT:
 - Reject when only env KEY NAMES are returned (no values), and the route
   is dev-only / 404 in production.
 - Reject when regex redaction strips SECRET/KEY/TOKEN/PASSWORD before responding.`;
+
+export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
+  .update(SYSTEM_PROMPT)
+  .digest("hex")
+  .slice(0, 12);
 
 const REPORT_TOOL: Tool = {
   name: "report_env_exposure_verdict",

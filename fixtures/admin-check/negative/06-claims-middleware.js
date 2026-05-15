@@ -9,7 +9,6 @@ router.post(
   verifyClaims({ requiredRole: "owner" }),
   async (req, res) => {
     const targetUserId = req.body.targetUserId;
-    // claims.sub is server-trusted (verified upstream)
     res.json({
       promotedBy: req.claims.sub,
       promoted: targetUserId,

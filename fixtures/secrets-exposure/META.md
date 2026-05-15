@@ -1,5 +1,17 @@
 # secrets-exposure fixtures
 
+## Day 13 — redaction-shape exemption (2026-05-15, post Step 4)
+
+**Pre-filter matches where the matched value is a redaction artifact are now exempt from finding emission.** See `docs/detector-test-rules.md` D8a for the full shape inventory and rationale. First-instance trigger: Step 4 §7 Twenty `url.password = '********'` FP — detector was flagging the very utility that redacts passwords. Implementation: `REDACTION_VALUE_PATTERNS` in `secrets-exposure.detector.ts`, applied before LLM call (so exemption holds in both regex-only and LLM modes). Verified against 21 cases (11 real Step 4 source-path snippets + 5 synthetic redactions + 3 ambiguous defaults + 2 theoretical TPs): only the one true redaction line flips to skip; all other source-path FPs and theoretical TPs unchanged.
+
+## Day 7 — default behavior flipped (2026-05-15)
+
+**Production-default secrets-exposure runs in regex-only mode (LLM validation disabled by default).** The earlier default (LLM validation on) quoted secret values verbatim into PR comment output, re-exposing the very secrets the finding was flagging. See D8 in `docs/detector-test-rules.md`.
+
+- Each `PREFILTER_PATTERN` ships with a hand-authored `explanation` (identify class + attack surface + remediation). These become the finding's `message` and `explanation` fields when the bypass path runs — which is now the default path.
+- LLM mode is preserved as opt-in via `FIXOR_SECRETS_LLM_OPT_IN=true` env var or `{ llmValidation: true }` constructor option. Opting in re-introduces the secret-quoting risk; use only when LLM-specific reasoning shape is required for a deployment.
+- The Day 7 pilot validated regex-only mode produces identical fixture verdicts to LLM mode across n=5 (100% RUBBER-STAMP on this detector). The default flip is verdict-preserving and leak-eliminating.
+
 ## Positive (real vulnerabilities)
 - 01-supabase-service-role-client.tsx: SERVICE_ROLE_KEY referenced in a "use client" component
 - 02-next-public-openai.ts: NEXT_PUBLIC_OPENAI_API_KEY bundled into client JS

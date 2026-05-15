@@ -5,12 +5,6 @@ import { dataSource } from "../../db/datasource";
 import { Order } from "../../entities/Order";
 import { requireAdmin } from "../../middleware/admin";
 
-// All routes in this file are admin-only. `requireAdmin` verifies the
-// caller's role from the DB-backed `user_roles` table on every request
-// and rejects with 403 if the user is not an admin. Admins are
-// intentionally allowed to inspect or refund any order across all
-// tenants for support and fraud-review purposes.
-
 const router = Router();
 
 router.use(requireAdmin);

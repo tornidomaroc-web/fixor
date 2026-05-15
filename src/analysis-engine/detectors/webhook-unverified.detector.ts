@@ -19,6 +19,8 @@
  * middleware, or timing-safe HMAC).
  */
 
+import { createHash } from "node:crypto";
+
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 import type {
@@ -118,6 +120,11 @@ IMPORTANT:
   hmac.Equal).
 - Reject when the handler is behind authenticated middleware (requireAuth)
   AND the body is not used for state changes.`;
+
+export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
+  .update(SYSTEM_PROMPT)
+  .digest("hex")
+  .slice(0, 12);
 
 const REPORT_TOOL: Tool = {
   name: "report_webhook_unverified_verdict",

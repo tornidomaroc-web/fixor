@@ -14,6 +14,8 @@
  * the explicit `import "server-only";` directive only.
  */
 
+import { createHash } from "node:crypto";
+
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 import type {
@@ -90,7 +92,7 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
 
   // JWT verify with try/catch (suspicious; LLM decides)
   { id: "jwt_verify", re: /\bjwt\.verify\s*\(/ },
-  { id: "jwt_verify_false", re: /verify_signature\s*[:=]\s*False/i },
+  { id: "jwt_verify_false", re: /["']?verify_signature["']?\s*[:=]\s*False/i },
 
   // Ruby params fallback to admin
   { id: "ruby_admin_fallback", re: /params\[:\w+\]\s*\|\|\s*['"]admin['"]/ },
@@ -115,6 +117,11 @@ IMPORTANT:
 - Reject patterns in test/, fixtures/, examples/, scripts/, dev-tools/ paths.
 - Reject when imports show server-only or internal-only modules.
 - Reject when the pattern appears in seed/migration scripts.`;
+
+export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
+  .update(SYSTEM_PROMPT)
+  .digest("hex")
+  .slice(0, 12);
 
 const REPORT_TOOL: Tool = {
   name: "report_auth_bypass_verdict",

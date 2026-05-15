@@ -35,6 +35,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { SIDECAR_KINDS } from "../sidecar-kinds";
 
 const DETECTOR_ID = "idor-multi";
 
@@ -265,7 +266,11 @@ Reject (treat as not vulnerable) when:
   authorization.
 
 Confidence ladder is strict: when in doubt between high and medium,
-choose medium. When in doubt between medium and low, choose low.`;
+choose medium. When in doubt between medium and low, choose low.
+
+CONTEXT BLOCKS — Verified RLS policy: when a block titled "Verified RLS policy for this file (ground truth):" appears in the user message, the SQL policy text is the authoritative authorization layer for queries in this file. Apply the existing "database-layer row-level security in force" exception even if the in-file handler shows a bare \`WHERE id = $1\`: the policy auto-scopes rows to the caller. When no such block is present, require handler-visible RLS signals per existing rules (current behavior, unchanged).
+
+CONTEXT BLOCKS — Verified middleware: when a block titled "Verified middleware for this file (ground truth):" appears in the user message, the middleware definition (auth gate, tenant scoping, ORM-level scoping wrapper such as Prisma \`$extends\`) is authoritative for the guarantees applied to handlers in this file. Use the middleware body to determine whether queries are admin-gated, tenant-scoped, or otherwise authorization-bounded before reaching the handler. When no such block is present, assess from handler code alone (current behavior, unchanged).`;
 
 /**
  * Short fingerprint of SYSTEM_PROMPT, computed once at module load.
@@ -273,7 +278,7 @@ choose medium. When in doubt between medium and low, choose low.`;
  * operators can confirm prompt stability across runs; a mismatch across
  * runs proves the prompt changed mid-session.
  */
-const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
+export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)
   .digest("hex")
   .slice(0, 12);
@@ -523,10 +528,20 @@ function buildUserMessage(params: {
   sinkPattern: string;
   sinkLine: number;
   pairDistance: number;
+  sidecars?: Record<string, string>;
 }): string {
+  const policy = params.sidecars?.[SIDECAR_KINDS.RLS_POLICY];
+  const middleware = params.sidecars?.[SIDECAR_KINDS.MIDDLEWARE];
+  let sidecarSection = "";
+  if (policy) {
+    sidecarSection += `\n\nVerified RLS policy for this file (ground truth):\n\`\`\`sql\n${policy.trim()}\n\`\`\``;
+  }
+  if (middleware) {
+    sidecarSection += `\n\nVerified middleware for this file (ground truth):\n\`\`\`typescript\n${middleware.trim()}\n\`\`\``;
+  }
   return `CONTEXT:
 File: ${params.filePath}
-Language: ${params.language}
+Language: ${params.language}${sidecarSection}
 Code context (covers both source and sink):
 \`\`\`${params.language}
 ${params.contextWindow}
@@ -604,10 +619,12 @@ export class IdorDetector implements Detector {
         continue;
       }
 
+      const sidecars = ctx.sidecarsByPath?.[file.path];
       const fileFindings = await this.analyzeFile(
         file.path,
         file.content,
         lang,
+        sidecars,
       );
       findings.push(...fileFindings);
     }
@@ -640,6 +657,7 @@ export class IdorDetector implements Detector {
     filePath: string,
     content: string,
     lang: SupportedLang,
+    sidecars?: Record<string, string>,
   ): Promise<NormalizedFinding[]> {
     const sourceHits = findPatternHits(content, SOURCE_PATTERNS, lang);
     const sinkHits = findPatternHits(content, SINK_PATTERNS, lang);
@@ -677,6 +695,7 @@ export class IdorDetector implements Detector {
       sinkPattern: pair.sink.patternText,
       sinkLine: pair.sink.line,
       pairDistance: pair.distance,
+      sidecars,
     });
     diag.verdict = verdict;
 
@@ -747,6 +766,7 @@ export class IdorDetector implements Detector {
     sinkPattern: string;
     sinkLine: number;
     pairDistance: number;
+    sidecars?: Record<string, string>;
   }): Promise<LlmVerdict | null> {
     const userMessage = buildUserMessage(params);
     const debugLlm = process.env.FIXOR_DEBUG_IDOR_LLM === "1";

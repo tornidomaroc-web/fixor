@@ -9,7 +9,6 @@ router.get("/__dev/env", (_req: Request, res: Response) => {
     res.status(404).end();
     return;
   }
-  // Return only env KEY NAMES, never values.
   res.type("text/plain").send(Object.keys(process.env).sort().join("\n"));
 });
 

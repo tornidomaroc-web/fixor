@@ -1,6 +1,5 @@
 // ASSUMED-PATH: src/app/handlers/secrets-exposure/07-config-route-leaks-service-role.ts
 // src/app/api/config/route.ts
-// Exposes runtime config so the SPA can self-discover endpoints.
 export async function GET() {
   return Response.json({
     apiBaseUrl: "https://api.acme.app",

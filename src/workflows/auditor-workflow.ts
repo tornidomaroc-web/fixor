@@ -19,6 +19,7 @@ import {
   type OrgSettingsView,
   type FilterStats,
 } from "../lib/org-settings-filter.js";
+import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 
 function findingToNormalized(f: Finding): NormalizedFinding {
   const msg = f.explanation.slice(0, 500);
@@ -355,13 +356,31 @@ async function executeWorkflow(
       ),
     ]);
 
+    // Drop globally-suppressed finding types before org-settings filter
+    // (xss/cmdi/path-traversal: see src/config/finding-suppressions.ts).
+    // Logged separately from filterStats so the suppression is visible
+    // in observability without conflating with org-settings counters.
+    const suppressedCounts: Record<string, number> = {};
+    let analysisFindings = analysis.findings.filter((f) => {
+      if (isSuppressedFindingType(f.type)) {
+        suppressedCounts[f.type] = (suppressedCounts[f.type] ?? 0) + 1;
+        return false;
+      }
+      return true;
+    });
+    if (Object.keys(suppressedCounts).length > 0) {
+      logger.info(
+        { category: "finding-suppressions", counts: suppressedCounts },
+        "suppressed findings of unmeasured types before customer surface",
+      );
+    }
+
     // Apply org-settings filter at the analysis-finding level so both
     // the NormalizedFinding[] and the SQL-shaped explainer array stay
     // aligned (positional pairing in the explainer assumes alignment).
-    let analysisFindings = analysis.findings;
     if (orgSettings) {
       const settings = orgSettings;
-      analysisFindings = analysis.findings.filter((f) => {
+      analysisFindings = analysisFindings.filter((f) => {
         const r = passesOrgSettings(
           // Finding's severity union excludes "low" but the predicate
           // accepts any Severity, so a widen-cast is safe here.
@@ -484,7 +503,9 @@ async function executeWorkflow(
       });
     }
 
-    findings = sqlFindingsForExplainer.map(sqlFindingToNormalized);
+    findings = sqlFindingsForExplainer
+      .map(sqlFindingToNormalized)
+      .filter((f) => !isSuppressedFindingType(f.type));
   }
 
   // Partition findings by detector availability. Unsupported types are

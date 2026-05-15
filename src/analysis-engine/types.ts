@@ -8,7 +8,8 @@ export type FindingType =
   | "webhook_unverified_risk"
   | "env_exposure_risk"
   | "admin_check_risk"
-  | "idor_risk";
+  | "idor_risk"
+  | "mass_assignment_risk";
 
 export interface Finding {
   type: FindingType;

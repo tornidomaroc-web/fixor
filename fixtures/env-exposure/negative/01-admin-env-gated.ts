@@ -5,13 +5,11 @@ import { requireAdmin } from "../middleware/require-admin.js";
 
 const router = Router();
 
-// /admin/env is dev-only AND admin-only.
 router.get("/admin/env", requireAdmin, (_req: Request, res: Response) => {
   if (process.env.NODE_ENV === "production") {
     res.status(404).end();
     return;
   }
-  // Even in dev, only return non-secret keys.
   const safeKeys = ["NODE_ENV", "PORT", "LOG_LEVEL"];
   const subset = Object.fromEntries(
     safeKeys

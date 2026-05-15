@@ -1,21 +1,8 @@
 // ASSUMED-PATH: src/routes/projects.ts
+// SIDECAR: 04-supabase-policy.policy.sql
 
 import { Router, Request, Response } from "express";
 import { Pool } from "pg";
-
-// Authorization is enforced at the Supabase Postgres layer via RLS
-// policies tied to the authenticated JWT. The `projects` table has:
-//
-//   CREATE POLICY projects_owner_select ON projects
-//     FOR SELECT USING (auth.uid() = user_id);
-//   CREATE POLICY projects_owner_update ON projects
-//     FOR UPDATE USING (auth.uid() = user_id);
-//
-// The pool connects to the Supabase Postgres instance. On every
-// request the caller's JWT is bound via `SET LOCAL request.jwt.claims`
-// so that `auth.uid()` resolves to the authenticated user inside the
-// policy. Raw `WHERE id = $1` is auto-scoped to the caller's rows by
-// the policy; the handler never sees rows belonging to other users.
 
 const pool = new Pool({ connectionString: process.env.SUPABASE_DB_URL });
 

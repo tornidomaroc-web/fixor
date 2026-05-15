@@ -12,16 +12,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Fixor reviews every GitHub pull request for nine classes of security bugs and posts a fix-suggestion report. Free tier covers five public scans per month." />
+    <meta name="description" content="Fixor reviews every GitHub pull request for five measured vulnerability classes (auth-bypass, IDOR, env-exposure, admin-check, secrets-exposure) and posts a fix-suggestion report. Free tier covers five public scans per month." />
     <title>Fixor — Automated security analysis for GitHub PRs</title>
     <link rel="canonical" href="https://fixor.dev/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://fixor.dev/" />
     <meta property="og:title" content="Fixor — Security analysis for every GitHub PR" />
-    <meta property="og:description" content="Automated review of pull requests for nine classes of security bugs, with fix suggestions posted in-thread." />
+    <meta property="og:description" content="Fixor reviews every GitHub pull request for five measured vulnerability classes (auth-bypass, IDOR, env-exposure, admin-check, secrets-exposure) and posts a fix-suggestion report. Free tier covers five public scans per month." />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Fixor — Security analysis for every GitHub PR" />
-    <meta name="twitter:description" content="Automated review of pull requests for nine classes of security bugs, with fix suggestions posted in-thread." />
+    <meta name="twitter:description" content="Fixor reviews every GitHub pull request for five measured vulnerability classes (auth-bypass, IDOR, env-exposure, admin-check, secrets-exposure) and posts a fix-suggestion report. Free tier covers five public scans per month." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -374,7 +374,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Fixor",
-      "description": "Automated security review for GitHub pull requests across nine vulnerability classes.",
+      "description": "Fixor reviews every GitHub pull request for five measured vulnerability classes (auth-bypass, IDOR, env-exposure, admin-check, secrets-exposure) and posts a fix-suggestion report. Free tier covers five public scans per month.",
       "url": "https://fixor.dev/",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Web",
@@ -416,7 +416,7 @@
       <section class="hero wrap" id="top">
         <h1>Catch security bugs before they ship.</h1>
         <p class="lead">
-          Fixor reviews every pull request across nine classes of security bugs — injection, auth, secrets, webhooks, environment exposure — then posts a fix-suggestion report and a downloadable PDF. No setup. No noise.
+          Fixor reviews every pull request for five measured vulnerability classes — auth-bypass, IDOR, env-exposure, admin-check, secrets-exposure — then posts a fix-suggestion report and a downloadable PDF.
         </p>
         <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Install Fixor on GitHub</a>
         <p class="hero-subnote">Free tier covers 5 scans / month on public repos · no card required</p>
@@ -441,7 +441,7 @@
             <div class="step-num">02</div>
             <h3>Fixor detects</h3>
             <p>
-              The diff is scanned for nine classes of vulnerability and each finding gets a fix the reviewer can apply.
+              The diff is scanned for five measured vulnerability classes and each finding gets a fix the reviewer can apply.
             </p>
           </article>
           <article class="step">
@@ -477,8 +477,8 @@
 
 ### Suggested fixes
 
-▸ 1. `src/users.js:42` · **high** · `SQL_INJECTION`
-▸ 2. `src/products.js:87` · **medium** · `SQL_INJECTION`
+▸ 1. `src/auth/session.js:42` · **high** · `AUTH_BYPASS`
+▸ 2. `src/api/orders.js:87` · **high** · `IDOR`
 
 ---
 
@@ -534,7 +534,7 @@ _Professional report suitable for sharing with your team or compliance review._
             <ul>
               <li>5 scans / month</li>
               <li>Public repos only</li>
-              <li>All 9 detectors</li>
+              <li>5 measured detectors</li>
             </ul>
             <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Install free</a>
           </article>
@@ -545,7 +545,7 @@ _Professional report suitable for sharing with your team or compliance review._
             <ul>
               <li>100 scans / month</li>
               <li>1 private repo + unlimited public</li>
-              <li>All 9 detectors</li>
+              <li>5 measured detectors</li>
             </ul>
             <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Start with Indie</a>
           </article>
@@ -555,7 +555,7 @@ _Professional report suitable for sharing with your team or compliance review._
             <ul>
               <li>2,000 scans / month</li>
               <li>Unlimited repos</li>
-              <li>All 9 detectors + priority support</li>
+              <li>5 measured detectors + priority support</li>
             </ul>
             <a class="btn btn-primary" href="https://github.com/apps/fixor/installations/new">Start with Team</a>
           </article>

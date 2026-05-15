@@ -17,12 +17,6 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
 import { Roles } from "../auth/roles.decorator";
 
-// Admin-only controller. RolesGuard reads the @Roles() metadata and
-// verifies the caller's role from the `user_roles` table. Only users
-// with the "admin" role can reach any of these endpoints; admins are
-// intentionally allowed to inspect or annotate any customer record
-// for support, billing, and fraud workflows.
-
 interface AdminUpdateCustomerDto {
   notes?: string;
   flagged?: boolean;

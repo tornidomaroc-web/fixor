@@ -1,20 +1,8 @@
 // ASSUMED-PATH: src/routes/notes.ts
+// SIDECAR: 03-postgres-rls.policy.sql
 
 import { Router, Request, Response } from "express";
 import { pool } from "../db/pool";
-
-// Authorization is enforced at the Postgres layer via row-level security.
-// The `notes` table has RLS enabled with this policy applied to every
-// SELECT / UPDATE / DELETE:
-//
-//   CREATE POLICY notes_owner ON notes
-//     USING (user_id = current_setting('app.current_user_id')::uuid);
-//
-// Each request opens a transaction, sets the per-request session
-// variable `app.current_user_id` to the authenticated caller's UUID,
-// then runs the query. Raw `WHERE id = $1` is automatically scoped to
-// the caller's rows by the policy; no application-layer ownership
-// filter is required.
 
 const router = Router();
 

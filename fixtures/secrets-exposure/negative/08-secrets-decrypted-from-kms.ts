@@ -4,8 +4,6 @@ import "server-only";
 import { readFileSync } from "node:fs";
 import { createDecipheriv } from "node:crypto";
 
-// Secrets are stored encrypted on disk and decrypted once at boot using
-// a KMS-supplied data key. Plaintext never touches version control.
 function decryptSealed(path: string, key: Buffer, iv: Buffer): string {
   const sealed = readFileSync(path);
   const decipher = createDecipheriv("aes-256-gcm", key, iv);

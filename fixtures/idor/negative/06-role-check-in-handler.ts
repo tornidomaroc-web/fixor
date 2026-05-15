@@ -5,13 +5,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// Admin-only moderation route. The session's `role` claim is populated
-// server-side during the next-auth signIn callback from the
-// `user_roles` table; non-admin callers are rejected with 403 before
-// any DB access. Admins are intentionally permitted to read or delete
-// any post for moderation purposes, including drafts and posts that
-// belong to other users.
-
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } },

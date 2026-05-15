@@ -1,5 +1,15 @@
 # admin-check fixtures
 
+## Day 8 — per-pattern Option G mitigation (2026-05-15)
+
+**Production-default admin-check runs with per-pattern tier bypass.** Literal-tier pattern matches (11 of 12 patterns) emit findings using hand-authored explanations without invoking the LLM. The single judgment-tier pattern (`role_string_compare`) keeps LLM in the loop because the regex cannot distinguish bug cases (hardcoded admin grant) from safe cases (DB-backed role lookup, verified JWT claim).
+
+Background: the Day 7 cross-detector audit found admin-check LLM reasoning quotes internal employee emails (`founder@acme.app`), user IDs (`u_founder_001`), and domain suffixes (`@acme.app`) into PR comment output (MEDIUM-risk leak per D8). The Day 8 mitigation uses the per-pattern tier shape (not wholesale bypass) because admin-check is a mixed-tier detector: wholesale bypass would have produced 6 FPs on the cognitive negatives that all match the single judgment-tier pattern.
+
+- Pattern tier inventory: 11 literal-tier (admin-pattern-literals like `DEFAULT_ADMIN_ID`, `ADMIN_EMAILS`, email comparison shapes, `role ?? 'admin'`, `req.body.role`) + 1 judgment-tier (`role_string_compare` — `role === 'admin'` shape that's safe when role is DB-backed).
+- LLM mode is preserved as opt-in via `FIXOR_ADMIN_CHECK_LLM_OPT_IN=true` env var or `{ llmValidation: true }` constructor option.
+- Day 8 stability run: 20/20 in both modes, zero verdict changes, LLM calls cut 80 → 30 (62% reduction). The 6 cognitive negatives matching judgment-tier all preserved SKIP under the new default.
+
 ## Positive (real vulnerabilities)
 - 01-hardcoded-admin-email.ts: requireAdmin compares against ADMIN_EMAIL constant
 - 02-endswith-company-domain.ts: isInternalUser via email.endsWith("@acme.app")
