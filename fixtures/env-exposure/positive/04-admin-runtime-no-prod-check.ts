@@ -4,8 +4,6 @@ import { Router } from "express";
 
 const router = Router();
 
-// /admin/runtime -- designed for dev. There used to be a NODE_ENV check
-// here but it was removed when the dev tools moved into the main app.
 router.get("/admin/runtime", (_req: Request, res: Response) => {
   res.json({
     env: process.env,

@@ -6,8 +6,6 @@ import (
 	"net/http"
 )
 
-// HealthCheck is intentionally unauthenticated. The load balancer hits
-// /healthz on every container; we cannot require a session here.
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("X-User-ID")
 	if userID == "" {

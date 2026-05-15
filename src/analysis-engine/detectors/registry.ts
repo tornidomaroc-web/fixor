@@ -11,6 +11,7 @@
 // - webhook-unverified.detector (DONE — Phase 5a)
 // - env-exposure.detector       (DONE — Phase 5b)
 // - admin-check.detector        (DONE — Phase 5c)
+// - idor.detector               (DONE — Phase 5d)
 
 import type { Detector } from "../detector.types";
 import type { FindingType } from "../types";
@@ -23,6 +24,7 @@ import { SecretsExposureDetector } from "./secrets-exposure.detector";
 import { WebhookUnverifiedDetector } from "./webhook-unverified.detector";
 import { EnvExposureDetector } from "./env-exposure.detector";
 import { AdminCheckDetector } from "./admin-check.detector";
+import { IdorDetector } from "./idor.detector";
 
 export const DETECTORS: readonly Detector[] = [
   new SqlInjectionDetector(),
@@ -34,6 +36,7 @@ export const DETECTORS: readonly Detector[] = [
   new WebhookUnverifiedDetector(),
   new EnvExposureDetector(),
   new AdminCheckDetector(),
+  new IdorDetector(),
 ];
 
 /**

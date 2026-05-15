@@ -93,8 +93,7 @@ export async function generatePdfReport(
 
     const summaryRows = [
       { label: "Workflow status", value: workflow.status, color: statusColor },
-      { label: "Total findings", value: String(workflow.totalFindings), color: COLOR_DARK },
-      { label: "Vulnerabilities found", value: String(workflow.sqlInjectionFindings), color: workflow.sqlInjectionFindings > 0 ? COLOR_DANGER : COLOR_SUCCESS },
+      { label: "Total findings", value: String(workflow.totalFindings), color: workflow.totalFindings > 0 ? COLOR_DANGER : COLOR_SUCCESS },
       { label: "Fixes generated", value: String(workflow.fixesGenerated), color: COLOR_DARK },
       { label: "High quality patches", value: String(workflow.highQualityPatches), color: COLOR_SUCCESS },
       { label: "Medium quality patches", value: String(workflow.mediumQualityPatches), color: COLOR_WARNING },

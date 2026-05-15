@@ -7,6 +7,11 @@
  * decision logic that backs the loop.
  */
 import {
+  APIConnectionError,
+  APIConnectionTimeoutError,
+} from "@anthropic-ai/sdk";
+
+import {
   BASE_DELAY_MS,
   MAX_DELAY_MS,
   MAX_RETRIES,
@@ -55,6 +60,26 @@ function run(): void {
   assert(isRetryable(etimedout) === true, "ETIMEDOUT is retryable");
   const efoo = Object.assign(new Error("nope"), { code: "EFOO" });
   assert(isRetryable(efoo) === false, "unknown error code is NOT retryable");
+
+  // SDK-level connection errors: no HTTP status, no top-level code,
+  // but classified retryable by class (the "Connection error." case
+  // from @anthropic-ai/sdk that bit us in IDOR validation).
+  const connErr = new APIConnectionError({ message: "Connection error." });
+  assert(isRetryable(connErr) === true, "APIConnectionError is retryable");
+  const connTimeoutErr = new APIConnectionTimeoutError({ message: "slow" });
+  assert(
+    isRetryable(connTimeoutErr) === true,
+    "APIConnectionTimeoutError is retryable",
+  );
+
+  // Cause-chain walk: SDK wraps the underlying Node error as `cause`.
+  const wrappedNetErr = Object.assign(new Error("wrapped"), {
+    cause: Object.assign(new Error("inner"), { code: "ECONNRESET" }),
+  });
+  assert(
+    isRetryable(wrappedNetErr) === true,
+    "ECONNRESET via err.cause is retryable",
+  );
 
   assert(isRetryable(null) === false, "null is NOT retryable");
   assert(isRetryable(undefined) === false, "undefined is NOT retryable");

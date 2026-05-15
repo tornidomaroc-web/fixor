@@ -9,9 +9,21 @@
  *   - Up to 3 retries (4 attempts total)
  *   - Exponential backoff: 1s, 2s, 4s + ±20% jitter
  *   - Honor Retry-After header (seconds OR HTTP-date), capped at 30s
- *   - Retry on 429, 5xx, and a small set of network error codes
+ *   - Retry on 429, 5xx, SDK-level connection errors, and a small set
+ *     of Node network error codes
  *   - Do NOT retry on 4xx other than 429, AbortError, or unknown errors
+ *
+ * SDK note: APIConnectionError / APIConnectionTimeoutError are the
+ * Anthropic SDK's classes for transient network failures (no HTTP
+ * status, since the request never reached the server). Verified
+ * against @anthropic-ai/sdk ^0.32.1. If the SDK is upgraded across
+ * major versions, re-verify these class names still exist.
  */
+
+import {
+  APIConnectionError,
+  APIConnectionTimeoutError,
+} from "@anthropic-ai/sdk";
 
 export const MAX_RETRIES = 3;
 export const BASE_DELAY_MS = 1000;
@@ -45,6 +57,15 @@ export function isRetryable(err: unknown): boolean {
   // retry — the caller's timeout budget is already gone.
   if (err instanceof Error && err.name === "AbortError") return false;
 
+  // SDK-level transient network errors: no HTTP status (request never
+  // reached the server), but the SDK classifies them precisely. This
+  // catches the "Connection error." case from @anthropic-ai/sdk that
+  // surfaces no top-level Node `code` field on the error itself.
+  // APIConnectionTimeoutError extends APIConnectionError — listed
+  // explicitly for readability.
+  if (err instanceof APIConnectionError) return true;
+  if (err instanceof APIConnectionTimeoutError) return true;
+
   const status = extractStatus(err);
   if (status === 429) return true;
   if (typeof status === "number" && status >= 500 && status <= 599) return true;
@@ -54,6 +75,19 @@ export function isRetryable(err: unknown): boolean {
     const code = (err as Error & { code?: unknown }).code;
     if (typeof code === "string" && RETRYABLE_NETWORK_CODES.has(code)) {
       return true;
+    }
+    // Belt-and-suspenders: SDK wraps the underlying Node error as
+    // `cause`, and the inner error often carries the retryable code.
+    // One level only — deeper chain-walking is YAGNI.
+    const cause = (err as Error & { cause?: unknown }).cause;
+    if (cause && typeof cause === "object" && cause !== null) {
+      const causeCode = (cause as { code?: unknown }).code;
+      if (
+        typeof causeCode === "string" &&
+        RETRYABLE_NETWORK_CODES.has(causeCode)
+      ) {
+        return true;
+      }
     }
   }
   return false;

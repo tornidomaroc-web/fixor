@@ -7,6 +7,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { logger } from "../lib/logger.js";
 import { analyzeCode } from "../analysis-engine/analyze.js";
 import { DETECTORS } from "../analysis-engine/detectors/registry.js";
+import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import type { Finding } from "../analysis-engine/types.js";
 import { walkFiles } from "./file-walker.js";
@@ -29,6 +30,7 @@ const NEW_DETECTOR_IDS = new Set<string>([
   "webhook-unverified-multi",
   "env-exposure-multi",
   "admin-check-multi",
+  "idor-multi",
 ]);
 
 const newDetectors = DETECTORS.filter(
@@ -187,8 +189,14 @@ async function main(): Promise<void> {
       const diff = buildSyntheticDiff(rel, content);
 
       // 1. Central LLM analyzer — original 4 families (SQL/XSS/CMDI/PT).
+      //    Suppressed types (see src/config/finding-suppressions.ts) are
+      //    dropped at the boundary so the report mirrors what the webhook
+      //    would deliver to a customer.
       const central = await analyzeCode(diff);
-      allFindings.push(...central.findings);
+      const centralFindings = central.findings.filter(
+        (f) => !isSuppressedFindingType(f.type),
+      );
+      allFindings.push(...centralFindings);
 
       // 2. Phase 5 specialized detectors. Each has its own pre-filter +
       //    LLM gate; most short-circuit on path/regex misses, so the

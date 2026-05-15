@@ -98,6 +98,25 @@ export interface DetectorContext {
   diff: string;
   /** Owner/repo (for logs / telemetry, not used for I/O). */
   repoSlug?: string;
+  /**
+   * Verified Prisma schema bodies keyed by the file path they apply to.
+   * Kept for backwards compatibility with the Mass-Assignment
+   * Phase 1a harness; new detectors should prefer `sidecarsByPath`.
+   */
+  prismaSchemasByPath?: Record<string, string>;
+  /**
+   * Generalized sidecar channel. Outer key = file path; inner key =
+   * sidecar kind ("prisma-schema", "rls-policy", "middleware",
+   * "config", ...); value = sidecar body. Detectors that opt in read
+   * the kinds they care about and inject them into the LLM context
+   * as labeled blocks. Production injection point: GitHub App reads
+   * the corresponding repo files; harness mirrors via fixture
+   * sidecars (`<fixture>.<kind>` files next to the fixture).
+   *
+   * Adding a new sidecar kind is a capability extension per
+   * detector-test-rules.md R8, not a calibration iteration.
+   */
+  sidecarsByPath?: Record<string, Record<string, string>>;
 }
 
 export interface Detector {

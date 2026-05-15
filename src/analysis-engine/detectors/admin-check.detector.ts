@@ -20,6 +20,8 @@
  * string only" (vulnerable).
  */
 
+import { createHash } from "node:crypto";
+
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 import type {
@@ -74,19 +76,121 @@ interface DiffFile {
   content: string;
 }
 
-const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
-  { id: "email_eq_literal",        re: /\bemail\s*===?\s*['"][^'"@]+@/i },
-  { id: "email_endswith_at",       re: /\bemail\.endsWith\s*\(\s*['"]\s*@/i },
-  { id: "py_email_endswith_at",    re: /\bemail\.endswith\s*\(\s*['"]\s*@/i },
-  { id: "email_includes_admin",    re: /\bemail\.includes\s*\(\s*['"](?:admin|owner|founder|root|superuser)/i },
-  { id: "strings_hassuffix_email", re: /strings\.HasSuffix\s*\(\s*\w*email\w*\s*,\s*['"]@/i },
-  { id: "default_admin_id",        re: /\bDEFAULT_ADMIN_ID\b/ },
-  { id: "default_admin_email",     re: /\bDEFAULT_ADMIN_EMAIL\b/ },
-  { id: "admin_emails_array",      re: /\b(?:ADMIN_EMAILS|admin_emails)\s*=\s*\[/ },
-  { id: "role_string_compare",     re: /\b(?:userRole|user\.role|role|claims\.role)\s*(?:===?|!==?)\s*['"](?:admin|owner|superadmin|root)['"]/i },
-  { id: "role_fallback_admin",     re: /\brole\s*\?\?\s*['"](?:admin|owner)['"]/i },
-  { id: "body_role_check",         re: /req\.(?:body|query|params)\.\w*[Rr]ole\b/ },
-  { id: "admin_email_const",       re: /\b(?:ADMIN_EMAIL|admin_email)\s*=\s*['"][^'"]*@/i },
+interface PrefilterPattern {
+  id: string;
+  re: RegExp;
+  /**
+   * Pattern classification for Option G bypass eligibility (see D8 in
+   * docs/detector-test-rules.md "Detector ≠ pattern set").
+   *
+   * - "literal": regex match IS the bug. Bypass safe when llmValidation
+   *   is false; emit finding directly from `explanation`.
+   * - "judgment": regex matches a shape requiring context to
+   *   disambiguate (LLM does real discrimination). Always keeps LLM
+   *   in the loop regardless of llmValidation setting.
+   *
+   * Defaults to "judgment" conservatively when omitted.
+   */
+  tier?: "literal" | "judgment";
+  /**
+   * Hand-authored finding explanation used when this pattern bypasses
+   * LLM. Required for literal-tier patterns; ignored for judgment-tier
+   * (LLM produces reasoning). Format: identify class + attack surface +
+   * remediation. NEVER quotes matched source content (see D8).
+   */
+  explanation?: string;
+}
+
+const PREFILTER_PATTERNS: PrefilterPattern[] = [
+  {
+    id: "email_eq_literal",
+    re: /\bemail\s*===?\s*['"][^'"@]+@/i,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded email comparison. The code grants admin privileges when the authenticated user's email exactly matches a literal string in source. This trusts the email value (which may come from session, JWT payload, or request body — any of which can be spoofed if not server-signed and verified) instead of consulting an authoritative role store. Move admin role assignment to a database table (`user_roles`, `org_members`, or similar), look up the role from there using the authenticated user ID, and remove the hardcoded comparison.",
+  },
+  {
+    id: "email_endswith_at",
+    re: /\bemail\.endsWith\s*\(\s*['"]\s*@/i,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded domain suffix check. The code grants admin or elevated privileges to any user whose email ends with a specific domain. This is trivially bypassable: an attacker who can register an email on that domain (any public provider with the matching suffix, or any subdomain the attacker controls) is granted admin, and the email value itself may be spoofable if not from a verified source. Replace with a database-backed role lookup keyed on the authenticated user ID, or with a verified JWT claim from a trusted issuer.",
+  },
+  {
+    id: "py_email_endswith_at",
+    re: /\bemail\.endswith\s*\(\s*['"]\s*@/i,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded domain suffix check (Python `email.endswith`). The code grants admin privileges to any user whose email ends with a specific domain. Bypassable by registering or spoofing an email on the matching domain. Replace with a database-backed role lookup keyed on authenticated user ID, or with a verified JWT claim from a trusted issuer.",
+  },
+  {
+    id: "email_includes_admin",
+    re: /\bemail\.includes\s*\(\s*['"](?:admin|owner|founder|root|superuser)/i,
+    tier: "literal",
+    explanation:
+      "Admin grant via email substring match on privileged keywords ('admin', 'owner', 'founder', 'root', 'superuser'). Trivially bypassable — any user can register an email like 'notanadmin@evil.com' or 'realfounder@attacker.com' and pass the check. Replace with a database-backed role lookup keyed on authenticated user ID, or with a verified JWT claim. (Note: if this `includes` check is used for non-grant purposes such as blocking admin-themed signups or audit logging, the regex over-fired; review and reclassify the pattern.)",
+  },
+  {
+    id: "strings_hassuffix_email",
+    re: /strings\.HasSuffix\s*\(\s*\w*email\w*\s*,\s*['"]@/i,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded domain suffix check (Go `strings.HasSuffix`). The code grants admin privileges to any user whose email ends with a specific domain. Bypassable by registering or spoofing an email on the matching domain. Replace with a database-backed role lookup keyed on authenticated user ID, or with a verified JWT claim from a trusted issuer.",
+  },
+  {
+    id: "default_admin_id",
+    re: /\bDEFAULT_ADMIN_ID\b/,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded `DEFAULT_ADMIN_ID` fallback. The code falls back to a hardcoded user ID with admin privileges when the authenticated user is missing or unparseable, granting admin access to any unauthenticated or partially-authenticated request. Remove the fallback entirely: unauthenticated requests should fail with 401 (no default identity), and the route must require an authenticated session plus a database-backed admin role check before any privileged operation.",
+  },
+  {
+    id: "default_admin_email",
+    re: /\bDEFAULT_ADMIN_EMAIL\b/,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded `DEFAULT_ADMIN_EMAIL` fallback. Same shape as DEFAULT_ADMIN_ID: when no authenticated email is present, the code falls back to a constant value used to determine admin status, granting admin to unauthenticated callers. Remove the fallback; unauthenticated requests should fail with 401, never receive a default identity.",
+  },
+  {
+    id: "admin_emails_array",
+    re: /\b(?:ADMIN_EMAILS|admin_emails)\s*=\s*\[/,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded email allowlist (`ADMIN_EMAILS` array or similar). Membership in a literal array of email strings determines admin privileges. Hardcoded admin identity in source code is visible to anyone with repository access, requires a redeploy to revoke or add admins, is invisible to runtime configuration audits, and bypasses any standard audit-log-of-admin-changes pattern. Move admin role assignment to a database table managed via admin UI or migration, and look up the role at request time.",
+  },
+  {
+    id: "role_string_compare",
+    re: /\b(?:userRole|user\.role|role|claims\.role)\s*(?:===?|!==?)\s*['"](?:admin|owner|superadmin|root)['"]/i,
+    tier: "judgment",
+    // No explanation — judgment-tier patterns keep LLM in the loop and
+    // use LLM-generated reasoning. The regex matches `role === "admin"`
+    // which appears in BOTH bug cases (client-supplied role) and safe
+    // cases (DB-backed role lookup, verified JWT claim); only the LLM
+    // can read data flow to discriminate. Bypassing LLM here would FP
+    // on every legitimate DB-backed role check (6 cognitive negatives
+    // in Day 4 admin-check audit).
+  },
+  {
+    id: "role_fallback_admin",
+    re: /\brole\s*\?\?\s*['"](?:admin|owner)['"]/i,
+    tier: "literal",
+    explanation:
+      "Admin grant via nullish-coalescing fallback to `'admin'`. The expression `role ?? 'admin'` evaluates to `'admin'` whenever `role` is undefined or null — which is the case for unauthenticated requests. Any caller without a session is silently granted admin privileges. Remove the fallback: unauthenticated requests should fail with 401, and authenticated requests should have their role looked up from a trusted source (DB or verified JWT), never default to admin.",
+  },
+  {
+    id: "body_role_check",
+    re: /req\.(?:body|query|params)\.\w*[Rr]ole\b/,
+    tier: "literal",
+    explanation:
+      "Admin grant via client-supplied role from request body, query string, or path params. The code reads `role` directly from the HTTP request and uses it for an authorization decision. The request is fully attacker-controlled — any client can supply `{ \"role\": \"admin\" }` to bypass the check. Replace with a server-side role lookup keyed on the authenticated session or JWT user ID; never trust role values supplied by the client.",
+  },
+  {
+    id: "admin_email_const",
+    re: /\b(?:ADMIN_EMAIL|admin_email)\s*=\s*['"][^'"]*@/i,
+    tier: "literal",
+    explanation:
+      "Admin grant via hardcoded `ADMIN_EMAIL` constant compared to user email. Admin identity is determined by string equality with a single email literal embedded in source. Same problems as hardcoded admin arrays: source-embedded admin identity is hard to revoke (requires redeploy), invisible to runtime audits, exposed to anyone with repository access. Move admin role assignment to a database table managed via admin UI or migration, and look up the role at request time.",
+  },
 ];
 
 const SKIP_PATH_RE =
@@ -119,6 +223,17 @@ IMPORTANT:
   runtime code).
 - Reject when a dedicated RBAC middleware (verifyClaims, requireRole)
   enforces the check before the route handler.`;
+
+/**
+ * Short fingerprint of SYSTEM_PROMPT, computed once at module load.
+ * Logged by the stability harness so calibration runs can be tied to
+ * specific prompt versions. Bumps when SYSTEM_PROMPT changes; rule R7
+ * (docs/detector-test-rules.md) governs the classification.
+ */
+export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
+  .update(SYSTEM_PROMPT)
+  .digest("hex")
+  .slice(0, 12);
 
 const REPORT_TOOL: Tool = {
   name: "report_admin_check_verdict",
@@ -299,8 +414,37 @@ export class AdminCheckDetector implements Detector {
   readonly supports = ["admin_check_risk"] as const;
   readonly languages = SUPPORTED_LANGS;
 
+  /**
+   * When false (default), literal-tier pattern matches emit findings
+   * directly using the pattern's hand-authored explanation. Judgment-tier
+   * patterns (currently only `role_string_compare`) stay on the LLM path
+   * regardless of this setting — they require context discrimination the
+   * regex cannot provide.
+   *
+   * **Default flipped to false on Day 8** (2026-05-15): the LLM mode
+   * quoted hardcoded internal emails, user IDs, and domain suffixes into
+   * PR comment output (MEDIUM-risk leak per D8). Hand-authored explanations
+   * close the leak path on literal-tier patterns. Judgment-tier patterns
+   * keep LLM in the loop because the Day 4 cognitive negatives all match
+   * `role_string_compare` — wholesale bypass would have produced 6 FPs.
+   *
+   * Resolution order: env var `FIXOR_ADMIN_CHECK_LLM_OPT_IN=true` wins
+   * over constructor option (deployment override); env unset OR constructor
+   * default → false (per-pattern bypass for literal-tier).
+   */
+  private readonly llmValidation: boolean;
+
   /** For test diagnostics; reset at the start of each `detect()` call. */
   public lastDiagnostics: FileDiagnostic[] = [];
+
+  constructor(options: { llmValidation?: boolean } = {}) {
+    const envValue = process.env.FIXOR_ADMIN_CHECK_LLM_OPT_IN;
+    if (envValue !== undefined) {
+      this.llmValidation = envValue === "true";
+    } else {
+      this.llmValidation = options.llmValidation ?? false;
+    }
+  }
 
   async detect(ctx: DetectorContext): Promise<NormalizedFinding[]> {
     this.lastDiagnostics = [];
@@ -389,6 +533,47 @@ export class AdminCheckDetector implements Detector {
     }
 
     const trigger = triggers[0]!;
+    const matchedPattern = PREFILTER_PATTERNS.find(
+      (p) => p.id === trigger.patternId,
+    );
+
+    // Per-pattern Option G bypass (Day 8): literal-tier patterns with
+    // hand-authored explanations skip the LLM call. Judgment-tier patterns
+    // (currently only role_string_compare) stay on LLM path regardless of
+    // llmValidation setting because the regex cannot disambiguate bug vs
+    // safe usage. See D8 "Detector ≠ pattern set" in detector-test-rules.md.
+    if (
+      !this.llmValidation &&
+      matchedPattern?.tier === "literal" &&
+      matchedPattern.explanation
+    ) {
+      diag.verdict = {
+        isVulnerable: true,
+        confidence: "high",
+        reasoning: matchedPattern.explanation,
+      };
+      diag.flagged = true;
+      diag.preFilterReason = "llm-bypass";
+      this.lastDiagnostics.push(diag);
+
+      const bypassSnippet = extractContextWindow(content, trigger.line);
+      return [
+        {
+          detectorId: DETECTOR_ID,
+          type: "admin_check_risk",
+          file: filePath,
+          startLine: trigger.line,
+          endLine: trigger.line,
+          originalCode: bypassSnippet,
+          ruleId: `admin-check-${trigger.patternId}`,
+          message: matchedPattern.explanation,
+          explanation: matchedPattern.explanation,
+          confidence: "high",
+          severity: "critical",
+        },
+      ];
+    }
+
     const verdict = await this.callLlm({
       filePath,
       language: langDisplay(lang),

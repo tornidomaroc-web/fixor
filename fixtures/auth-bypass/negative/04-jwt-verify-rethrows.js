@@ -14,7 +14,6 @@ function requireAuth(req, res, next) {
     req.user = jwt.verify(token, SECRET);
     next();
   } catch (err) {
-    // Re-raise as 401 so downstream code never sees a half-authenticated request.
     res.status(401).json({ error: "invalid token" });
   }
 }
