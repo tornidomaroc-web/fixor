@@ -8,7 +8,7 @@
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
 [![License: MIT](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
 
-> **A GitHub App that reviews every pull request for the business-logic vulnerabilities Snyk and Semgrep miss — auth bypass, IDOR, missing admin checks, env exposure, and hardcoded secrets. Posts concrete fixes inline, generates a PDF/SARIF report, runs in &lt;30 seconds.**
+> **A GitHub App that reviews every pull request for the business-logic vulnerabilities Snyk and Semgrep miss — auth bypass, IDOR, weak admin checks, env exposure, and hardcoded secrets. Posts a precise explanation and remediation steps inline, generates a PDF/SARIF report, runs in &lt;30 seconds.**
 
 [Landing](https://tornidomaroc-web.github.io/fixor/) ·
 [Dashboard](https://app.fixor.dev) ·
@@ -24,9 +24,9 @@
 
 | Capability | Status |
 |---|---|
-| 🔓 Authentication bypass — protected routes missing auth middleware | ✅ Shipping (measured) |
+| 🔓 Authentication bypass — weakened or short-circuited auth checks: role-to-admin fallbacks, swallowed token verification, hardcoded bypass flags | ✅ Shipping (measured) |
 | 🔑 IDOR — resource access without an ownership check | ✅ Shipping (measured) |
-| 👮 Missing admin check — privileged endpoints without a role guard | ✅ Shipping (measured) |
+| 👮 Weak admin check — privilege gated by hardcoded email/role allowlists or client-supplied role | ✅ Shipping (measured) |
 | 🌫️ Env exposure — secrets leaked through env vars into response bodies | ✅ Shipping (measured) |
 | 🗝️ Secrets exposure — hardcoded API keys, tokens, credentials | ✅ Shipping (measured) |
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
@@ -46,10 +46,12 @@ The full plan and what's already shipped is in [`docs/INDIE-SAAS-ROADMAP.md`](do
 1. Install Fixor as a GitHub App on a repo or org.
 2. When a PR opens or updates, GitHub sends a signed webhook to Fixor.
 3. The diff (only the changed lines — never the full repo) is sent to Claude.
-4. Fixor's analysis engine produces findings + framework-aware fixes.
+4. Fixor's analysis engine produces findings, each with a precise explanation and remediation steps.
 5. A structured comment lands on the PR with the report inline + signed PDF/SARIF links.
 
 Total latency from PR push to comment: typically 10–30 seconds.
+
+> **A second pair of eyes, not a guarantee.** Fixor is tuned for near-zero false positives — when it flags something, it's real, so it reports only what it can stand behind. It sharpens human review; it does not replace it.
 
 ## Screenshots
 
@@ -69,7 +71,7 @@ Fixor doesn't compete with Snyk or Semgrep — it covers the class they structur
 | Languages | JS/TS today (more on roadmap) | 10+ | 30+ |
 | Detector focus | Business logic: auth-bypass · IDOR · admin-check · env-exposure · secrets | Dependency CVEs + injection patterns | 2,000+ pattern rules |
 | False-positive driver | Claude reasoning (low) | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
-| Auto-suggested patches | ✅ Inline, framework-aware | Partial (Snyk Code Fix) | ❌ (rules describe; don't patch) |
+| Remediation output | Precise explanation + remediation steps per finding | Partial auto-patch (Snyk Code Fix) | Rule message only |
 | PDF + SARIF | ✅ Both | ✅ SARIF | ✅ SARIF |
 | Pricing (entry) | $0 (free tier, real) | Free tier; $52/dev/mo Team | OSS free; $40/dev/mo Pro |
 | Open source | ✅ MIT | ❌ | ✅ rules engine |
