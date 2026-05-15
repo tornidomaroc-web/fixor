@@ -55,9 +55,11 @@ Total latency from PR push to comment: typically 10–30 seconds.
 
 ## Screenshots
 
-> Asset capture is operator action — see [`docs/MARKETPLACE-LISTING.md`](docs/MARKETPLACE-LISTING.md) for the exact shots to grab. Drop them at `docs/screenshots/<name>.png` and uncomment the `<img>` tags below.
+A live Fixor Security Report, posted on a real pull request — [`fixor-demo` PR #1](https://github.com/tornidomaroc-web/fixor-demo/pull/1):
 
-<!-- ![PR comment](docs/screenshots/pr-comment.png) -->
+<img src="docs/screenshots/pr-comment.png" alt="Fixor Security Report comment on a pull request — summary table and four business-logic findings" width="900"/>
+
+<!-- TODO: capture remaining assets, then uncomment -->
 <!-- ![PDF report](docs/screenshots/pdf-report.png) -->
 <!-- ![Dashboard scans](docs/screenshots/dashboard-scans.png) -->
 
