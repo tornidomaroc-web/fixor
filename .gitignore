@@ -37,5 +37,10 @@ scan-report-*.md
 # Out-of-tree research / lead-gen data
 leads/
 
+# Outreach kit — prospect PII + outreach playbook, kept local only.
+# Never commit: public repo + third-party personal data (privacy / Apollo ToS),
+# and a publicly findable cold-email template kills the cold-email campaign.
+outreach/
+
 # Local smoke-test artifacts (cloned repos, scan reports, debug logs)
 test-output/
