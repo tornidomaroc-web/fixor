@@ -73,7 +73,7 @@
     "primary": {
       "type": "button",
       "label": "Install Fixor",
-      "href": "https://github.com/apps/fixor/installations/new"
+      "href": "https://github.com/apps/fixor-security/installations/new"
     }
   }
 }

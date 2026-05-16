@@ -4,7 +4,7 @@
 
 <br/>
 
-[![Install on GitHub](https://img.shields.io/badge/Install%20on%20GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/apps/fixor/installations/new)
+[![Install on GitHub](https://img.shields.io/badge/Install%20on%20GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/apps/fixor-security/installations/new)
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
 [![License: MIT](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
 
