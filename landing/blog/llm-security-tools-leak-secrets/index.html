@@ -1,0 +1,561 @@
+<!--
+  Fixor blog, Post 1.
+  Static HTML, served by GitHub Pages from landing/ at
+  https://fixor.dev/blog/llm-security-tools-leak-secrets/
+  Relative links climb two levels (../../) to reach the landing root.
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="We found our own security scanner quoting a secret it had flagged into a pull-request comment. A look at reasoning-content disclosure in LLM-based security tools." />
+    <title>LLM-based security tools can leak the secrets they detect · Fixor</title>
+    <link rel="canonical" href="https://fixor.dev/blog/llm-security-tools-leak-secrets/" />
+    <meta name="author" content="Abdelfettah Amellah (Abo Jad)" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://fixor.dev/blog/llm-security-tools-leak-secrets/" />
+    <meta property="og:title" content="LLM-based security tools can leak the secrets they detect" />
+    <meta property="og:description" content="We found our own security scanner quoting a secret it had flagged into a pull-request comment. A look at reasoning-content disclosure in LLM-based security tools." />
+    <meta property="article:published_time" content="2026-05-19" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="LLM-based security tools can leak the secrets they detect" />
+    <meta name="twitter:description" content="We found our own security scanner quoting a secret it had flagged into a pull-request comment. A look at reasoning-content disclosure in LLM-based security tools." />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f97316' d='M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z'/><path fill='%23fff' d='m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z'/></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --bg-elevated: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --text-muted: #8b949e;
+        --accent: #f97316;
+        --accent-hover: #fb923c;
+        --radius: 10px;
+        --font-sans: "Instrument Sans", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        color: var(--accent-hover);
+        text-decoration: underline;
+      }
+
+      .wrap {
+        width: min(1100px, 100% - 2rem);
+        margin-inline: auto;
+      }
+
+      header.site {
+        padding: 1.25rem 0;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: color-mix(in srgb, var(--bg) 92%, transparent);
+        backdrop-filter: blur(10px);
+        z-index: 10;
+      }
+
+      .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        font-size: 1.125rem;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
+
+      .logo:hover {
+        text-decoration: none;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+
+      .logo-text {
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .nav-cta {
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--bg) !important;
+      }
+
+      .nav-cta:hover {
+        background: var(--accent-hover);
+        text-decoration: none;
+      }
+
+      .post {
+        width: min(46rem, 100% - 2rem);
+        margin-inline: auto;
+        padding: clamp(2.5rem, 6vw, 4rem) 0 1rem;
+      }
+
+      .post-meta {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        letter-spacing: 0.01em;
+        margin-bottom: 1rem;
+      }
+
+      .post h1 {
+        font-size: clamp(1.7rem, 4.5vw, 2.4rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+        margin: 0 0 1rem;
+      }
+
+      .post .standfirst {
+        font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+        color: var(--text-muted);
+        margin: 0 0 2rem;
+      }
+
+      .post h2 {
+        font-size: clamp(1.2rem, 3vw, 1.45rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 2.75rem 0 0.75rem;
+        scroll-margin-top: 5rem;
+      }
+
+      .post p {
+        margin: 0 0 1.15rem;
+      }
+
+      .post code {
+        font-family: var(--font-mono);
+        font-size: 0.85em;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 0.1rem 0.35rem;
+        color: var(--text);
+        word-break: break-word;
+      }
+
+      .post pre {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.1rem;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        margin: 0 0 1.15rem;
+      }
+
+      .post pre code {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: inherit;
+        color: inherit;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 2.5rem 0;
+      }
+
+      .reply {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.4rem;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        margin-top: 2.5rem;
+      }
+
+      .reply strong {
+        color: var(--text);
+      }
+
+      footer.site {
+        padding: 2rem 0;
+        margin-top: 3rem;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap header-inner">
+        <a class="logo" href="../../">
+          <svg
+            class="logo-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              fill="#f97316"
+              d="M12 2 4 5.2V11c0 4.8 3.2 9.3 8 10.8 4.8-1.5 8-6 8-10.8V5.2L12 2Z"
+            />
+            <path
+              fill="#fff"
+              d="m16.2 9.3-4.8 4.9-2.6-2.6-1.4 1.4 4 4 6.2-6.3-1.4-1.4Z"
+            />
+          </svg>
+          <span class="logo-text">Fixor</span>
+        </a>
+        <a class="nav-cta" href="https://github.com/apps/fixor-security/installations/new">Install on GitHub</a>
+      </div>
+    </header>
+
+    <main>
+      <article class="post">
+        <div class="post-meta">
+          <time datetime="2026-05-19">19 May 2026</time> · Abdelfettah Amellah (Abo Jad) · Fixor
+        </div>
+        <h1>LLM-based security tools can leak the secrets they detect</h1>
+        <p class="standfirst">
+          We found our own scanner quoting a secret it had just flagged into the
+          comment it was about to post. The detector worked. The explanation was
+          the leak. Here is what happened, why it is structural, and what we did
+          about it.
+        </p>
+
+        <h2 id="finding">The finding</h2>
+        <p>
+          Earlier this month, during an audit of our own detectors, we were
+          running a routine stability test on Fixor, the pull-request review
+          tool we build. Fixor scans the diff in a pull
+          request for a small set of vulnerability classes and posts an
+          explanation of each finding as a PR comment. The stability test runs
+          each detector repeatedly against a set of test fixtures and records
+          what it produces.
+        </p>
+        <p>
+          One of those fixtures is a Go file containing a hardcoded JWT signing
+          key. The value is synthetic, a string we wrote for the fixture, not a
+          real credential:
+        </p>
+        <pre><code>const jwtSigningKey = "PROD-jwt-acme-9d8f7a6c5b4e3d2f1a0b9c8d7e6f5a4b"</code></pre>
+        <p>
+          Our <code>secrets-exposure</code> detector flagged it correctly. That
+          was the expected result. What was not expected was the explanation
+          text. The model we use to validate and describe findings had quoted
+          the key, in full, into the reasoning it produced, and that reasoning
+          was on its way into a PR comment. If this had been a real pull request
+          on a real repository, the comment would have republished the secret to
+          everyone with read access to that repository.
+        </p>
+        <p>
+          The detector did its job. It found a hardcoded secret. The problem was
+          that the act of explaining the finding reproduced the thing the
+          finding was about. The finding was the leak.
+        </p>
+
+        <h2 id="structural">Why this is structural, not a bug</h2>
+        <p>
+          Our first instinct was that this was a defect in our prompt or our
+          output formatting. It is not. It is a structural property of how this
+          category of tool is built.
+        </p>
+        <p>
+          LLM-based security tools generally use a language model for one of two
+          jobs: validating whether a regex or static-analysis hit is a true
+          finding, and writing the human-readable explanation that goes to the
+          developer. In both jobs the model is handed the code under review and
+          asked to reason about it. Language models trained on code quote the
+          code they reason about. That behavior is normal and usually helpful.
+          When the code under review contains a secret, a credential, or another
+          sensitive value, the model's reasoning quotes that value the same way
+          it would quote any other token.
+        </p>
+        <p>
+          The tool then renders that reasoning into an output channel: a
+          pull-request comment, a dashboard, a chat message, an email. Those
+          channels have a wider audience than the source file did. A secret
+          sitting in one file in a private repository is visible to the people
+          who can read that file. The same secret quoted into a PR comment is
+          visible to everyone with read access to the repository, and depending
+          on configuration to notification emails and downstream integrations.
+          The tool has moved sensitive content from a narrow surface to a wide
+          one, through the model's output, and no person decided to do that.
+        </p>
+
+        <h2 id="taxonomy">Where this sits in the OWASP taxonomy</h2>
+        <p>
+          We think this belongs in the conversation around the OWASP Top 10 for
+          LLM Applications. It reads as a concrete instance of LLM02, Sensitive
+          Information Disclosure, with a strong overlap with LLM05, Improper
+          Output Handling. LLM02 captures the disclosure itself: sensitive data
+          reaches a party that should not see it. LLM05 captures the missing
+          control: the application passes model output to a downstream channel
+          without sanitizing it.
+        </p>
+        <p>
+          We are not arguing for where it should be placed. That is for the
+          working group. We raise it because the case is specific to security
+          tooling, where the model is deliberately pointed at the most sensitive
+          code in a repository, and because we did not find it described in
+          either entry's current public text. We notified the OWASP Gen AI
+          Security Project about this before publishing, which we describe at
+          the end of this post.
+        </p>
+
+        <h2 id="other-detectors">The same shape in another detector</h2>
+        <p>
+          The JWT key was the clearest case, but it was not the only one. When
+          we audited our other detectors for the same property, our
+          <code>admin-check</code> detector showed a related, lower-severity
+          version of it.
+        </p>
+        <p>
+          <code>admin-check</code> looks for authorization decisions made
+          against hardcoded identity values, for example an allowlist of email
+          addresses treated as the set of administrators. The fixtures for that
+          detector contain hardcoded email allowlists. They are synthetic
+          addresses for a fictional company, values such as
+          <code>founder@acme.app</code> and <code>cto@acme.app</code> that we
+          wrote for the test set. The detector's model reasoning would quote
+          those addresses when it explained a finding, the same way the secrets
+          detector quoted the JWT key. In a real codebase those values would be
+          real email addresses and real internal identifiers. We classified this
+          as a medium-risk version of the same issue: the leaked content is
+          identity data rather than a credential, but the mechanism, model
+          reasoning quoting matched content into a wider channel, is identical.
+        </p>
+
+        <h2 id="survey">What other tools document</h2>
+        <p>
+          We reviewed the public documentation, product pages, and white papers
+          of six AI-augmented security products on 19 May 2026. The six were
+          Snyk Code AI, GitHub Copilot Autofix, Semgrep Assistant, Endor Labs,
+          Corgea BLAST, and Aikido. None documents an output-side mitigation for
+          this disclosure class, meaning redacting secrets or source content
+          from the model's output before it reaches a customer-visible channel.
+          Several document input-side controls instead, such as minimizing the
+          code sent to the model, anonymizing it, and not training on it. GitHub
+          Copilot Autofix documents a filter for harmful suggestions. None of
+          these addresses the output path: a model still receives the code and
+          can quote a secret from it into a PR comment or dashboard. We are not
+          claiming internal mitigations do not exist. We are reporting that the
+          public surface is silent on the output path.
+        </p>
+        <p>
+          Our full review, with the URL and an exact quote for every product, is
+          published as
+          <a href="https://github.com/tornidomaroc-web/fixor/blob/main/docs/competitor-survey-2026-05-19.md">competitor-survey-2026-05-19.md</a>
+          in the Fixor repository, so the negative claim can be checked rather
+          than taken on trust.
+        </p>
+
+        <h2 id="mitigations">The mitigations, ranked by how much you can trust them</h2>
+        <p>
+          There are three ways to stop model reasoning from leaking matched
+          content, and they are not equally trustworthy.
+        </p>
+        <p>
+          The strongest is to not generate the reasoning with a model at all for
+          the affected findings. Replace it with hand-authored explanations. The
+          explanation names the vulnerability class, the attack surface, and the
+          remediation. It is written once, by a person, with no access to any
+          specific matched value. Because the explanation never sees the source
+          content, it cannot quote it. The property holds by construction, at
+          authoring time, rather than depending on anything that happens at
+          output time.
+        </p>
+        <p>
+          The middle option is a redaction layer applied to model output before
+          it is emitted. Run the detector's own secret-matching patterns against
+          the model's reasoning text and replace any match with a placeholder.
+          This is worth having as defense in depth, because it catches cases the
+          first option does not. It is weaker because it only catches secret
+          shapes the detector already recognizes. A novel or unusually formatted
+          secret that the model quotes can pass straight through it.
+        </p>
+        <p>
+          The weakest is a system-prompt instruction telling the model not to
+          quote secret values. It relies on model compliance, which is
+          probabilistic. It will work most of the time and fail some of the
+          time, and the failures are exactly the high-severity cases. It should
+          never be the only control. If it is used at all, it should be paired
+          with the redaction layer.
+        </p>
+
+        <h2 id="what-we-shipped">What we shipped</h2>
+        <p>
+          We changed two detectors.
+        </p>
+        <p>
+          For <code>secrets-exposure</code>, we made the regex-only path the
+          default. In that mode the detector matches its patterns, and when it
+          finds a hardcoded secret it emits a hand-authored explanation for that
+          pattern class. It makes no model call. The explanation describes the
+          bug and the fix without echoing the matched value. The model-based
+          mode still exists, but it is now opt-in behind an environment variable
+          rather than the default. A detector that never sends the secret to a
+          model, and never renders model reasoning, cannot leak through this
+          path.
+        </p>
+        <p>
+          <code>admin-check</code> needed a more careful change, because not
+          every one of its patterns can drop the model. We inventoried its
+          twelve patterns and classified each into one of two tiers. Eleven are
+          literal: the pattern match is itself the finding, and no surrounding
+          context can make the match safe. For those, the model was only ever
+          confirming what the regex had already proved, so we route them through
+          hand-authored explanations, the same as <code>secrets-exposure</code>.
+          One pattern is a judgment pattern. It matches a shape that can be
+          either a real bug or safe code depending on context, and separating
+          the two genuinely needs the model to read the surrounding data flow.
+          That one pattern keeps the model. We did not apply a blanket bypass,
+          because bypassing the model on the judgment pattern would have turned
+          safe code into false positives. The tier classification lives in the
+          detector source as a field on each pattern definition.
+        </p>
+
+        <h2 id="validation">Validation, and a measurement flaw we corrected</h2>
+        <p>
+          We then ran both detectors, in their new default configuration, across
+          fourteen open-source repositories. The corpus was 71,611 files. Total
+          model API cost for the whole run was eleven cents, because in the new
+          defaults the model is called only on the single judgment pattern, and
+          that pattern is rare. The safe default turned out to also be the cheap
+          one. For a tool that scans every pull request, that matters: the safe
+          configuration carries no cost penalty that would tempt anyone to turn
+          it off.
+        </p>
+        <p>
+          The run also taught us something we did not expect, and we are
+          including it because leaving it out would be dishonest. We had planned
+          to use the run to measure a false-positive rate against thresholds we
+          had set earlier. The run found zero true positives across the whole
+          corpus. Mature open-source projects do not commit real secrets, so
+          there was nothing for a false-positive rate to be measured against. A
+          false-positive rate needs a true-positive count in its denominator,
+          and ours was zero, so the threshold we had written could not be
+          evaluated. That was a flaw in how we designed the measurement, not in
+          the detectors. We have dropped any false-positive-rate claim that
+          depended on that run. A separate experiment, against a corpus with
+          deliberately seeded and labelled secrets, is what will produce an
+          honest precision number.
+        </p>
+        <p>
+          The safety property in this post does not depend on that arithmetic.
+          It depends on the construction argument above: a detector that does
+          not render model reasoning cannot leak through model reasoning,
+          whether or not any real secret is present to leak.
+        </p>
+
+        <h2 id="check-your-tooling">How to check your own tooling</h2>
+        <p>
+          If you build or operate an LLM-based security tool, this is
+          straightforward to check. Take a finding the tool produced on code
+          that contains a secret or an internal identifier. Read the explanation
+          text the tool shows to the user. Look for content copied out of the
+          flagged code: a variable's value, a hardcoded string, an email
+          address, an identifier. If that content is in the explanation, the
+          tool has this exposure, and the next question for the vendor is what
+          mitigates it.
+        </p>
+        <p>
+          If you buy these tools, the same question belongs on the due-diligence
+          checklist: does the model's output ever quote our source content,
+          including secrets, into a comment or a dashboard, and if so what
+          removes it.
+        </p>
+        <p>
+          We have published the working notes behind this post so the next team
+          can skip the discovery cost. The detector validation rules, including
+          the fixture-authoring discipline and the measurement caveats, are in
+          <a href="https://github.com/tornidomaroc-web/fixor/blob/main/docs/detector-test-rules.md">detector-test-rules.md</a>.
+          The production validation report, including the measurement flaw
+          described above, is in
+          <a href="https://github.com/tornidomaroc-web/fixor/blob/main/docs/STEP4-PRODUCTION-VALIDATION.md">STEP4-PRODUCTION-VALIDATION.md</a>.
+          The competitor survey is in
+          <a href="https://github.com/tornidomaroc-web/fixor/blob/main/docs/competitor-survey-2026-05-19.md">competitor-survey-2026-05-19.md</a>.
+          All three are in the Fixor repository.
+        </p>
+
+        <h2 id="disclosure">Disclosure note</h2>
+        <p>
+          A note on sequence. Before publishing this post, we sent a
+          pre-publication note to the OWASP Gen AI Security Project describing
+          this finding, so that the standards body saw it before the public did.
+          We did that because the finding is a candidate input to their
+          guidance, and the responsible order is for the working group to see it
+          first. This post is the public write-up that note referred to. We are
+          not naming a vulnerability in anyone's software here. We are describing
+          a class of behavior that we found in our own product, fixed, and then
+          looked for in others.
+        </p>
+
+        <hr class="divider" />
+
+        <div class="reply">
+          <strong>Questions or corrections.</strong> If something here is wrong,
+          we want to know. The post, the competitor survey, and the validation
+          notes all live in the public Fixor repository at
+          <a href="https://github.com/tornidomaroc-web/fixor">github.com/tornidomaroc-web/fixor</a>.
+          Open an issue and we will respond.
+        </div>
+      </article>
+    </main>
+
+    <footer class="site">
+      <div class="wrap">© 2026 Fixor · <a href="../../">Home</a> · <a href="https://github.com/tornidomaroc-web/fixor">GitHub</a> · <a href="../../security.html">Security</a> · <a href="../../privacy.html">Privacy</a> · <a href="../../terms.html">Terms</a></div>
+    </footer>
+  </body>
+</html>

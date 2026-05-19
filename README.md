@@ -51,7 +51,7 @@ The full plan and what's already shipped is in [`docs/INDIE-SAAS-ROADMAP.md`](do
 
 Total latency from PR push to comment: typically 10–30 seconds.
 
-> **A second pair of eyes, not a guarantee.** Fixor is tuned for near-zero false positives — when it flags something, it's real, so it reports only what it can stand behind. It sharpens human review; it does not replace it.
+> **A second pair of eyes, not a guarantee.** Every finding Fixor reports comes with a precise explanation and remediation steps, so you can judge it quickly. It sharpens human review; it does not replace it.
 
 ## Screenshots
 
