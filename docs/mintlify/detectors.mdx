@@ -1,135 +1,226 @@
 ---
 title: "Detector catalogue"
-description: "What each Fixor detector family flags, what frameworks it understands, and sample patches."
+description: "What each of Fixor's six detector families flags, the patterns they cover, and what they explicitly do not claim."
 ---
 
-Fixor ships four detectors today. All four run on every scan
-unless you've narrowed the allowlist in your org settings. Each
-one is implemented as a `Detector` class in
+Fixor ships six detector families. All six run on every scan unless
+you have narrowed the allowlist in your org settings. Each detector
+is implemented as a `Detector` class under
 [`src/analysis-engine/detectors/`](https://github.com/tornidomaroc-web/fixor/tree/main/src/analysis-engine/detectors)
-— readable in ~200 lines per family.
+and is gated by a regex prefilter before any LLM call, so a file
+that contains none of the detector's sentinel patterns is dropped
+without spending a token.
 
-## SQL injection
+The authoritative scope contract for what each detector catches and
+explicitly does not catch lives at
+[`docs/detector-capabilities.md`](https://github.com/tornidomaroc-web/fixor/blob/main/docs/detector-capabilities.md).
+This page summarizes; that file wins on any conflict.
 
-<Info>Detector id: `sql-injection-js-ts`</Info>
+## Authentication bypass
 
-What we look for:
-
-- String concatenation or template-literal interpolation into
-  query builder methods (`db.query(...)`, `connection.execute(...)`,
-  Knex's `.raw()`, raw `mysql2`/`pg` calls).
-- Drivers covered by the rewrite engine: **MySQL2**, **node-postgres
-  (`pg`)**, **Knex**, **Prisma raw queries**.
-- Common false-positive guards: a query with no user-controlled
-  inputs (literal strings, env vars) is not flagged.
-
-Fix shape:
-
-```js
-// Before
-db.query(`SELECT * FROM users WHERE id = ${req.params.id}`)
-
-// Fixor's suggested fix
-db.query("SELECT * FROM users WHERE id = ?", [req.params.id])
-```
-
-## Cross-site scripting (XSS)
-
-<Info>Detector id: `xss-js-ts`</Info>
+<Info>Detector id: `auth-bypass-multi`</Info>
 
 What we look for:
 
-- DOM sinks where untrusted data lands without escaping:
-  `element.innerHTML = …`, `document.write(…)`, `eval()`,
-  `outerHTML`, `insertAdjacentHTML`.
-- React-specific bypass patterns (`dangerouslySetInnerHTML`,
-  unescaped raw HTML in `useEffect` handlers).
-- Server-side template sinks where applicable (Express
-  `res.send` of user input without escaping).
+- **Sentinel-string bypasses** in TypeScript, JavaScript, Python, Go,
+  and Ruby: hardcoded `"anonymous"` / `"admin"` / `"public"` defaults,
+  `|| true` short-circuits, `|| "admin"` and `?? "admin"` fallbacks,
+  JWT verification swallowed inside try/catch, Python
+  `verify_signature=False`, `DEFAULT_USER_ID` / `DEFAULT_ADMIN_ID` /
+  `DEFAULT_ADMIN_EMAIL` fallbacks, Ruby `params[:x] || "admin"`.
+- **Missing-middleware bypasses** on Express-family routers: a
+  destructive route declaration with no authentication middleware in
+  the argument list, where sibling routes on the same router do pass
+  an auth middleware. Pattern matches literal `router` / `app` / `api`
+  identifiers, or any identifier ending in `Router` / `App` / `Api`
+  (so `adminRouter.post(...)` is covered). Verbs covered: `get`,
+  `post`, `put`, `delete`, `patch`, `use`, `all`.
 
-Fix shape:
+Explicitly not covered (escalate to a manual review):
+Fastify, Koa, Hono, NestJS Guards, Spring `@PreAuthorize`, ASP.NET
+`[Authorize]`, GraphQL resolver-level auth, declarative Rails route
+guards, tRPC `protectedProcedure`, Next.js middleware-based auth.
 
-```js
-// Before
-container.innerHTML = `<h1>Hello, ${name}</h1>`
+## Missing admin checks
 
-// Fixor's suggested fix
-container.textContent = ""
-const h1 = document.createElement("h1")
-h1.textContent = `Hello, ${name}`
-container.appendChild(h1)
-```
-
-## Command injection
-
-<Info>Detector id: `command-injection-js-ts`</Info>
+<Info>Detector id: `admin-check-multi`</Info>
 
 What we look for:
 
-- `child_process.exec` or `execSync` with user-controlled string
-  concatenation (the family of bugs that yields RCE).
-- `child_process.spawn` / `spawnSync` where the **command itself**
-  is user-controlled, even if args are an array.
-- Shell-interpolation patterns: `` `cmd ${userInput}` ``.
+- **Hardcoded-admin shapes** in TypeScript, JavaScript, Python, Go:
+  `email === "x@y.z"`, `email.endsWith("@domain")`,
+  `email.includes("admin"|"owner"|"founder"|"root"|"superuser")`, Go
+  `strings.HasSuffix(email, "@x")`, `ADMIN_EMAIL` / `admin_email`
+  constants, `ADMIN_EMAILS` / `admin_emails` allowlist arrays,
+  `DEFAULT_ADMIN_ID`, `DEFAULT_ADMIN_EMAIL`, `role || "admin"`,
+  `role ?? "admin"`, `req.body|query|params.<role>` reads,
+  `role === "admin"` string compare on a client-controlled value.
+- **Missing-admin-gate shapes** on Express-family routers: a
+  privileged route (role or tier change, user management, billing
+  settings, `/admin/*` paths) with no admin authorization check in
+  either the middleware list (`requireAdmin`, `isAdmin`, `adminOnly`,
+  `verifyAdmin`) or the handler body, where sibling routes on the
+  same router are admin-gated.
 
-Fix shape:
+Explicitly not covered: Fastify, Koa, Hono, NestJS Guards, Spring
+`@PreAuthorize`, decorator-based RBAC, declarative RBAC (Casbin, OPA,
+Cedar), tRPC `adminProcedure`, GraphQL resolver-level admin checks.
 
-```js
-// Before
-exec(`git log --author=${author}`, (err, stdout) => { ... })
+When auth-bypass and admin-check both fire on the same `file:line`,
+the admin-check finding is dropped (the auth-bypass finding subsumes
+it; "no auth at all" is strictly worse than "no admin gate" and the
+remediation is the same).
 
-// Fixor's suggested fix
-import { execFile } from "node:child_process"
-execFile("git", ["log", "--author", author], (err, stdout) => { ... })
-```
+## IDOR (insecure direct object reference)
 
-## Path traversal
-
-<Info>Detector id: `path-traversal-js-ts`</Info>
+<Info>Detector id: `idor-multi`</Info>
 
 What we look for:
 
-- File API arguments (`fs.readFile`, `fs.createReadStream`,
-  `fs.writeFile`, `path.join`, `express.static`) where the path is
-  derived from request input.
-- `..` traversal patterns the analysis engine can prove are
-  reachable from request data flow.
-- Missing allowlist / `path.resolve` + prefix-check patterns.
+- A database read or write where a request-derived id
+  (`req.params.id`, `req.body.id`, tRPC `input.id`, FastAPI path
+  param, Rails `params[:id]`, Go chi `chi.URLParam`) flows into a
+  query (`findUnique`, `findFirst`, `update`, `delete`, raw SQL,
+  `pool.query`) with no ownership filter
+  (`userId: ctx.session.user.id` or equivalent) in the `where` clause
+  and no post-fetch ownership check.
+- Router frameworks covered by fixtures: Express, Next.js app router,
+  Fastify, Hono, tRPC, NestJS, FastAPI, Rails, Go chi with raw SQL.
 
-Fix shape:
+Explicitly not covered: IDOR via predictable storage filenames (S3,
+GCS), tenant-scoping bugs (`orgId` missing instead of `userId`),
+GraphQL field-level IDOR, business-logic IDOR (e.g. changing another
+user's email by knowing the email), TOCTOU race conditions on
+ownership checks.
 
-```js
-// Before
-res.sendFile(`/var/data/${req.params.filename}`)
+## Environment-variable exposure
 
-// Fixor's suggested fix
-import { resolve, sep } from "node:path"
-const root = resolve("/var/data")
-const target = resolve(root, req.params.filename)
-if (!target.startsWith(root + sep)) return res.sendStatus(400)
-res.sendFile(target)
-```
+<Info>Detector id: `env-exposure-multi`</Info>
+
+What we look for:
+
+- `process.env` serialized into an HTTP response body (Express
+  `res.json(process.env)`, Fastify, Flask `jsonify`, FastAPI).
+- `JSON.stringify(process.env)` reaching a logger payload.
+- Go `os.Environ()` or `os.LookupEnv` echoed back in a handler
+  response.
+- Partial-redaction patterns where the allowlist has gaps.
+
+Explicitly not covered: env vars leaking via error stack traces, env
+vars in build-time bundles (Next.js `NEXT_PUBLIC_*` overlap is owned
+by `secrets-exposure`), env vars leaked to third-party webhook
+payloads, env vars logged at startup, env vars baked into Docker
+image layers.
+
+## Hardcoded secrets
+
+<Info>Detector id: `secrets-exposure-multi`</Info>
+
+What we look for:
+
+- Literal API keys, tokens, and signing secrets: Stripe `sk_live_*`,
+  OpenAI `sk-*`, Anthropic `sk-ant-api03-*`, AWS `AKIA[A-Z0-9]{16}`,
+  Slack webhook URLs, Postgres passwords in connection strings,
+  hardcoded JWT signing secrets in source.
+- `NEXT_PUBLIC_*` env vars that expose server secrets to the client
+  bundle.
+- Supabase service-role key reaching client-side code.
+- Firebase admin SDK credentials inside client components.
+
+Explicitly not covered: secrets in git history (only the present tree
+is scanned), secrets in built bundles after a build step, secrets in
+`.env*` files (path-skipped) or test fixtures (path-skipped), secrets
+stored in third-party config systems (Vault, AWS Secrets Manager) and
+incorrectly retrieved, encryption-at-rest issues.
+
+## Unverified webhook handlers
+
+<Info>Detector id: `webhook-unverified-multi`</Info>
+
+What we look for:
+
+- Webhook handler routes (`/webhook`, `/hook`, `/hooks` URLs or
+  handler functions named `*Webhook*`) in Express/Fastify-style
+  routers, Flask decorators (`@bp.post`), Rails `post` routes, and Go
+  `HandleFunc`.
+- No signature verification at all on a webhook handler.
+- Explicit env-flag bypass of verification (e.g. `WEBHOOK_VERIFY=off`
+  short-circuiting `constructEvent`).
+- Raw string-compare of signatures (`sig != expected`, classified
+  MEDIUM as a timing leak).
+
+What we correctly skip (recognized as safe):
+`stripe.webhooks.constructEvent` / `stripe.Webhook.construct_event`,
+`@octokit/webhooks` + `createNodeMiddleware`,
+`twilio.validateRequest`, `crypto.timingSafeEqual`, Python
+`hmac.compare_digest`, Go `subtle.ConstantTimeCompare` and
+`hmac.Equal`, and dedicated verification middleware mounted before
+the handler.
+
+Provider coverage by fixtures today: Stripe, GitHub, Twilio, Slack,
+Lemon Squeezy, and custom HMAC.
+
+Explicitly not covered: Shopify (`X-Shopify-Hmac-Sha256`), Discord
+interactions (Ed25519), Mailgun, SendGrid, AWS SNS subscription
+confirmation, GCP Pub/Sub push (OIDC token), Square, PayPal, Paddle,
+Plaid, Algolia, Cloudflare Workers signed requests, replay-protection
+issues independent of signature verification, key rotation, mTLS.
+
+**Critical scope limitation:** the prefilter requires `webhook` /
+`hook` / `hooks` in the URL or `*Webhook*` in the handler name. A
+real Stripe handler mounted at `POST /billing/events` (Stripe allows
+any URL) is invisible to the prefilter and never reaches the LLM,
+even though its code shape matches our positive fixtures.
+
+**MEDIUM-confidence findings on this detector** (timing-leak
+comparisons, env-flag-conditional bypass) are routed to the internal
+review queue, not posted as a PR-comment finding, matching the
+HIGH-only emit policy used by the other five detectors.
+
+## How findings are produced
+
+Each detector follows the same two-stage pipeline:
+
+1. **Regex prefilter:** sentinel strings plus (for `auth-bypass`,
+   `admin-check`, `webhook-unverified`) route-definition patterns.
+   Files with zero matches are dropped without an LLM call. This is
+   what keeps a scan's cost bounded at roughly 2.4 cents per
+   detector-heavy file.
+2. **LLM verdict:** for files that pass the prefilter, Claude reads
+   the full file (for route-definition triggers) or a windowed
+   context (for sentinel triggers) and produces a confidence-graded
+   verdict. Only HIGH confidence verdicts surface as PR-comment
+   findings; MEDIUM verdicts land in an internal review queue.
+
+The driver of false-positive control is Claude reasoning per
+finding, not a single tunable rate.
 
 ## What about false positives?
 
-Fixor's analysis is performed by Claude — it reasons about your
-specific code, not just patterns, so the false-positive rate is
-materially lower than regex-based scanners. That said, every
-finding is a *suggestion*. You're the reviewer.
+Every finding is a suggestion, not a guarantee. If a specific finding
+is wrong for your codebase you have two settings-level escapes that
+apply on the next scan, no redeploy needed:
 
-If a particular finding is wrong for your codebase, tightening the
-**severity threshold** or adding the file's path to **ignored
-globs** in your org settings stops Fixor from raising it on
-subsequent scans without disabling the whole detector.
+- **Severity threshold:** drop low-severity findings before they
+  reach the comment.
+- **Ignored globs:** skip a path entirely (e.g. `vendor/**`,
+  `**/*.test.ts`).
+
+Neither disables a whole detector; both narrow noise. To turn off a
+specific detector entirely, use the detector-allowlist mode on the
+settings page.
 
 ## Roadmap
 
-Beyond what ships today, we're tracking:
+Vulnerability classes we are tracking but have not shipped:
 
-- **Secrets detection** — committed credentials, hardcoded keys
-- **Insecure deserialization** — `node-serialize`, custom shapes
-- **CSRF + same-origin** — missing tokens, bypass patterns
-- **SSRF** — outbound HTTP from user-supplied URLs
+- **CSRF / same-origin:** missing tokens, framework-specific bypass
+  patterns.
+- **SSRF:** outbound HTTP from user-controlled URLs.
+- **Mass assignment:** Prisma / Drizzle / SQLAlchemy update bodies
+  that accept fields a user should not be able to set.
+- **Insecure deserialization:** `node-serialize`, custom shapes.
 
-Vote with your feet by emailing <a href="mailto:support@fixor.dev">support@fixor.dev</a>
-— we add detectors based on what paying customers ask for.
+Detector demand drives the order: email
+<a href="mailto:support@fixor.dev">support@fixor.dev</a> with the
+class you want and the framework you ship.

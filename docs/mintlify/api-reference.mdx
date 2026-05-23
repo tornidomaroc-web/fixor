@@ -1,6 +1,6 @@
 ---
 title: "API reference"
-description: "Programmatic Fixor scans via the v1 API — token auth, one POST, one structured response."
+description: "Programmatic Fixor scans via the v1 API. Token auth, one POST, one structured response."
 ---
 
 Fixor's primary surface is the GitHub App webhook, but you can
@@ -24,15 +24,18 @@ checked-in CLI in the repo:
 git clone https://github.com/tornidomaroc-web/fixor
 cd fixor
 npm ci
-DATABASE_URL="postgres://…" npm run create-api-token -- --org-id <uuid> --name "ci-runner"
+DATABASE_URL="postgres://..." npm run create-api-token -- --org-id=<uuid> --name="ci-runner"
 ```
 
-You'll get a `fxr_*` string back. **Store it immediately** — Fixor
+The flag form is `--org-id=<uuid>` and `--name=<label>` (equals
+sign, not space-separated).
+
+You'll get an `fxr_*` string back. **Store it immediately.** Fixor
 stores only the SHA-256 hash; the plain string is shown once and
 never recoverable. Lose it, generate a new one.
 
-The org id comes from the dashboard URL — visit
-`/orgs/<id>/scans` and the id is in the path.
+The org id comes from the dashboard URL: visit `/orgs/<id>/scans`
+and the id is in the path.
 
 ### Use the token
 
@@ -45,91 +48,123 @@ curl https://api.fixor.dev/api/v1/scan \
   -d '{ ... }'
 ```
 
-Tokens never expire on their own, but you can revoke one at any
-time by setting `revoked_at` on the `api_tokens` row directly
-(self-serve UI for revocation lands in a future phase).
+Tokens never expire on their own, but they can be revoked from the
+operator side (a self-serve dashboard for revocation is planned but
+not yet shipped).
 
 ## Rate limiting
 
-The default is **60 scans per token per hour**, fixed window.
+The default is **60 scans per token per minute**, fixed window.
 Bursts above that return `429 Too Many Requests` with a
-`Retry-After` header. Email us if you need a higher limit for a
-real workload.
+`Retry-After` header and a body of
+`{"error":"rate_limit_exceeded","retryAfterSeconds":N}`.
+
+The per-minute cap is overridable via the `FIXOR_API_RATE_LIMIT_PER_MIN`
+environment variable on the server. Email us if you need a
+sustained higher limit for a real workload.
 
 ## `POST /api/v1/scan`
 
 Run a scan against a posted diff and return findings + fixes
-synchronously. The endpoint streams its work but doesn't return
-until the scan completes — typical latency is 10–30 seconds.
+synchronously. The endpoint runs the auditor workflow and waits
+for completion before responding; typical latency is 10 to 30
+seconds.
 
 ### Request
 
 ```json
 {
-  "diff": "diff --git a/src/users.js b/src/users.js\nindex e69de29..a7e1f5d 100644\n--- a/src/users.js\n+++ b/src/users.js\n@@ ... @@\n+db.query(`SELECT * FROM users WHERE id = ${req.params.id}`)\n",
-  "metadata": {
-    "repo": "acme/payments-api",
-    "pr_number": 42,
-    "head_sha": "a1b2c3d4"
-  }
+  "diff": "diff --git a/src/routes/admin.ts b/src/routes/admin.ts\nindex e69de29..a7e1f5d 100644\n--- a/src/routes/admin.ts\n+++ b/src/routes/admin.ts\n@@ ... @@\n+adminRouter.post(\"/users/delete\", async (req, res) => { await db.user.delete(req.body.userId); res.json({ ok: true }); })\n"
 }
 ```
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `diff` | string | yes | Unified-diff text. Standard `diff --git` headers expected. |
-| `metadata.repo` | string | recommended | `owner/repo` form. Used for log + report attribution. |
-| `metadata.pr_number` | integer | optional | Numeric PR id. Helps the report header. |
-| `metadata.head_sha` | string | optional | Commit SHA the diff is rooted at. |
+| `diff` | string | yes | Unified-diff text. Standard `diff --git` headers expected. Must be non-empty. |
+
+The endpoint reads only the `diff` field today. The `Authorization`
+bearer determines org attribution; no `metadata.repo` /
+`metadata.pr_number` / `metadata.head_sha` body fields are read
+(any such fields in the body are ignored).
 
 ### Response
 
 ```json
 {
   "status": "success",
+  "automationReady": true,
   "totalFindings": 1,
+  "classifiedFindings": 1,
+  "skippedFindings": 0,
   "fixesGenerated": 1,
   "fixes": [
     {
-      "file": "src/users.js",
-      "line": 42,
-      "severity": "high",
-      "type": "SQL_INJECTION",
-      "rationale": "User-controlled value `req.params.id` interpolated into a SQL string.",
-      "patch": "db.query(\"SELECT * FROM users WHERE id = ?\", [req.params.id])"
+      "findingId": "auth-bypass-multi:src/routes/admin.ts:8",
+      "detectorId": "auth-bypass-multi",
+      "findingType": "auth_bypass_risk",
+      "file": "src/routes/admin.ts",
+      "line": 8,
+      "originalCode": "adminRouter.post(\"/users/delete\", async (req, res) => { ... })",
+      "fixedCode": "adminRouter.post(\"/users/delete\", requireAuth, async (req, res) => { ... })",
+      "explanation": "The /users/delete route is missing the requireAuth middleware that all sibling routes on this router include. Any unauthenticated caller can delete arbitrary users by supplying userId in the request body.",
+      "confidence": "high",
+      "patchQuality": "high",
+      "patchWarnings": []
     }
   ],
-  "report": {
-    "pdfUrl": "https://res.cloudinary.com/.../pdf?signed=...",
-    "sarifUrl": "https://res.cloudinary.com/.../sarif?signed=..."
-  },
-  "cost_usd": 0.018,
-  "duration_ms": 13540
+  "errors": [],
+  "timing": {
+    "startedAt": "2026-05-23T07:08:14.000Z",
+    "finishedAt": "2026-05-23T07:08:27.540Z",
+    "durationMs": 13540
+  }
 }
 ```
 
-The `pdfUrl` and `sarifUrl` are signed URLs with a 1-hour TTL
-matching the Cloudinary policy described in the
-[security page](https://fixor.dev/security.html).
+| Field | Type | Description |
+| --- | --- | --- |
+| `status` | string | One of `success`, `partial_success`, `failed`, `no_action`, `budget_exceeded`. |
+| `automationReady` | boolean | Whether the workflow produced fixes ready for auto-PR (today: informational; auto-PR is on the roadmap). |
+| `totalFindings` | number | All findings the scan produced before per-finding processing. |
+| `classifiedFindings` | number | Findings whose `findingType` had a registered detector across all 6 families. |
+| `skippedFindings` | number | Findings dropped because their type is suppressed at output. |
+| `fixesGenerated` | number | Length of the `fixes` array. |
+| `fixes` | array | One entry per emitted fix. Shape below. |
+| `errors` | array | Per-finding errors. Empty on a clean run. |
+| `timing` | object | `{ startedAt, finishedAt, durationMs }`. |
+
+Per-fix object fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `findingId` | string | Stable id derived from detector + file + line. |
+| `detectorId` | string | One of the 6 shipping detector ids (`auth-bypass-multi`, `admin-check-multi`, `idor-multi`, `env-exposure-multi`, `secrets-exposure-multi`, `webhook-unverified-multi`). |
+| `findingType` | string | The finding type emitted by that detector (e.g. `auth_bypass_risk`). Suppressed types never appear here. |
+| `file` | string | File path from the diff. |
+| `line` | number | Line number in the post-image. |
+| `originalCode` | string | The original snippet the fix targets. |
+| `fixedCode` | string | The proposed replacement. |
+| `explanation` | string | Why this is vulnerable and what the fix does, in prose. |
+| `confidence` | string | `high` or `medium` (low is filtered before emission). |
+| `patchQuality` | string | `high`, `medium`, or `low`. |
+| `patchWarnings` | array | Strings flagging caveats on the patch (e.g. "schema not verified"). |
+| `metadata` | object (optional) | Family-specific extras, discriminated by `findingType`. |
 
 ### Error shape
 
-Errors return non-2xx with a structured body:
+Errors return non-2xx with a JSON body. The body is a small string
+map, not a discriminator-plus-details structure.
 
-```json
-{
-  "error": "validation_failed",
-  "details": ["diff: must be a non-empty string"]
-}
-```
-
-| HTTP | `error` | When |
+| HTTP | Body | When |
 | --- | --- | --- |
-| 400 | `validation_failed` | `diff` missing/empty/not-unified, `metadata.*` malformed |
-| 401 | `invalid_token` | Bearer is missing, malformed, or hashed differently than any stored token |
-| 403 | `revoked_token` | Token was revoked since last use |
-| 429 | `rate_limited` | 60+ scans in the trailing hour |
-| 500 | `paddle_failed` / `db_unavailable` / `anthropic_error` | One of our subprocessors failed; safe to retry with backoff |
+| 400 | `{"error":"invalid JSON body"}` | The request body did not parse as JSON. |
+| 400 | `{"error":"diff is required (string)"}` | The `diff` field is missing, empty, or not a string. |
+| 401 | `{"error":"missing bearer token"}` | The `Authorization: Bearer ...` header is missing or malformed. |
+| 401 | `{"error":"invalid or revoked token"}` | The token did not match any active row. |
+| 402 | `{"error":"monthly_budget_exceeded", "reason": "...", "monthlySpend": N, "dailySpend": N, "caps": { ... }}` | The org has hit its monthly or daily Anthropic spend cap. |
+| 429 | `{"error":"rate_limit_exceeded", "retryAfterSeconds": N}` | More than 60 scans on this token in the current 60-second window. `Retry-After` header set. |
+| 500 | `{"error":"<message>"}` | Unhandled server error. Safe to retry with backoff. |
+| 503 | `{"error":"auth backend unavailable"}` | The token-verification DB query failed. Retry. |
 
 ### cURL example
 
@@ -140,10 +175,21 @@ curl -sS https://api.fixor.dev/api/v1/scan \
   -d @scan-payload.json | jq
 ```
 
+### What the API response does not include
+
+The API response intentionally omits PDF / SARIF download URLs and
+per-scan cost. Those land in the GitHub PR comment flow (the App
+posts signed Cloudinary URLs for both PDF and SARIF, and tracks
+spend per org in the dashboard's billing page) but are not returned
+by `POST /api/v1/scan` today. If you need those programmatically,
+use the GitHub App path instead, or open an issue describing your
+workflow.
+
 ## Webhooks (the GitHub App path)
 
 If you'd rather not use the API token flow, install the
-[GitHub App](https://github.com/apps/fixor-security/installations/new) and
-let GitHub push diffs to us. Same scan, posted directly as a PR
-comment. The API path exists for cases where the GitHub App isn't
-the right fit; it's not required for normal use.
+[GitHub App](https://github.com/apps/fixor-security/installations/new)
+and let GitHub push diffs to us. Same scan, posted directly as a PR
+comment with the PDF/SARIF report attached. The API path exists for
+cases where the GitHub App isn't the right fit; it isn't required
+for normal use.

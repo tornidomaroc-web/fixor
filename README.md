@@ -12,6 +12,7 @@
 
 [Landing](https://tornidomaroc-web.github.io/fixor/) ·
 [Dashboard](https://app.fixor.dev) ·
+[Docs](https://docs.fixor.dev) ·
 [Status](https://status.fixor.dev) ·
 [Security](https://tornidomaroc-web.github.io/fixor/security.html)
 
