@@ -34,7 +34,7 @@ The contract has three goals:
 - Auth gating applied via `router.use()` at file scope when the relevant `use()` call lives in a different file than the route declaration (the prefilter sees the route file in isolation).
 - File-system-routed framework handlers wrapped in generic-named HOCs that hide auth invisibly — e.g., `export const POST = withRoute(handler)` where `withRoute` is not auth-suggesting by name but actually enforces auth in a sibling file. The HOC-name-convention judgment treats these as unguarded by default; cross-file analysis to verify what `withRoute` does is out of scope. Same shape as the Express `router.use(authMiddleware)`-in-a-different-file limitation above.
 
-**Measured baseline:** 22/20 (110%) — log: `test-output/auth-bypass-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 fixtures).
+**Measured baseline:** 22/20 (110%) — log: `test-output/auth-bypass-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 Express fixtures). App Router fixture baseline pending Phase C.
 
 ---
 
@@ -52,7 +52,7 @@ The contract has three goals:
 - Admin gating applied via `router.use(requireAdmin)` at file scope when the `use()` call lives in a different file than the route declaration.
 - File-system-routed framework handlers wrapped in generic-named HOCs that hide admin enforcement invisibly (e.g., `withRoute("admin", handler)` where the admin-ness lives in `withRoute`'s implementation in a sibling file). Same cross-file limitation shape as Express's `router.use(requireAdmin)`-in-a-different-file case above.
 
-**Measured baseline:** 22/22 (100%) — log: `test-output/admin-check-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 fixtures).
+**Measured baseline:** 22/22 (100%) — log: `test-output/admin-check-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 Express fixtures). App Router fixture baseline pending Phase C.
 
 ---
 
@@ -128,7 +128,7 @@ The contract has three goals:
 - Providers not in prefilter or fixtures: Shopify (`X-Shopify-Hmac-Sha256`), Discord interactions (Ed25519), Mailgun, SendGrid, AWS SNS subscription confirmation, GCP Pub/Sub push (OIDC token), Square, PayPal, Paddle, Plaid, Algolia, Cloudflare Workers signed requests.
 - **Critical scope limitations** (residual, post-App-Router prefilter extension):
   - **(a) Express-style URLs that don't carry the webhook/hook/hooks token.** The 5 router-style URL-name prefilter patterns still require the webhook URL string to appear in file content alongside router syntax. A real Stripe handler mounted at `app.post("/billing/events", ...)` (Stripe allows any URL) is invisible to those patterns and never reaches the LLM via the Express path. The App Router prefilter does NOT compensate (App Router uses different syntax). Affected: Express / Flask / Rails / Go custom-URL webhook handlers.
-  - **(b) Non-App-Router DIY-HMAC handlers that are silent.** An Express / Flask / Rails / Go custom-HMAC handler that imports no webhook library AND exhibits no signature-comparison anti-pattern is still invisible to the content prefilter. App Router DIY-HMAC handlers ARE now covered via the new `app_router_route_def` prefilter (every App Router route reaches the LLM, which judges webhook-vs-not by file path / `node:crypto` HMAC / signature-header reads). The inbox-zero Lemon Squeezy handler at `apps/web/app/api/lemon-squeezy/webhook/route.ts` would now reach the LLM via the new pattern and be correctly judged as gated (uses `crypto.timingSafeEqual`); the same shape on Express remains a residual gap.
+  - **(b) Non-App-Router DIY-HMAC handlers that are silent.** An Express / Flask / Rails / Go custom-HMAC handler that imports no webhook library AND exhibits no signature-comparison anti-pattern is still invisible to the content prefilter. App Router DIY-HMAC handlers ARE now reached by the LLM via the new `app_router_route_def` prefilter, where Phase A measured them silently skipped; end-to-end LLM judgment (gated vs unguarded) on real-world App Router handlers is a Phase D measurement, not a Phase B claim. The same DIY-HMAC shape on Express / Flask / Rails / Go remains a residual content-prefilter gap regardless of Phase B.
 
 **Precision note (cross-detector):** MEDIUM-confidence findings (timing-leak comparisons, env-flag-conditional bypass) are routed to the internal review queue via `logger.warn` with `category: "webhook-unverified-review-queue"`, NOT emitted as a PR-comment finding. This matches the HIGH-only emit policy used by the other 5 detectors. If a customer asks "will Fixor flag a Stripe handler that toggles signature verification on/off via an env flag?", the honest answer is *"flagged in the review queue, not in the PR comment, by current policy."*
 

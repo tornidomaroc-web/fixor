@@ -172,8 +172,10 @@ To judge whether this route is admin-gated, Fixor needs to:
 2. **Critical fixtures to include** (covers the hardest-technical-risk cases):
    - Positive: route wrapped in `withLogging(...)` (generic HOC, NOT auth) → must still flag as missing-middleware.
    - Positive: route wrapped in `withRoute(handler)` (deceptive generic name that hides auth in implementation) → must flag (we can't verify cross-file; documented limitation).
+   - Positive: route wrapped in `withSessionTracking(...)` or similar session-named non-auth wrapper (e.g., session-cookie analytics) → must still flag as missing-middleware. **Surfaced by the Phase B council review:** the auth-bypass prompt's "any HOC identifier containing 'session' as a substring → gated" rule is a false-negative class for session-named wrappers that don't enforce auth. Phase C prompt-tuning must distinguish session-FOR-AUTH (gated) from session-FOR-TRACKING (still unguarded), likely via the handler-body check.
    - Negative: route wrapped in `withAuth(...)` → must skip (LLM recognizes name convention).
    - Negative: route wrapped in `withAdmin(...)` → must skip.
+   - Negative (webhook-unverified): App Router route that imports `node:crypto` and calls `createHash`/`createHmac` on a request-body-derived value for a non-webhook purpose (cache-key generation, content-addressed storage, ETag computation, deduplication ID) → must NOT be judged a webhook handler; must return LOW confidence / not-vulnerable. **Surfaced by the Phase B council review:** the webhook-unverified prompt classifies "node:crypto HMAC on request-derived input" as a webhook signal; cache-key hashing fits this signal but is not a webhook. Phase C prompt-tuning must distinguish signature-comparison-against-incoming-header (webhook) from hash-of-body-for-internal-use (cache).
 
 3. Run baselines, tune prompts on any miscalibration, save logs to `test-output/` following the established naming convention.
 
