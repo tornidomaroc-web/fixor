@@ -10,8 +10,11 @@
  *
  * Two regex constants exported, one per framework shape:
  *   - EXPRESS_ROUTE_DEF_RE     — router-style: `router.METHOD(path, ...)`.
- *   - APP_ROUTER_ROUTE_DEF_RE  — file-system-routed: `export const POST = ...`
- *                                or `export async function GET(...)`, etc.
+ *   - APP_ROUTER_ROUTE_DEF_RE  — file-system-routed Next.js App Router
+ *                                HTTP-method-named exports: `export const
+ *                                POST = ...` or `export async function
+ *                                GET(...)`, etc. Remix `loader` / `action`
+ *                                exports are NOT matched (Phase E follow-up).
  *
  * Currently consumed by:
  *   - auth-bypass.detector.ts (Phase 1: missing-middleware, both shapes)
@@ -35,16 +38,26 @@ export const EXPRESS_ROUTE_DEF_RE =
   /\b(?:router|app|api|[A-Za-z_$][A-Za-z0-9_$]*(?:Router|App|Api))\.(?:get|post|put|delete|patch|use|all)\s*\(\s*["'`]/;
 
 /**
- * Catches a file-system-routed handler export in Next.js App Router /
- * Remix style: `export const POST = ...`, `export async function GET(...)`,
- * `export function PUT(...)`, `export default function POST(...)`, or any
- * combination with `async` / `default`. The trailing HTTP-method capture
- * group `(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\b` is the structural
- * defense against over-matching common Next.js config exports — `export
- * const dynamic`, `export const revalidate`, `export const runtime`,
- * `export const fetchCache`, `export const preferredRegion`, `export
- * const maxDuration`, `export const generateStaticParams` — none of
- * which use HTTP-method-named identifiers and therefore none match.
+ * Catches a file-system-routed HTTP-method-named handler export in
+ * Next.js App Router style: `export const POST = ...`, `export async
+ * function GET(...)`, `export function PUT(...)`, `export default
+ * function POST(...)`, or any combination with `async` / `default`.
+ * The trailing HTTP-method capture group `(GET|POST|PUT|DELETE|PATCH|
+ * HEAD|OPTIONS)\b` is the structural defense against over-matching
+ * common Next.js config exports — `export const dynamic`, `export
+ * const revalidate`, `export const runtime`, `export const fetchCache`,
+ * `export const preferredRegion`, `export const maxDuration`, `export
+ * const generateStaticParams` — none of which use HTTP-method-named
+ * identifiers and therefore none match.
+ *
+ * Remix `loader` / `action` exports are NOT matched by this regex —
+ * the trailing capture group only enumerates HTTP method names. Remix
+ * coverage is a Phase E follow-up: extend the alternation to
+ * `(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|loader|action)` once Remix-
+ * specific calibration fixtures and a real-world Remix baseline are
+ * added. Phase D measured this statically: 0/411 prefilter matches
+ * against the Trigger.dev webapp, silent-miss property structurally
+ * verified (no LLM call on prefilter miss, no crash).
  *
  * The `\b` boundary at the end protects against substring traps:
  * `export const POSTING = ...` and `export const POST_HANDLER = ...`
