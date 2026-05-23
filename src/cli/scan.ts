@@ -13,6 +13,8 @@ import {
 import {
   APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
+  REMIX_HANDLER_DEF_RE,
+  isRemixRoutePath,
 } from "../analysis-engine/detectors/shared/route-def-pattern.js";
 import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
@@ -28,17 +30,30 @@ const SUB_DELAY_MS = 800;         // between LLM-hitting detector calls within a
 // Cost model — corpus-shape-aware, not a flat per-file constant.
 //
 // A file that matches the route-shape prefilter (Next.js App Router
-// HTTP-method-named export, or Express-family router.METHOD(...)) routes
-// to 3 additional detectors' LLM stages on top of the base analyzeCode
+// HTTP-method-named export, Express-family router.METHOD(...), or
+// Remix v2 loader/action export inside /routes/) routes to 3
+// additional detectors' LLM stages on top of the base analyzeCode
 // call: auth-bypass, admin-check, and webhook-unverified — all three
-// ship whole-file context for App Router route-def triggers (webhook
-// joined this discipline 2026-05-23 in the Path-A structural follow-up
-// to Phase F; see project_fixor_webhook_payload_structural_followup
-// memory). Non-App-Router webhook triggers (express/flask/rails/go
-// URL-name patterns) keep windowed payload because their prefilter
-// signals are local. Pre-Phase-B the prefilters short-circuited most
-// files; the flat $0.012/$0.024 constants encoded that assumption and
+// ship whole-file context for App Router AND Remix route-def triggers
+// (webhook joined this discipline 2026-05-23 in the Path-A structural
+// follow-up to Phase F; Remix joined 2026-05-23 in Phase E; see
+// project_fixor_webhook_payload_structural_followup and
+// project_fixor_phase_e_remix_extension memories). Non-App-Router /
+// non-Remix webhook triggers (express/flask/rails/go URL-name
+// patterns) keep windowed payload because their prefilter signals are
+// local. Pre-Phase-B the prefilters short-circuited most files; the
+// flat $0.012/$0.024 constants encoded that assumption and
 // undercounted App Router corpora ~2-3x at Phase D.
+//
+// Phase E (2026-05-23) consistency: Remix-shape files count exactly
+// once when matched, only when isRemixRoutePath returns true. This
+// mirrors the detector-side path filter so the estimator and runtime
+// agree on which files trigger the 3-extra-call multiplier. A file
+// matching multiple route-def regexes (e.g., both Next.js and Remix
+// shapes in the same file during a framework migration) short-circuits
+// via OR and counts once — matches detector behavior where each
+// detector picks one route-def trigger per file regardless of trigger
+// count.
 //
 // PER_CALL_COST_USD is Sonnet 4.6 empirical from the Phase D 182-file
 // inbox-zero burn (~$0.007-0.010 per call); $0.012 leaves headroom on
@@ -183,7 +198,17 @@ function countRouteShapeFiles(files: string[]): {
   const matches = (path: string): boolean => {
     try {
       const c = readFileSync(path, "utf8");
-      return APP_ROUTER_ROUTE_DEF_RE.test(c) || EXPRESS_ROUTE_DEF_RE.test(c);
+      // Phase E (2026-05-23): Remix v2 `loader`/`action` exports count
+      // as route-shape only when the file sits in a Remix v2 route
+      // position (`/routes/` segment, or `app/root.{ts,tsx}`). This
+      // mirrors the detector-side path-aware filter so the estimator
+      // does not over-count utility modules that happen to export
+      // `loader` or `action`.
+      return (
+        APP_ROUTER_ROUTE_DEF_RE.test(c) ||
+        EXPRESS_ROUTE_DEF_RE.test(c) ||
+        (REMIX_HANDLER_DEF_RE.test(c) && isRemixRoutePath(path))
+      );
     } catch {
       // The walker enumerated this path; if we can't read it during the
       // pre-count the real scan will surface the error. Don't let the

@@ -8,18 +8,25 @@
  * trigger fixes that blind spot at the cost of routing every route file
  * to the LLM, where a per-detector prompt judges the specific concern.
  *
- * Two regex constants exported, one per framework shape:
+ * Three regex constants exported, one per framework shape:
  *   - EXPRESS_ROUTE_DEF_RE     — router-style: `router.METHOD(path, ...)`.
  *   - APP_ROUTER_ROUTE_DEF_RE  — file-system-routed Next.js App Router
  *                                HTTP-method-named exports: `export const
  *                                POST = ...` or `export async function
- *                                GET(...)`, etc. Remix `loader` / `action`
- *                                exports are NOT matched (Phase E follow-up).
+ *                                GET(...)`, etc.
+ *   - REMIX_HANDLER_DEF_RE     — Remix v2 file-system-routed handler
+ *                                exports: `export const loader = ...`,
+ *                                `export const action = ...`, etc. Added
+ *                                in Phase E; sibling to APP_ROUTER_ROUTE_DEF_RE
+ *                                so consumers can apply the Remix-only
+ *                                path-aware filter `isRemixRoutePath`
+ *                                without perturbing the Next.js behavior.
  *
  * Currently consumed by:
- *   - auth-bypass.detector.ts (Phase 1: missing-middleware, both shapes)
- *   - admin-check.detector.ts (Phase 2: missing-admin-gate, both shapes)
- *   - webhook-unverified.detector.ts (App Router file-system-routed handlers)
+ *   - auth-bypass.detector.ts (Phase 1: missing-middleware, all shapes)
+ *   - admin-check.detector.ts (Phase 2: missing-admin-gate, all shapes)
+ *   - webhook-unverified.detector.ts (file-system-routed handlers)
+ *   - cli/scan.ts (route-shape pre-count for cost estimation)
  */
 
 /**
@@ -50,14 +57,14 @@ export const EXPRESS_ROUTE_DEF_RE =
  * const generateStaticParams` — none of which use HTTP-method-named
  * identifiers and therefore none match.
  *
- * Remix `loader` / `action` exports are NOT matched by this regex —
- * the trailing capture group only enumerates HTTP method names. Remix
- * coverage is a Phase E follow-up: extend the alternation to
- * `(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|loader|action)` once Remix-
- * specific calibration fixtures and a real-world Remix baseline are
- * added. Phase D measured this statically: 0/411 prefilter matches
- * against the Trigger.dev webapp, silent-miss property structurally
- * verified (no LLM call on prefilter miss, no crash).
+ * Remix `loader` / `action` exports are covered by the sibling
+ * REMIX_HANDLER_DEF_RE (Phase E, 2026-05-23). Kept as a separate
+ * regex rather than extending the alternation here so consumers can
+ * apply the Remix-only `isRemixRoutePath` path-aware filter without
+ * perturbing the Next.js App Router prefilter behavior. Next.js's
+ * `app/.../route.ts` file-system convention is already implicit; Remix
+ * needs the path filter because `export const loader` is also a
+ * Remix data-fetch utility convention, not only a route handler.
  *
  * The `\b` boundary at the end protects against substring traps:
  * `export const POSTING = ...` and `export const POST_HANDLER = ...`
@@ -81,6 +88,73 @@ export const EXPRESS_ROUTE_DEF_RE =
  */
 export const APP_ROUTER_ROUTE_DEF_RE =
   /\bexport\s+(?:const|(?:async\s+)?function|default\s+(?:async\s+)?function)\s+(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\b/;
+
+/**
+ * Catches a Remix v2 file-system-routed handler export: `export const
+ * loader = ...`, `export const action = ...`, `export async function
+ * loader(...)`, `export async function action(...)`, or any combination
+ * with `async` / `default`. Phase E addition (2026-05-23).
+ *
+ * Sibling to APP_ROUTER_ROUTE_DEF_RE rather than an extended alternation
+ * because Remix `loader`/`action` exports have a different over-match
+ * profile than Next.js HTTP-method-named exports: `loader` and `action`
+ * are also generic Remix conventions for data-fetching and form-handling
+ * utility modules, not only route handlers. Detectors using this regex
+ * MUST also call `isRemixRoutePath(filePath)` to bound the over-match —
+ * a utility module like `app/lib/loader-factory.ts` would match the
+ * regex but is not a route handler and should not route to the LLM.
+ *
+ * Over-match measurement on Trigger.dev (Phase E gate):
+ *   - 320/411 files under `apps/webapp/app/routes/` match this regex
+ *     (~78% prefilter hit rate on Remix v2 routes).
+ *   - Outside `/routes/`: exactly 1 file in the entire webapp matches
+ *     (`app/root.tsx`, the Remix root layout — which IS a legitimate
+ *     route handler, not a utility). Unknown Remix codebases with
+ *     loose conventions may export `loader`/`action` from utility
+ *     modules; the path filter is the cost-bounding defense.
+ *
+ * Detectors using this should keep the sentinel id stable as
+ * `"remix_handler_def"` so test diagnostics and analyzeFile post-
+ * filtering remain symmetric with `app_router_route_def`. Treat both
+ * route-def sentinels identically downstream (whole-file payload via
+ * `buildFunctionCodePayload`); the only difference is the prefilter-
+ * stage path-aware filter Remix needs.
+ */
+export const REMIX_HANDLER_DEF_RE =
+  /\bexport\s+(?:const|(?:async\s+)?function|default\s+(?:async\s+)?function)\s+(?:loader|action)\b/;
+
+/**
+ * Returns true when the filepath sits in a Remix v2 route position:
+ * under any `/routes/` segment (the Remix v2 file-system routing
+ * convention) OR matches `app/root.tsx` (the root layout, which has
+ * its own loader/action). False for utility modules that happen to
+ * export `loader`/`action` from elsewhere (e.g. `app/lib/loader-factory.ts`,
+ * `app/utils/action-helpers.ts`) — those should NOT route to the LLM
+ * as if they were route handlers.
+ *
+ * Bound for the council-flagged over-match risk on REMIX_HANDLER_DEF_RE.
+ * Without this filter, an unknown Remix codebase exporting `loader`/
+ * `action` from utility modules would route extra files through the
+ * LLM at ~$0.012 each — bounded per file but unbounded in count. With
+ * this filter, prefilter signal stays local to the Remix file-system
+ * convention.
+ *
+ * Implementation notes:
+ *   - Normalizes backslashes to forward slashes so Windows-walker paths
+ *     pass the same test.
+ *   - `/routes/` is matched as a path SEGMENT (between separators) so
+ *     `app/routes/users.tsx` matches but `app/component-routes-list.ts`
+ *     does not.
+ *   - `app/root.{ts,tsx}` is matched at the END of the path so nested
+ *     `app/lib/app/root.ts` (hypothetical) would not match.
+ */
+export function isRemixRoutePath(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/");
+  return (
+    /(^|\/)routes\//.test(normalized) ||
+    /(^|\/)app\/root\.tsx?$/.test(normalized)
+  );
+}
 
 /**
  * Hard upper bound on the size of file content shipped wholesale to the

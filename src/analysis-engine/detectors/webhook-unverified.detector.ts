@@ -35,7 +35,9 @@ import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
 import {
   APP_ROUTER_ROUTE_DEF_RE,
+  REMIX_HANDLER_DEF_RE,
   buildFunctionCodePayload,
+  isRemixRoutePath,
 } from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "webhook-unverified-multi";
@@ -101,6 +103,13 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   // reads, or other webhook signals. Non-webhook App Router routes
   // return LOW confidence per the SYSTEM_PROMPT.
   { id: "app_router_route_def",         re: APP_ROUTER_ROUTE_DEF_RE },
+  // Remix v2 `loader` / `action` exports (Phase E, 2026-05-23). Sibling
+  // to app_router_route_def with the same downstream wiring: whole-file
+  // payload via Path-A's buildFunctionCodePayload, webhook-vs-not
+  // judgment via the App Router / Remix prompt section. The prefilter
+  // applies isRemixRoutePath to bound REMIX_HANDLER_DEF_RE over-match
+  // on utility modules outside `app/routes/` — see analyzeFile.
+  { id: "remix_handler_def",            re: REMIX_HANDLER_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -517,7 +526,7 @@ export class WebhookUnverifiedDetector implements Detector {
     content: string,
     lang: SupportedLang,
   ): Promise<NormalizedFinding[]> {
-    const triggers = this.prefilterRegex(content);
+    const triggers = this.prefilterRegex(content, filePath);
     const diag: FileDiagnostic = {
       file: filePath,
       triggerCount: triggers.length,
@@ -542,7 +551,9 @@ export class WebhookUnverifiedDetector implements Detector {
     // pathologically large files; non-App-Router webhook triggers
     // (express/flask/rails/go URL-name patterns, content patterns) keep
     // the windowed payload because their prefilter signals are local.
-    const isRouteDefTrigger = trigger.patternId === "app_router_route_def";
+    const isRouteDefTrigger =
+      trigger.patternId === "app_router_route_def" ||
+      trigger.patternId === "remix_handler_def";
     const functionCode = buildFunctionCodePayload({
       content,
       anchorLine: trigger.line,
@@ -611,17 +622,25 @@ export class WebhookUnverifiedDetector implements Detector {
     return SERVER_ONLY_RE.test(content);
   }
 
-  private prefilterRegex(content: string): PrefilterHit[] {
+  private prefilterRegex(content: string, filePath: string): PrefilterHit[] {
     // Test each pattern against the full content (not line-by-line) so
     // multi-line constructs like
     //   router.post(
     //     "/webhook/stripe",
     //     ...
     // match. Per-line testing missed these in Phase 5a's first run.
+    //
+    // Phase E (2026-05-23): the `remix_handler_def` pattern is gated by
+    // isRemixRoutePath because `export const loader` is also a Remix
+    // data-fetch utility convention. A path-filtered match is skipped
+    // here so other patterns can still claim earliest if they match.
     let earliest: { idx: number; patternId: string } | null = null;
     for (const p of PREFILTER_PATTERNS) {
       const m = p.re.exec(content);
       if (!m || m.index === undefined) continue;
+      if (p.id === "remix_handler_def" && !isRemixRoutePath(filePath)) {
+        continue;
+      }
       if (earliest === null || m.index < earliest.idx) {
         earliest = { idx: m.index, patternId: p.id };
       }

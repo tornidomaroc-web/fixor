@@ -59,15 +59,42 @@ wrappers in Phase D synthetic measurement (`withAccountApiKey`,
 surface at MEDIUM in the review queue, not as HIGH alerts in the
 main panel.
 
-Remix `loader` / `action` exports are NOT yet covered (Phase E
-follow-up). **Customer wrappers whose name suggests auth but whose
-implementation is a no-op stub** (e.g. a `withAuth` defined as
-`(fn) => fn` in a sibling file) are also out of scope — Fixor reads
-the route file in isolation and trusts the auth-suggesting name; to
-verify, audit the wrapper's implementation in its defining file.
+Remix v2 `loader` / `action` exports ARE now covered (Phase E,
+2026-05-23): a sibling `REMIX_HANDLER_DEF_RE` matches
+`export const loader = ...` / `export const action = ...` shapes and
+routes the file to the same missing-HOC-wrapper rubric as App Router.
+A path-aware filter bounds over-match to the Remix v2 file-system
+convention (`/routes/` segment or `app/root.{ts,tsx}`) so utility
+modules under `app/lib/` or `app/utils/` that happen to export
+`loader` / `action` factory functions are not misrouted to the LLM.
+**Synthetic calibration: 6 Remix fixtures (3 positive + 3 negative,
+including the over-match utility anchor) all 6/6 passed. End-to-end
+demo: fixor-demo-remix planted-vuln scan flagged the planted
+auth-bypass on `app/routes/admin.users.$id.delete.ts` with reasoning
+that explicitly named "Remix `action` export" — the SYSTEM_PROMPT
+case 3 framing generalized to Remix shape without prompt changes.**
+**Named residuals at the point of this claim:** (i) the real-world
+production-corpus baseline against a Remix codebase (e.g.
+Trigger.dev's 411 routes) is **deferred** — it would bound the
+HOC-name-divergence class on one corpus but does not eliminate it,
+and the cheap calibration + demo were deemed scientifically
+sufficient under the Phase D partial-sample discipline; (ii)
+**non-conventional wrapper-name divergence on unknown Remix
+codebases is a known residual** until a real corpus is measured —
+calibration covers `withAuth`, `withAdmin`, `withLogging`,
+`withSessionAnalytics`, `requireUser`, `getServerSession`, but a
+customer codebase using a deceptive non-conventional wrapper name
+could surface a false positive. The path-aware filter **bounds, not
+eliminates**, the divergence class. **Customer wrappers whose name
+suggests auth but whose implementation is a no-op stub** (e.g. a
+`withAuth` defined as `(fn) => fn` in a sibling file) are also out
+of scope — Fixor reads the route file in isolation and trusts the
+auth-suggesting name; to verify, audit the wrapper's implementation
+in its defining file.
 
 The sentinel-string sub-claim is content-based and still fires on
-both router-style and App Router files normally.
+both router-style and file-system-routed (App Router, Remix) files
+normally.
 
 ## Missing admin checks
 
@@ -107,20 +134,33 @@ App Router routes (~80%, PARTIAL scan, halted for API budget — not a
 full-corpus sweep) returned 0 admin-check findings on the partial
 182-route sample, including the corpus's `admin/*` routes.
 
-Remix `loader` / `action` exports are NOT yet covered (Phase E
-follow-up). **Admin-suggesting wrappers whose body does not actually
-enforce admin** are out of scope — a wrapper named `withAdmin`,
-`requireAdmin`, `withAdminLogging`, `withAdminMetrics`, etc. whose
-body is a no-op stub (`(fn) => fn`) or logging-only / metrics-only
-ships unguarded; Fixor trusts the admin-suggesting name without
-reading the body. By design: corpus grep across cal.com, documenso,
-convoform, grafana, and the Phase D inbox-zero log found zero such
-non-enforcing `withAdmin*` wrappers in real-world OSS, so the
-admin-substring rule stays untightened (in contrast to auth-bypass's
-`session`-substring body-discriminator clause, where the non-auth
-shape DOES appear in the wild). The hardcoded-admin sub-claim is
-content-based and still fires on both router-style and App Router
-files normally.
+Remix v2 `loader` / `action` exports ARE now covered (Phase E,
+2026-05-23) via the sibling `REMIX_HANDLER_DEF_RE` and the
+`isRemixRoutePath` path-aware filter described in the auth-bypass
+section above. Same calibration set (6 Remix fixtures, all 6/6
+passed); demo-proven on a planted admin role-change at
+`app/routes/admin.users.$id.role.ts` wrapped only in `withAuth`,
+correctly identified as missing admin authorization. **Named
+residuals at the point of this claim mirror the auth-bypass
+section:** (i) **Trigger.dev real-world baseline is deferred** —
+calibration + demo were sufficient under the Phase D partial-sample
+discipline; (ii) **non-conventional admin-wrapper-name divergence on
+unknown Remix codebases is a known residual** — the path-aware
+filter bounds the over-match class but does not measure the universe
+of HOC names Remix customers might use. **Admin-suggesting wrappers
+whose body does not actually enforce admin** are out of scope — a
+wrapper named `withAdmin`, `requireAdmin`, `withAdminLogging`,
+`withAdminMetrics`, etc. whose body is a no-op stub (`(fn) => fn`)
+or logging-only / metrics-only ships unguarded; Fixor trusts the
+admin-suggesting name without reading the body. By design: corpus
+grep across cal.com, documenso, convoform, grafana, and the Phase D
+inbox-zero log found zero such non-enforcing `withAdmin*` wrappers
+in real-world OSS, so the admin-substring rule stays untightened (in
+contrast to auth-bypass's `session`-substring body-discriminator
+clause, where the non-auth shape DOES appear in the wild). The
+hardcoded-admin sub-claim is content-based and still fires on
+router-style and file-system-routed (App Router, Remix) files
+normally.
 
 When auth-bypass and admin-check both fire on the same `file:line`,
 the admin-check finding is dropped (the auth-bypass finding subsumes
@@ -199,6 +239,21 @@ What we look for:
   handler functions named `*Webhook*`) in Express/Fastify-style
   routers, Flask decorators (`@bp.post`), Rails `post` routes, and Go
   `HandleFunc`.
+- File-system-routed webhook handlers in Next.js App Router
+  (`app/api/<provider>/webhook/route.ts`) and Remix v2
+  (`app/routes/webhook.<provider>.ts` or `app/routes/api.webhook.*.ts`):
+  the route-def prefilter routes the file to the LLM, which judges
+  webhook-vs-not by file path segment, signature-header reads, and
+  `node:crypto` HMAC operations. Remix coverage added Phase E
+  (2026-05-23) with the same `isRemixRoutePath` filter bounding
+  over-match to `/routes/`; calibration: 5 Remix webhook fixtures
+  (2 positive Stripe-no-sig / GitHub-no-HMAC + 2 negative
+  constructEvent / timingSafeEqual + 1 over-match utility), all 5/5
+  passed. **Named residual: real-world Remix webhook baseline is
+  deferred** — Trigger.dev-scale corpus verification would buffer the
+  webhook-shape coverage class but is not blocking; the cheap
+  calibration and the fixor-demo-remix end-to-end planted-vuln scan
+  established the capability.
 - No signature verification at all on a webhook handler.
 - Explicit env-flag bypass of verification (e.g. `WEBHOOK_VERIFY=off`
   short-circuiting `constructEvent`).
