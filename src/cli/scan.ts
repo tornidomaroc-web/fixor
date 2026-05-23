@@ -10,6 +10,10 @@ import {
   DETECTORS,
   SHIPPING_DETECTOR_IDS,
 } from "../analysis-engine/detectors/registry.js";
+import {
+  APP_ROUTER_ROUTE_DEF_RE,
+  EXPRESS_ROUTE_DEF_RE,
+} from "../analysis-engine/detectors/shared/route-def-pattern.js";
 import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import type { Finding } from "../analysis-engine/types.js";
@@ -20,8 +24,33 @@ import { buildMarkdownReport, type FileScanResult } from "./report-builder.js";
 const DEFAULT_EXTENSIONS = ["ts", "tsx", "js", "jsx", "py", "go"];
 const DELAY_MS = 1500;            // between files
 const SUB_DELAY_MS = 800;         // between LLM-hitting detector calls within a file
-const ESTIMATED_COST_BEST_USD = 0.012;   // realistic — most detectors short-circuit
-const ESTIMATED_COST_WORST_USD = 0.024;  // worst case — all 6 detectors hit LLM
+
+// Cost model — corpus-shape-aware, not a flat per-file constant.
+//
+// A file that matches the route-shape prefilter (Next.js App Router
+// HTTP-method-named export, or Express-family router.METHOD(...)) routes
+// to 3 additional detectors' LLM stages on top of the base analyzeCode
+// call: auth-bypass + admin-check (both ship whole-file context) and
+// webhook-unverified (windowed). Pre-Phase-B the prefilters short-
+// circuited most files; the flat $0.012/$0.024 constants encoded that
+// assumption and undercounted App Router corpora ~2-3x at Phase D.
+//
+// PER_CALL_COST_USD is Sonnet 4.6 empirical from the Phase D 182-file
+// inbox-zero burn (~$0.007-0.010 per call); $0.012 leaves headroom on
+// the never-below side per operator rule for a customer-facing estimate.
+// Worst-case math counts all 3 content prefilters (secrets/env/idor)
+// hitting per file — intentionally inflated so a worst-case figure
+// rarely gets exceeded in practice.
+const PER_CALL_COST_USD = 0.012;
+const ROUTE_SHAPE_EXTRA_DETECTORS = 3;
+const CONTENT_PREFILTER_DETECTORS = 3;
+
+// Pre-count itself reads each file once. On very large repos this can
+// become slow enough to be a small version of the problem the estimator
+// is meant to fix. Above the threshold we stride-sample and extrapolate
+// — surfaced in the output so the customer knows the figure is sampled.
+const PRECOUNT_FULL_THRESHOLD = 2000;
+const PRECOUNT_SAMPLE_SIZE = 500;
 
 // Specialized detectors invoked here in addition to analyzeCode (which
 // covers the original SQL/XSS/CMDI/PT families, output-suppressed). Those
@@ -130,6 +159,50 @@ function formatRuntime(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
+/**
+ * Counts files whose content matches the route-shape prefilter. Each
+ * match adds ROUTE_SHAPE_EXTRA_DETECTORS LLM calls to the per-file cost.
+ * For repos above PRECOUNT_FULL_THRESHOLD, stride-samples and reports
+ * `sampled: true` so the output can flag the figure as an estimate.
+ */
+function countRouteShapeFiles(files: string[]): {
+  count: number;
+  sampled: boolean;
+  sampleSize?: number;
+} {
+  const matches = (path: string): boolean => {
+    try {
+      const c = readFileSync(path, "utf8");
+      return APP_ROUTER_ROUTE_DEF_RE.test(c) || EXPRESS_ROUTE_DEF_RE.test(c);
+    } catch {
+      // The walker enumerated this path; if we can't read it during the
+      // pre-count the real scan will surface the error. Don't let the
+      // estimator fail the scan.
+      return false;
+    }
+  };
+
+  if (files.length <= PRECOUNT_FULL_THRESHOLD) {
+    let count = 0;
+    for (const f of files) if (matches(f)) count++;
+    return { count, sampled: false };
+  }
+
+  const stride = Math.max(1, Math.floor(files.length / PRECOUNT_SAMPLE_SIZE));
+  let sampleMatches = 0;
+  let sampled = 0;
+  for (let i = 0; i < files.length; i += stride) {
+    if (matches(files[i]!)) sampleMatches++;
+    sampled++;
+  }
+  const rate = sampled > 0 ? sampleMatches / sampled : 0;
+  return {
+    count: Math.round(rate * files.length),
+    sampled: true,
+    sampleSize: sampled,
+  };
+}
+
 async function confirm(prompt: string): Promise<boolean> {
   const rl = createInterface({ input, output });
   try {
@@ -167,20 +240,34 @@ async function main(): Promise<void> {
     return;
   }
 
-  const estBestUsd = files.length * ESTIMATED_COST_BEST_USD;
-  const estWorstUsd = files.length * ESTIMATED_COST_WORST_USD;
+  const routeShape = countRouteShapeFiles(files);
+  const baseCallsUsd = files.length * PER_CALL_COST_USD;
+  const routeShapeUsd =
+    routeShape.count * ROUTE_SHAPE_EXTRA_DETECTORS * PER_CALL_COST_USD;
+  const contentMaxUsd =
+    files.length * CONTENT_PREFILTER_DETECTORS * PER_CALL_COST_USD;
+  const estTypicalUsd = baseCallsUsd + routeShapeUsd;
+  const estWorstUsd = baseCallsUsd + routeShapeUsd + contentMaxUsd;
   // Worst-case runtime: per file = analyzeCode (~3s) + DELAY_MS sleep +
   // up to N detectors × (~3s LLM + SUB_DELAY_MS sleep).
   const estRuntimeSec =
     files.length *
     (3 + DELAY_MS / 1000 + newDetectors.length * (3 + SUB_DELAY_MS / 1000));
 
+  const routeShapeNote = routeShape.sampled
+    ? `${routeShape.count} (estimated from ${routeShape.sampleSize}-file sample; each triggers 3 additional LLM calls)`
+    : `${routeShape.count} (each triggers 3 additional LLM calls)`;
+
   output.write(`\nFiles to scan:       ${files.length}\n`);
   output.write(
     `Detectors per file:  1 central (analyzeCode) + ${newDetectors.length} specialized\n`,
   );
   output.write(
-    `Estimated cost:      ~$${estBestUsd.toFixed(2)} typical / ~$${estWorstUsd.toFixed(2)} worst-case\n`,
+    `Estimated cost:      ~$${estTypicalUsd.toFixed(2)} typical / ~$${estWorstUsd.toFixed(2)} worst-case\n`,
+  );
+  output.write(`Route-shape files:   ${routeShapeNote}\n`);
+  output.write(
+    `                     Estimate accounts for route-shape files that trigger additional analysis.\n`,
   );
   output.write(
     `Estimated runtime:   ~${formatRuntime(estRuntimeSec)} (worst case)\n`,
