@@ -82,7 +82,6 @@ Pricing happens **inside the Fixor dashboard** (not Marketplace), through Paddle
 |---|---|---|---|---|
 | Free | $0 | 5 | Public only | All 6 |
 | Indie | $29/mo | 100 | 1 private + unlimited public | All 6 |
-| Pro | $79/mo | 500 | 5 private + unlimited public | All 6 + Slack/Jira |
 | Team | $199/mo | 2,000 | Unlimited | All 6 + priority support |
 
 Free tier is real — install, scan a public repo, decide later.

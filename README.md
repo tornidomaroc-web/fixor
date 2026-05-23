@@ -12,7 +12,6 @@
 
 [Landing](https://tornidomaroc-web.github.io/fixor/) ·
 [Dashboard](https://app.fixor.dev) ·
-[Docs](https://docs.fixor.dev) ·
 [Status](https://status.fixor.dev) ·
 [Security](https://tornidomaroc-web.github.io/fixor/security.html)
 
@@ -33,11 +32,12 @@
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
 | 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
 | 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
-| 💳 Paddle billing — free / $29 / $79 / $199, hosted checkout + portal | ✅ Shipping |
+| 💳 Paddle billing — free / $29 / $199, hosted checkout + portal | ✅ Shipping |
 | 🎛️ Dashboard — scan history, trends, settings, billing | ✅ Shipping |
 | 💸 Per-org Anthropic budget cap — 80% nudge + hard pause at 100% | ✅ Shipping |
-| 🐍 Python detectors | 🚧 On roadmap (Phase 6) |
-| ☕ Java / 🐹 Go / 🐘 PHP / 💎 Ruby | 🚧 On roadmap (Phase 6) |
+| 🐍 Python · 🐹 Go — IDOR, env-exposure, secrets-exposure, and webhook-unverified detect cross-language today; auth-bypass and admin-check catch their sentinel/hardcoded shapes cross-language but their Express-router patterns (missing-middleware, missing-admin-gate) are JS/TS-only — see [`docs/detector-capabilities.md`](docs/detector-capabilities.md) | 🟡 Partial |
+| 💎 Ruby — limited (auth-bypass and IDOR fixtures only) | 🟡 Partial |
+| ☕ Java · 🐘 PHP — first-class detectors planned | 🚧 On roadmap (Phase 6) |
 | 🤖 Auto-fix Pull Requests (commit back) | 🚧 On roadmap (Phase 6) |
 
 The full plan and what's already shipped is in [`docs/INDIE-SAAS-ROADMAP.md`](docs/INDIE-SAAS-ROADMAP.md).
@@ -71,9 +71,9 @@ Fixor doesn't compete with Snyk or Semgrep — it covers the class they structur
 | | **Fixor** | Snyk Code | Semgrep (OSS / Pro) |
 |---|---|---|---|
 | Setup time | Install GitHub App, done | CLI / CI step + dashboard config | Add `.semgrep.yml` + CI step |
-| Languages | JS/TS today (more on roadmap) | 10+ | 30+ |
+| Languages | JS/TS full · partial Python/Go/Ruby | 10+ | 30+ |
 | Detector focus | Business logic: auth-bypass · IDOR · admin-check · env-exposure · secrets · unverified-webhooks | Dependency CVEs + injection patterns | 2,000+ pattern rules |
-| False-positive driver | Claude reasoning (low) | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
+| False-positive driver | Claude reasoning per finding | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
 | Remediation output | Precise explanation + remediation steps per finding | Partial auto-patch (Snyk Code Fix) | Rule message only |
 | PDF + SARIF | ✅ Both | ✅ SARIF | ✅ SARIF |
 | Pricing (entry) | $0 (free tier, real) | Free tier; $52/dev/mo Team | OSS free; $40/dev/mo Pro |
