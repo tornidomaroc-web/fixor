@@ -37,7 +37,9 @@ import { logger } from "../../lib/logger";
 import {
   APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
+  REMIX_HANDLER_DEF_RE,
   buildFunctionCodePayload,
+  isRemixRoutePath,
 } from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "admin-check-multi";
@@ -222,6 +224,16 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
   {
     id: "app_router_route_def",
     re: APP_ROUTER_ROUTE_DEF_RE,
+    tier: "judgment",
+  },
+  // Remix v2 `loader` / `action` exports (Phase E, 2026-05-23). Sibling
+  // to app_router_route_def with the same tier=judgment semantics and
+  // the same whole-file payload downstream. The prefilter applies
+  // isRemixRoutePath to bound REMIX_HANDLER_DEF_RE over-match on
+  // utility modules outside `app/routes/` — see analyzeFile.
+  {
+    id: "remix_handler_def",
+    re: REMIX_HANDLER_DEF_RE,
     tier: "judgment",
   },
 ];
@@ -651,7 +663,7 @@ export class AdminCheckDetector implements Detector {
     content: string,
     lang: SupportedLang,
   ): Promise<NormalizedFinding[]> {
-    const triggers = this.prefilterRegex(content);
+    const triggers = this.prefilterRegex(content, filePath);
     const diag: FileDiagnostic = {
       file: filePath,
       triggerCount: triggers.length,
@@ -714,7 +726,8 @@ export class AdminCheckDetector implements Detector {
     // detectors/shared/route-def-pattern.ts.
     const isRouteDefTrigger =
       trigger.patternId === "express_route_def" ||
-      trigger.patternId === "app_router_route_def";
+      trigger.patternId === "app_router_route_def" ||
+      trigger.patternId === "remix_handler_def";
     const functionCode = buildFunctionCodePayload({
       content,
       anchorLine: trigger.line,
@@ -784,12 +797,20 @@ export class AdminCheckDetector implements Detector {
     return SERVER_ONLY_RE.test(content);
   }
 
-  private prefilterRegex(content: string): PrefilterHit[] {
+  private prefilterRegex(content: string, filePath: string): PrefilterHit[] {
     // Full-content scan (multi-line aware) — Phase 5a fix.
+    //
+    // Phase E (2026-05-23): the `remix_handler_def` pattern is gated by
+    // isRemixRoutePath because `export const loader` is also a Remix
+    // data-fetch utility convention. A path-filtered match is not
+    // considered earliest — other patterns get a chance.
     let earliest: { idx: number; patternId: string } | null = null;
     for (const p of PREFILTER_PATTERNS) {
       const m = p.re.exec(content);
       if (!m || m.index === undefined) continue;
+      if (p.id === "remix_handler_def" && !isRemixRoutePath(filePath)) {
+        continue;
+      }
       if (earliest === null || m.index < earliest.idx) {
         earliest = { idx: m.index, patternId: p.id };
       }

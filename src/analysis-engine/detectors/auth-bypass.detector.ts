@@ -31,7 +31,9 @@ import { logger } from "../../lib/logger";
 import {
   APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
+  REMIX_HANDLER_DEF_RE,
   buildFunctionCodePayload,
+  isRemixRoutePath,
 } from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "auth-bypass-multi";
@@ -122,6 +124,13 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   // judgment for App Router handlers happens in the LLM stage; the
   // prefilter just gates which files reach the model.
   { id: "app_router_route_def", re: APP_ROUTER_ROUTE_DEF_RE },
+  // Remix v2 `loader` / `action` exports (Phase E, 2026-05-23). Sibling
+  // to app_router_route_def with the same downstream wiring (whole-file
+  // payload, missing-HOC-wrapper rubric in SYSTEM_PROMPT case 3). The
+  // prefilter applies isRemixRoutePath to bound the over-match risk on
+  // utility modules that export `loader`/`action` from outside
+  // `app/routes/` — see analyzeFile.
+  { id: "remix_handler_def", re: REMIX_HANDLER_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -469,7 +478,7 @@ export class AuthBypassDetector implements Detector {
     content: string,
     lang: SupportedLang,
   ): Promise<NormalizedFinding[]> {
-    const triggers = this.prefilterRegex(content);
+    const triggers = this.prefilterRegex(content, filePath);
     const diag: FileDiagnostic = {
       file: filePath,
       triggerCount: triggers.length,
@@ -492,7 +501,8 @@ export class AuthBypassDetector implements Detector {
     const routeDefTrigger = triggers.find(
       (t) =>
         t.patternId === "express_route_def" ||
-        t.patternId === "app_router_route_def",
+        t.patternId === "app_router_route_def" ||
+        t.patternId === "remix_handler_def",
     );
     const trigger = routeDefTrigger ?? triggers[0]!;
     const functionCode = buildFunctionCodePayload({
@@ -565,13 +575,24 @@ export class AuthBypassDetector implements Detector {
     return SERVER_ONLY_RE.test(content);
   }
 
-  private prefilterRegex(content: string): PrefilterHit[] {
+  private prefilterRegex(content: string, filePath: string): PrefilterHit[] {
     const hits: PrefilterHit[] = [];
     const lines = content.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
       for (const p of PREFILTER_PATTERNS) {
         if (p.re.test(line)) {
+          // Phase E (2026-05-23): bound REMIX_HANDLER_DEF_RE over-match.
+          // `export const loader` is also a Remix data-fetch utility
+          // convention; without the path filter, utility modules under
+          // `app/lib/` or `app/utils/` would route to the LLM as if
+          // they were route handlers.
+          if (
+            p.id === "remix_handler_def" &&
+            !isRemixRoutePath(filePath)
+          ) {
+            continue; // path-filtered; let other patterns test this line
+          }
           hits.push({
             patternId: p.id,
             patternText: line.trim(),

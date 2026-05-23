@@ -60,15 +60,33 @@ inbox-zero routes — outlook/webhook and apple/webhook — now route
 to MEDIUM/review-queue with the verify*Payload name-convention
 recognized in the full file context. No remaining apple-shape
 residual.
-Remix `loader` / `action` exports are NOT yet covered (Phase E
-follow-up; statically measured 0/411 prefilter matches on
-Trigger.dev). The content-based sub-claims (sentinel
-strings, hardcoded-admin shapes, IDOR, env-exposure, secrets-exposure
-including Next.js-aware `NEXT_PUBLIC_*` patterns, and webhook
-lib-import / anti-pattern detection) work on both router-style and
-file-system-routed frameworks including Remix. See
+Remix v2 `loader` / `action` exports ARE now covered (Phase E,
+2026-05-23) for the same three route-shape detectors via a sibling
+`REMIX_HANDLER_DEF_RE` and an `isRemixRoutePath` path-aware filter
+that bounds over-match to the Remix v2 file-system convention
+(`/routes/` segment or `app/root.{ts,tsx}`). Calibration: 17 Remix
+fixtures (auth-bypass 6 + admin-check 6 + webhook 5, including
+over-match utility anchors), all passed; end-to-end demo on
+fixor-demo-remix flagged 3 planted Remix-shape vulnerabilities with
+correct detector attribution. **Named residuals at the point of this
+claim:** (i) **real-world Remix production-corpus baseline (e.g.
+against Trigger.dev's 411 routes) is deferred** — the cheap
+calibration + demo were scientifically sufficient under the same
+partial-sample discipline that closed Phase D; (ii)
+**non-conventional wrapper-name divergence on unknown Remix
+codebases is a known residual** until a real corpus is measured —
+the path-aware filter bounds (does not eliminate) over-match on
+utility modules, and HOC-name coverage is limited to the calibrated
+set (`withAuth`, `withAdmin`, `withLogging`, `withSessionAnalytics`,
+`requireUser`, `getServerSession`). The content-based sub-claims
+(sentinel strings, hardcoded-admin shapes, IDOR, env-exposure,
+secrets-exposure including Next.js-aware `NEXT_PUBLIC_*` patterns,
+and webhook lib-import / anti-pattern detection) work on
+router-style and file-system-routed (App Router, Remix) frameworks
+normally. See
 [`docs/detector-capabilities.md`](https://github.com/tornidomaroc-web/fixor/blob/main/docs/detector-capabilities.md)
-for the per-sub-claim breakdown and the partial-scan caveat.
+for the per-sub-claim breakdown, the partial-scan caveat on App
+Router, and the deferred-baseline caveat on Remix.
 
 Everything else is text-pattern detection that travels across
 languages as long as the prefilter regex and the LLM verdict have
