@@ -8,7 +8,7 @@ description: "Install Fixor on GitHub and get your first scan in under 60 second
 <Steps>
   <Step title="Open the install page">
     <a href="https://github.com/apps/fixor-security/installations/new">github.com/apps/fixor-security/installations/new</a>
-    — pick the user account or organization where you want Fixor.
+    Pick the user account or organization where you want Fixor.
   </Step>
   <Step title="Choose repos">
     All repos, or only specific ones. **Public repos are free.**
@@ -26,7 +26,7 @@ description: "Install Fixor on GitHub and get your first scan in under 60 second
 Open or update a PR on a watched repo. Within ~30 seconds Fixor:
 
 1. Receives the GitHub webhook
-2. Pulls the diff (only the changed lines — never the full repo)
+2. Pulls the diff (only the changed lines, never the full repo)
 3. Sends it to Claude for analysis
 4. Posts a structured comment back
 
@@ -35,7 +35,8 @@ GitHub's native install protocol.
 
 ## 3. Read the report
 
-The PR comment looks like this:
+The PR comment looks like this (representative shape, exact
+rendering may evolve):
 
 ```
 ## 🛡️ Fixor Security Report
@@ -45,32 +46,32 @@ The PR comment looks like this:
 
 ### Summary
 | Workflow status | ✅ success |
-| Vulnerabilities | 2 |
+| Findings | 2 |
 | Fixes generated | 2 |
 | Patch quality | high: 1 · medium: 1 |
 | Duration | 13.5s |
 
 ### Suggested fixes
-▸ 1. src/users.js:42 · high · SQL_INJECTION
-▸ 2. src/products.js:87 · medium · SQL_INJECTION
+▸ 1. src/routes/admin.ts:8 · high · Authorization bypass
+▸ 2. src/routes/orders.ts:9 · high · Broken object-level authorization (IDOR)
 
 ### 📄 Download full report  →  Download PDF Report
 ```
 
 The PDF link uses a signed Cloudinary URL with a 1-hour TTL. After
 that, the comment regenerates the link on the next interaction. The
-SARIF file is attached too — drop it into any tool that speaks
-SARIF (Code Scanning, DefectDojo, etc.).
+SARIF file is attached too: drop it into any tool that speaks SARIF
+(Code Scanning, DefectDojo, etc.).
 
 ## 4. Tune the noise (optional)
 
 In the dashboard at `/orgs/<id>/settings`:
 
-- **Severity threshold** — drop low-severity findings before they
+- **Severity threshold:** drop low-severity findings before they
   reach the comment.
-- **Ignored paths** — globs like `vendor/**` or `**/*.test.ts`.
-- **Detector allowlist** — run a subset rather than all four.
-- **Slack webhook** — post a copy of each comment to your channel.
+- **Ignored paths:** globs like `vendor/**` or `**/*.test.ts`.
+- **Detector allowlist:** run a subset rather than all six.
+- **Slack webhook:** post a copy of each comment to your channel.
 
 Settings apply to the **next** scan. You don't need to reopen the
 PR.

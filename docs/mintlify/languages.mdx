@@ -1,64 +1,77 @@
 ---
 title: "Supported languages"
-description: "What Fixor scans today, what's on the roadmap, and how to vote for the next language."
+description: "What Fixor scans today, per detector, and how language coverage expands."
 ---
+
+Coverage varies by detector. JavaScript and TypeScript are full
+across all six detectors. Python and Go have fixtures in all six
+detectors today, with two scope limits called out below. Ruby is
+narrower. Java and PHP are not covered yet.
+
+The authoritative scope (which fixtures exist, what each detector
+catches per language) lives at
+[`docs/detector-capabilities.md`](https://github.com/tornidomaroc-web/fixor/blob/main/docs/detector-capabilities.md).
+This page summarizes.
 
 | Language | Status | Notes |
 | --- | --- | --- |
-| **JavaScript** | ✅ Shipping | All four detectors |
-| **TypeScript** | ✅ Shipping | All four detectors |
-| **Python** | 🚧 Roadmap | High demand; SQL injection + path traversal first |
-| **Java** | 🚧 Roadmap | After Python |
-| **Go** | 🚧 Roadmap | After Java |
-| **Ruby** | 🤔 Considering | Email us if you want it |
-| **PHP** | 🤔 Considering | Email us if you want it |
+| **JavaScript** | ✅ Full | All 6 detectors |
+| **TypeScript** | ✅ Full | All 6 detectors |
+| **Python** | 🟡 Partial | All 6 detectors have fixtures. `auth-bypass` and `admin-check` catch their sentinel/hardcoded shapes; their Express-router missing-middleware / missing-admin-gate patterns are JS/TS-only |
+| **Go** | 🟡 Partial | Same shape as Python: all 6 detectors have fixtures; route-shape patterns are JS/TS-only |
+| **Ruby** | 🟡 Limited | `auth-bypass` and `idor` fixtures only |
+| **Java** | 🚧 Roadmap | First-class detectors planned |
+| **PHP** | 🚧 Roadmap | First-class detectors planned |
 
-## What "supports JS/TS" means
+## What "Partial" and "Limited" mean
 
-Fixor's analysis uses Claude (Anthropic's LLM) to reason about
-diff context. So strictly speaking, Claude can read any
-mainstream language — what JS/TS-specific support buys you is:
+Per-detector, per-language:
 
-- **Tighter detector heuristics.** Each detector has a
-  `supports: FindingType[]` list and framework-aware fix templates.
-  These are JS/TS today.
-- **Tested fix templates.** The fix-shape examples in the
-  [detector catalogue](/detectors) reflect real patches Fixor has
-  been validated against.
-- **Lower false-positive rate.** When the language signals are
-  clearer, the LLM has less room to hallucinate.
+| Detector | JS/TS | Python | Go | Ruby |
+| --- | --- | --- | --- | --- |
+| `auth-bypass-multi` | ✅ | 🟡 sentinels only | 🟡 sentinels only | 🟡 sentinels only |
+| `admin-check-multi` | ✅ | 🟡 hardcoded shapes only | 🟡 hardcoded shapes only | ❌ |
+| `idor-multi` | ✅ | ✅ FastAPI | ✅ chi + raw SQL | ✅ Rails |
+| `env-exposure-multi` | ✅ | ✅ Flask, FastAPI | ✅ | ❌ |
+| `secrets-exposure-multi` | ✅ | ✅ | ✅ | ❌ |
+| `webhook-unverified-multi` | ✅ | ✅ Flask | ✅ HandleFunc | ❌ |
 
-A scan against a Python or Go diff *will* still produce findings
-(Claude reads the diff regardless), but the patches won't be
-framework-aware and the false-positive rate will be higher. We
-don't recommend running Fixor on languages outside the table above
-yet.
+The two JS/TS-only patterns are the route-definition shapes:
+`auth-bypass`'s missing-middleware case (Express `router.post(...)`
+without an auth middleware) and `admin-check`'s missing-admin-gate
+case (Express privileged route with no admin check anywhere). These
+look at routing structure specifically, and we have not built that
+out for Python/Go web frameworks yet.
 
-## How language coverage expands
+Everything else is text-pattern detection that travels across
+languages as long as the prefilter regex and the LLM verdict have
+been exercised against a fixture in that language.
 
-Each new language is tracked as a Phase 6+ task in the public
-roadmap. The order is set by paid-customer demand:
+## What "Roadmap" means
 
-1. **Customer asks** for a language not currently supported.
-2. We log the request internally.
-3. Once 3+ paying customers want the same language, it becomes
-   a sprint-sized task: write detectors per family, build fix
-   templates, run against a corpus of public repos to baseline
-   precision/recall.
+For Java and PHP today, Fixor will not produce useful findings:
+neither the prefilters nor the LLM prompts have been tuned for those
+languages, and we ship no fixtures to validate them against. Don't
+install Fixor on Java or PHP repos expecting accurate output.
+
+The order in which new languages are added is driven by paid-customer
+demand. Once three or more paying customers ask for the same
+language, it becomes a sprint-sized task: per-detector prefilter
+patterns, positive + negative fixtures in that language, and a
+baseline stability run.
 
 If a language matters to you, email
-<a href="mailto:support@fixor.dev">support@fixor.dev</a> with one sentence
-on what your stack looks like. Free-tier requests still count
-toward demand signal.
+<a href="mailto:support@fixor.dev">support@fixor.dev</a> with one
+sentence on what your stack looks like. Free-tier requests still
+count toward demand signal.
 
-## What we won't add
+## What we will not add
 
-- **Configuration languages** (YAML/JSON/HCL) — vulnerabilities in
-  config are real but the heuristic shape is different. Out of
-  scope.
-- **Compiled-only languages without source diffs.** Fixor reads
-  the diff; if the source isn't in the PR, there's nothing to
-  scan.
-- **Proprietary or legally restricted code** — Anthropic's terms
-  apply to what we send through Claude. Don't install Fixor on
-  repos you're not allowed to share with them.
+- **Configuration languages** (YAML / JSON / HCL). Vulnerabilities in
+  config are real but the detection shape is structural rather than
+  textual; out of scope.
+- **Compiled-only languages without source diffs.** Fixor reads the
+  diff. No source in the PR, nothing to scan.
+- **Proprietary or legally restricted code.** Anthropic's terms
+  apply to anything Fixor sends through Claude. Do not install Fixor
+  on repositories you are not authorized to share.

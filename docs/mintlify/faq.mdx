@@ -1,24 +1,24 @@
 ---
 title: "FAQ"
-description: "Common questions about Fixor — pricing, privacy, accuracy, and operations."
+description: "Common questions about Fixor: pricing, privacy, accuracy, and operations."
 ---
 
 ## Pricing & billing
 
 <AccordionGroup>
   <Accordion title="Is the free tier really free?">
-    Yes — 5 scans / month on public repos with all four detectors,
+    Yes. 5 scans / month on public repos with all 6 detectors,
     no card. The cap exists because every scan calls Anthropic and
     that has a real cost; we'd rather pause than overspend on
     someone who hasn't subscribed.
   </Accordion>
   <Accordion title="What does my card statement say?">
-    Paddle, not Fixor. Paddle is our merchant of record — they
+    Paddle, not Fixor. Paddle is our merchant of record: they
     handle VAT, sales tax, and chargebacks for the regions we
     serve.
   </Accordion>
   <Accordion title="Can I cancel any time?">
-    Yes — open
+    Yes. Open
     <a href="https://app.fixor.dev">app.fixor.dev</a>, navigate to
     `/orgs/<id>/billing`, and click `Cancel`. The cancellation
     takes effect at the end of the current paid period; you keep
@@ -53,7 +53,7 @@ description: "Common questions about Fixor — pricing, privacy, accuracy, and o
   <Accordion title="Can I get a list of who has access to my org's data?">
     Email
     <a href="mailto:support@fixor.dev">support@fixor.dev</a> for
-    a full data export of every row that references your org —
+    a full data export of every row that references your org,
     same shape as the GDPR access right. We respond within 30
     days.
   </Accordion>
@@ -69,32 +69,34 @@ description: "Common questions about Fixor — pricing, privacy, accuracy, and o
 
 <AccordionGroup>
   <Accordion title="What's the false-positive rate?">
-    Lower than regex-based scanners because Claude reads the
-    surrounding code. We don't publish a single number because it
-    varies hugely by codebase shape. The
+    We don't publish a single FP-rate number. The driver is Claude
+    reasoning per finding rather than a tunable rate, and the real
+    number varies hugely by codebase shape. The
     [no-warranty section](https://fixor.dev/terms.html) of our
-    terms is honest about this — every finding is a suggestion,
-    not a guarantee.
+    terms says it plainly: every finding is a suggestion, not a
+    guarantee. The [detector catalogue](/detectors) lists the
+    explicit scope limits for each detector so you can judge where
+    a noisy result is most likely.
   </Accordion>
   <Accordion title="Will Fixor catch every vulnerability?">
-    No security tool will. Fixor is a signal in a layered defense
-    — code review + pen testing + a SAST/SCA scanner sit
-    alongside it. Use it where its detector families fit and
-    don't pretend it covers what it doesn't (yet).
+    No security tool will. Fixor is a signal in a layered defense:
+    code review + pen testing + a SAST/SCA scanner sit alongside
+    it. Use it where its detector families fit and don't pretend
+    it covers what it doesn't (yet).
   </Accordion>
   <Accordion title="A finding is wrong for my code. What do I do?">
     Two options in the dashboard's `/orgs/<id>/settings`:
     raise the **severity threshold** (drops low-severity noise
     globally), or add the file's path to **ignored globs**
     (skips a specific path). Both apply on the next scan. There's
-    no learning loop — Fixor doesn't &ldquo;remember&rdquo; your
+    no learning loop. Fixor doesn't &ldquo;remember&rdquo; your
     feedback per finding (today).
   </Accordion>
   <Accordion title="Can I disable a specific detector?">
     Yes. The settings page has a detector-allowlist mode: pick
-    which of the four families you want to run. Useful if your
-    codebase doesn't render HTML server-side and you don't want
-    XSS noise.
+    which of the 6 families you want to run. Useful if your
+    codebase doesn't use webhook handlers and you don't want
+    `webhook-unverified` running, for example.
   </Accordion>
 </AccordionGroup>
 
@@ -116,7 +118,7 @@ description: "Common questions about Fixor — pricing, privacy, accuracy, and o
     <a href="https://fixor.dev/security.html">fixor.dev/security</a>.
   </Accordion>
   <Accordion title="Is Fixor open source?">
-    Yes — MIT-licensed at
+    Yes. MIT-licensed at
     <a href="https://github.com/tornidomaroc-web/fixor">github.com/tornidomaroc-web/fixor</a>.
     The hosted service runs the same code; you can verify any
     claim in this docs site against the source.
