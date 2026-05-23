@@ -115,8 +115,30 @@ Set confidence:
   library-based verification (e.g., stripe.webhooks.constructEvent,
   @octokit/webhooks, twilio.validateRequest) AND no dedicated verification
   middleware applied to the route
-- MEDIUM: Signature verification present but uses insecure comparison
-  (=== instead of timingSafeEqual/compare_digest)
+- MEDIUM (isVulnerable=true): ONE of these verification-shaped-but-
+  cannot-fully-confirm cases:
+  1. Signature verification present but uses insecure comparison
+     (=== instead of timingSafeEqual/compare_digest) — timing leak.
+  2. Cross-file verification helper called with a verification-
+     suggesting NAME (\`verify*Payload\`, \`verify*Signature\`,
+     \`verify*Webhook\`, \`validate*Webhook\`, \`check*Signature\`
+     or similar) imported from a non-stdlib path and awaited on a
+     body field — implementation lives cross-file and cannot be
+     confirmed from the route file alone, but the
+     import + await + name-convention combination is strong enough
+     signal that HIGH is over-confident.
+  3. Non-HMAC shared-secret challenge: handler reads a body field
+     (\`notification.clientState\`, \`payload.token\`, \`body.secret\`,
+     etc.) AND compares it against an env-derived expected value
+     (\`process.env.GRAPH_CLIENT_STATE\`, \`process.env.WEBHOOK_TOKEN\`,
+     etc.) AND returns an unauthorized status (401/403) on mismatch.
+     The mechanism is not HMAC but IS verification (the documented
+     Microsoft-Graph subscription-validation pattern works exactly
+     this way); HIGH would be a false positive.
+  All three MEDIUM cases set isVulnerable=true with confidence=medium
+  so the verdict routes to the review queue rather than the PR-comment
+  surface. NOT skip (verification IS present in some form), NOT HIGH
+  (cannot be fully confirmed).
 - LOW: Verification clearly handled (library, middleware, or proper HMAC),
   OR the file is not actually a webhook handler (see App Router section
   below)
@@ -170,10 +192,43 @@ App Router and Remix (file-system-routed) considerations:
     \`hmac.compare_digest\` (Python), OR \`subtle.ConstantTimeCompare\` /
     \`hmac.Equal\` (Go) used to compare computed signature against the
     incoming header value.
+  - CROSS-FILE VERIFIER HELPER (MEDIUM, isVulnerable=true): handler
+    imports a function whose NAME matches \`verify*Payload\`,
+    \`verify*Signature\`, \`verify*Webhook\`, \`validate*Webhook\`,
+    \`check*Signature\`, or a similarly verification-suggesting name
+    from a non-stdlib import path (e.g. \`@/lib/...\`, \`../verify\`,
+    an internal module — NOT \`node:crypto\` and NOT a third-party
+    library object method like \`stripe.webhooks.constructEvent\`
+    which is GATED above), AND \`await\`s it on a body-derived value.
+    The verifier's implementation cannot be confirmed without
+    cross-file analysis, but the import + await + name-convention is
+    strong enough signal that HIGH is over-confident. Set
+    isVulnerable=true with confidence=medium so the verdict routes
+    to the review queue — honest conservative call when verification
+    IS visible but unconfirmable. Reasoning should explicitly name
+    the helper identifier and note that confirmation requires
+    cross-file analysis.
+  - SHARED-SECRET CHALLENGE (MEDIUM, isVulnerable=true): handler
+    reads a body field (e.g. \`notification.clientState\`,
+    \`payload.token\`, \`body.secret\`) AND compares it against an
+    env-derived expected value (\`process.env.GRAPH_CLIENT_STATE\`,
+    \`process.env.WEBHOOK_TOKEN\`, etc.) AND returns an unauthorized
+    status (401/403) on mismatch. The mechanism is not HMAC but IS
+    verification — the documented Microsoft-Graph subscription-
+    validation pattern works exactly this way (clientState is the
+    shared secret the provider stores at subscription-create time).
+    Set isVulnerable=true with confidence=medium. Cross-file env
+    value cannot be confirmed but the body-field-compare-against-
+    env-and-unauthorized-on-mismatch shape is strong enough signal
+    that HIGH would be a false positive. Reasoning should explicitly
+    name the body field, the env value, and the unauthorized
+    response.
   - UNGATED (HIGH / vulnerable): handler reads the body but performs NO
-    signature comparison, OR reads the body and compares with \`===\` /
-    \`!=\` / \`==\` / direct string equality (MEDIUM if comparison is
-    present but timing-unsafe, HIGH if no comparison at all).
+    signature comparison AND none of the MEDIUM cases above apply (no
+    cross-file verifier-helper call, no shared-secret challenge), OR
+    reads the body and compares with \`===\` / \`!=\` / \`==\` / direct
+    string equality (MEDIUM if comparison is present but timing-unsafe,
+    HIGH if no comparison at all and none of the MEDIUM cases apply).
 
 IMPORTANT:
 - Only return findings with confidence "high" or "medium".
@@ -189,7 +244,13 @@ IMPORTANT:
   AND the body is not used for state changes.
 - Reject (return LOW, not vulnerable) any App Router file that fails ALL
   of the webhook-signal checks above — it is not a webhook handler and
-  no signature verification rubric applies.`;
+  no signature verification rubric applies.
+- For the two App Router MEDIUM cases (cross-file verifier helper,
+  shared-secret challenge): set isVulnerable=true with confidence=medium.
+  Do NOT set isVulnerable=false (that would route to silent skip — wrong
+  outcome because verification IS visible in shape, just unconfirmable).
+  Do NOT set confidence=high (that would re-create the very false
+  positives this rule exists to lower).`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)

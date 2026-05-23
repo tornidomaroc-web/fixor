@@ -276,7 +276,107 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Phase F locked merge gate (operator-locked 2026-05-23). Three checks
+  // beyond the standard pass/fail above:
+  //   1. Combined accuracy must stay at the pre-Phase-F floor (24) or
+  //      better. The pre-tune baseline was 24/26 (11/13 positives flag,
+  //      13/13 negatives skip). Post-Phase-F the suite has 15/15 so the
+  //      same absolute floor still applies; perturbing the existing pass
+  //      set below 24 means the tune broke something.
+  //   2. The two Phase F positive anchors (POS-14 cross-file-no-call,
+  //      POS-15 clientstate-no-compare) must FLAG (HIGH-emit path). The
+  //      new MEDIUM-routing clauses must not over-generalize to silence
+  //      the no-verification-at-all shape.
+  //   3. The two Phase F negative anchors (NEG-14 cross-file-verifier-
+  //      helper, NEG-15 clientstate-challenge) must route to MEDIUM/
+  //      review-queue, defined as verdict.confidence === "medium" AND
+  //      verdict.isVulnerable === true. The harness records "skip"
+  //      whenever the detector emits no finding, but MEDIUM and LOW both
+  //      appear as "skip" — only the captured verdict can distinguish
+  //      "routed to review queue" from "silenced". The gate enforces the
+  //      former.
+  // If any gate fails, exit 1. The pre-merge discipline requires green.
+  const PHASE_F_COMBINED_FLOOR = 24;
+  const PHASE_F_POSITIVE_ANCHORS = [
+    "14-app-router-apple-cross-file-no-call.ts",
+    "15-app-router-graph-clientstate-no-compare.ts",
+  ];
+  const PHASE_F_NEGATIVE_ANCHORS = [
+    "14-app-router-apple-cross-file-verifier-helper.ts",
+    "15-app-router-graph-clientstate-challenge.ts",
+  ];
+
+  const gateFailures: string[] = [];
+
+  if (combined < PHASE_F_COMBINED_FLOOR) {
+    gateFailures.push(
+      `combined ${combined}/${totalCount} < pre-Phase-F floor ${PHASE_F_COMBINED_FLOOR} ` +
+        `(tune perturbed the existing pass set; check missed positives and flagged negatives above).`,
+    );
+  }
+
+  for (const fname of PHASE_F_POSITIVE_ANCHORS) {
+    const r = positives.find((p) => p.file === fname);
+    if (!r) {
+      gateFailures.push(`positive anchor fixture ${fname} not found in positives/`);
+      continue;
+    }
+    if (!r.flagged) {
+      gateFailures.push(
+        `positive anchor ${fname} expected to FLAG HIGH but did not; verdict=${JSON.stringify(r.verdict ?? null)}`,
+      );
+    }
+  }
+
+  for (const fname of PHASE_F_NEGATIVE_ANCHORS) {
+    const r = negatives.find((n) => n.file === fname);
+    if (!r) {
+      gateFailures.push(`negative anchor fixture ${fname} not found in negatives/`);
+      continue;
+    }
+    if (r.flagged) {
+      gateFailures.push(
+        `negative anchor ${fname} flagged HIGH (tune did not lower the FP class to MEDIUM); ` +
+          `verdict=${JSON.stringify(r.verdict ?? null)}`,
+      );
+      continue;
+    }
+    const conf = r.verdict?.confidence;
+    const isVuln = r.verdict?.isVulnerable;
+    if (conf !== "medium" || isVuln !== true) {
+      gateFailures.push(
+        `negative anchor ${fname} did not route to MEDIUM/review-queue; ` +
+          `expected confidence="medium" AND isVulnerable=true (the review-queue routing); ` +
+          `got verdict=${JSON.stringify(r.verdict ?? null)}`,
+      );
+    }
+  }
+
+  if (gateFailures.length > 0) {
+    process.stdout.write(
+      "\n================================================================\n",
+    );
+    process.stdout.write(
+      "PHASE F LOCKED MERGE GATE FAILED\n",
+    );
+    process.stdout.write(
+      "================================================================\n",
+    );
+    for (const f of gateFailures) {
+      process.stdout.write(`  - ${f}\n`);
+    }
+    process.stdout.write(
+      "\nThe Phase F merge gate is locked: existing 24/26 floor preserved, " +
+        "two new positives must FLAG HIGH, two new negatives must route to " +
+        "MEDIUM/review-queue (NOT skip, NOT HIGH). See " +
+        "fixtures/webhook-unverified/META.md '## Phase F locked merge gate' " +
+        "and memory project_fixor_phase_f_webhook_fp_tuning for the locked discipline.\n",
+    );
+    process.exit(1);
+  }
+
   process.stdout.write("PASS.\n");
+  process.stdout.write("PHASE F GATES PASS.\n");
 }
 
 main().catch((err) => {
