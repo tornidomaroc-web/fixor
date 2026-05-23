@@ -40,12 +40,29 @@ Explicitly not covered (escalate to a manual review):
 Fastify, Koa, Hono, NestJS Guards, Spring `@PreAuthorize`, ASP.NET
 `[Authorize]`, GraphQL resolver-level auth, declarative Rails route
 guards, tRPC `protectedProcedure`, Next.js middleware-based auth.
-Next.js App Router and Remix file-system-routed handlers
-(`export const POST = ...` / `export async function GET(...)`) are
-out of scope for the missing-middleware sub-claim only — the
-prefilter requires `router.METHOD(...)` syntax. The sentinel-string
-sub-claim is content-based and still fires on App Router files
-normally.
+
+Next.js App Router method-named exports (`export const POST = ...` /
+`export async function GET(...)`) ARE now covered via missing-HOC-
+wrapper detection. Measured 2026-05-23 against 182 of 228 inbox-zero
+App Router routes (~80%, PARTIAL scan, halted for API budget — not a
+full-corpus sweep): 0 auth-bypass findings on the partial 182-route
+sample, including all measured `withAuth` / `withAdmin` / `withEmailAccount`
+/ `withEmailProvider` / `withError` wrapper shapes. The body-
+discriminator rule generalized correctly to unfamiliar ApiKey-suffix
+wrappers in Phase D synthetic measurement (`withAccountApiKey`,
+`withStatsApiKey`); unfamiliar wrappers with no body enforcement
+surface at MEDIUM in the review queue, not as HIGH alerts in the
+main panel.
+
+Remix `loader` / `action` exports are NOT yet covered (Phase E
+follow-up). **Customer wrappers whose name suggests auth but whose
+implementation is a no-op stub** (e.g. a `withAuth` defined as
+`(fn) => fn` in a sibling file) are also out of scope — Fixor reads
+the route file in isolation and trusts the auth-suggesting name; to
+verify, audit the wrapper's implementation in its defining file.
+
+The sentinel-string sub-claim is content-based and still fires on
+both router-style and App Router files normally.
 
 ## Missing admin checks
 
@@ -71,10 +88,20 @@ What we look for:
 Explicitly not covered: Fastify, Koa, Hono, NestJS Guards, Spring
 `@PreAuthorize`, decorator-based RBAC, declarative RBAC (Casbin, OPA,
 Cedar), tRPC `adminProcedure`, GraphQL resolver-level admin checks.
-Next.js App Router and Remix file-system-routed handlers are out of
-scope for the missing-admin-gate sub-claim only — the prefilter
-requires `router.METHOD(...)` syntax. The hardcoded-admin sub-claim
-is content-based and still fires on App Router files normally.
+
+Next.js App Router method-named exports ARE now covered via missing-
+admin-HOC-wrapper detection. Phase C calibration on 4 positive + 4
+negative synthetic fixtures with a helper-call symmetric anchor (AC-
+P4 / AC-N4); Phase D real-world partial scan on 182 of 228 inbox-zero
+App Router routes (~80%, PARTIAL scan, halted for API budget — not a
+full-corpus sweep) returned 0 admin-check findings on the partial
+182-route sample, including the corpus's `admin/*` routes.
+
+Remix `loader` / `action` exports are NOT yet covered (Phase E
+follow-up). **No-op-stub admin wrappers** (a wrapper named `withAdmin`
+defined as `(fn) => fn`) are out of scope — Fixor trusts the admin-
+suggesting name. The hardcoded-admin sub-claim is content-based and
+still fires on both router-style and App Router files normally.
 
 When auth-bypass and admin-check both fire on the same `file:line`,
 the admin-check finding is dropped (the auth-bypass finding subsumes
@@ -203,6 +230,29 @@ and the file never reaches the LLM. The invisibility is because the
 file is correct, not because all DIY-HMAC is inherently invisible —
 a vulnerable DIY-HMAC handler that uses `sig != expected` would
 still hit the looser-comparison content patterns.
+
+(c) **Cross-file webhook verification helpers.** App Router webhook
+routes that delegate verification to a helper imported from another
+module — e.g. `await verifyAppleNotificationPayload(body.signedPayload)`
+from `@/ee/billing/apple` — are flagged as missing verification. The
+route file in isolation does not visibly verify; the verification is
+real but cross-file. Measured 2026-05-23 against 182 of 228 inbox-
+zero App Router routes (PARTIAL scan): inbox-zero's Apple App Store
+Server Notifications handler surfaced exactly this shape. Audit the
+helper's implementation to confirm the finding is a false positive.
+
+(d) **Non-HMAC shared-secret challenge verification.** Microsoft
+Graph webhooks compare `notification.clientState` against an env-
+stored expected value and return 403 on mismatch — that IS
+verification, but it is shared-secret equality, not HMAC. The Phase
+C prompt's sink-principle recognizes HMAC-shape verification (hash
+output flowing to incoming-signature comparison) and does not
+recognize equality-comparison of a shared-secret string. Measured
+2026-05-23 against 182 of 228 inbox-zero App Router routes (PARTIAL
+scan): inbox-zero's Outlook webhook at `outlook/webhook/route.ts:59`
+surfaced this shape. Other shared-secret challenge mechanisms
+(custom integrations, internal services) will surface in the same
+shape.
 
 **MEDIUM-confidence findings on this detector** (timing-leak
 comparisons, env-flag-conditional bypass) are routed to the internal

@@ -43,20 +43,23 @@ case (Express privileged route with no admin check anywhere). These
 look at routing structure specifically, and we have not built that
 out for Python/Go web frameworks yet.
 
-**Framework-shape caveat within JS/TS.** Those route-shape sub-claims
-also require *router-style* framework syntax even within JS/TS:
-`router.METHOD(path, ...)` shape. File-system-routed frameworks —
-Next.js App Router (`export const POST = ...` / `export async
-function GET(...)`) and Remix (`app/routes/*.ts` action/loader
-exports) — are NOT covered for those sub-claims. The same files
-remain fully covered for the content-based sub-claims (sentinel
+**Framework-shape caveat within JS/TS.** Next.js App Router method-
+named exports (`export const POST = ...` / `export async function
+GET(...)`) ARE now covered for those sub-claims via missing-HOC-
+wrapper / missing-admin-HOC-wrapper detection. Measured 2026-05-23
+against 182 of 228 inbox-zero App Router routes (~80%, PARTIAL scan,
+halted for API budget — not a full-corpus sweep): 0 auth-bypass and
+0 admin-check findings on the partial 182-route sample, plus 2 webhook findings
+of documented-limitation classes (see `detectors.mdx` for the four
+scope limitations). Remix `loader` / `action` exports are NOT yet
+covered (Phase E follow-up; statically measured 0/411 prefilter
+matches on Trigger.dev). The content-based sub-claims (sentinel
 strings, hardcoded-admin shapes, IDOR, env-exposure, secrets-exposure
 including Next.js-aware `NEXT_PUBLIC_*` patterns, and webhook
-lib-import / anti-pattern detection). The webhook-unverified
-detector's URL-name prefilter is also router-style-only; its content
-prefilter is framework-shape independent. See
+lib-import / anti-pattern detection) work on both router-style and
+file-system-routed frameworks including Remix. See
 [`docs/detector-capabilities.md`](https://github.com/tornidomaroc-web/fixor/blob/main/docs/detector-capabilities.md)
-for the per-sub-claim breakdown.
+for the per-sub-claim breakdown and the partial-scan caveat.
 
 Everything else is text-pattern detection that travels across
 languages as long as the prefilter regex and the LLM verdict have
