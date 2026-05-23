@@ -32,7 +32,7 @@ The contract has three goals:
 - tRPC `protectedProcedure`, Next.js middleware-based auth, edge-runtime auth.
 - Auth gating applied via `router.use()` at file scope when the relevant `use()` call lives in a different file than the route declaration (the prefilter sees the route file in isolation).
 
-**Measured baseline:** 22/20 inline post-PR #53 (latest saved log: `test-output/auth-bypass-day5-r5fix-run.log` shows 19/20 pre-PR-53; new fixtures added in PR #53 take it to 22/20 — **re-baseline pending**).
+**Measured baseline:** 22/20 (110%) — log: `test-output/auth-bypass-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 fixtures).
 
 ---
 
@@ -48,7 +48,7 @@ The contract has three goals:
 - tRPC `adminProcedure`, GraphQL resolver-level admin checks, Next.js middleware-based admin gating.
 - Admin gating applied via `router.use(requireAdmin)` at file scope when the `use()` call lives in a different file than the route declaration.
 
-**Measured baseline:** 22/22 inline post-PR #53 (latest saved log: `test-output/admin-check-day8-baseline.log` shows 20/20 pre-PR-53; new fixtures added in PR #53 take it to 22/22 — **re-baseline pending**).
+**Measured baseline:** 22/22 (100%) — log: `test-output/admin-check-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 fixtures).
 
 ---
 
