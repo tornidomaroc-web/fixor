@@ -28,6 +28,10 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import {
+  EXPRESS_ROUTE_DEF_RE,
+  buildFunctionCodePayload,
+} from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "auth-bypass-multi";
 
@@ -98,27 +102,19 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   { id: "ruby_admin_fallback", re: /params\[:\w+\]\s*\|\|\s*['"]admin['"]/ },
 
   // Express-family route definition (Phase 1 missing-middleware
-  // remediation). Catches an HTTP route declaration on a router-like
-  // identifier: literal `router`, `app`, `api`, or any identifier
-  // ending in `Router|App|Api` (e.g., `adminRouter`, `teamRouter`,
-  // `apiRouter`). The required `\s*\(\s*["'`/]` tail (a string or
-  // a slash for path literals) excludes most non-route callsites
-  // such as `db.user.delete(id)` or `axios.post(url, body)` where
-  // the first arg isn't a string-literal path.
+  // remediation, factored to detectors/shared/route-def-pattern.ts in
+  // Phase 2 so admin-check can share the same trigger). Catches an
+  // HTTP route declaration on a router-like identifier and routes
+  // the whole file (subject to a size cap) to the LLM, which then
+  // judges whether the route has appropriate auth middleware in its
+  // argument list. We accept that every Express routes file now
+  // reaches the LLM — see shouldSkipPath() which still excludes
+  // test/fixtures/demo/scripts dirs from production scans.
   //
-  // The LLM then judges whether the route has appropriate auth
-  // middleware in its argument list. We accept that every Express
-  // routes file now reaches the LLM — see shouldSkipPath() which
-  // still excludes test/fixtures/demo/scripts dirs from production
-  // scans.
-  //
-  // Limitation by design (Phase 1): Express-family only. Fastify,
+  // Limitation by design (Phase 1+2): Express-family only. Fastify,
   // Koa, Hono are NOT covered until we add positive fixtures for
   // each.
-  {
-    id: "express_route_def",
-    re: /\b(?:router|app|api|[A-Za-z_$][A-Za-z0-9_$]*(?:Router|App|Api))\.(?:get|post|put|delete|patch|use|all)\s*\(\s*["'`]/,
-  },
+  { id: "express_route_def", re: EXPRESS_ROUTE_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -431,14 +427,19 @@ export class AuthBypassDetector implements Detector {
     // For the missing-middleware case we MUST show the whole file: the
     // LLM's verdict depends on whether *sibling* routes in the same
     // router are guarded. Picking the first route-def trigger as the
-    // primary anchor; full file content goes into functionCode.
+    // primary anchor; full file content goes into functionCode, subject
+    // to the shared WHOLE_FILE_PAYLOAD_CAP_BYTES bound (oversize files
+    // fall back to the window — see Phase 1 P2 closure in
+    // detectors/shared/route-def-pattern.ts).
     const routeDefTrigger = triggers.find(
       (t) => t.patternId === "express_route_def",
     );
     const trigger = routeDefTrigger ?? triggers[0]!;
-    const functionCode = routeDefTrigger
-      ? content
-      : extractContextWindow(content, trigger.line);
+    const functionCode = buildFunctionCodePayload({
+      content,
+      anchorLine: trigger.line,
+      isRouteDefTrigger: routeDefTrigger !== undefined,
+    });
 
     const verdict = await this.callLlm({
       filePath,
