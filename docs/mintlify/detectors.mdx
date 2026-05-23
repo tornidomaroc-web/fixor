@@ -254,23 +254,24 @@ still hit the looser-comparison content patterns.
 (c) **Cross-file webhook verification helpers.** App Router webhook
 routes that delegate verification to a helper imported from another
 module — e.g. `await verifyAppleNotificationPayload(body.signedPayload)`
-from `@/ee/billing/apple`. **Phase F (2026-05-23) lifted this from
-HIGH to MEDIUM/review-queue WHEN the verification signal is visible
-to the detector**, meaning either: (i) the helper's import PATH is
-verification-suggesting (e.g., `@/utils/webhook/validate-webhook-account`),
-or (ii) the helper CALL sits within the ±8/+16 line context window
-the webhook detector ships around the route declaration. Measured
-Phase F success: inbox-zero's Outlook webhook (which imports
-`getWebhookEmailAccount` from `@/utils/webhook/validate-webhook-account`)
-correctly dropped to MEDIUM/review-queue post-tune. **Residual
-window-truncation case:** routes where neither signal is present —
-verifier imported from a non-suggestive path (e.g., `@/ee/billing/apple`)
-AND helper call located beyond the route-declaration window — remain
-HIGH. Measured Phase F residual: inbox-zero's Apple App Store Server
-Notifications handler awaits `verifyAppleNotificationPayload` at
-line 40, outside the ±16-line window from the POST trigger at line
-17. The window-truncation residual is the named Phase F structural
-follow-up. Audit the helper's implementation to confirm a HIGH
+from `@/ee/billing/apple`. **Phase F + Path-A structural follow-up
+(2026-05-23) lifted this from HIGH to MEDIUM/review-queue.** Phase F's
+first cut handled the case where the verifier import path was
+verification-suggesting (e.g., `@/utils/webhook/validate-webhook-
+account`) or the helper call sat within the ±8/+16 line window the
+webhook detector shipped around the route declaration. The structural
+follow-up switched the webhook detector to whole-file payload for
+App Router route-def triggers — matching the auth-bypass /
+admin-check discipline already in place — which closed the window-
+truncation residual Phase F's first cut left open. The LLM now sees
+the awaited helper call wherever it sits in the route file. Measured
+success on both real inbox-zero routes: Outlook webhook and Apple
+App Store Server Notifications both correctly route to MEDIUM/review-
+queue. The remaining bound is the 200KB whole-file cap (pathologically
+large webhook handlers fall back to windowed payload) and non-App-
+Router webhook triggers (express/flask/rails/go URL-name patterns
+keep their existing windowed payload because their prefilter signals
+are local). Audit the helper's implementation to confirm a MEDIUM
 finding is a false positive in your codebase.
 
 (d) **Non-HMAC shared-secret challenge verification.** Microsoft

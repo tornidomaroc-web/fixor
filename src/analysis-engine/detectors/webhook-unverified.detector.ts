@@ -33,7 +33,10 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
-import { APP_ROUTER_ROUTE_DEF_RE } from "./shared/route-def-pattern";
+import {
+  APP_ROUTER_ROUTE_DEF_RE,
+  buildFunctionCodePayload,
+} from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "webhook-unverified-multi";
 
@@ -528,10 +531,27 @@ export class WebhookUnverifiedDetector implements Detector {
     }
 
     const trigger = triggers[0]!;
+    // Path 4 (2026-05-23): for App Router route-def triggers we ship the
+    // whole file rather than the ±8/+16 window, mirroring the discipline
+    // already in place for auth-bypass and admin-check via
+    // buildFunctionCodePayload. The Phase F apple/webhook residual proved
+    // that the cross-file-verifier rule cannot fire when the verifier
+    // call sits outside the windowed payload (verifyAppleNotificationPayload
+    // at line 40, window covers lines 9-32 from POST trigger at line 17).
+    // The 200KB cap in buildFunctionCodePayload protects against
+    // pathologically large files; non-App-Router webhook triggers
+    // (express/flask/rails/go URL-name patterns, content patterns) keep
+    // the windowed payload because their prefilter signals are local.
+    const isRouteDefTrigger = trigger.patternId === "app_router_route_def";
+    const functionCode = buildFunctionCodePayload({
+      content,
+      anchorLine: trigger.line,
+      isRouteDefTrigger,
+    });
     const verdict = await this.callLlm({
       filePath,
       language: langDisplay(lang),
-      functionCode: extractContextWindow(content, trigger.line),
+      functionCode,
       imports: extractImports(content),
       triggerPattern: trigger.patternText,
       lineNumber: trigger.line,
