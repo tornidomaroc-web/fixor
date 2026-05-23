@@ -29,7 +29,7 @@
 | 👮 Weak admin check — privilege gated by hardcoded email/role allowlists or client-supplied role | ✅ Shipping (measured) |
 | 🌫️ Env exposure — secrets leaked through env vars into response bodies | ✅ Shipping (measured) |
 | 🗝️ Secrets exposure — hardcoded API keys, tokens, credentials | ✅ Shipping (measured) |
-| 🪝 Unverified webhook handlers — handlers that skip signature verification. URL-name prefilter (router-style frameworks only) plus content-based lib-import / anti-pattern prefilter (any framework). Provider fixtures: Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC | ✅ Shipping (measured) |
+| 🪝 Unverified webhook handlers — handlers that skip signature verification. URL-name prefilter (router-style frameworks only) plus content-based lib-import / anti-pattern prefilter (any framework; see [`docs/detector-capabilities.md`](docs/detector-capabilities.md) for content-prefilter blind spots). Provider fixtures: Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC | ✅ Shipping (measured) |
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
 | 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
 | 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
