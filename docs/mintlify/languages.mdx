@@ -43,6 +43,21 @@ case (Express privileged route with no admin check anywhere). These
 look at routing structure specifically, and we have not built that
 out for Python/Go web frameworks yet.
 
+**Framework-shape caveat within JS/TS.** Those route-shape sub-claims
+also require *router-style* framework syntax even within JS/TS:
+`router.METHOD(path, ...)` shape. File-system-routed frameworks —
+Next.js App Router (`export const POST = ...` / `export async
+function GET(...)`) and Remix (`app/routes/*.ts` action/loader
+exports) — are NOT covered for those sub-claims. The same files
+remain fully covered for the content-based sub-claims (sentinel
+strings, hardcoded-admin shapes, IDOR, env-exposure, secrets-exposure
+including Next.js-aware `NEXT_PUBLIC_*` patterns, and webhook
+lib-import / anti-pattern detection). The webhook-unverified
+detector's URL-name prefilter is also router-style-only; its content
+prefilter is framework-shape independent. See
+[`docs/detector-capabilities.md`](https://github.com/tornidomaroc-web/fixor/blob/main/docs/detector-capabilities.md)
+for the per-sub-claim breakdown.
+
 Everything else is text-pattern detection that travels across
 languages as long as the prefilter regex and the LLM verdict have
 been exercised against a fixture in that language.
