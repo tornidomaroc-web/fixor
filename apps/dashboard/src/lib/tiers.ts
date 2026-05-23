@@ -44,7 +44,7 @@ export const TIERS: readonly Tier[] = [
     features: [
       "5 scans / month",
       "Public repos only",
-      "All 9 detectors",
+      "All 6 detectors",
     ],
   },
   {
@@ -58,7 +58,7 @@ export const TIERS: readonly Tier[] = [
     features: [
       "100 scans / month",
       "1 private repo + unlimited public",
-      "All 9 detectors",
+      "All 6 detectors",
     ],
   },
   {
@@ -72,7 +72,7 @@ export const TIERS: readonly Tier[] = [
     features: [
       "2,000 scans / month",
       "Unlimited repos",
-      "All 9 detectors + priority support",
+      "All 6 detectors + priority support",
     ],
   },
 ];

@@ -26,6 +26,30 @@ import { EnvExposureDetector } from "./env-exposure.detector";
 import { AdminCheckDetector } from "./admin-check.detector";
 import { IdorDetector } from "./idor.detector";
 
+/**
+ * Shipping detector ids — detectors that have a working detect() pass
+ * AND are not in finding-suppressions. Single source of truth for
+ * "which detectors actually run and emit." Imported by:
+ *   - src/cli/scan.ts (selects which detectors invoke their detect())
+ *   - src/workflows/auditor-workflow.ts (same)
+ *   - src/lib/org-settings-filter.ts (defensive guard — drops stale
+ *     allowlist ids before the filter would otherwise scan to nothing)
+ *
+ * The dashboard maintains its own DETECTOR_OPTIONS for UI labels (see
+ * apps/dashboard/src/lib/detectors.ts) and must stay in sync with
+ * this list. There is no automatic sync between this server-side
+ * module and the dashboard's TS package; if you add a detector here,
+ * add it there too. See docs/detector-capabilities.md.
+ */
+export const SHIPPING_DETECTOR_IDS: ReadonlySet<string> = new Set<string>([
+  "auth-bypass-multi",
+  "admin-check-multi",
+  "idor-multi",
+  "env-exposure-multi",
+  "secrets-exposure-multi",
+  "webhook-unverified-multi",
+]);
+
 export const DETECTORS: readonly Detector[] = [
   new SqlInjectionDetector(),
   new XssDetector(),

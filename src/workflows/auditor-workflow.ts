@@ -1,6 +1,10 @@
 import type { Finding } from "../analysis-engine/types.js";
 import { analyzeCode } from "../analysis-engine/analyze.js";
-import { getDetectorFor, DETECTORS } from "../analysis-engine/detectors/registry.js";
+import {
+  getDetectorFor,
+  DETECTORS,
+  SHIPPING_DETECTOR_IDS,
+} from "../analysis-engine/detectors/registry.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import { extractSqlInjectionFromSemgrep } from "../services/vulnerability.service.js";
 import {
@@ -59,19 +63,12 @@ function sqlFindingToNormalized(
   };
 }
 
-// Phase 7: Phase 5 specialized detectors invoked alongside the central
-// analyzer. Same id-allowlist pattern as src/cli/scan.ts (Phase 6).
-const PHASE5_DETECTOR_IDS = new Set<string>([
-  "auth-bypass-multi",
-  "secrets-exposure-multi",
-  "webhook-unverified-multi",
-  "env-exposure-multi",
-  "admin-check-multi",
-  "idor-multi",
-]);
-
+// Specialized detectors invoked alongside the central analyzer.
+// Same id-allowlist pattern as src/cli/scan.ts; both share
+// SHIPPING_DETECTOR_IDS from the registry as the single source of truth
+// for "which detectors actually run and emit."
 const phase5Detectors = DETECTORS.filter(
-  (d) => PHASE5_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
+  (d) => SHIPPING_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
 );
 
 function dedupeNormalizedFindings(

@@ -6,7 +6,10 @@ import { stdin as input, stdout as output } from "node:process";
 
 import { logger } from "../lib/logger.js";
 import { analyzeCode } from "../analysis-engine/analyze.js";
-import { DETECTORS } from "../analysis-engine/detectors/registry.js";
+import {
+  DETECTORS,
+  SHIPPING_DETECTOR_IDS,
+} from "../analysis-engine/detectors/registry.js";
 import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import type { Finding } from "../analysis-engine/types.js";
@@ -20,21 +23,13 @@ const SUB_DELAY_MS = 800;         // between LLM-hitting detector calls within a
 const ESTIMATED_COST_BEST_USD = 0.012;   // realistic — most detectors short-circuit
 const ESTIMATED_COST_WORST_USD = 0.02;   // worst case — all 5 detectors hit LLM
 
-// Phase 5 detectors: invoked here in addition to analyzeCode (which covers
-// the original SQL/XSS/CMDI/PT families). The 4 original detectors only
-// generate fixes — they have no detect() pass — so iterating DETECTORS by
-// id-allowlist is enough.
-const NEW_DETECTOR_IDS = new Set<string>([
-  "auth-bypass-multi",
-  "secrets-exposure-multi",
-  "webhook-unverified-multi",
-  "env-exposure-multi",
-  "admin-check-multi",
-  "idor-multi",
-]);
-
+// Specialized detectors invoked here in addition to analyzeCode (which
+// covers the original SQL/XSS/CMDI/PT families). The 4 original detectors
+// only generate fixes — they have no detect() pass — so iterating DETECTORS
+// by id-allowlist (the shared SHIPPING_DETECTOR_IDS set from the registry)
+// is enough.
 const newDetectors = DETECTORS.filter(
-  (d) => NEW_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
+  (d) => SHIPPING_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
 );
 
 function normalizedToFinding(n: NormalizedFinding): Finding {

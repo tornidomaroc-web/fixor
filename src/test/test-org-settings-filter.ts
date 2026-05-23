@@ -32,7 +32,7 @@ function f(
   partial: Partial<FindingForFilter> & { file: string },
 ): FindingForFilter {
   return {
-    type: "sql_injection_risk",
+    type: "auth_bypass_risk",
     severity: "high",
     ...partial,
   };
@@ -93,60 +93,103 @@ function run(): void {
   );
 
   // -- passesOrgSettings: detector allowlist gate ---------------------
-  // SQL injection has registered detector "sql-injection-js-ts"
+  // auth-bypass has registered detector "auth-bypass-multi"
   {
     const r = passesOrgSettings(
-      f({ file: "src/x.ts", type: "sql_injection_risk" }),
-      { ...PERMISSIVE, enabledDetectors: ["xss-js-ts"] },
+      f({ file: "src/x.ts", type: "auth_bypass_risk" }),
+      { ...PERMISSIVE, enabledDetectors: ["idor-multi"] },
     );
-    assert(!r.passes, "SQL finding dropped when allowlist excludes it");
+    assert(!r.passes, "auth-bypass finding dropped when allowlist excludes it");
     assert(!r.passes && r.reason === "detector", "reason=detector");
   }
   assert(
     passesOrgSettings(
-      f({ file: "src/x.ts", type: "sql_injection_risk" }),
+      f({ file: "src/x.ts", type: "auth_bypass_risk" }),
       {
         ...PERMISSIVE,
-        enabledDetectors: ["sql-injection-js-ts", "xss-js-ts"],
+        enabledDetectors: ["auth-bypass-multi", "idor-multi"],
       },
     ).passes,
-    "SQL finding passes when in allowlist",
+    "auth-bypass finding passes when in allowlist",
   );
   // null allowlist = all enabled
   assert(
     passesOrgSettings(
-      f({ file: "src/x.ts", type: "sql_injection_risk" }),
+      f({ file: "src/x.ts", type: "auth_bypass_risk" }),
       { ...PERMISSIVE, enabledDetectors: null },
     ).passes,
     "null allowlist = all detectors enabled",
   );
-  // Empty allowlist = nothing matches
-  assert(
-    !passesOrgSettings(
-      f({ file: "src/x.ts", type: "sql_injection_risk" }),
+  // Empty allowlist [] is the user's deliberate "scan nothing" choice
+  // — the validator accepts empty arrays explicitly (see
+  // settings-validation.ts:78 comment "we accept even though it's an
+  // aggressive choice; the backend honors it"). The defensive guard
+  // ONLY engages for non-empty stale allowlists, NOT for explicit [].
+  // Honoring an explicit [] is honoring user intent, not silent fail.
+  {
+    const r = passesOrgSettings(
+      f({ file: "src/x.ts", type: "auth_bypass_risk" }),
       { ...PERMISSIVE, enabledDetectors: [] },
+    );
+    assert(!r.passes, "explicit empty allowlist drops everything");
+    assert(
+      !r.passes && r.reason === "detector",
+      "reason=detector on explicit empty allowlist",
+    );
+  }
+
+  // -- defensive guard: stale allowlist falls back to "all pass" ----
+  // A stale allowlist that contains only ids no longer in the
+  // shipping set (e.g. an org row written by the pre-fix dashboard
+  // when DETECTOR_OPTIONS still pointed at the suppressed
+  // sql/xss/cmdi/pt detectors) must NOT filter the scan to zero
+  // findings — that's a silent fail-closed. Fail-safe: treat as null.
+  assert(
+    passesOrgSettings(
+      f({ file: "src/x.ts", type: "auth_bypass_risk" }),
+      { ...PERMISSIVE, enabledDetectors: ["sql-injection-js-ts"] },
     ).passes,
-    "empty allowlist = no detectors enabled (everything dropped)",
+    "stale-only allowlist falls back to all-pass (auth-bypass survives)",
   );
+  assert(
+    passesOrgSettings(
+      f({ file: "src/x.ts", type: "idor_risk" }),
+      { ...PERMISSIVE, enabledDetectors: ["xss-js-ts", "command-injection-js-ts"] },
+    ).passes,
+    "stale-only allowlist with multiple stale ids still falls back",
+  );
+  // Mixed allowlist: at least one real id present → guard does NOT engage,
+  // the filter behaves normally and drops findings not in the recognized set.
+  {
+    const r = passesOrgSettings(
+      f({ file: "src/x.ts", type: "auth_bypass_risk" }),
+      { ...PERMISSIVE, enabledDetectors: ["sql-injection-js-ts", "idor-multi"] },
+    );
+    assert(!r.passes, "mixed allowlist with real id: auth-bypass dropped");
+    assert(
+      !r.passes && r.reason === "detector",
+      "reason=detector on mixed allowlist",
+    );
+  }
 
   // -- filterFindings: stats accumulation -----------------------------
   const findings: FindingForFilter[] = [
     f({ file: "src/a.ts", severity: "low" }),
     f({ file: "src/b.test.ts", severity: "high" }),
-    f({ file: "src/c.ts", severity: "high", type: "sql_injection_risk" }),
-    f({ file: "src/d.ts", severity: "high", type: "xss_risk" }),
+    f({ file: "src/c.ts", severity: "high", type: "auth_bypass_risk" }),
+    f({ file: "src/d.ts", severity: "high", type: "idor_risk" }),
     f({ file: "src/e.ts", severity: "critical" }),
   ];
   const result = filterFindings(findings, {
     severityThreshold: "medium",
     ignoredGlobs: ["**/*.test.ts"],
-    enabledDetectors: ["xss-js-ts"],
+    enabledDetectors: ["idor-multi"],
   });
   assert(
     result.kept.length === 1,
     `1 finding kept (got ${result.kept.length})`,
   );
-  assert(result.kept[0]!.file === "src/d.ts", "kept the xss finding");
+  assert(result.kept[0]!.file === "src/d.ts", "kept the idor finding");
   assert(
     result.stats.droppedBySeverity === 1,
     `severity drops = 1 (got ${result.stats.droppedBySeverity})`,
