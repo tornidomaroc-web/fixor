@@ -30,14 +30,24 @@ const SUB_DELAY_MS = 800;         // between LLM-hitting detector calls within a
 // A file that matches the route-shape prefilter (Next.js App Router
 // HTTP-method-named export, or Express-family router.METHOD(...)) routes
 // to 3 additional detectors' LLM stages on top of the base analyzeCode
-// call: auth-bypass + admin-check (both ship whole-file context) and
-// webhook-unverified (windowed). Pre-Phase-B the prefilters short-
-// circuited most files; the flat $0.012/$0.024 constants encoded that
-// assumption and undercounted App Router corpora ~2-3x at Phase D.
+// call: auth-bypass, admin-check, and webhook-unverified — all three
+// ship whole-file context for App Router route-def triggers (webhook
+// joined this discipline 2026-05-23 in the Path-A structural follow-up
+// to Phase F; see project_fixor_webhook_payload_structural_followup
+// memory). Non-App-Router webhook triggers (express/flask/rails/go
+// URL-name patterns) keep windowed payload because their prefilter
+// signals are local. Pre-Phase-B the prefilters short-circuited most
+// files; the flat $0.012/$0.024 constants encoded that assumption and
+// undercounted App Router corpora ~2-3x at Phase D.
 //
 // PER_CALL_COST_USD is Sonnet 4.6 empirical from the Phase D 182-file
 // inbox-zero burn (~$0.007-0.010 per call); $0.012 leaves headroom on
 // the never-below side per operator rule for a customer-facing estimate.
+// Path-A's whole-file payload on webhook for App Router triggers raises
+// the empirical average modestly (typical webhook handlers are small —
+// 3-5KB measured against inbox-zero); the $0.012 buffer continues to
+// absorb the rise without underestimating. A future re-baseline after
+// Path-A is in production would refine this number; not blocking.
 // Worst-case math counts all 3 content prefilters (secrets/env/idor)
 // hitting per file — intentionally inflated so a worst-case figure
 // rarely gets exceeded in practice.

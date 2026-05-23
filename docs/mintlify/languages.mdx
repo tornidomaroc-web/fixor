@@ -51,12 +51,15 @@ against 182 of 228 inbox-zero App Router routes (~80%, PARTIAL scan,
 halted for API budget — not a full-corpus sweep): 0 auth-bypass and
 0 admin-check findings on the partial 182-route sample, plus 2 webhook findings
 of documented-limitation classes (see `detectors.mdx` for the four
-scope limitations). Phase F (2026-05-23) lifted the cross-file
-verifier-helper class (c) and the non-HMAC shared-secret challenge
-class (d) from HIGH to MEDIUM/review-queue when the verification
-signal is visible to the detector; outlook/webhook dropped to MEDIUM
-post-tune, apple/webhook stayed HIGH due to a window-truncation
-residual on class (c) named as the next webhook structural follow-up.
+scope limitations). Phase F + Path-A structural follow-up (2026-05-23) lifted the cross-
+file verifier-helper class (c) and the non-HMAC shared-secret
+challenge class (d) from HIGH to MEDIUM/review-queue. Path A
+switched the webhook detector to whole-file payload for App Router
+route-def triggers (matching auth-bypass / admin-check); both real
+inbox-zero routes — outlook/webhook and apple/webhook — now route
+to MEDIUM/review-queue with the verify*Payload name-convention
+recognized in the full file context. No remaining apple-shape
+residual.
 Remix `loader` / `action` exports are NOT yet covered (Phase E
 follow-up; statically measured 0/411 prefilter matches on
 Trigger.dev). The content-based sub-claims (sentinel
