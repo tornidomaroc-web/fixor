@@ -157,7 +157,10 @@ async function main(): Promise<void> {
   }
 
   logger.info({ root: opts.repoPath }, "discovering files");
-  const files = walkFiles({ root: opts.repoPath, extensions: opts.extensions });
+  const { files, skippedDirs, ignoredNegations } = walkFiles({
+    root: opts.repoPath,
+    extensions: opts.extensions,
+  });
 
   if (files.length === 0) {
     logger.warn("No matching files found. Exiting.");
@@ -180,8 +183,62 @@ async function main(): Promise<void> {
     `Estimated cost:      ~$${estBestUsd.toFixed(2)} typical / ~$${estWorstUsd.toFixed(2)} worst-case\n`,
   );
   output.write(
-    `Estimated runtime:   ~${formatRuntime(estRuntimeSec)} (worst case)\n\n`,
+    `Estimated runtime:   ~${formatRuntime(estRuntimeSec)} (worst case)\n`,
   );
+
+  // Load-bearing UX: show what we are NOT scanning, with rule
+  // attribution, BEFORE the cost-confirmation prompt. A customer who
+  // sees their first-party `vendor/` or `out/` dir on this list can
+  // abort here, before any LLM call. Mitigates the silent-fail class
+  // where Fixor returns "0 findings" because it never scanned the code.
+  if (skippedDirs.length > 0) {
+    const byRule = { "default-skip": 0, gitignore: 0 };
+    const defaultExamples: string[] = [];
+    const gitignoreExamples: string[] = [];
+    for (const s of skippedDirs) {
+      byRule[s.rule]++;
+      if (s.rule === "default-skip" && defaultExamples.length < 5) {
+        defaultExamples.push(s.path);
+      } else if (s.rule === "gitignore" && gitignoreExamples.length < 5) {
+        gitignoreExamples.push(s.path);
+      }
+    }
+    if (byRule["default-skip"] > 0) {
+      const more =
+        byRule["default-skip"] > defaultExamples.length
+          ? `, +${byRule["default-skip"] - defaultExamples.length} more`
+          : "";
+      output.write(
+        `Skipped (default):   ${byRule["default-skip"]} dirs (${defaultExamples.join(", ")}${more})\n`,
+      );
+    }
+    if (byRule.gitignore > 0) {
+      const more =
+        byRule.gitignore > gitignoreExamples.length
+          ? `, +${byRule.gitignore - gitignoreExamples.length} more`
+          : "";
+      output.write(
+        `Skipped (gitignore): ${byRule.gitignore} dirs (${gitignoreExamples.join(", ")}${more})\n`,
+      );
+    }
+  }
+  // Loud warning when .gitignore had !negation patterns: the walker
+  // does not honor negation today, so any file the customer intended
+  // to re-include is silently dropped. Surfacing here gives them a
+  // chance to abort before paying for an incomplete scan.
+  if (ignoredNegations.length > 0) {
+    const shown = ignoredNegations.slice(0, 5);
+    const more =
+      ignoredNegations.length > shown.length
+        ? `, +${ignoredNegations.length - shown.length} more`
+        : "";
+    output.write(
+      `\nWARNING: .gitignore has ${ignoredNegations.length} !negation pattern(s) that Fixor does not honor.\n` +
+        `         Files those patterns would re-include inside skipped dirs are silently dropped.\n` +
+        `         Patterns ignored: ${shown.join(", ")}${more}\n`,
+    );
+  }
+  output.write(`\n`);
 
   if (opts.assumeYes) {
     output.write('Proceed? --yes flag set, skipping confirmation.\n\n');
