@@ -222,7 +222,8 @@ confirmation, GCP Pub/Sub push (OIDC token), Square, PayPal, Paddle,
 Plaid, Algolia, Cloudflare Workers signed requests, replay-protection
 issues independent of signature verification, key rotation, mTLS.
 
-**Critical scope limitations** (two, both produce silent skips):
+**Critical scope limitations** (four, in two classes — silent-skip prefilter
+gaps and false-positive-shape limitations):
 
 (a) **URL matched in file content, not file path.** Five of the
 eleven prefilter patterns require the webhook URL to appear as a
@@ -253,25 +254,43 @@ still hit the looser-comparison content patterns.
 (c) **Cross-file webhook verification helpers.** App Router webhook
 routes that delegate verification to a helper imported from another
 module — e.g. `await verifyAppleNotificationPayload(body.signedPayload)`
-from `@/ee/billing/apple` — are flagged as missing verification. The
-route file in isolation does not visibly verify; the verification is
-real but cross-file. Measured 2026-05-23 against 182 of 228 inbox-
-zero App Router routes (PARTIAL scan): inbox-zero's Apple App Store
-Server Notifications handler surfaced exactly this shape. Audit the
-helper's implementation to confirm the finding is a false positive.
+from `@/ee/billing/apple`. **Phase F (2026-05-23) lifted this from
+HIGH to MEDIUM/review-queue WHEN the verification signal is visible
+to the detector**, meaning either: (i) the helper's import PATH is
+verification-suggesting (e.g., `@/utils/webhook/validate-webhook-account`),
+or (ii) the helper CALL sits within the ±8/+16 line context window
+the webhook detector ships around the route declaration. Measured
+Phase F success: inbox-zero's Outlook webhook (which imports
+`getWebhookEmailAccount` from `@/utils/webhook/validate-webhook-account`)
+correctly dropped to MEDIUM/review-queue post-tune. **Residual
+window-truncation case:** routes where neither signal is present —
+verifier imported from a non-suggestive path (e.g., `@/ee/billing/apple`)
+AND helper call located beyond the route-declaration window — remain
+HIGH. Measured Phase F residual: inbox-zero's Apple App Store Server
+Notifications handler awaits `verifyAppleNotificationPayload` at
+line 40, outside the ±16-line window from the POST trigger at line
+17. The window-truncation residual is the named Phase F structural
+follow-up. Audit the helper's implementation to confirm a HIGH
+finding is a false positive in your codebase.
 
 (d) **Non-HMAC shared-secret challenge verification.** Microsoft
 Graph webhooks compare `notification.clientState` against an env-
 stored expected value and return 403 on mismatch — that IS
-verification, but it is shared-secret equality, not HMAC. The Phase
-C prompt's sink-principle recognizes HMAC-shape verification (hash
-output flowing to incoming-signature comparison) and does not
-recognize equality-comparison of a shared-secret string. Measured
-2026-05-23 against 182 of 228 inbox-zero App Router routes (PARTIAL
-scan): inbox-zero's Outlook webhook at `outlook/webhook/route.ts:59`
-surfaced this shape. Other shared-secret challenge mechanisms
-(custom integrations, internal services) will surface in the same
-shape.
+verification, but it is shared-secret equality, not HMAC. **Phase
+F (2026-05-23) lifted this from HIGH to MEDIUM/review-queue.** The
+webhook prompt now recognizes the body-field-compare-against-env-
+value-with-unauthorized-status shape as the documented Microsoft-
+Graph subscription-validation pattern, routes it to MEDIUM (the env
+value cannot be confirmed cross-file, which is why MEDIUM rather
+than LOW), and the LLM reasoning explicitly names the field, env
+value, and 403 response. Measured Phase F success: inbox-zero's
+Outlook (Microsoft Graph) webhook handler correctly dropped to
+MEDIUM/review-queue post-tune. Other shared-secret challenge
+mechanisms (custom integrations, internal services) using the same
+body-field-compare-env-and-unauthorized-on-mismatch shape route the
+same way. Class (d) has no observed window-truncation residual in
+the Phase F measurement: the compare happens close to the route
+declaration in the outlook real-world case.
 
 **MEDIUM-confidence findings on this detector** (timing-leak
 comparisons, env-flag-conditional bypass) are routed to the internal
