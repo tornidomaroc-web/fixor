@@ -19,6 +19,7 @@
     "test:limiter": "npm run build && node dist/test/test-rate-limiter.js",
     "test:limit-warning": "npm run build && node dist/test/test-scan-limit-warning.js",
     "test:auth-bypass": "npm run build && node dist/test/test-auth-bypass.js",
+    "test:auth-bypass-prefilter": "npm run build && node dist/test/test-auth-bypass-prefilter.js",
     "test:secrets-exposure": "npm run build && node dist/test/test-secrets-exposure.js",
     "test:webhook-unverified": "npm run build && node dist/test/test-webhook-unverified.js",
     "test:env-exposure": "npm run build && node dist/test/test-env-exposure.js",
