@@ -276,9 +276,9 @@ The discipline matters because the alternative — stop on every anomaly — wou
 
 Until per-detector pattern documentation ships publicly, the canonical Fixor wedge positioning is:
 
-> "Fixor scans your PRs for the bugs enterprise security teams flag in pentests: auth bypass, secrets exposure, IDOR, webhook signing, admin checks. We validate every shipped detector under a stability harness and publish per-detector numbers including the cases we know we miss, so the engineering rigor question has a real answer when your CTO buyer probes."
+> "Detects 6 vulnerability classes in Node/TypeScript codebases: route-level auth bypass (sentinel and missing-middleware), missing admin gates (hardcoded-admin and missing-admin-gate), IDOR, environment-variable exposure, hardcoded secrets, and unverified webhook handlers. Express-family routers covered for the route-based detectors; Fastify/Koa/Hono/NestJS not yet. The webhook detector additionally recognizes Flask, Rails, and Go HTTP handlers, and covers Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC signing; Shopify / Discord / AWS SNS / GCP Pub/Sub / Mailgun and other provider-specific schemes not yet."
 
-This is the load-bearing positioning across outreach drafts, README, mintlify FAQ, launch post 1, and any other public copy. Two sentences, no em-dashes, no specific cadence commitment. Honest about scope (the five pattern families it names) and method (stability harness + published numbers + miss documentation).
+This is the load-bearing positioning across outreach drafts, README, mintlify FAQ, launch post 1, and any other public copy. Two sentences, no em-dashes, no specific cadence commitment. Honest about scope (the six pattern families it names) and method (stability harness + published numbers + miss documentation).
 
 **Upgrade path**: when per-detector pattern documentation ships publicly (P1 task), the wedge upgrades to include a third clause covering "document the patterns each detector recognizes." The edit was held in Day 5 because shipping the claim before the docs reproduces the "PERFECT 20/20" pattern in a different shape — a load-bearing claim must follow the substance, not lead it.
 
