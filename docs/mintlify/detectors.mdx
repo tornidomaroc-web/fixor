@@ -108,10 +108,19 @@ full-corpus sweep) returned 0 admin-check findings on the partial
 182-route sample, including the corpus's `admin/*` routes.
 
 Remix `loader` / `action` exports are NOT yet covered (Phase E
-follow-up). **No-op-stub admin wrappers** (a wrapper named `withAdmin`
-defined as `(fn) => fn`) are out of scope — Fixor trusts the admin-
-suggesting name. The hardcoded-admin sub-claim is content-based and
-still fires on both router-style and App Router files normally.
+follow-up). **Admin-suggesting wrappers whose body does not actually
+enforce admin** are out of scope — a wrapper named `withAdmin`,
+`requireAdmin`, `withAdminLogging`, `withAdminMetrics`, etc. whose
+body is a no-op stub (`(fn) => fn`) or logging-only / metrics-only
+ships unguarded; Fixor trusts the admin-suggesting name without
+reading the body. By design: corpus grep across cal.com, documenso,
+convoform, grafana, and the Phase D inbox-zero log found zero such
+non-enforcing `withAdmin*` wrappers in real-world OSS, so the
+admin-substring rule stays untightened (in contrast to auth-bypass's
+`session`-substring body-discriminator clause, where the non-auth
+shape DOES appear in the wild). The hardcoded-admin sub-claim is
+content-based and still fires on both router-style and App Router
+files normally.
 
 When auth-bypass and admin-check both fire on the same `file:line`,
 the admin-check finding is dropped (the auth-bypass finding subsumes
