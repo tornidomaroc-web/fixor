@@ -82,6 +82,11 @@ interface CliOpts {
   repoPath: string;
   outputPath?: string;
   extensions: Set<string>;
+  /** When true, skip the interactive cost/runtime confirmation prompt.
+   *  Set via `--yes` (or `-y`). Required for any non-TTY caller — CI,
+   *  piped scripts, smoke tests — that would otherwise block forever
+   *  on `readline.question`. */
+  assumeYes: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts | null {
@@ -90,6 +95,7 @@ function parseArgs(argv: string[]): CliOpts | null {
   let repoPath: string | null = null;
   let outputPath: string | undefined;
   let extensions = new Set(DEFAULT_EXTENSIONS);
+  let assumeYes = false;
   for (const a of args) {
     if (a.startsWith("--output=")) {
       outputPath = a.slice("--output=".length);
@@ -100,12 +106,14 @@ function parseArgs(argv: string[]): CliOpts | null {
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean);
       if (list.length > 0) extensions = new Set(list);
+    } else if (a === "--yes" || a === "-y") {
+      assumeYes = true;
     } else if (!a.startsWith("--")) {
       if (!repoPath) repoPath = a;
     }
   }
   if (!repoPath) return null;
-  return { repoPath: resolve(repoPath), outputPath, extensions };
+  return { repoPath: resolve(repoPath), outputPath, extensions, assumeYes };
 }
 
 function defaultReportPath(): string {
@@ -136,7 +144,7 @@ async function main(): Promise<void> {
   const opts = parseArgs(process.argv);
   if (!opts) {
     logger.error(
-      "Usage: npm run scan -- <repo-path> [--output=path] [--ext=ts,js,py,go]",
+      "Usage: npm run scan -- <repo-path> [--output=path] [--ext=ts,js,py,go] [--yes|-y]",
     );
     process.exit(1);
   }
@@ -175,10 +183,14 @@ async function main(): Promise<void> {
     `Estimated runtime:   ~${formatRuntime(estRuntimeSec)} (worst case)\n\n`,
   );
 
-  const proceed = await confirm('Proceed? Type "yes" to continue: ');
-  if (!proceed) {
-    logger.info("Aborted by user.");
-    return;
+  if (opts.assumeYes) {
+    output.write('Proceed? --yes flag set, skipping confirmation.\n\n');
+  } else {
+    const proceed = await confirm('Proceed? Type "yes" to continue: ');
+    if (!proceed) {
+      logger.info("Aborted by user.");
+      return;
+    }
   }
 
   const results: FileScanResult[] = [];
