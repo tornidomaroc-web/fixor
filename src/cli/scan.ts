@@ -66,6 +66,23 @@ function dedupeFindings(findings: Finding[]): Finding[] {
   return out;
 }
 
+// Drop admin_check_risk findings on any (file, line) where auth_bypass_risk
+// also fires. Rationale: auth-bypass on a route with no auth at all already
+// subsumes the admin-check signal — reporting both inflates the count without
+// adding remediation value. Admin-check findings on file:line without an
+// auth-bypass sibling (e.g. ADMIN_EMAILS literal) are preserved.
+function suppressAdminCheckWhereAuthBypass(findings: Finding[]): Finding[] {
+  const authBypassKeys = new Set(
+    findings
+      .filter((f) => f.type === "auth_bypass_risk")
+      .map((f) => `${f.file}:${f.line}`),
+  );
+  return findings.filter(
+    (f) =>
+      !(f.type === "admin_check_risk" && authBypassKeys.has(`${f.file}:${f.line}`)),
+  );
+}
+
 interface CliOpts {
   repoPath: string;
   outputPath?: string;
@@ -235,7 +252,7 @@ async function main(): Promise<void> {
       logger.error({ err, file: rel }, "scan failed for file");
     }
 
-    const merged = dedupeFindings(allFindings);
+    const merged = suppressAdminCheckWhereAuthBypass(dedupeFindings(allFindings));
     results.push({ filePath: rel, findings: merged });
 
     if (i < files.length - 1) {

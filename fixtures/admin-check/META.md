@@ -21,6 +21,7 @@ Background: the Day 7 cross-detector audit found admin-check LLM reasoning quote
 - 08-flask-endswith-domain.py: Flask before_request sets g.is_admin via email.endswith
 - 09-flask-default-admin-email.py: session email defaults to DEFAULT_ADMIN_EMAIL
 - 10-go-admin-domain-suffix.go: Go middleware grants admin via strings.HasSuffix(email, "@acme.app")
+- 11-missing-admin-gate-role-change.ts: router with two requireAdmin-gated routes plus a /:id/tier POST whose admin gate was forgotten — the handler writes req.body.tier to the DB unchecked, allowing any authenticated caller to set themselves to the admin tier (Phase 2 missing-admin-gate; pre-Phase-2 this fires zero prefilter sentinels and was silently dropped)
 
 ## Negative (looks similar, actually safe)
 - 01-db-role-lookup.ts: requireAdmin reads role from user_roles table (Category B — context)
@@ -33,3 +34,4 @@ Background: the Day 7 cross-detector audit found admin-check LLM reasoning quote
 - 08-flask-db-role.py: Flask before_request loads role from user_roles table (Category B — context)
 - 09-fastapi-rbac-dep.py: FastAPI dependency injection enforces DB-backed role (Category B — context)
 - 10-go-rbac-from-db.go: Go middleware checks role via db.QueryRole (Category B — context)
+- 11-router-properly-admin-gated.ts: every privileged router.post/.get route has a requireAdmin middleware as first arg, and requireAdmin itself consults a DB-backed user_roles table; proves the Phase 2 missing-admin-gate broadening doesn't fire on correctly-gated routes (Category B — context)

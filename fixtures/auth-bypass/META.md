@@ -11,6 +11,7 @@
 - 08-jwt-verify-false.py: JWT decode with verify_signature=False
 - 09-go-anon-delete.go: Go handler skips owner_id WHERE clause for "anonymous" header
 - 10-rb-admin-fallback.rb: Rails owner_id falls back to "admin" when params[:user_id] missing
+- 11-admin-router-mixed-guards.ts: admin router with two requireAuth-guarded routes plus a destructive /users/delete missing its middleware (mirrors fixor-demo admin.ts at 4270a02)
 
 ## Negative (looks similar, actually safe)
 - 01-anon-public-data.ts: anonymous returns public feed only (intended design) (Category B — context)
@@ -23,3 +24,4 @@
 - 08-go-anon-healthcheck.go: anonymous allowed only on /healthz for the load balancer (Category B — context)
 - 09-rb-admin-migration.rb: hardcoded admin emails inside one-shot migration only (Category A — location)
 - 10-token-public-readonly.ts: token === 'public' permits read-only feed access by design (Category B — context)
+- 11-router-properly-guarded.ts: every router.post/.get destructive route has requireAuth as first arg; proves missing-middleware broadening doesn't fire on correctly-guarded code (Category B — context)

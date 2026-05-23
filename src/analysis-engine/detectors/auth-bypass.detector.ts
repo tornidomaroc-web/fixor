@@ -28,6 +28,10 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import {
+  EXPRESS_ROUTE_DEF_RE,
+  buildFunctionCodePayload,
+} from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "auth-bypass-multi";
 
@@ -96,6 +100,21 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
 
   // Ruby params fallback to admin
   { id: "ruby_admin_fallback", re: /params\[:\w+\]\s*\|\|\s*['"]admin['"]/ },
+
+  // Express-family route definition (Phase 1 missing-middleware
+  // remediation, factored to detectors/shared/route-def-pattern.ts in
+  // Phase 2 so admin-check can share the same trigger). Catches an
+  // HTTP route declaration on a router-like identifier and routes
+  // the whole file (subject to a size cap) to the LLM, which then
+  // judges whether the route has appropriate auth middleware in its
+  // argument list. We accept that every Express routes file now
+  // reaches the LLM — see shouldSkipPath() which still excludes
+  // test/fixtures/demo/scripts dirs from production scans.
+  //
+  // Limitation by design (Phase 1+2): Express-family only. Fastify,
+  // Koa, Hono are NOT covered until we add positive fixtures for
+  // each.
+  { id: "express_route_def", re: EXPRESS_ROUTE_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -107,16 +126,39 @@ const SYSTEM_PROMPT = `You are a security auditor analyzing a code change for au
 vulnerabilities. Authorization bypass means a code path skips, weakens, or
 bypasses authorization checks based on user-controlled or hardcoded values.
 
+Bypass shapes you must detect:
+1. Sentinel-string bypasses: hardcoded values like "anonymous" / "admin" /
+   "public" that skip ownership checks, OR shortcuts like \`|| true\`,
+   \`|| "admin"\`, JWT verify with swallowed errors, verify_signature=False.
+2. Missing-middleware bypasses: an HTTP route declaration on an
+   Express-family router (e.g., \`router.post("/users/delete", handler)\`,
+   \`adminRouter.delete("/x", handler)\`) where the route performs a
+   destructive or sensitive action (delete, update, admin operation, money
+   movement, account changes) and has NO authentication/authorization
+   middleware in its argument list. Strong tell: sibling routes in the
+   SAME file DO pass an auth middleware (e.g., requireAuth, isAdmin) as
+   an argument and only this route is missing it. If every sibling route
+   on the same router is also unguarded, it is more likely a public
+   router by design — be cautious and prefer medium/low confidence
+   unless the route is unambiguously destructive.
+
 Set confidence:
-- HIGH: Clear evidence of bypass in destructive operation (DELETE/UPDATE/admin action)
-- MEDIUM: Pattern present but context partially ambiguous
-- LOW: Pattern present but context strongly suggests safety
+- HIGH: Clear evidence of bypass in destructive operation (DELETE/UPDATE/admin action).
+  For missing-middleware: destructive route, sibling routes are guarded, no other
+  auth signal in the handler body.
+- MEDIUM: Pattern present but context partially ambiguous.
+- LOW: Pattern present but context strongly suggests safety (e.g., every route on
+  the router is unguarded by design, or the handler itself checks req.user).
 
 IMPORTANT:
 - Only return findings with confidence "high" or "medium".
 - Reject patterns in test/, fixtures/, examples/, scripts/, dev-tools/ paths.
 - Reject when imports show server-only or internal-only modules.
-- Reject when the pattern appears in seed/migration scripts.`;
+- Reject when the pattern appears in seed/migration scripts.
+- For missing-middleware: a route is NOT vulnerable if requireAuth (or an
+  equivalent auth middleware) appears as an argument to the route call, OR
+  if the router itself was mounted under an auth-protected base path that
+  is visible in the imports/context.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)
@@ -382,11 +424,27 @@ export class AuthBypassDetector implements Detector {
       return [];
     }
 
-    const trigger = triggers[0]!;
+    // For the missing-middleware case we MUST show the whole file: the
+    // LLM's verdict depends on whether *sibling* routes in the same
+    // router are guarded. Picking the first route-def trigger as the
+    // primary anchor; full file content goes into functionCode, subject
+    // to the shared WHOLE_FILE_PAYLOAD_CAP_BYTES bound (oversize files
+    // fall back to the window — see Phase 1 P2 closure in
+    // detectors/shared/route-def-pattern.ts).
+    const routeDefTrigger = triggers.find(
+      (t) => t.patternId === "express_route_def",
+    );
+    const trigger = routeDefTrigger ?? triggers[0]!;
+    const functionCode = buildFunctionCodePayload({
+      content,
+      anchorLine: trigger.line,
+      isRouteDefTrigger: routeDefTrigger !== undefined,
+    });
+
     const verdict = await this.callLlm({
       filePath,
       language: langDisplay(lang),
-      functionCode: extractContextWindow(content, trigger.line),
+      functionCode,
       imports: extractImports(content),
       triggerPattern: trigger.patternText,
       lineNumber: trigger.line,

@@ -13,9 +13,9 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { AdminCheckDetector } from "../analysis-engine/detectors/admin-check.detector";
 
 const FIXTURES_DIR = "fixtures/admin-check";
-const POSITIVES_MIN = 7;
-const NEGATIVES_MIN = 9;
-const COMBINED_MIN = 16;
+const POSITIVES_MIN = 11;
+const NEGATIVES_MIN = 11;
+const COMBINED_MIN = 22;
 const SLEEP_MS_BETWEEN = 800;
 
 interface MetaEntry {
@@ -167,7 +167,7 @@ function printDiagnostic(
   );
 
   if (missedPositives.length > 0) {
-    out.write(`POSITIVES MISSED (${10 - caught}/10 should be 0):\n`);
+    out.write(`POSITIVES MISSED (${11 - caught}/11 should be 0):\n`);
     for (const m of missedPositives) {
       out.write(`  ${m.file} (Category: ${m.meta.category})\n`);
       out.write(`    META: ${m.meta.description}\n`);
@@ -186,7 +186,7 @@ function printDiagnostic(
 
   if (flaggedNegatives.length > 0) {
     out.write(
-      `NEGATIVES INCORRECTLY FLAGGED (${flaggedNegativeCount}/10 should be ≤1):\n`,
+      `NEGATIVES INCORRECTLY FLAGGED (${flaggedNegativeCount}/11 should be ≤1):\n`,
     );
     for (const n of flaggedNegatives) {
       out.write(`  ${n.file} (${n.meta.category})\n`);
@@ -243,12 +243,12 @@ async function main(): Promise<void> {
   const flaggedNegatives = negatives.filter((r) => r.flagged);
   const missedPositives = positives.filter((r) => !r.flagged);
   const combined = caught + correctlySkipped;
-  const accuracyPct = Math.round((combined / 20) * 100);
+  const accuracyPct = Math.round((combined / 22) * 100);
 
   process.stdout.write("\n");
-  process.stdout.write(`Positives caught:           ${caught}/10 (need >= ${POSITIVES_MIN})\n`);
-  process.stdout.write(`Negatives correctly skipped: ${correctlySkipped}/10 (need >= ${NEGATIVES_MIN})\n`);
-  process.stdout.write(`Combined accuracy:          ${combined}/20 (${accuracyPct}%, need >= ${COMBINED_MIN})\n\n`);
+  process.stdout.write(`Positives caught:           ${caught}/11 (need >= ${POSITIVES_MIN})\n`);
+  process.stdout.write(`Negatives correctly skipped: ${correctlySkipped}/11 (need >= ${NEGATIVES_MIN})\n`);
+  process.stdout.write(`Combined accuracy:          ${combined}/22 (${accuracyPct}%, need >= ${COMBINED_MIN})\n\n`);
 
   const passedNegativesGate = correctlySkipped >= NEGATIVES_MIN;
   const passedPositivesGate = caught >= POSITIVES_MIN;
@@ -257,7 +257,7 @@ async function main(): Promise<void> {
 
   if (!passedNegativesGate) {
     process.stdout.write(
-      `HARD GATE FAILED: negatives ${correctlySkipped}/10 < ${NEGATIVES_MIN}; false positives matter most.\n\n`,
+      `HARD GATE FAILED: negatives ${correctlySkipped}/11 < ${NEGATIVES_MIN}; false positives matter most.\n\n`,
     );
   }
 

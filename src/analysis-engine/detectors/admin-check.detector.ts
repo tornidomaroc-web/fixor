@@ -34,6 +34,10 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import {
+  EXPRESS_ROUTE_DEF_RE,
+  buildFunctionCodePayload,
+} from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "admin-check-multi";
 
@@ -191,6 +195,25 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
     explanation:
       "Admin grant via hardcoded `ADMIN_EMAIL` constant compared to user email. Admin identity is determined by string equality with a single email literal embedded in source. Same problems as hardcoded admin arrays: source-embedded admin identity is hard to revoke (requires redeploy), invisible to runtime audits, exposed to anyone with repository access. Move admin role assignment to a database table managed via admin UI or migration, and look up the role at request time.",
   },
+  // Express-family route definition (Phase 2 missing-admin-gate
+  // remediation, mirrors the Phase 1 auth-bypass broadening). The
+  // sentinel-string prefilter is blind by construction to the
+  // "privileged route with NO admin check anywhere" shape — there is
+  // no sentinel to match when the bug is the absence of authorization
+  // code. The route-def trigger forces every Express routes file to
+  // the LLM, where the prompt judges whether the route performs a
+  // privileged action without an admin gate.
+  //
+  // tier=judgment: the LLM MUST disambiguate (e.g. a public router by
+  // design vs. a sensitive route with the admin gate forgotten).
+  // Bypassing the LLM here would either flag every routes file or
+  // none. Pattern lives in detectors/shared/route-def-pattern.ts so
+  // auth-bypass and admin-check stay in sync.
+  {
+    id: "express_route_def",
+    re: EXPRESS_ROUTE_DEF_RE,
+    tier: "judgment",
+  },
 ];
 
 const SKIP_PATH_RE =
@@ -199,18 +222,44 @@ const SKIP_PATH_RE =
 const SERVER_ONLY_RE = /^\s*import\s+["']server-only["']\s*;?\s*$/m;
 
 const SYSTEM_PROMPT = `You are a security auditor analyzing a code change for admin-check
-vulnerabilities. Admin-check vulnerability means administrator privileges
-are granted via hardcoded email comparison, domain suffix matching, or
-string-based role check instead of proper RBAC backed by a database
-table or server-signed JWT claims.
+vulnerabilities.
+
+Admin-check vulnerability shapes you must detect:
+
+1. Hardcoded-admin shapes: administrator privileges granted via hardcoded
+   email comparison, domain suffix matching, hardcoded email allowlist
+   array, hardcoded DEFAULT_ADMIN_ID/_EMAIL fallback, nullish-coalescing
+   to the admin literal, client-supplied role read from req.body/query/
+   params, or string-based role check on a client-controlled value
+   instead of proper RBAC backed by a database table or server-signed
+   JWT claims.
+
+2. Missing-admin-gate shapes: a sensitive/privileged route declared on
+   an Express-family router (router.post/.get/.put/.delete/.patch etc.)
+   that performs an administrative action (role/tier change, user
+   management, billing settings, account management, /admin/* paths,
+   privileged toggles) and has NO admin authorization check anywhere
+   — neither in the route's argument list as a middleware (requireAdmin,
+   isAdmin, adminOnly, verifyAdmin) nor inline in the handler body
+   (role lookup against an authoritative source, allowlist check, etc.).
+   Strong tell: sibling routes on the SAME router pass an admin
+   middleware (requireAdmin or similar) but this route does not. If
+   every route on the router is unguarded, it is more likely a public
+   router by design — be cautious and prefer medium/low confidence
+   unless the route is unambiguously administrative.
 
 Set confidence:
-- HIGH: Admin grant based on hardcoded email/domain/role string with no
-  database or signed-claim verification, in production runtime code
-- MEDIUM: Hybrid check (e.g., string match AS PRIMARY but DB verification
-  later) or partial RBAC with hardcoded fallback
+- HIGH: Hardcoded-admin shape with no DB or signed-claim verification in
+  production runtime code. Missing-admin-gate: route is unambiguously
+  administrative (role/tier change, user delete/promote, admin panel,
+  billing settings) AND sibling routes on the same router are admin-
+  gated AND there is no admin authorization signal in the handler body.
+- MEDIUM: Hybrid check (string match AS PRIMARY but DB verification
+  later), partial RBAC with hardcoded fallback, or missing-admin-gate
+  where the route's privileged status is plausible but not certain.
 - LOW: RBAC clearly backed by DB lookup, server-signed JWT with issuer
-  validation, or RBAC middleware that consults user_roles/org_members tables
+  validation, RBAC middleware that consults user_roles/org_members
+  tables, OR every route on the router is unguarded by design.
 
 IMPORTANT:
 - Only return findings with confidence "high" or "medium".
@@ -221,8 +270,13 @@ IMPORTANT:
   member, not admin).
 - Reject when hardcoded admins appear only in bootstrap/seed scripts (not
   runtime code).
-- Reject when a dedicated RBAC middleware (verifyClaims, requireRole)
-  enforces the check before the route handler.`;
+- Reject when a dedicated RBAC middleware (verifyClaims, requireRole,
+  requireAdmin, isAdmin) enforces the check before the route handler,
+  whether passed as an argument to the route declaration or applied
+  router-wide via router.use().
+- For missing-admin-gate: reject when the route is unambiguously a
+  non-admin read endpoint (e.g., GET on a public catalog, healthcheck)
+  even if the rest of the router is admin-gated.`;
 
 /**
  * Short fingerprint of SYSTEM_PROMPT, computed once at module load.
@@ -402,8 +456,16 @@ Analyze whether this is a real admin-check vulnerability. Consider:
 3. Does the role come from a server-signed JWT with issuer verification?
 4. Is the email match used only to verify an invite token (grants member,
    not admin)?
-5. Is a dedicated RBAC middleware (verifyClaims, requireRole) applied
-   before the route handler?
+5. Is a dedicated RBAC middleware (verifyClaims, requireRole, requireAdmin)
+   applied before the route handler (passed as a route argument or via
+   router.use())?
+6. If the trigger is an Express route definition: is the route
+   privileged/administrative (role-change, user delete/promote, billing
+   settings, admin panel) AND missing an admin middleware argument AND
+   missing any inline admin check in the handler body? Compare against
+   sibling routes on the same router — if every other privileged sibling
+   has an admin gate and only this one is missing, that is the
+   missing-admin-gate vulnerability.
 
 Call the report_admin_check_verdict tool with your verdict.`;
 }
@@ -574,10 +636,23 @@ export class AdminCheckDetector implements Detector {
       ];
     }
 
+    // For the missing-admin-gate case (route-def trigger) we MUST show
+    // the whole file: the LLM's verdict depends on whether sibling
+    // routes on the same router are admin-gated. Mirrors the Phase 1
+    // auth-bypass behavior. The size cap (200 KB) falls back to the
+    // window for pathologically large files. See
+    // detectors/shared/route-def-pattern.ts.
+    const isRouteDefTrigger = trigger.patternId === "express_route_def";
+    const functionCode = buildFunctionCodePayload({
+      content,
+      anchorLine: trigger.line,
+      isRouteDefTrigger,
+    });
+
     const verdict = await this.callLlm({
       filePath,
       language: langDisplay(lang),
-      functionCode: extractContextWindow(content, trigger.line),
+      functionCode,
       imports: extractImports(content),
       triggerPattern: trigger.patternText,
       lineNumber: trigger.line,
