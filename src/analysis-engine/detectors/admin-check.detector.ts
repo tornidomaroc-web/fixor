@@ -287,6 +287,24 @@ Admin-check vulnerability shapes you must detect:
      \`getServerSession()\` followed by \`if (session.user.role !==
      "admin") return Response.json({}, { status: 403 })\`, or an
      explicit RBAC lookup against a DB role) DO count as gating.
+   - An admin-suggesting helper call invoked in the handler body
+     BEFORE the privileged operation counts as gating, by the same
+     name-convention discipline as the HOC wrapper rule above:
+     helper-function identifiers like \`requireAdmin\`,
+     \`requireAdminRole\`, \`assertAdmin\`, \`assertAdminRole\`,
+     \`checkAdmin\`, \`enforceAdminRole\`, \`verifyAdminAccess\`, or
+     any helper-function identifier containing "admin" as a
+     substring of its name. The helper's NAME must suggest admin
+     enforcement; non-admin-suggesting helper calls invoked before
+     the privileged operation (e.g., \`logAccess()\`,
+     \`recordEvent()\`, \`trackRequest()\`, \`auditTrail()\`,
+     \`withRateLimit()\`, \`captureMetric()\`) do NOT count as
+     gating — the route is still admin-gate-vulnerable. The same
+     out-of-scope limitation applies as for HOC wrappers: a
+     deceptively-named helper that hides admin enforcement under a
+     non-admin name, or a generic-named helper that does enforce
+     admin internally, cannot be resolved without cross-file
+     analysis.
 
 Set confidence:
 - HIGH: Hardcoded-admin shape with no DB or signed-claim verification in

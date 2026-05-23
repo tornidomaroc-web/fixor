@@ -22,6 +22,10 @@ Background: the Day 7 cross-detector audit found admin-check LLM reasoning quote
 - 09-flask-default-admin-email.py: session email defaults to DEFAULT_ADMIN_EMAIL
 - 10-go-admin-domain-suffix.go: Go middleware grants admin via strings.HasSuffix(email, "@acme.app")
 - 11-missing-admin-gate-role-change.ts: router with two requireAdmin-gated routes plus a /:id/tier POST whose admin gate was forgotten — the handler writes req.body.tier to the DB unchecked, allowing any authenticated caller to set themselves to the admin tier (Phase 2 missing-admin-gate; pre-Phase-2 this fires zero prefilter sentinels and was silently dropped)
+- 12-app-router-bare-role-change.ts: Next.js App Router bare PUT at app/api/admin/users/[id]/role/route.ts assigns a role from the JSON body with no HOC wrapper and no inline check (Phase C missing-admin-HOC-wrapper, bare shape). Body destructured to avoid req.body.role literal pre-emption.
+- 13-app-router-with-auth-only-admin-action.ts: Next.js App Router POST wrapped in withAuth promoting a user to admin role; existing prompt rule says withAuth alone is not sufficient for admin-check (Phase C, auth-only-wrapper shape).
+- 14-app-router-with-route-on-admin-action.ts: Next.js App Router DELETE wrapped in generic-named withRoute performing user deletion; documented limitation treats generic wrappers as ungated by default (Phase C, generic-wrapper shape).
+- 15-app-router-with-auth-plus-non-admin-helper.ts: Next.js App Router PUT wrapped in withAuth with a non-admin-suggesting helper call (logAccess) before the privileged op; the helper-call rule requires the helper NAME to suggest admin enforcement, so this fixture must FLAG (Phase C, AC-P4 symmetric positive anchor to negative/15 AC-N4).
 
 ## Negative (looks similar, actually safe)
 - 01-db-role-lookup.ts: requireAdmin reads role from user_roles table (Category B — context)
@@ -35,3 +39,7 @@ Background: the Day 7 cross-detector audit found admin-check LLM reasoning quote
 - 09-fastapi-rbac-dep.py: FastAPI dependency injection enforces DB-backed role (Category B — context)
 - 10-go-rbac-from-db.go: Go middleware checks role via db.QueryRole (Category B — context)
 - 11-router-properly-admin-gated.ts: every privileged router.post/.get route has a requireAdmin middleware as first arg, and requireAdmin itself consults a DB-backed user_roles table; proves the Phase 2 missing-admin-gate broadening doesn't fire on correctly-gated routes (Category B — context)
+- 12-app-router-with-admin-wrapper.ts: Next.js App Router POST wrapped in withAdmin promoting a user to admin role; admin-suggesting HOC name resolves gating (Phase C, B1 mandatory admin-wrapper shape) (Category B — context)
+- 13-app-router-with-auth-plus-inline-role-check.ts: Next.js App Router PUT wrapped in withAuth with an inline `session.user.role !== 'admin'` 403 check before the destructive op (Phase C, inline-check-anchor shape) (Category B — context)
+- 14-app-router-bare-non-admin-read.ts: Next.js App Router bare GET reading authenticated user's own profile (scoped on session.user.id, not admin-tier) (Phase C, non-admin-self-read shape) (Category B — context)
+- 15-app-router-with-auth-plus-helper-admin-check.ts: Next.js App Router PUT wrapped in withAuth with an `await requireAdminRole()` helper call before the destructive op (Phase C, AC-N4 helper-call symmetric anchor to negative/13; tests whether the LLM trusts an admin-suggesting helper name without a visible role string comparison) (Category B — context)

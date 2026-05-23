@@ -134,10 +134,26 @@ App Router and Remix (file-system-routed) considerations:
   - File imports a known webhook library (\`stripe\`, \`@octokit/webhooks\`,
     \`twilio\`, \`@lemonsqueezy/lemonsqueezy.js\`, \`svix\`,
     \`@slack/events-api\`, etc.) AND uses it for incoming-request verification.
-  - File imports \`node:crypto\` (or \`crypto\`) AND uses HMAC operations
-    (\`createHmac\`, \`createHash\` + \`update\` + \`digest\`,
-    \`timingSafeEqual\`) on a value derived from the request body or
-    headers.
+  - File imports \`node:crypto\` (or \`crypto\`), uses HMAC/hash
+    operations (\`createHmac\`, \`createHash\` + \`update\` +
+    \`digest\`, \`timingSafeEqual\`) on a value derived from the
+    request body or headers, AND the resulting hash flows into a
+    comparison against an incoming signature header value. The
+    decisive signal is the hash output's destination — if the hash
+    is compared against an incoming-signature header value, the
+    file IS a webhook handler; if the hash flows into any sink
+    OTHER than an incoming-signature comparison the file is NOT a
+    webhook handler. Examples of non-webhook sinks include but are
+    not limited to: cache lookup (\`cache.get(hash)\`,
+    \`cache.set(hash, ...)\`), object-storage put
+    (\`storage.put('/blobs/' + hash, ...)\`), ETag header set
+    (\`headers.set('etag', hash)\`), dedup-table insert
+    (\`db.dedup.create({ data: { key: hash }})\`), audit-log column
+    (\`db.audit.create({ data: { fingerprint: hash }})\`), request
+    fingerprinting for rate-limit memoization, content-addressed
+    routing. When the hash flows into one of these non-webhook
+    sinks, return isVulnerable=false with confidence LOW and
+    reasoning identifying the non-webhook use.
   - Handler body reads a signature-like header
     (\`stripe-signature\`, \`x-hub-signature\`, \`x-signature-256\`,
     \`x-webhook-signature\`, \`signature\`, \`x-hmac-sha256\`, etc.)
