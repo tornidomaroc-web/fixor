@@ -44,3 +44,18 @@ outreach/
 
 # Local smoke-test artifacts (cloned repos, scan reports, debug logs)
 test-output/
+
+# Internal-only docs — never publish.
+# Strategy/prospect/audit material that would either embarrass us if leaked
+# (audit honesty defects, prospect call-outs) or undercut us strategically
+# (drafts of disclosure or launch posts published before coordination).
+# Public docs that describe real product state belong in docs/ proper —
+# detector-capabilities.md is the model.
+docs/*-DRAFT.md
+docs/FIXOR-CURRENT-STATE-*.md
+docs/STATUS-SYNC-*.md
+docs/publish-day-materials.md
+
+# Temporary PR body files (created when piping rich markdown to gh pr create
+# via --body-file; safe to delete after the PR opens).
+.pr-body-tmp.md
