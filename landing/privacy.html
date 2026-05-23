@@ -173,7 +173,7 @@
 
     <h2>3. How we use your data</h2>
     <ul>
-      <li><strong>Analysis.</strong> The PR diff plus minimal repo context is sent to Anthropic's Claude API and Fixor's analysis engine to detect business-logic vulnerabilities — authentication bypass, IDOR, weak admin checks, env exposure, and secrets exposure — and produce a precise explanation and remediation steps for each finding. Diffs are not used to train models. (See Anthropic's Trust Center for their commitments.)</li>
+      <li><strong>Analysis.</strong> The PR diff plus minimal repo context is sent to Anthropic's Claude API and Fixor's analysis engine to detect business-logic vulnerabilities — authentication bypass, IDOR, weak admin checks, env exposure, secrets exposure, and unverified webhook handlers — and produce a precise explanation and remediation steps for each finding. Diffs are not used to train models. (See Anthropic's Trust Center for their commitments.)</li>
       <li><strong>Billing.</strong> When you upgrade to a paid plan, Paddle (our merchant of record) processes the payment. We send Paddle the price id and a correlation id; Paddle returns the customer + subscription ids we store on your <code>orgs</code> row.</li>
       <li><strong>Transactional email.</strong> We email you on first scan, on payment events (welcome / payment failed / subscription canceled), and once per calendar month if you cross 80% of your monthly Anthropic budget. We do not send marketing email.</li>
       <li><strong>Diagnostics.</strong> Server logs include installation id, PR number, and error stack traces. Sensitive values (API keys, GitHub App private keys, Stripe-style ids) are redacted at the logger layer.</li>

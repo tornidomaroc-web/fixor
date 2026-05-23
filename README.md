@@ -8,7 +8,7 @@
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
 [![License: MIT](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
 
-> **A GitHub App that reviews every pull request for the business-logic vulnerabilities Snyk and Semgrep miss — auth bypass, IDOR, weak admin checks, env exposure, and hardcoded secrets. Posts a precise explanation and remediation steps inline, generates a PDF/SARIF report, runs in &lt;30 seconds.**
+> **Detects 6 business-logic vulnerability classes in Node/TypeScript: auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, and unverified webhooks.**
 
 [Landing](https://tornidomaroc-web.github.io/fixor/) ·
 [Dashboard](https://app.fixor.dev) ·
@@ -29,6 +29,7 @@
 | 👮 Weak admin check — privilege gated by hardcoded email/role allowlists or client-supplied role | ✅ Shipping (measured) |
 | 🌫️ Env exposure — secrets leaked through env vars into response bodies | ✅ Shipping (measured) |
 | 🗝️ Secrets exposure — hardcoded API keys, tokens, credentials | ✅ Shipping (measured) |
+| 🪝 Unverified webhook handlers — incoming webhook routes that skip signature verification (Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC) | ✅ Shipping (measured) |
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
 | 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
 | 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
@@ -71,7 +72,7 @@ Fixor doesn't compete with Snyk or Semgrep — it covers the class they structur
 |---|---|---|---|
 | Setup time | Install GitHub App, done | CLI / CI step + dashboard config | Add `.semgrep.yml` + CI step |
 | Languages | JS/TS today (more on roadmap) | 10+ | 30+ |
-| Detector focus | Business logic: auth-bypass · IDOR · admin-check · env-exposure · secrets | Dependency CVEs + injection patterns | 2,000+ pattern rules |
+| Detector focus | Business logic: auth-bypass · IDOR · admin-check · env-exposure · secrets · unverified-webhooks | Dependency CVEs + injection patterns | 2,000+ pattern rules |
 | False-positive driver | Claude reasoning (low) | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
 | Remediation output | Precise explanation + remediation steps per finding | Partial auto-patch (Snyk Code Fix) | Rule message only |
 | PDF + SARIF | ✅ Both | ✅ SARIF | ✅ SARIF |
@@ -122,7 +123,7 @@ The dashboard is a separate Next.js app at [`apps/dashboard/`](apps/dashboard/) 
 
 ```
 src/
-  analysis-engine/        # Claude-powered detection (4 detector families)
+  analysis-engine/        # Claude-powered detection (6 detector families)
   config/                 # Model registry, tunables
   db/                     # Drizzle schema + migrations
   integrations/github/    # GitHub App auth, webhooks, PR comments

@@ -19,7 +19,7 @@
 
 ## Short description *(160 chars)*
 
-Fixor reviews every PR for business-logic bugs Snyk misses — auth bypass, IDOR, weak admin checks, env & secret exposure — each with a precise explanation.
+Detects 6 business-logic vulnerability classes in Node/TypeScript: auth bypass, admin gates, IDOR, env exposure, secrets, unverified webhooks.
 
 ---
 
@@ -35,13 +35,14 @@ Fixor is a high-signal second reviewer: every finding comes with a precise expla
 
 ### Detectors shipping today
 
-Five measured, stability-validated business-logic detectors:
+Detects 6 vulnerability classes in Node/TypeScript codebases: route-level auth bypass (sentinel and missing-middleware), missing admin gates (hardcoded-admin and missing-admin-gate), IDOR, environment-variable exposure, hardcoded secrets, and unverified webhook handlers. Express-family routers covered for the route-based detectors; Fastify/Koa/Hono/NestJS not yet. The webhook detector additionally recognizes Flask, Rails, and Go HTTP handlers, and covers Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC signing; Shopify / Discord / AWS SNS / GCP Pub/Sub / Mailgun and other provider-specific schemes not yet.
 
 - **Authentication bypass** — weakened or short-circuited auth checks (role-to-admin fallbacks, swallowed token verification, hardcoded bypass flags)
 - **IDOR** — resource access without an ownership check
 - **Weak admin check** — privilege gated by hardcoded email/role allowlists or client-supplied role
 - **Env exposure** — secrets leaked through environment variables into response bodies
 - **Secrets exposure** — hardcoded API keys, tokens, and credentials
+- **Unverified webhooks** — incoming webhook routes that skip signature verification (Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC)
 
 ### Why Fixor runs alongside Snyk and Semgrep
 
@@ -79,10 +80,10 @@ Pricing happens **inside the Fixor dashboard** (not Marketplace), through Paddle
 
 | Tier | Price | Scans / month | Repos | Detectors |
 |---|---|---|---|---|
-| Free | $0 | 5 | Public only | All 5 |
-| Indie | $29/mo | 100 | 1 private + unlimited public | All 5 |
-| Pro | $79/mo | 500 | 5 private + unlimited public | All 5 + Slack/Jira |
-| Team | $199/mo | 2,000 | Unlimited | All 5 + priority support |
+| Free | $0 | 5 | Public only | All 6 |
+| Indie | $29/mo | 100 | 1 private + unlimited public | All 6 |
+| Pro | $79/mo | 500 | 5 private + unlimited public | All 6 + Slack/Jira |
+| Team | $199/mo | 2,000 | Unlimited | All 6 + priority support |
 
 Free tier is real — install, scan a public repo, decide later.
 
@@ -95,7 +96,7 @@ Email **support@fixor.dev** or open an issue at <https://github.com/tornidomaroc
 ## Features section *(3–6 items, each with a one-line summary)*
 
 1. **AI-powered security review.** Claude reads your diff and explains each finding with remediation steps, not regex matches.
-2. **Five measured detector families on day one.** Auth bypass, IDOR, missing admin check, env exposure, secrets exposure — all available on every tier including free.
+2. **Six measured detector families on day one.** Auth bypass, IDOR, missing admin check, env exposure, secrets exposure, unverified webhooks — all available on every tier including free.
 3. **PDF report on every PR.** Branded, shareable, attachable to compliance tickets. SARIF output too.
 4. **Per-org cost cap.** Hard monthly Anthropic budget per org — Fixor stops before the bill surprises you.
 5. **Settings that ship to scans.** Severity threshold, ignored globs, detector allowlist, Slack webhook — all editable from the dashboard, applied to the next scan.
