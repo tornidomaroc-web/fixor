@@ -153,7 +153,9 @@ async function scanDir(
 
 function printDiagnostic(
   caught: number,
+  positiveCount: number,
   flaggedNegativeCount: number,
+  negativeCount: number,
   missedPositives: FixtureResult[],
   flaggedNegatives: FixtureResult[],
 ): void {
@@ -167,7 +169,7 @@ function printDiagnostic(
   );
 
   if (missedPositives.length > 0) {
-    out.write(`POSITIVES MISSED (${11 - caught}/11 should be 0):\n`);
+    out.write(`POSITIVES MISSED (${positiveCount - caught}/${positiveCount} should be 0):\n`);
     for (const m of missedPositives) {
       out.write(`  ${m.file} (Category: ${m.meta.category})\n`);
       out.write(`    META: ${m.meta.description}\n`);
@@ -186,7 +188,7 @@ function printDiagnostic(
 
   if (flaggedNegatives.length > 0) {
     out.write(
-      `NEGATIVES INCORRECTLY FLAGGED (${flaggedNegativeCount}/11 should be ≤1):\n`,
+      `NEGATIVES INCORRECTLY FLAGGED (${flaggedNegativeCount}/${negativeCount} should be ≤1):\n`,
     );
     for (const n of flaggedNegatives) {
       out.write(`  ${n.file} (${n.meta.category})\n`);
@@ -243,12 +245,13 @@ async function main(): Promise<void> {
   const flaggedNegatives = negatives.filter((r) => r.flagged);
   const missedPositives = positives.filter((r) => !r.flagged);
   const combined = caught + correctlySkipped;
-  const accuracyPct = Math.round((combined / 22) * 100);
+  const totalCount = positives.length + negatives.length;
+  const accuracyPct = Math.round((combined / totalCount) * 100);
 
   process.stdout.write("\n");
-  process.stdout.write(`Positives caught:           ${caught}/11 (need >= ${POSITIVES_MIN})\n`);
-  process.stdout.write(`Negatives correctly skipped: ${correctlySkipped}/11 (need >= ${NEGATIVES_MIN})\n`);
-  process.stdout.write(`Combined accuracy:          ${combined}/22 (${accuracyPct}%, need >= ${COMBINED_MIN})\n\n`);
+  process.stdout.write(`Positives caught:           ${caught}/${positives.length} (need >= ${POSITIVES_MIN})\n`);
+  process.stdout.write(`Negatives correctly skipped: ${correctlySkipped}/${negatives.length} (need >= ${NEGATIVES_MIN})\n`);
+  process.stdout.write(`Combined accuracy:          ${combined}/${totalCount} (${accuracyPct}%, need >= ${COMBINED_MIN})\n\n`);
 
   const passedNegativesGate = correctlySkipped >= NEGATIVES_MIN;
   const passedPositivesGate = caught >= POSITIVES_MIN;
@@ -257,14 +260,16 @@ async function main(): Promise<void> {
 
   if (!passedNegativesGate) {
     process.stdout.write(
-      `HARD GATE FAILED: negatives ${correctlySkipped}/11 < ${NEGATIVES_MIN}; false positives matter most.\n\n`,
+      `HARD GATE FAILED: negatives ${correctlySkipped}/${negatives.length} < ${NEGATIVES_MIN}; false positives matter most.\n\n`,
     );
   }
 
   if (!passed) {
     printDiagnostic(
       caught,
+      positives.length,
       flaggedNegatives.length,
+      negatives.length,
       missedPositives,
       flaggedNegatives,
     );

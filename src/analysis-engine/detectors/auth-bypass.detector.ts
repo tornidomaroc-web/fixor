@@ -156,9 +156,20 @@ Bypass shapes you must detect:
    NAME convention suggests auth/admin enforcement.
    - Treat as GATED (NOT vulnerable) when wrapped in any of:
      \`withAuth\`, \`withAdmin\`, \`requireAuth\`, \`requireAdmin\`,
-     \`withSession\`, \`protect\`, \`secure\`, \`authMiddleware\`,
+     \`protect\`, \`secure\`, \`authMiddleware\`,
      \`withMiddleware(auth, ...)\`, or any HOC identifier containing
-     "auth", "admin", or "session" as a substring of its name.
+     "auth" or "admin" as a substring of its name.
+   - For HOCs whose name contains "session" as a substring
+     (\`withSession\`, \`withSessionAuth\`, \`withSessionGuard\`,
+     \`withSessionTracking\`, \`withSessionAnalytics\`, etc.):
+     session counts as gating ONLY when the handler body uses the
+     session value for an authorization decision — e.g., a 401
+     return on missing session, or an ownership filter keyed on
+     \`session.user.id\` in the destructive query. A session-
+     substring HOC whose body merely sets a tracking cookie, fires
+     an analytics event, or otherwise does NOT use the session for
+     an authorization decision is NOT gating, and the route is
+     effectively unguarded.
    - Do NOT assume gating for HOCs whose name does not suggest auth:
      \`withLogging\`, \`withCors\`, \`withRateLimit\`, \`withTrace\`,
      \`withErrorBoundary\`, \`withMetrics\`, \`withDb\`, \`withCache\`.
