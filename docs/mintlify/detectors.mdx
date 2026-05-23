@@ -28,13 +28,18 @@ What we look for:
   JWT verification swallowed inside try/catch, Python
   `verify_signature=False`, `DEFAULT_USER_ID` / `DEFAULT_ADMIN_ID` /
   `DEFAULT_ADMIN_EMAIL` fallbacks, Ruby `params[:x] || "admin"`.
-- **Missing-middleware bypasses** on Express-family routers: a
+- **Missing-middleware bypasses** on router-style frameworks: a
   destructive route declaration with no authentication middleware in
   the argument list, where sibling routes on the same router do pass
-  an auth middleware. Pattern matches literal `router` / `app` / `api`
-  identifiers, or any identifier ending in `Router` / `App` / `Api`
-  (so `adminRouter.post(...)` is covered). Verbs covered: `get`,
-  `post`, `put`, `delete`, `patch`, `use`, `all`.
+  an auth middleware. **Express-family by fixture coverage**;
+  **router-style identifier syntax by regex** — the regex matches
+  literal `router` / `app` / `api` identifiers, or any identifier
+  ending in `Router` / `App` / `Api` (so `adminRouter.post(...)` is
+  covered). Verbs covered: `get`, `post`, `put`, `delete`, `patch`,
+  `use`, `all`. Fastify, Koa, or Hono callsites whose identifiers
+  also match the regex shape reach the LLM stage and are judged on
+  the same missing-auth-arg criteria, but they have no positive
+  fixture coverage and are not baseline-anchored.
 
 Explicitly not covered (escalate to a manual review):
 Fastify, Koa, Hono, NestJS Guards, Spring `@PreAuthorize`, ASP.NET
@@ -78,12 +83,17 @@ What we look for:
   `DEFAULT_ADMIN_ID`, `DEFAULT_ADMIN_EMAIL`, `role || "admin"`,
   `role ?? "admin"`, `req.body|query|params.<role>` reads,
   `role === "admin"` string compare on a client-controlled value.
-- **Missing-admin-gate shapes** on Express-family routers: a
+- **Missing-admin-gate shapes** on router-style frameworks: a
   privileged route (role or tier change, user management, billing
   settings, `/admin/*` paths) with no admin authorization check in
   either the middleware list (`requireAdmin`, `isAdmin`, `adminOnly`,
   `verifyAdmin`) or the handler body, where sibling routes on the
-  same router are admin-gated.
+  same router are admin-gated. Same regex-vs-fixture asymmetry as
+  missing-middleware bypasses above: **Express-family by fixture
+  coverage; router-style identifier syntax by regex.** Fastify, Koa,
+  or Hono callsites whose identifiers match the regex reach the LLM
+  and are judged on the same missing-admin-gate criteria, but have
+  no positive fixture coverage.
 
 Explicitly not covered: Fastify, Koa, Hono, NestJS Guards, Spring
 `@PreAuthorize`, decorator-based RBAC, declarative RBAC (Casbin, OPA,
@@ -266,8 +276,13 @@ Each detector follows the same two-stage pipeline:
 1. **Regex prefilter:** sentinel strings plus (for `auth-bypass`,
    `admin-check`, `webhook-unverified`) route-definition patterns.
    Files with zero matches are dropped without an LLM call. This is
-   what keeps a scan's cost bounded at roughly 2.4 cents per
-   detector-heavy file.
+   what keeps a scan's cost bounded — typically about $0.012 per file
+   for the base analyzer pass, plus roughly $0.036 extra per
+   route-shape file (Next.js App Router HTTP-method exports or
+   Express-family `router.METHOD(...)` declarations) where three
+   additional detector passes run. The CLI prints a corpus-specific
+   estimate before each scan, so you see the actual figure for your
+   repo rather than a flat per-file number.
 2. **LLM verdict:** for files that pass the prefilter, Claude reads
    the full file (for route-definition triggers) or a windowed
    context (for sentinel triggers) and produces a confidence-graded
