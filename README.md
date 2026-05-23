@@ -29,14 +29,15 @@
 | 👮 Weak admin check — privilege gated by hardcoded email/role allowlists or client-supplied role | ✅ Shipping (measured) |
 | 🌫️ Env exposure — secrets leaked through env vars into response bodies | ✅ Shipping (measured) |
 | 🗝️ Secrets exposure — hardcoded API keys, tokens, credentials | ✅ Shipping (measured) |
-| 🪝 Unverified webhook handlers — incoming webhook routes that skip signature verification (Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC) | ✅ Shipping (measured) |
+| 🪝 Unverified webhook handlers — handlers that skip signature verification. URL-name prefilter (router-style frameworks only) plus content-based lib-import / anti-pattern prefilter (any framework; see [`docs/detector-capabilities.md`](docs/detector-capabilities.md) for content-prefilter blind spots). Provider fixtures: Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC | ✅ Shipping (measured) |
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
 | 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
 | 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
 | 💳 Paddle billing — free / $29 / $199, hosted checkout + portal | ✅ Shipping |
 | 🎛️ Dashboard — scan history, trends, settings, billing | ✅ Shipping |
 | 💸 Per-org Anthropic budget cap — 80% nudge + hard pause at 100% | ✅ Shipping |
-| 🐍 Python · 🐹 Go — IDOR, env-exposure, secrets-exposure, and webhook-unverified detect cross-language today; auth-bypass and admin-check catch their sentinel/hardcoded shapes cross-language but their Express-router patterns (missing-middleware, missing-admin-gate) are JS/TS-only — see [`docs/detector-capabilities.md`](docs/detector-capabilities.md) | 🟡 Partial |
+| 🏗️ Framework scope — route-shape detection (auth-bypass missing-middleware, admin-check missing-admin-gate, webhook-unverified URL-name prefilter) requires router-style framework syntax (`router.METHOD(path, ...)`). File-system-routed frameworks (Next.js App Router, Remix) work for the content-based sub-claims (sentinel strings, hardcoded-admin shapes, IDOR, env-exposure, secrets-exposure, webhook lib-import / anti-pattern). See [`docs/detector-capabilities.md`](docs/detector-capabilities.md) for per-sub-claim scope. | 🟡 Partial |
+| 🐍 Python · 🐹 Go — IDOR, env-exposure, secrets-exposure, and webhook-unverified detect cross-language today; auth-bypass and admin-check catch their sentinel/hardcoded shapes cross-language but their router-style patterns (missing-middleware, missing-admin-gate) are JS/TS-only and require router-style framework syntax within JS/TS too (see framework-scoping row above and [`docs/detector-capabilities.md`](docs/detector-capabilities.md)) | 🟡 Partial |
 | 💎 Ruby — limited (auth-bypass and IDOR fixtures only) | 🟡 Partial |
 | ☕ Java · 🐘 PHP — first-class detectors planned | 🚧 On roadmap (Phase 6) |
 | 🤖 Auto-fix Pull Requests (commit back) | 🚧 On roadmap (Phase 6) |

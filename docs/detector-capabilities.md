@@ -31,6 +31,7 @@ The contract has three goals:
 - Declarative auth (Rails `routes.rb` `authenticated do ... end`).
 - tRPC `protectedProcedure`, Next.js middleware-based auth, edge-runtime auth.
 - Auth gating applied via `router.use()` at file scope when the relevant `use()` call lives in a different file than the route declaration (the prefilter sees the route file in isolation).
+- File-system-routed framework handlers (Next.js App Router `export const POST = ...` / `export async function GET(...)`, Remix `app/routes/*.ts` action/loader exports) **for the missing-middleware sub-claim only.** The shared `EXPRESS_ROUTE_DEF_RE` requires `router.METHOD(path, ...)` shape and does not match the file-system-routed `export METHOD` shape, so the missing-middleware sub-claim silently skips these files. The sentinel-string sub-claim (content-based) still fires on them normally.
 
 **Measured baseline:** 22/20 (110%) — log: `test-output/auth-bypass-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 fixtures).
 
@@ -47,6 +48,7 @@ The contract has three goals:
 - Declarative RBAC (Casbin policies, OPA, Cedar).
 - tRPC `adminProcedure`, GraphQL resolver-level admin checks, Next.js middleware-based admin gating.
 - Admin gating applied via `router.use(requireAdmin)` at file scope when the `use()` call lives in a different file than the route declaration.
+- File-system-routed framework handlers (Next.js App Router `export const POST = ...` / `export async function GET(...)`, Remix `app/routes/*.ts` action/loader exports) **for the missing-admin-gate sub-claim only.** The shared `EXPRESS_ROUTE_DEF_RE` requires `router.METHOD(path, ...)` shape and does not match the file-system-routed `export METHOD` shape, so the missing-admin-gate sub-claim silently skips these files. The hardcoded-admin sub-claim (content-based) still fires on them normally.
 
 **Measured baseline:** 22/22 (100%) — log: `test-output/admin-check-post-pr53-baseline.log` (captured 2026-05-23, post-PR #53 fixtures).
 
@@ -121,7 +123,9 @@ The contract has three goals:
 - Key rotation / multi-secret handling.
 - mTLS-based webhook auth (e.g., AWS API Gateway client certs).
 - Providers not in prefilter or fixtures: Shopify (`X-Shopify-Hmac-Sha256`), Discord interactions (Ed25519), Mailgun, SendGrid, AWS SNS subscription confirmation, GCP Pub/Sub push (OIDC token), Square, PayPal, Paddle, Plaid, Algolia, Cloudflare Workers signed requests.
-- **Critical scope limitation:** the prefilter requires `webhook` / `hook` / `hooks` in the URL or `*Webhook*` in the handler name. A real Stripe handler mounted at `POST /billing/events` (Stripe allows any URL) would be invisible to the prefilter and never reach the LLM, even though its code shape matches our positive fixtures.
+- **Critical scope limitations** (two, both produce silent skips):
+  - **(a) URL is matched in file content, not file path.** Five of the eleven prefilter patterns (`express_post_webhook`, `express_use_webhook`, `flask_decorator_webhook`, `rails_post_webhook`, `go_handler_webhook`) require the webhook URL to appear as a string literal in file content alongside router-style syntax. File-system-routed frameworks (Next.js App Router, Remix) put routing in the file path — e.g. `app/api/<provider>/webhook/route.ts` — so these patterns never fire on those handlers. The original Stripe-at-`POST /billing/events` case is a second instance of the same shape: when the URL string in content doesn't carry the `webhook` / `hook` / `hooks` token, the URL-name patterns silently skip even on Express.
+  - **(b) Content prefilter is blind to DIY-HMAC handlers that are silent.** A handler that imports no webhook library (`@octokit/webhooks`, `stripe.webhooks.constructEvent`, `twilio.validateRequest`, etc.) AND exhibits no signature-comparison anti-pattern (no `sig != expected`, no `WEBHOOK_VERIFY=off`) is invisible to the content prefilter. The inbox-zero Lemon Squeezy handler at `apps/web/app/api/lemon-squeezy/webhook/route.ts` is exactly this case: correct `crypto.timingSafeEqual` verification, no webhook-lib import, no anti-pattern, so no prefilter pattern fires and the file never reaches the LLM. The invisibility is because the file is correct, not because all DIY-HMAC is inherently invisible — a vulnerable DIY-HMAC handler that uses `sig != expected` would still hit the `signature_loose_eq` / `raw_signature_string_compare` content patterns. (Combined with (a), this means file-system-routed DIY-HMAC webhook handlers that ARE vulnerable but ARE silent — no anti-pattern in their broken code — are the worst-case invisibility.)
 
 **Precision note (cross-detector):** MEDIUM-confidence findings (timing-leak comparisons, env-flag-conditional bypass) are routed to the internal review queue via `logger.warn` with `category: "webhook-unverified-review-queue"`, NOT emitted as a PR-comment finding. This matches the HIGH-only emit policy used by the other 5 detectors. If a customer asks "will Fixor flag a Stripe handler that toggles signature verification on/off via an env flag?", the honest answer is *"flagged in the review queue, not in the PR comment, by current policy."*
 
@@ -138,7 +142,9 @@ Independent of any specific detector, Fixor explicitly does not:
 - **Replace secret scanning of git history.** GitHub native secret scanning, gitleaks, etc. cover history; Fixor scans the present-tree diff.
 - **Cover infrastructure-as-code or container security.** No Terraform, no Kubernetes manifests, no Dockerfile scanning.
 - **Provide compliance certification.** SOC 2 / ISO 27001 outputs require their own controls; Fixor's PDF/SARIF outputs are evidence inputs to a compliance program, not compliance themselves.
-- **Run outside Node/TypeScript codebases for the route-based detectors.** auth-bypass and admin-check explicitly only do Express-family today. IDOR, env-exposure, secrets-exposure, and webhook-unverified have broader language coverage as enumerated in their CLAIMS rows.
+- **Route-based detection is scoped along two axes — language and framework shape — both matter.**
+  - **Language:** auth-bypass's missing-middleware sub-claim and admin-check's missing-admin-gate sub-claim are JS/TS only today. Their sentinel-string and hardcoded-admin sub-claims are content-based and run across the languages listed in their CLAIMS rows. IDOR, env-exposure, secrets-exposure, and webhook-unverified have broader language coverage as enumerated in their CLAIMS rows.
+  - **Framework shape:** the same two route-shape sub-claims (auth-bypass missing-middleware, admin-check missing-admin-gate) require router-style framework syntax — `router.METHOD(path, handlers...)` — and do not fire on file-system-routed handlers (Next.js App Router `export const POST = ...`, Remix `app/routes/*.ts` action/loader exports). webhook-unverified has the same shape constraint on its URL-name prefilter patterns; its content prefilter (lib import, signature-comparison anti-patterns, env-flag bypass) is framework-shape independent — see the webhook-unverified "Critical scope limitations" section above for the two-axis breakdown. IDOR, env-exposure, and secrets-exposure are framework-shape independent by design (content-based detection with framework-aware patterns including IDOR's `nextjs_destructured` and secrets-exposure's `NEXT_PUBLIC_*`); their CLAIMS rows enumerate the verified patterns.
 
 ## Cross-detector overlap
 

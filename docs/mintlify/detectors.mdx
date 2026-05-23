@@ -40,6 +40,12 @@ Explicitly not covered (escalate to a manual review):
 Fastify, Koa, Hono, NestJS Guards, Spring `@PreAuthorize`, ASP.NET
 `[Authorize]`, GraphQL resolver-level auth, declarative Rails route
 guards, tRPC `protectedProcedure`, Next.js middleware-based auth.
+Next.js App Router and Remix file-system-routed handlers
+(`export const POST = ...` / `export async function GET(...)`) are
+out of scope for the missing-middleware sub-claim only — the
+prefilter requires `router.METHOD(...)` syntax. The sentinel-string
+sub-claim is content-based and still fires on App Router files
+normally.
 
 ## Missing admin checks
 
@@ -65,6 +71,10 @@ What we look for:
 Explicitly not covered: Fastify, Koa, Hono, NestJS Guards, Spring
 `@PreAuthorize`, decorator-based RBAC, declarative RBAC (Casbin, OPA,
 Cedar), tRPC `adminProcedure`, GraphQL resolver-level admin checks.
+Next.js App Router and Remix file-system-routed handlers are out of
+scope for the missing-admin-gate sub-claim only — the prefilter
+requires `router.METHOD(...)` syntax. The hardcoded-admin sub-claim
+is content-based and still fires on App Router files normally.
 
 When auth-bypass and admin-check both fire on the same `file:line`,
 the admin-check finding is dropped (the auth-bypass finding subsumes
@@ -166,11 +176,33 @@ confirmation, GCP Pub/Sub push (OIDC token), Square, PayPal, Paddle,
 Plaid, Algolia, Cloudflare Workers signed requests, replay-protection
 issues independent of signature verification, key rotation, mTLS.
 
-**Critical scope limitation:** the prefilter requires `webhook` /
-`hook` / `hooks` in the URL or `*Webhook*` in the handler name. A
-real Stripe handler mounted at `POST /billing/events` (Stripe allows
-any URL) is invisible to the prefilter and never reaches the LLM,
-even though its code shape matches our positive fixtures.
+**Critical scope limitations** (two, both produce silent skips):
+
+(a) **URL matched in file content, not file path.** Five of the
+eleven prefilter patterns require the webhook URL to appear as a
+string literal in file content alongside router-style syntax
+(Express `app.post` / `router.use` + path, Flask decorator + path,
+Rails `post` + path, Go `HandleFunc` + path). File-system-routed
+frameworks (Next.js App Router, Remix) put routing in the file path
+— e.g. `app/api/<provider>/webhook/route.ts` — so these patterns
+never fire on those handlers. The Stripe-at-`POST /billing/events`
+case is a second instance: when the URL string in content does not
+carry the `webhook` / `hook` / `hooks` token, the URL-name patterns
+silently skip even on Express.
+
+(b) **Content prefilter is blind to DIY-HMAC handlers that are
+silent.** A handler that imports no webhook library
+(`@octokit/webhooks`, `stripe.webhooks.constructEvent`,
+`twilio.validateRequest`, etc.) AND exhibits no signature-comparison
+anti-pattern (no `sig != expected`, no `WEBHOOK_VERIFY=off`) is
+invisible to the content prefilter. The inbox-zero Lemon Squeezy
+handler at `apps/web/app/api/lemon-squeezy/webhook/route.ts` is
+exactly this case: correct `crypto.timingSafeEqual` verification, no
+webhook-lib import, no anti-pattern, so no prefilter pattern fires
+and the file never reaches the LLM. The invisibility is because the
+file is correct, not because all DIY-HMAC is inherently invisible —
+a vulnerable DIY-HMAC handler that uses `sig != expected` would
+still hit the looser-comparison content patterns.
 
 **MEDIUM-confidence findings on this detector** (timing-leak
 comparisons, env-flag-conditional bypass) are routed to the internal
