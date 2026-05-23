@@ -21,13 +21,13 @@ const DEFAULT_EXTENSIONS = ["ts", "tsx", "js", "jsx", "py", "go"];
 const DELAY_MS = 1500;            // between files
 const SUB_DELAY_MS = 800;         // between LLM-hitting detector calls within a file
 const ESTIMATED_COST_BEST_USD = 0.012;   // realistic — most detectors short-circuit
-const ESTIMATED_COST_WORST_USD = 0.02;   // worst case — all 5 detectors hit LLM
+const ESTIMATED_COST_WORST_USD = 0.024;  // worst case — all 6 detectors hit LLM
 
 // Specialized detectors invoked here in addition to analyzeCode (which
-// covers the original SQL/XSS/CMDI/PT families). The 4 original detectors
-// only generate fixes — they have no detect() pass — so iterating DETECTORS
-// by id-allowlist (the shared SHIPPING_DETECTOR_IDS set from the registry)
-// is enough.
+// covers the original SQL/XSS/CMDI/PT families, output-suppressed). Those
+// 4 original detectors only generate fixes — they have no detect() pass —
+// so iterating DETECTORS by id-allowlist (the shared SHIPPING_DETECTOR_IDS
+// set from the registry) is enough.
 const newDetectors = DETECTORS.filter(
   (d) => SHIPPING_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
 );

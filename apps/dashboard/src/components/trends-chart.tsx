@@ -23,14 +23,20 @@ interface Props {
 }
 
 // Stable color order by detector id keeps the legend consistent across
-// renders even when the family count changes between scans.
+// renders even when the family count changes between scans. Keys must
+// mirror SHIPPING_DETECTOR_IDS in src/analysis-engine/detectors/registry.ts
+// and the DETECTOR_OPTIONS list in src/lib/detectors.ts; if you add a
+// detector there, add a color here too or the pie slice falls through
+// to FALLBACK_COLOR.
 const FAMILY_COLORS: Record<string, string> = {
-  "sql-injection-js-ts": "#3b82f6", // blue-500
-  "xss-js-ts": "#f59e0b", // amber-500
-  "command-injection-js-ts": "#ef4444", // red-500
-  "path-traversal-js-ts": "#8b5cf6", // violet-500
+  "auth-bypass-multi": "#ef4444", // red-500
+  "admin-check-multi": "#f59e0b", // amber-500
+  "idor-multi": "#3b82f6", // blue-500
+  "env-exposure-multi": "#8b5cf6", // violet-500
+  "secrets-exposure-multi": "#ec4899", // pink-500
+  "webhook-unverified-multi": "#10b981", // emerald-500
 };
-const FALLBACK_COLOR = "#10b981"; // emerald-500
+const FALLBACK_COLOR = "#6b7280"; // gray-500 — surfaced when an unknown id appears
 
 export function TrendsChart({
   weekly,

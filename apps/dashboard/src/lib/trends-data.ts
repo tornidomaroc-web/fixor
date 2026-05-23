@@ -25,7 +25,9 @@ export interface WeeklyPoint {
 }
 
 export interface FamilyPoint {
-  /** Detector id (e.g. `xss-js-ts`). */
+  /** Detector id (e.g. `auth-bypass-multi`). Keys come from
+   *  SHIPPING_DETECTOR_IDS in the backend registry; the legend label
+   *  is resolved via DETECTOR_OPTIONS below. */
   family: string;
   /** Human label resolved from DETECTOR_OPTIONS, falls back to id. */
   label: string;
