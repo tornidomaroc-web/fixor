@@ -115,7 +115,14 @@ const SOURCE_PATTERNS: PrefilterPattern[] = [
   { id: "nestjs_param",            re: /@Param\s*\(\s*['"][^'"]+['"]\s*\)/ },
   // Next.js App Router (destructured params on the route handler's
   // second arg). Pages Router is covered by `req.query` / `req.params`.
-  { id: "nextjs_destructured",     re: /\bparams\s*:\s*\{\s*\w+\s*:\s*string/ },
+  // Tolerates both Next.js 14 ({ params: { id: string } }) and Next.js
+  // 15+ async-params ({ params: Promise<{ id: string }> }) shapes via
+  // the optional `Promise<` group. The trailing `\s*\{\s*\w+\s*:\s*string`
+  // still requires the inner object-type shape, which is what carries
+  // the per-handler ID parameter we need to flow-track to the DB query.
+  // Surfaced as a Phase A gap on 2026-05-23; see
+  // docs/APP-ROUTER-COVERAGE-PLAN.md Phase A.
+  { id: "nextjs_destructured",     re: /\bparams\s*:\s*(?:Promise\s*<\s*)?\{\s*\w+\s*:\s*string/ },
   // tRPC v10+ procedures receive `{ input, ctx }` and dereference
   // `input.X` to pass the request value into the DB query. The actual
   // SOURCE is the property access inside the handler body, not the

@@ -33,6 +33,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { APP_ROUTER_ROUTE_DEF_RE } from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "webhook-unverified-multi";
 
@@ -87,6 +88,16 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   { id: "webhook_verify_toggle",        re: /WEBHOOK_VERIFY\s*={2,3}\s*['"](?:off|false|disabled|0)/i },
   { id: "signature_loose_eq",           re: /\b(?:sig|signature|provided)\s*(?:!=|={2,3})\s*(?:expected|computed|hash|hmac|mac)\b/i },
   { id: "raw_signature_string_compare", re: /(?:sig|signature)\s*(?:!=|={2,3})\s*expected/i },
+  // File-system-routed framework handlers (Next.js App Router, Remix).
+  // Catches the DIY-HMAC App Router case the inbox-zero readiness scan
+  // surfaced: a webhook handler at app/api/<provider>/webhook/route.ts
+  // that imports no webhook library and exhibits no anti-pattern is
+  // invisible to all 11 patterns above. This pattern reaches the LLM,
+  // which then decides webhook-vs-not based on file path (/webhook/
+  // or /hooks/ segment), node:crypto HMAC operations, signature header
+  // reads, or other webhook signals. Non-webhook App Router routes
+  // return LOW confidence per the SYSTEM_PROMPT.
+  { id: "app_router_route_def",         re: APP_ROUTER_ROUTE_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -106,7 +117,47 @@ Set confidence:
   middleware applied to the route
 - MEDIUM: Signature verification present but uses insecure comparison
   (=== instead of timingSafeEqual/compare_digest)
-- LOW: Verification clearly handled (library, middleware, or proper HMAC)
+- LOW: Verification clearly handled (library, middleware, or proper HMAC),
+  OR the file is not actually a webhook handler (see App Router section
+  below)
+
+App Router and Remix (file-system-routed) considerations:
+- Pre-filter "app_router_route_def" matches any \`export const POST = ...\`
+  or \`export async function METHOD(...)\` shape, which includes both
+  webhook handlers AND every non-webhook App Router route. You MUST
+  first decide whether the file is a webhook handler before applying
+  the signature-verification rubric.
+- File is a webhook handler when ANY of these signals are present:
+  - File path (provided in the CONTEXT block) contains \`/webhook/\`,
+    \`/hooks/\`, or \`/webhooks/\` as a path segment, OR ends in
+    \`/webhook.ts\` / \`/hook.ts\`.
+  - File imports a known webhook library (\`stripe\`, \`@octokit/webhooks\`,
+    \`twilio\`, \`@lemonsqueezy/lemonsqueezy.js\`, \`svix\`,
+    \`@slack/events-api\`, etc.) AND uses it for incoming-request verification.
+  - File imports \`node:crypto\` (or \`crypto\`) AND uses HMAC operations
+    (\`createHmac\`, \`createHash\` + \`update\` + \`digest\`,
+    \`timingSafeEqual\`) on a value derived from the request body or
+    headers.
+  - Handler body reads a signature-like header
+    (\`stripe-signature\`, \`x-hub-signature\`, \`x-signature-256\`,
+    \`x-webhook-signature\`, \`signature\`, \`x-hmac-sha256\`, etc.)
+    from \`req.headers\` or \`headers.get(...)\`.
+- If NONE of those signals are present, the file is almost certainly not
+  a webhook handler — return isVulnerable=false with confidence LOW and
+  reasoning "not a webhook handler". Do NOT flag generic CRUD or read
+  routes as missing webhook verification.
+- If the file IS a webhook handler, apply the normal rubric:
+  - GATED (LOW / not vulnerable): library-based verification visible
+    (e.g., \`stripe.webhooks.constructEvent\`, \`@octokit/webhooks\`
+    Webhooks class with handler chain, \`twilio.validateRequest\`,
+    \`svix.verify\`), OR \`crypto.timingSafeEqual\` (Node), OR
+    \`hmac.compare_digest\` (Python), OR \`subtle.ConstantTimeCompare\` /
+    \`hmac.Equal\` (Go) used to compare computed signature against the
+    incoming header value.
+  - UNGATED (HIGH / vulnerable): handler reads the body but performs NO
+    signature comparison, OR reads the body and compares with \`===\` /
+    \`!=\` / \`==\` / direct string equality (MEDIUM if comparison is
+    present but timing-unsafe, HIGH if no comparison at all).
 
 IMPORTANT:
 - Only return findings with confidence "high" or "medium".
@@ -119,7 +170,10 @@ IMPORTANT:
   (crypto.timingSafeEqual, hmac.compare_digest, subtle.ConstantTimeCompare,
   hmac.Equal).
 - Reject when the handler is behind authenticated middleware (requireAuth)
-  AND the body is not used for state changes.`;
+  AND the body is not used for state changes.
+- Reject (return LOW, not vulnerable) any App Router file that fails ALL
+  of the webhook-signal checks above — it is not a webhook handler and
+  no signature verification rubric applies.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)

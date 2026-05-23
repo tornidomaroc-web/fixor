@@ -35,6 +35,7 @@ import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
 import {
+  APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
   buildFunctionCodePayload,
 } from "./shared/route-def-pattern";
@@ -214,6 +215,15 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
     re: EXPRESS_ROUTE_DEF_RE,
     tier: "judgment",
   },
+  // File-system-routed framework handlers (Next.js App Router, Remix).
+  // Sibling addition to express_route_def. Same tier=judgment semantics:
+  // every App Router route file reaches the LLM for missing-admin-gate
+  // judgment. The HOC-name-convention check happens in the LLM stage.
+  {
+    id: "app_router_route_def",
+    re: APP_ROUTER_ROUTE_DEF_RE,
+    tier: "judgment",
+  },
 ];
 
 const SKIP_PATH_RE =
@@ -248,18 +258,55 @@ Admin-check vulnerability shapes you must detect:
    router by design — be cautious and prefer medium/low confidence
    unless the route is unambiguously administrative.
 
+3. Missing-admin-HOC-wrapper shapes on file-system-routed frameworks
+   (Next.js App Router, Remix): a sensitive/privileged route exported
+   as \`export const PUT = ...\`, \`export async function POST(...)\`,
+   or \`export default function DELETE(...)\` that performs an
+   administrative action (same destructive shapes as case 2) AND is
+   NOT wrapped in a higher-order function whose NAME convention
+   suggests admin enforcement, AND has no inline admin authorization
+   check in the handler body.
+   - Treat as GATED (NOT vulnerable) when wrapped in any of:
+     \`withAdmin\`, \`requireAdmin\`, \`adminOnly\`, \`isAdmin\`,
+     \`verifyAdmin\`, \`withAdminAuth\`, \`withRole("admin", ...)\`,
+     \`withMiddleware(requireAdmin, ...)\`, or any HOC identifier
+     containing "admin" as a substring of its name.
+   - General auth HOCs (\`withAuth\`, \`requireAuth\`, \`withSession\`,
+     \`protect\`) are NOT sufficient on their own for admin-check —
+     they enforce authentication, not admin authorization. A
+     \`withAuth(...)\` wrapped admin-action route is still admin-gate-
+     vulnerable unless the body adds an admin-role check (e.g.,
+     \`if (user.role !== "admin") return 403\`).
+   - Do NOT assume gating for non-admin HOCs: \`withLogging\`,
+     \`withCors\`, \`withRateLimit\`, \`withTrace\`, \`withErrorBoundary\`,
+     \`withMetrics\`, \`withDb\`, \`withCache\`. Effectively unguarded.
+   - Generic-named wrappers like \`withRoute(...)\` or \`appWrapper(...)\`
+     are ambiguous — treat as UNgated by default (documented
+     out-of-scope limitation analogous to Express's cross-file gap).
+   - Inline admin checks in the handler body (e.g., a call to
+     \`getServerSession()\` followed by \`if (session.user.role !==
+     "admin") return Response.json({}, { status: 403 })\`, or an
+     explicit RBAC lookup against a DB role) DO count as gating.
+
 Set confidence:
 - HIGH: Hardcoded-admin shape with no DB or signed-claim verification in
   production runtime code. Missing-admin-gate: route is unambiguously
   administrative (role/tier change, user delete/promote, admin panel,
   billing settings) AND sibling routes on the same router are admin-
   gated AND there is no admin authorization signal in the handler body.
+  Missing-admin-HOC-wrapper: unambiguously-administrative App Router
+  handler, no admin-suggesting HOC, no inline admin check in the body.
 - MEDIUM: Hybrid check (string match AS PRIMARY but DB verification
   later), partial RBAC with hardcoded fallback, or missing-admin-gate
   where the route's privileged status is plausible but not certain.
+  Same shape for missing-admin-HOC-wrapper when the wrapper name is
+  generic (could plausibly enforce admin) or when the action is
+  privileged but not unambiguously administrative.
 - LOW: RBAC clearly backed by DB lookup, server-signed JWT with issuer
   validation, RBAC middleware that consults user_roles/org_members
-  tables, OR every route on the router is unguarded by design.
+  tables, OR every route on the router is unguarded by design, OR the
+  App Router handler is wrapped in an admin-suggesting HOC, OR the
+  handler body contains an explicit admin-role check.
 
 IMPORTANT:
 - Only return findings with confidence "high" or "medium".
@@ -276,7 +323,12 @@ IMPORTANT:
   router-wide via router.use().
 - For missing-admin-gate: reject when the route is unambiguously a
   non-admin read endpoint (e.g., GET on a public catalog, healthcheck)
-  even if the rest of the router is admin-gated.`;
+  even if the rest of the router is admin-gated.
+- For missing-admin-HOC-wrapper: a route is NOT vulnerable if it is
+  wrapped in an admin-suggesting HOC by name convention, OR if the
+  handler body contains an explicit admin-role check before the
+  destructive action. \`withAuth\` alone is insufficient — admin
+  authorization is a stricter check than authentication.`;
 
 /**
  * Short fingerprint of SYSTEM_PROMPT, computed once at module load.
@@ -642,7 +694,9 @@ export class AdminCheckDetector implements Detector {
     // auth-bypass behavior. The size cap (200 KB) falls back to the
     // window for pathologically large files. See
     // detectors/shared/route-def-pattern.ts.
-    const isRouteDefTrigger = trigger.patternId === "express_route_def";
+    const isRouteDefTrigger =
+      trigger.patternId === "express_route_def" ||
+      trigger.patternId === "app_router_route_def";
     const functionCode = buildFunctionCodePayload({
       content,
       anchorLine: trigger.line,

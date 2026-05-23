@@ -29,6 +29,7 @@ import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
 import {
+  APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
   buildFunctionCodePayload,
 } from "./shared/route-def-pattern";
@@ -115,6 +116,12 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   // Koa, Hono are NOT covered until we add positive fixtures for
   // each.
   { id: "express_route_def", re: EXPRESS_ROUTE_DEF_RE },
+  // File-system-routed framework handlers (Next.js App Router, Remix).
+  // Sibling to express_route_def — both trigger whole-file LLM context
+  // selection via buildFunctionCodePayload. The HOC-name-convention
+  // judgment for App Router handlers happens in the LLM stage; the
+  // prefilter just gates which files reach the model.
+  { id: "app_router_route_def", re: APP_ROUTER_ROUTE_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -141,14 +148,49 @@ Bypass shapes you must detect:
    on the same router is also unguarded, it is more likely a public
    router by design — be cautious and prefer medium/low confidence
    unless the route is unambiguously destructive.
+3. Missing-HOC-wrapper bypasses on file-system-routed frameworks
+   (Next.js App Router, Remix): a handler exported as
+   \`export const POST = ...\`, \`export async function GET(...)\`, or
+   \`export default function PUT(...)\` performs a destructive or
+   sensitive action AND is NOT wrapped in a higher-order function whose
+   NAME convention suggests auth/admin enforcement.
+   - Treat as GATED (NOT vulnerable) when wrapped in any of:
+     \`withAuth\`, \`withAdmin\`, \`requireAuth\`, \`requireAdmin\`,
+     \`withSession\`, \`protect\`, \`secure\`, \`authMiddleware\`,
+     \`withMiddleware(auth, ...)\`, or any HOC identifier containing
+     "auth", "admin", or "session" as a substring of its name.
+   - Do NOT assume gating for HOCs whose name does not suggest auth:
+     \`withLogging\`, \`withCors\`, \`withRateLimit\`, \`withTrace\`,
+     \`withErrorBoundary\`, \`withMetrics\`, \`withDb\`, \`withCache\`.
+     These are observability / policy / infrastructure wrappers, not
+     auth gates — the route is effectively unguarded.
+   - Generic-named wrappers like \`withRoute(...)\` or \`appWrapper(...)\`
+     are ambiguous — treat as UNgated by default. An HOC that hides auth
+     invisibly behind a non-auth-suggesting name is a documented
+     out-of-scope limitation analogous to Express's cross-file
+     \`router.use(authMiddleware)\` gap.
+   - Bare \`export async function POST(req) { ... }\` with no wrapper
+     and no inline auth check in the body is unguarded.
+   - Inline auth checks in the handler body (e.g., a call to
+     \`await getServerSession()\` followed by an unauthorized return,
+     or \`auth()\` returning a user, or an explicit \`requireAdmin()\`
+     call before the destructive action) DO count as gating — judge
+     content, not just the wrapper.
 
 Set confidence:
 - HIGH: Clear evidence of bypass in destructive operation (DELETE/UPDATE/admin action).
   For missing-middleware: destructive route, sibling routes are guarded, no other
   auth signal in the handler body.
-- MEDIUM: Pattern present but context partially ambiguous.
+  For missing-HOC-wrapper: destructive App Router handler, no auth-suggesting
+  HOC, no inline auth check in the body.
+- MEDIUM: Pattern present but context partially ambiguous (e.g., handler does
+  destructive work but the wrapper name is generic and could plausibly enforce
+  auth; or sibling \`route.ts\` files in the same /app/api/ subtree are gated
+  and this one is not, but the action is not unambiguously destructive).
 - LOW: Pattern present but context strongly suggests safety (e.g., every route on
-  the router is unguarded by design, or the handler itself checks req.user).
+  the router is unguarded by design, the handler itself checks req.user, the
+  App Router handler wraps an auth-suggesting HOC, or the handler body contains
+  an explicit auth check before the destructive action).
 
 IMPORTANT:
 - Only return findings with confidence "high" or "medium".
@@ -158,7 +200,12 @@ IMPORTANT:
 - For missing-middleware: a route is NOT vulnerable if requireAuth (or an
   equivalent auth middleware) appears as an argument to the route call, OR
   if the router itself was mounted under an auth-protected base path that
-  is visible in the imports/context.`;
+  is visible in the imports/context.
+- For missing-HOC-wrapper: a route is NOT vulnerable if it is wrapped in an
+  auth-suggesting HOC by name convention, OR if the handler body contains an
+  explicit auth check before the destructive action, OR if every sibling
+  \`route.ts\` in the same /app/api/ subtree is also unwrapped (suggesting
+  public-by-design rather than missed gating).`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)
@@ -432,7 +479,9 @@ export class AuthBypassDetector implements Detector {
     // fall back to the window — see Phase 1 P2 closure in
     // detectors/shared/route-def-pattern.ts).
     const routeDefTrigger = triggers.find(
-      (t) => t.patternId === "express_route_def",
+      (t) =>
+        t.patternId === "express_route_def" ||
+        t.patternId === "app_router_route_def",
     );
     const trigger = routeDefTrigger ?? triggers[0]!;
     const functionCode = buildFunctionCodePayload({
