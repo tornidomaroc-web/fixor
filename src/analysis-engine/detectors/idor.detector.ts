@@ -133,6 +133,18 @@ const SOURCE_PATTERNS: PrefilterPattern[] = [
   // FastAPI / Starlette
   { id: "fastapi_path_params",     re: /\brequest\.path_params\[/ },
   { id: "fastapi_path_params_alt", re: /\bpath_params\s*\[\s*['"]/ },
+  // FastAPI idiomatic typed path/query param as a handler argument
+  // (Python slice 1b, 2026-05-28): `@app.get("/items/{item_id}")` +
+  // `def read_item(item_id: int)`. The id-typed function arg is the
+  // request-derived source slice 1 flagged as the gap. The name
+  // alternation (`id` | `*_id` | `*Id`) avoids matching words that merely
+  // end in "id" (valid, uuid, void). Permissive by design — the LLM
+  // confirms the value reaches the sink without an ownership filter.
+  {
+    id: "fastapi_typed_path_param",
+    re: /\bdef\s+\w+\s*\([^)]*?\b(?:id|[A-Za-z0-9]+_id|[a-z0-9]+Id)\s*:\s*(?:int|str|float|UUID|uuid\.UUID)\b/,
+    lang: ["py"],
+  },
   // Django
   { id: "django_kwargs_id",        re: /\bkwargs\.get\s*\(\s*['"]\w*id/i },
   { id: "django_request_get",      re: /\brequest\.GET\.get\s*\(\s*['"]\w*id/i },
@@ -161,6 +173,12 @@ const SINK_PATTERNS: PrefilterPattern[] = [
   // SQLAlchemy
   { id: "sqlalchemy_query_get",    re: /\.query\.get\s*\(/ },
   { id: "sqlalchemy_filter_by_id", re: /\.filter_by\s*\(\s*\w*id\s*=/ },
+  // SQLAlchemy 2.0 / SQLModel direct primary-key fetch: `session.get(Item,
+  // id)` / `db.get(Item, id)` (Python slice 1b). First arg required to be
+  // a Model class (uppercase) so `session.get("string-key")` dict-style
+  // lookups do not match. This is the modern idiom the full-stack-fastapi
+  // -template uses; the older `.query.get` above is SQLAlchemy 1.x.
+  { id: "sqlalchemy_session_get",  re: /\b(?:session|db)\.get\s*\(\s*[A-Z]\w*/, lang: ["py"] },
   // Django ORM
   { id: "django_objects_get",      re: /\.objects\.get\s*\(/ },
   { id: "django_objects_filter",   re: /\.objects\.filter\s*\(\s*\w*id\s*=/ },
