@@ -32,8 +32,10 @@ import {
   APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
   REMIX_HANDLER_DEF_RE,
+  FASTAPI_ROUTE_DEF_RE,
   buildFunctionCodePayload,
   isRemixRoutePath,
+  isPythonPath,
 } from "./shared/route-def-pattern";
 import { SIDECAR_KINDS } from "../sidecar-kinds";
 
@@ -132,6 +134,13 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   // utility modules that export `loader`/`action` from outside
   // `app/routes/` — see analyzeFile.
   { id: "remix_handler_def", re: REMIX_HANDLER_DEF_RE },
+  // FastAPI / Flask-2.0 route decorators (Python slice 1, 2026-05-28).
+  // Lang-gated to `.py` in prefilterRegex (isPythonPath) so it cannot
+  // fire on TS files and the JS route-def patterns cannot fire on Python.
+  // Routes the whole file to the LLM, which judges whether the decorated
+  // handler has an auth-suggesting `Depends(...)` dependency or an inline
+  // auth check (SYSTEM_PROMPT case 4 — in-file Depends only this slice).
+  { id: "fastapi_route_def", re: FASTAPI_ROUTE_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -222,6 +231,37 @@ Bypass shapes you must detect:
      that triggered review, the route is NOT vulnerable (isVulnerable
      false, low): the apparent missing in-file check is a false positive
      because the gate lives in the ancestor layout.
+5. Missing-Depends-auth bypasses on Python web frameworks (FastAPI /
+   Flask 2.0): a handler decorated with \`@app.METHOD\` / \`@router.METHOD\`
+   (e.g. \`@router.delete("/items/{id}")\`) that performs a destructive or
+   sensitive action AND has NO authentication dependency and no inline
+   auth check is unguarded.
+   - Treat as GATED (NOT vulnerable) when the handler signature includes
+     an auth-suggesting FastAPI dependency by NAME convention:
+     \`Depends(get_current_user)\`, \`Depends(get_current_active_user)\`,
+     \`Depends(require_admin)\`, \`Depends(get_admin_user)\`,
+     \`Depends(verify_token)\`, \`Depends(authenticate)\`, a \`Security(...)\`
+     dependency, or any \`Depends(...)\` whose function name contains
+     "auth", "current_user", "admin", "require", "verify", "login", or
+     "permission" as a substring. Flask: an \`@login_required\` /
+     \`@admin_required\` decorator counts as gating.
+   - NON-auth dependencies do NOT gate: \`Depends(get_db)\`,
+     \`Depends(get_session)\` (a SQLAlchemy/SQLModel DB session, NOT an
+     auth session), \`Depends(get_settings)\`, \`Depends(pagination_params)\`,
+     \`Depends(get_redis)\`. A route whose ONLY dependencies are these is
+     effectively unguarded. The "session" ambiguity follows the same rule
+     as a session-substring HOC: \`get_session\` counts as auth ONLY if the
+     handler body uses its value for an authorization decision (a 401/403
+     raise, or an ownership filter keyed on the user); a bare DB session
+     dependency is not auth.
+   - Inline auth checks in the body DO count: \`if not current_user...:
+     raise HTTPException(status_code=401)\`, an explicit role check, or a
+     \`Depends\`-injected user that is then checked before the action.
+   - What the function passed to \`Depends(...)\` actually does lives in
+     another module; verifying that (and router-level
+     \`dependencies=[Depends(...)]\` declared where the router is created)
+     is cross-file and OUT OF SCOPE this slice — judge by the dependency's
+     NAME convention, exactly like the App Router HOC-wrapper rule.
 
 Set confidence:
 - HIGH: Clear evidence of bypass in destructive operation (DELETE/UPDATE/admin action).
@@ -256,7 +296,13 @@ IMPORTANT:
   the PARENT ROUTE GUARDS block gates the READ concern that triggered review
   — the authorization check lives cross-file in the ancestor layout. This
   applies to read/loader concerns only; a destructive ACTION is never gated
-  by a parent loader.`;
+  by a parent loader.
+- For FastAPI / Flask: a route is NOT vulnerable if an auth-suggesting
+  Depends/Security dependency (by name convention) is in the handler
+  signature, OR a Flask \`@login_required\`/\`@admin_required\` decorator
+  wraps it, OR the body contains an inline auth check before the sensitive
+  action. A bare \`Depends(get_db)\` / \`Depends(get_session)\` / other
+  non-auth dependency is NOT sufficient.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)
@@ -540,7 +586,8 @@ export class AuthBypassDetector implements Detector {
       (t) =>
         t.patternId === "express_route_def" ||
         t.patternId === "app_router_route_def" ||
-        t.patternId === "remix_handler_def",
+        t.patternId === "remix_handler_def" ||
+        t.patternId === "fastapi_route_def",
     );
     const trigger = routeDefTrigger ?? triggers[0]!;
     const functionCode = buildFunctionCodePayload({
@@ -640,6 +687,22 @@ export class AuthBypassDetector implements Detector {
             !isRemixRoutePath(filePath)
           ) {
             continue; // path-filtered; let other patterns test this line
+          }
+          // Python slice 1 (2026-05-28): lang-gate the route-def
+          // prefilters so JS/TS and Python shapes never cross-fire.
+          // The JS route-def patterns are meaningless on `.py`; the
+          // FastAPI decorator pattern is meaningless off `.py`. Sentinel
+          // / content patterns stay cross-language (no gate).
+          if (p.id === "fastapi_route_def" && !isPythonPath(filePath)) {
+            continue;
+          }
+          if (
+            (p.id === "express_route_def" ||
+              p.id === "app_router_route_def" ||
+              p.id === "remix_handler_def") &&
+            isPythonPath(filePath)
+          ) {
+            continue;
           }
           hits.push({
             patternId: p.id,

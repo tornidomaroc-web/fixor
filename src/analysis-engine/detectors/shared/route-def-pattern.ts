@@ -124,6 +124,33 @@ export const REMIX_HANDLER_DEF_RE =
   /\bexport\s+(?:const|(?:async\s+)?function|default\s+(?:async\s+)?function)\s+(?:loader|action)\b/;
 
 /**
+ * Catches a FastAPI / Flask-2.0 route decorator: `@app.get("/x")`,
+ * `@router.post("/x")`, `@app.delete("/x/{id}")`, `@router.api_route(...)`,
+ * on an `app`/`router`/`api_router`/`v1`-style identifier (one or more dot
+ * segments). Phase G+ (Python slice 1, 2026-05-28).
+ *
+ * The leading `@` is the structural defense that separates a Python route
+ * DECORATOR from an Express-style `app.get(...)` call (no `@`): the Express
+ * regex requires a string-literal first arg and no `@`; this one requires
+ * the `@` decorator prefix. Detectors MUST also lang-gate this to `.py`
+ * (see isPythonPath) so a `.ts` file containing `@something.get(` (rare,
+ * e.g. a decorator-based TS framework) does not route through the Python
+ * rubric, and conversely the JS route-def patterns do not fire on `.py`.
+ *
+ * Slice 1 scope: FastAPI `.METHOD` decorators (and Flask 2.0 `@app.get`
+ * shorthand as a bonus). Flask classic `@app.route(..., methods=[...])`
+ * is a later slice. Keep the sentinel id stable as `"fastapi_route_def"`.
+ */
+export const FASTAPI_ROUTE_DEF_RE =
+  /@[A-Za-z_]\w*(?:\.\w+)*\.(?:get|post|put|delete|patch|head|options|api_route)\b\s*\(/;
+
+/** True for Python files (route-shape lang-gating; keeps the JS and Python
+ *  route-def prefilters from cross-firing on each other's files). */
+export function isPythonPath(filePath: string): boolean {
+  return /\.py$/i.test(filePath.replace(/\\/g, "/"));
+}
+
+/**
  * Returns true when the filepath sits in a Remix v2 route position:
  * under any `/routes/` segment (the Remix v2 file-system routing
  * convention) OR matches `app/root.tsx` (the root layout, which has
