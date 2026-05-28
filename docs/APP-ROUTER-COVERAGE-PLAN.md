@@ -1,6 +1,20 @@
+> **⚠️ SUPERSEDED 2026-05-28 — historical, do not use for orientation.**
+> Both tracks of this plan were executed and shipped. Track 1 (claims alignment)
+> landed in PRs #62–#64. Track 2 (code) ran through Phases B–G on `main`:
+> App Router + Remix route-shape coverage (#63, commit `3544da0`), Phase C
+> calibration (#65, `eb79a7c`), Phase D doc lift + real-world partial scan (#66,
+> `f922ed4`), Phase E Remix extension (#72, `74c5502`), Phase F/Path-A webhook
+> tuning (#70/#71), and Phase G cross-file parent-layout recognition (`7b5008e`).
+> **The "route-shape detectors don't fire on App Router" gap this doc describes
+> no longer exists for the in-file / file-system-routed case** — see
+> `docs/detector-capabilities.md` for current scope. What remains open for App
+> Router is the *cross-file* dimension only (`middleware.ts` matchers,
+> `layout.tsx`/DAL gating), recorded as a named DOES NOT CLAIM limitation, not an
+> unplanned gap. Kept for history; the live contract is `detector-capabilities.md`.
+
 # App Router coverage plan (honesty + capability)
 
-**Status:** approved 2026-05-23, awaiting fresh-session execution.
+**Status:** SUPERSEDED 2026-05-28 (shipped via Phases B–G). Originally: approved 2026-05-23, awaiting fresh-session execution.
 **Owner:** Claude Code (fresh session). No operator action required for either track.
 **Hold pattern:** Track 1 (docs) ships standalone. Track 2 (code) halts at Phase A decision gate for review before further commitment.
 
