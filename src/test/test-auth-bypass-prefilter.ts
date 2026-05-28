@@ -136,10 +136,17 @@ async function checkPrefilter(
       // that we expose. If not present, fall back to reading via the
       // (unsafe-but-stable) private member.
       const anyDetector = detector as unknown as {
-        prefilterRegex?: (content: string) => { line: number }[];
+        prefilterRegex?: (
+          content: string,
+          filePath: string
+        ) => { line: number }[];
       };
       if (typeof anyDetector.prefilterRegex === "function") {
-        const hits = anyDetector.prefilterRegex(content);
+        // prefilterRegex gained a required filePath param when lang-gating
+        // landed (isPythonPath / isRemixRoutePath call filePath.replace()).
+        // Pass the fixture's ASSUMED-PATH so the gating resolves correctly;
+        // omitting it throws "reading 'replace'" on undefined.
+        const hits = anyDetector.prefilterRegex(content, assumedPath);
         triggerCount = hits.length;
       } else {
         throw new Error("prefilterRegex not accessible");
