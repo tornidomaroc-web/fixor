@@ -25,6 +25,18 @@ export const SIDECAR_KINDS = {
   RLS_POLICY: "rls-policy",
   MIDDLEWARE: "middleware",
   CONFIG: "config",
+  /**
+   * Cross-file parent-layout auth guard for Remix / React Router v7
+   * file-system routes (Phase G, 2026-05-28). Body is the resolved
+   * ancestor `_layout.tsx` loader excerpt(s) plus a per-guard structural
+   * coverage label (PROVEN / UNVERIFIED). Lets auth-bypass / admin-check
+   * recognize that a route's auth gate lives in a parent layout loader
+   * rather than in-file, suppressing the cross-file false positive.
+   * Resolver: detectors/shared/route-guard-resolver.ts. Injection points:
+   * cli/scan.ts (local scans) and the GitHub App; harness mirror via the
+   * `.route-guard.ts` companion-file extension below.
+   */
+  ROUTE_GUARD: "route-guard",
 } as const;
 
 export type SidecarKind = (typeof SIDECAR_KINDS)[keyof typeof SIDECAR_KINDS];
@@ -40,6 +52,7 @@ export const SIDECAR_EXT_TO_KIND: Readonly<Record<string, SidecarKind>> = {
   ".policy.sql": SIDECAR_KINDS.RLS_POLICY,
   ".middleware.ts": SIDECAR_KINDS.MIDDLEWARE,
   ".config.ts": SIDECAR_KINDS.CONFIG,
+  ".route-guard.ts": SIDECAR_KINDS.ROUTE_GUARD,
 };
 
 export const SIDECAR_EXTS = Object.keys(SIDECAR_EXT_TO_KIND);

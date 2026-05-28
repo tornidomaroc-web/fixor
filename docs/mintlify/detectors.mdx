@@ -96,6 +96,28 @@ The sentinel-string sub-claim is content-based and still fires on
 both router-style and file-system-routed (App Router, Remix) files
 normally.
 
+**Cross-file parent-layout guard recognition (Remix / React Router
+v7, Phase G 2026-05-28).** A route whose auth gate lives in an
+ancestor `_layout.tsx` loader (the standard Remix flat-routes
+pattern) is recognized as gated for READ (loader) concerns, so the
+cross-file false positive is suppressed. Suppression is conservative
+by construction: it requires (a) a layout loader that BLOCKS on
+failure (throw redirect / 401 / 403 — a non-blocking session read is
+not a gate) and (b) STRUCTURALLY PROVEN coverage via unbroken
+`+`-folder nesting with no trailing-underscore opt-out. Coverage that
+cannot be proven is dropped (the route flags at its natural severity),
+never suppressed; and a destructive `action` is NEVER cleared by a
+parent layout loader (in the Remix/RR v7 lifecycle an action runs
+before parent loaders). **Layout-level auth is recognized for Remix
+and React Router v7 only; App Router cross-file auth (middleware
+matchers, `layout.tsx` / DAL gating) remains a named limitation,
+addressed in a later phase** — an App Router `layout.tsx` does not
+wrap Route Handlers and Next.js discourages layout-based authz, so
+its coverage is not structurally provable. Validated on the real
+Documenso clone (3/3 admin read routes: false positive before,
+cleared after); coverage proof unit-tested 7/7, suppression and
+adversarial verdicts gated 6/6.
+
 ## Missing admin checks
 
 <Info>Detector id: `admin-check-multi`</Info>

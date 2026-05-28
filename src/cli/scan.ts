@@ -16,6 +16,9 @@ import {
   REMIX_HANDLER_DEF_RE,
   isRemixRoutePath,
 } from "../analysis-engine/detectors/shared/route-def-pattern.js";
+import { resolveRemixRouteGuard } from "../analysis-engine/detectors/shared/route-guard-resolver.js";
+import { SIDECAR_KINDS } from "../analysis-engine/sidecar-kinds.js";
+import type { DetectorContext } from "../analysis-engine/detector.types.js";
 import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import type { Finding } from "../analysis-engine/types.js";
@@ -391,6 +394,20 @@ async function main(): Promise<void> {
       const content = readFileSync(filePath, "utf8");
       const diff = buildSyntheticDiff(rel, content);
 
+      // Phase G: resolve any cross-file parent-layout auth guard for
+      // Remix/RR v7 routes (read above the scan root via the absolute
+      // path), so auth-bypass/admin-check can recognize a route gated by
+      // an ancestor `_layout.tsx` loader instead of false-positiving.
+      const guardBody = resolveRemixRouteGuard(filePath);
+      const detectorCtx: DetectorContext = guardBody
+        ? {
+            diff,
+            sidecarsByPath: {
+              [rel]: { [SIDECAR_KINDS.ROUTE_GUARD]: guardBody },
+            },
+          }
+        : { diff };
+
       // 1. Central LLM analyzer — original 4 families (SQL/XSS/CMDI/PT).
       //    Suppressed types (see src/config/finding-suppressions.ts) are
       //    dropped at the boundary so the report mirrors what the webhook
@@ -407,7 +424,7 @@ async function main(): Promise<void> {
       for (const detector of newDetectors) {
         if (!detector.detect) continue;
         try {
-          const dFindings = await detector.detect({ diff });
+          const dFindings = await detector.detect(detectorCtx);
           for (const nf of dFindings) {
             const f = normalizedToFinding(nf);
             allFindings.push(f);

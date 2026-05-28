@@ -41,6 +41,7 @@ import {
   buildFunctionCodePayload,
   isRemixRoutePath,
 } from "./shared/route-def-pattern";
+import { SIDECAR_KINDS } from "../sidecar-kinds";
 
 const DETECTOR_ID = "admin-check-multi";
 
@@ -318,6 +319,35 @@ Admin-check vulnerability shapes you must detect:
      admin internally, cannot be resolved without cross-file
      analysis.
 
+4. Cross-file PARENT-LAYOUT admin guard (Remix / React Router v7 only):
+   when a "PARENT ROUTE GUARDS" block is present in the context below, it
+   holds the loader(s) of this route's ancestor layout route(s), resolved
+   from the file system. Judge them with the SAME rigor as an in-file
+   admin gate:
+   - GATES only if the layout loader performs an ADMIN authorization check
+     (e.g. \`isAdmin(user)\`, a role lookup against an authoritative store,
+     \`user.role !== "admin"\`) AND BLOCKS on failure (throw redirect /
+     401 / 403). A layout loader that only enforces AUTHENTICATION (a
+     plain session check / redirect to signin) is NOT an admin gate — the
+     same rule as \`withAuth\` being insufficient for admin-check. A loader
+     that merely reads the session without blocking is not a gate at all.
+   - COVERAGE: a guard may CLEAR this route (isVulnerable=false) ONLY when
+     its "Structural coverage" is PROVEN. If coverage is UNVERIFIED you
+     MUST NOT clear the route: set isVulnerable=true with confidence at
+     most medium (review queue). Do NOT treat "read-only loader", "likely
+     nested", or the file path as grounds to clear — only a PROVEN,
+     blocking admin guard clears. Reading admin-only data without an admin
+     gate is itself the vulnerability; being a read does not excuse it.
+   - READ vs WRITE: a layout exposes a \`loader\` (gates read/GET access);
+     it does NOT gate a child route's \`action\` (mutations run before
+     parent loaders). For a destructive admin ACTION, judge its own
+     authorization and ignore the parent loader.
+   - When a PROVEN parent layout loader performs a blocking ADMIN check
+     that covers the READ concern that triggered review, the route is NOT
+     vulnerable (isVulnerable false, low): the admin gate lives in the
+     ancestor layout, so the apparent missing in-file admin check is a
+     false positive.
+
 Set confidence:
 - HIGH: Hardcoded-admin shape with no DB or signed-claim verification in
   production runtime code. Missing-admin-gate: route is unambiguously
@@ -358,7 +388,12 @@ IMPORTANT:
   wrapped in an admin-suggesting HOC by name convention, OR if the
   handler body contains an explicit admin-role check before the
   destructive action. \`withAuth\` alone is insufficient — admin
-  authorization is a stricter check than authentication.`;
+  authorization is a stricter check than authentication.
+- A route is NOT vulnerable when a PROVEN parent-layout loader in the
+  PARENT ROUTE GUARDS block performs a blocking ADMIN check that covers
+  the READ concern that triggered review — the admin gate lives cross-file
+  in the ancestor layout. A parent layout that only enforces
+  authentication (not admin) does NOT clear an admin-check finding.`;
 
 /**
  * Short fingerprint of SYSTEM_PROMPT, computed once at module load.
@@ -512,7 +547,11 @@ function buildUserMessage(params: {
   imports: string;
   triggerPattern: string;
   lineNumber: number;
+  routeGuard?: string | null;
 }): string {
+  const guardBlock = params.routeGuard
+    ? `\nPARENT ROUTE GUARDS (cross-file):\n${params.routeGuard}\n`
+    : "";
   return `CONTEXT:
 File: ${params.filePath}
 Language: ${params.language}
@@ -525,7 +564,7 @@ Imports in file:
 \`\`\`${params.language}
 ${params.imports}
 \`\`\`
-
+${guardBlock}
 Pattern that triggered review: ${params.triggerPattern}
 Triggered at line: ${params.lineNumber}
 
@@ -626,10 +665,12 @@ export class AdminCheckDetector implements Detector {
         continue;
       }
 
+      const sidecars = ctx.sidecarsByPath?.[file.path];
       const fileFindings = await this.analyzeFile(
         file.path,
         file.content,
         lang,
+        sidecars,
       );
       findings.push(...fileFindings);
     }
@@ -662,6 +703,7 @@ export class AdminCheckDetector implements Detector {
     filePath: string,
     content: string,
     lang: SupportedLang,
+    sidecars?: Record<string, string>,
   ): Promise<NormalizedFinding[]> {
     const triggers = this.prefilterRegex(content, filePath);
     const diag: FileDiagnostic = {
@@ -734,6 +776,13 @@ export class AdminCheckDetector implements Detector {
       isRouteDefTrigger,
     });
 
+    // Cross-file parent-layout admin guard (Phase G): only for route-def
+    // triggers, where a missing in-file admin check may be a false positive
+    // gated by an ancestor layout loader's admin check.
+    const routeGuard = isRouteDefTrigger
+      ? sidecars?.[SIDECAR_KINDS.ROUTE_GUARD]
+      : undefined;
+
     const verdict = await this.callLlm({
       filePath,
       language: langDisplay(lang),
@@ -741,6 +790,7 @@ export class AdminCheckDetector implements Detector {
       imports: extractImports(content),
       triggerPattern: trigger.patternText,
       lineNumber: trigger.line,
+      routeGuard,
     });
     diag.verdict = verdict;
 
@@ -836,6 +886,7 @@ export class AdminCheckDetector implements Detector {
     imports: string;
     triggerPattern: string;
     lineNumber: number;
+    routeGuard?: string | null;
   }): Promise<LlmVerdict | null> {
     const result = await callClaude({
       model: CLAUDE_MODELS.DETECTION,

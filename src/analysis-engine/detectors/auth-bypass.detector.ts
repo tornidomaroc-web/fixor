@@ -35,6 +35,7 @@ import {
   buildFunctionCodePayload,
   isRemixRoutePath,
 } from "./shared/route-def-pattern";
+import { SIDECAR_KINDS } from "../sidecar-kinds";
 
 const DETECTOR_ID = "auth-bypass-multi";
 
@@ -196,6 +197,31 @@ Bypass shapes you must detect:
      or \`auth()\` returning a user, or an explicit \`requireAdmin()\`
      call before the destructive action) DO count as gating — judge
      content, not just the wrapper.
+4. Cross-file PARENT-LAYOUT guard (Remix / React Router v7 only): when a
+   "PARENT ROUTE GUARDS" block is present in the context below, it holds
+   the loader(s) of this route's ancestor layout route(s), resolved from
+   the file system. Judge them with the SAME rigor as an in-file guard:
+   - GATES only if the layout loader (a) performs an auth/session check
+     AND (b) BLOCKS on failure (throw redirect, throw a 401/403 Response).
+     A loader that merely READS the session without blocking is NOT a gate
+     — the same rule as a withSession HOC whose body never uses the session
+     for an authorization decision.
+   - COVERAGE: a guard may CLEAR this route (isVulnerable=false) ONLY when
+     its "Structural coverage" is PROVEN. If coverage is UNVERIFIED you
+     MUST NOT clear the route: set isVulnerable=true with confidence at
+     most medium (review queue). "Read-only", "likely nested", or the
+     file path are NOT grounds to clear — only a PROVEN, blocking guard
+     clears.
+   - READ vs WRITE: a layout exposes a \`loader\`, which runs before child
+     loaders on GET (reads) but NOT before a child route's \`action\`
+     (mutations run first). So a parent layout loader gates READ access
+     only. If the concern is a destructive ACTION in this route, the
+     parent loader does NOT gate it — judge the action's own authorization
+     and ignore the parent loader for that concern.
+   - When a PROVEN, blocking parent layout loader gates the READ concern
+     that triggered review, the route is NOT vulnerable (isVulnerable
+     false, low): the apparent missing in-file check is a false positive
+     because the gate lives in the ancestor layout.
 
 Set confidence:
 - HIGH: Clear evidence of bypass in destructive operation (DELETE/UPDATE/admin action).
@@ -225,7 +251,12 @@ IMPORTANT:
   auth-suggesting HOC by name convention, OR if the handler body contains an
   explicit auth check before the destructive action, OR if every sibling
   \`route.ts\` in the same /app/api/ subtree is also unwrapped (suggesting
-  public-by-design rather than missed gating).`;
+  public-by-design rather than missed gating).
+- A route is NOT vulnerable when a PROVEN, blocking parent-layout loader in
+  the PARENT ROUTE GUARDS block gates the READ concern that triggered review
+  — the authorization check lives cross-file in the ancestor layout. This
+  applies to read/loader concerns only; a destructive ACTION is never gated
+  by a parent loader.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)
@@ -365,7 +396,11 @@ function buildUserMessage(params: {
   imports: string;
   triggerPattern: string;
   lineNumber: number;
+  routeGuard?: string | null;
 }): string {
+  const guardBlock = params.routeGuard
+    ? `\nPARENT ROUTE GUARDS (cross-file):\n${params.routeGuard}\n`
+    : "";
   return `CONTEXT:
 File: ${params.filePath}
 Language: ${params.language}
@@ -378,7 +413,7 @@ Imports in file:
 \`\`\`${params.language}
 ${params.imports}
 \`\`\`
-
+${guardBlock}
 Pattern that triggered review: ${params.triggerPattern}
 Triggered at line: ${params.lineNumber}
 
@@ -439,10 +474,12 @@ export class AuthBypassDetector implements Detector {
         continue;
       }
 
+      const sidecars = ctx.sidecarsByPath?.[file.path];
       const fileFindings = await this.analyzeFile(
         file.path,
         file.content,
         lang,
+        sidecars,
       );
       findings.push(...fileFindings);
     }
@@ -477,6 +514,7 @@ export class AuthBypassDetector implements Detector {
     filePath: string,
     content: string,
     lang: SupportedLang,
+    sidecars?: Record<string, string>,
   ): Promise<NormalizedFinding[]> {
     const triggers = this.prefilterRegex(content, filePath);
     const diag: FileDiagnostic = {
@@ -511,6 +549,15 @@ export class AuthBypassDetector implements Detector {
       isRouteDefTrigger: routeDefTrigger !== undefined,
     });
 
+    // Cross-file parent-layout guard (Phase G): only relevant for
+    // route-def triggers, where a missing in-file check may be a false
+    // positive gated by an ancestor layout loader. The resolver
+    // (cli/scan.ts, GitHub App, or fixture sidecar) supplies the guard.
+    const routeGuard =
+      routeDefTrigger !== undefined
+        ? sidecars?.[SIDECAR_KINDS.ROUTE_GUARD]
+        : undefined;
+
     const verdict = await this.callLlm({
       filePath,
       language: langDisplay(lang),
@@ -518,6 +565,7 @@ export class AuthBypassDetector implements Detector {
       imports: extractImports(content),
       triggerPattern: trigger.patternText,
       lineNumber: trigger.line,
+      routeGuard,
     });
     diag.verdict = verdict;
 
@@ -612,6 +660,7 @@ export class AuthBypassDetector implements Detector {
     imports: string;
     triggerPattern: string;
     lineNumber: number;
+    routeGuard?: string | null;
   }): Promise<LlmVerdict | null> {
     const result = await callClaude({
       model: CLAUDE_MODELS.DETECTION,

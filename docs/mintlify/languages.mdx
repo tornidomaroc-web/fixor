@@ -88,6 +88,17 @@ normally. See
 for the per-sub-claim breakdown, the partial-scan caveat on App
 Router, and the deferred-baseline caveat on Remix.
 
+**Cross-file parent-layout auth (Phase G, 2026-05-28).** auth-bypass
+and admin-check now recognize a route gated by an ancestor
+`_layout.tsx` loader and suppress that cross-file false positive — but
+**for Remix and React Router v7 only**, and only on STRUCTURALLY
+PROVEN `+`-folder coverage with a blocking layout loader, and only for
+read/loader concerns (never a destructive `action`). **App Router
+cross-file auth (middleware matchers, `layout.tsx` / DAL gating)
+remains a named limitation, addressed in a later phase** — an App
+Router `layout.tsx` does not wrap Route Handlers, so its coverage is
+not structurally provable.
+
 Everything else is text-pattern detection that travels across
 languages as long as the prefilter regex and the LLM verdict have
 been exercised against a fixture in that language.
