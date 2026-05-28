@@ -33,6 +33,7 @@ import {
   EXPRESS_ROUTE_DEF_RE,
   REMIX_HANDLER_DEF_RE,
   FASTAPI_ROUTE_DEF_RE,
+  FLASK_ROUTE_DEF_RE,
   buildFunctionCodePayload,
   isRemixRoutePath,
   isPythonPath,
@@ -141,6 +142,13 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   // handler has an auth-suggesting `Depends(...)` dependency or an inline
   // auth check (SYSTEM_PROMPT case 4 — in-file Depends only this slice).
   { id: "fastapi_route_def", re: FASTAPI_ROUTE_DEF_RE },
+  // Flask classic `@app.route(..., methods=[...])` decorator (Python Flask
+  // slice, 2026-05-28). Lang-gated to `.py`. The `.route` method is
+  // Flask-only (no FastAPI overlap); the shared `@app.get` shorthand is
+  // matched by fastapi_route_def and disambiguated in the LLM stage by
+  // imports. SYSTEM_PROMPT case 6 (Flask). In-file decorator/name-
+  // convention only this slice.
+  { id: "flask_route_def", re: FLASK_ROUTE_DEF_RE },
 ];
 
 const SKIP_PATH_RE =
@@ -231,9 +239,21 @@ Bypass shapes you must detect:
      that triggered review, the route is NOT vulnerable (isVulnerable
      false, low): the apparent missing in-file check is a false positive
      because the gate lives in the ancestor layout.
-5. Missing-Depends-auth bypasses on Python web frameworks (FastAPI /
-   Flask 2.0): a handler decorated with \`@app.METHOD\` / \`@router.METHOD\`
-   (e.g. \`@router.delete("/items/{id}")\`) that performs a destructive or
+PYTHON FRAMEWORK DISAMBIGUATION (read before cases 5-6): the
+\`@app.get\`/\`@app.post\` decorator SHORTHAND is shared by FastAPI and
+Flask 2.0, so decide the framework from the file's IMPORTS. \`from fastapi\`
+/ \`import fastapi\` => FastAPI, use case 5 (Depends/Security rubric).
+\`from flask\` / \`from flask_login\` / \`import flask\` => Flask, use case 6
+(decorator/current_user rubric). Flask's \`@app.route(...)\` decorator is
+Flask-only. If the file imports NEITHER framework (the app/router is
+imported from another module and no framework primitive is imported here),
+you CANNOT attribute the framework in-file: do NOT apply either missing-
+guard rubric, return isVulnerable=false, low (cross-file attribution, out
+of scope).
+
+5. Missing-Depends-auth bypasses on FastAPI: a handler decorated with
+   \`@app.METHOD\` / \`@router.METHOD\` (e.g. \`@router.delete("/items/{id}")\`)
+   in a file whose imports show FastAPI, that performs a destructive or
    sensitive action AND has NO authentication dependency and no inline
    auth check is unguarded.
    - Treat as GATED (NOT vulnerable) when the handler signature includes
@@ -262,6 +282,22 @@ Bypass shapes you must detect:
      \`dependencies=[Depends(...)]\` declared where the router is created)
      is cross-file and OUT OF SCOPE this slice — judge by the dependency's
      NAME convention, exactly like the App Router HOC-wrapper rule.
+6. Missing-auth bypasses on Flask: a route decorated with
+   \`@app.route(..., methods=[...])\` or the \`@app.get\`/\`@app.post\`
+   shorthand, in a file whose imports show Flask (per the disambiguation
+   rule above), performing a destructive or sensitive action with no auth.
+   - Treat as GATED (NOT vulnerable) when the route function is decorated
+     with \`@login_required\` (flask_login) or any decorator whose name
+     contains "login_required", "auth", "requires_auth", or "authenticated"
+     as a substring; OR the body uses \`current_user\` (flask_login) /
+     \`g.user\` / \`session[...]\` for an authorization decision (a 401/403
+     \`abort()\`, or a redirect to login on missing/invalid user).
+   - A bare \`@app.route(...)\` / \`@app.post(...)\` with no auth decorator
+     and no inline \`current_user\`/\`g.user\`/\`session\` auth check,
+     performing a sensitive action, is unguarded.
+   - A custom decorator whose auth behavior is defined in another module is
+     cross-file and OUT OF SCOPE — judge by decorator NAME convention,
+     exactly like the FastAPI and HOC rules.
 
 Set confidence:
 - HIGH: Clear evidence of bypass in destructive operation (DELETE/UPDATE/admin action).
@@ -297,12 +333,17 @@ IMPORTANT:
   — the authorization check lives cross-file in the ancestor layout. This
   applies to read/loader concerns only; a destructive ACTION is never gated
   by a parent loader.
-- For FastAPI / Flask: a route is NOT vulnerable if an auth-suggesting
-  Depends/Security dependency (by name convention) is in the handler
-  signature, OR a Flask \`@login_required\`/\`@admin_required\` decorator
-  wraps it, OR the body contains an inline auth check before the sensitive
-  action. A bare \`Depends(get_db)\` / \`Depends(get_session)\` / other
-  non-auth dependency is NOT sufficient.`;
+- For FastAPI: a route is NOT vulnerable if an auth-suggesting Depends/
+  Security dependency (by name convention) is in the handler signature, OR
+  the body contains an inline auth check before the sensitive action. A
+  bare \`Depends(get_db)\` / \`Depends(get_session)\` / other non-auth
+  dependency is NOT sufficient.
+- For Flask: a route is NOT vulnerable if it is decorated with
+  \`@login_required\` (or a login/auth-named decorator), OR the body uses
+  \`current_user\`/\`g.user\`/\`session\` for an authorization decision. A
+  bare \`@app.route\`/\`@app.post\` with no auth decorator and no inline
+  user check is unguarded. Attribute Flask vs FastAPI by the file's imports
+  for the shared \`@app.get\`/\`@app.post\` shorthand.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)
@@ -587,7 +628,8 @@ export class AuthBypassDetector implements Detector {
         t.patternId === "express_route_def" ||
         t.patternId === "app_router_route_def" ||
         t.patternId === "remix_handler_def" ||
-        t.patternId === "fastapi_route_def",
+        t.patternId === "fastapi_route_def" ||
+        t.patternId === "flask_route_def",
     );
     const trigger = routeDefTrigger ?? triggers[0]!;
     const functionCode = buildFunctionCodePayload({
@@ -693,7 +735,10 @@ export class AuthBypassDetector implements Detector {
           // The JS route-def patterns are meaningless on `.py`; the
           // FastAPI decorator pattern is meaningless off `.py`. Sentinel
           // / content patterns stay cross-language (no gate).
-          if (p.id === "fastapi_route_def" && !isPythonPath(filePath)) {
+          if (
+            (p.id === "fastapi_route_def" || p.id === "flask_route_def") &&
+            !isPythonPath(filePath)
+          ) {
             continue;
           }
           if (

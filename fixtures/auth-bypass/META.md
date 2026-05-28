@@ -20,6 +20,7 @@
 - 19-remix-action-with-session-analytics.ts: Remix v2 `export const action` at app/routes/api.invoices.$id.destroy.ts wrapped in withSessionAnalytics (session-substring HOC that does NOT enforce auth) — parallel to App Router AB-P3 A3 class transposed to Remix (Phase E, AB-P19)
 - 20-fastapi-bare-delete-getdb.py: FastAPI `@router.delete("/users/{user_id}")` destructive op whose ONLY dependency is `Depends(get_db)` (a DB session, NOT auth) and no inline check — Python's looks-guarding-but-isn't adversarial; the non-auth dependency must NOT clear it (Python slice 1, AB-P20)
 - 21-fastapi-noauth-tier-change.py: FastAPI `@router.post("/billing/tier")` sensitive billing mutation with no dependencies and no inline auth — bare unguarded route (Python slice 1, AB-P21)
+- 22-flask-bare-route-no-auth.py: Flask `@app.route("/users/<int:user_id>", methods=["DELETE"])` destructive delete with no @login_required and no current_user/g.user/session check; imports show Flask (Flask slice, AB-P22)
 
 ## Negative (looks similar, actually safe)
 - 01-anon-public-data.ts: anonymous returns public feed only (intended design) (Category B — context)
@@ -41,3 +42,5 @@
 - 19-remix-loader-factory-utility-module.ts: Remix v2 UTILITY module at app/lib/loader-factory.server.ts exporting `loader`/`action` as generic factory functions — outside app/routes/, the Phase E path-aware filter (isRemixRoutePath) must drop the REMIX_HANDLER_DEF_RE match so this file is NOT routed to the LLM (Phase E over-match anchor, AB-N19) (Category A — location)
 - 20-fastapi-depends-current-user.py: FastAPI `@router.delete("/account")` destructive op gated by `Depends(get_current_user)` in the signature — auth-suggesting dependency by name convention; scoped to the authenticated principal (Python slice 1, AB-N20) (Category B — context)
 - 21-fastapi-security-current-user.py: FastAPI `@router.post("/teams/{team_id}/delete")` destructive op gated by `Security(get_current_active_user)` — Security() auth dependency by name convention, ownership enforced in the service on user.id (Python slice 1, AB-N21) (Category B — context)
+- 22-flask-login-required.py: Flask `@app.route("/account/delete", methods=["POST"])` destructive op gated by `@login_required` (flask_login) operating on the authenticated current_user's own account (Flask slice, AB-N22) (Category B — context)
+- 23-flask-shorthand-login-required.py: DISAMBIGUATION ANCHOR — Flask `@app.post` 2.0 SHORTHAND (shared with FastAPI) but flask/flask_login imports => Flask rubric; @login_required + current_user ownership gates. Must NOT be misjudged by the FastAPI rubric (which would demand Depends and flag) (Flask slice, AB-N23) (Category B — context)

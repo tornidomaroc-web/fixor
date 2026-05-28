@@ -14,7 +14,10 @@ import {
   APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
   REMIX_HANDLER_DEF_RE,
+  FASTAPI_ROUTE_DEF_RE,
+  FLASK_ROUTE_DEF_RE,
   isRemixRoutePath,
+  isPythonPath,
 } from "../analysis-engine/detectors/shared/route-def-pattern.js";
 import { resolveRemixRouteGuard } from "../analysis-engine/detectors/shared/route-guard-resolver.js";
 import { SIDECAR_KINDS } from "../analysis-engine/sidecar-kinds.js";
@@ -201,6 +204,14 @@ function countRouteShapeFiles(files: string[]): {
   const matches = (path: string): boolean => {
     try {
       const c = readFileSync(path, "utf8");
+      // Python (slices FastAPI 1/1b + Flask): mirror the detectors'
+      // lang-gating — on `.py`, count the FastAPI decorator shorthand and
+      // the Flask `@app.route` decorator. (Before this, the estimator
+      // under-counted Flask route files because EXPRESS_ROUTE_DEF_RE only
+      // coincidentally matched FastAPI's `router.get(`, never `.route`.)
+      if (isPythonPath(path)) {
+        return FASTAPI_ROUTE_DEF_RE.test(c) || FLASK_ROUTE_DEF_RE.test(c);
+      }
       // Phase E (2026-05-23): Remix v2 `loader`/`action` exports count
       // as route-shape only when the file sits in a Remix v2 route
       // position (`/routes/` segment, or `app/root.{ts,tsx}`). This

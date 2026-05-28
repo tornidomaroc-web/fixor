@@ -39,6 +39,7 @@ import {
   EXPRESS_ROUTE_DEF_RE,
   REMIX_HANDLER_DEF_RE,
   FASTAPI_ROUTE_DEF_RE,
+  FLASK_ROUTE_DEF_RE,
   buildFunctionCodePayload,
   isRemixRoutePath,
   isPythonPath,
@@ -250,6 +251,16 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
     re: FASTAPI_ROUTE_DEF_RE,
     tier: "judgment",
   },
+  // Flask classic `@app.route(..., methods=[...])` (Python Flask slice,
+  // 2026-05-28). Lang-gated to `.py`. tier=judgment: the LLM judges
+  // whether the Flask route performs an ADMIN op without an admin gate
+  // (@admin_required / is_admin / role check). @login_required alone is
+  // NOT sufficient for admin-check. SYSTEM_PROMPT case 6 (Flask).
+  {
+    id: "flask_route_def",
+    re: FLASK_ROUTE_DEF_RE,
+    tier: "judgment",
+  },
 ];
 
 const SKIP_PATH_RE =
@@ -360,8 +371,17 @@ Admin-check vulnerability shapes you must detect:
      vulnerable (isVulnerable false, low): the admin gate lives in the
      ancestor layout, so the apparent missing in-file admin check is a
      false positive.
-5. Missing-admin-gate on Python web frameworks (FastAPI / Flask 2.0): a
-   route decorated with \`@app.METHOD\` / \`@router.METHOD\` performing an
+PYTHON FRAMEWORK DISAMBIGUATION (read before cases 5-6): the
+\`@app.get\`/\`@app.post\` decorator SHORTHAND is shared by FastAPI and
+Flask 2.0, so decide the framework from the file's IMPORTS. \`from fastapi\`
+=> FastAPI, use case 5 (Depends rubric). \`from flask\` / \`from flask_login\`
+=> Flask, use case 6 (decorator/current_user rubric). Flask's
+\`@app.route(...)\` is Flask-only. If the file imports NEITHER framework,
+you cannot attribute it in-file: do NOT apply either rubric, return
+isVulnerable=false, low (cross-file, out of scope).
+
+5. Missing-admin-gate on FastAPI: a route decorated with \`@app.METHOD\` /
+   \`@router.METHOD\` in a file whose imports show FastAPI, performing an
    ADMINISTRATIVE action (user management, role/tier change, billing
    settings, \`/admin/*\` paths, instance-wide stats, privileged toggles)
    that is not admin-gated.
@@ -388,6 +408,23 @@ Admin-check vulnerability shapes you must detect:
      \`dependencies=[...]\` declared where the APIRouter is created in
      another file, are cross-file and OUT OF SCOPE this slice — judge by
      the dependency NAME convention, exactly like the App Router HOC rule.
+6. Missing-admin-gate on Flask: a route decorated with
+   \`@app.route(..., methods=[...])\` or the \`@app.get\`/\`@app.post\`
+   shorthand, in a file whose imports show Flask, performing an
+   ADMINISTRATIVE action that is not admin-gated.
+   - Treat as GATED (NOT vulnerable) when decorated with \`@admin_required\`
+     or any decorator whose name contains "admin" as a substring, OR the
+     body contains an inline admin check: \`if not current_user.is_admin:
+     abort(403)\`, \`if current_user.role != "admin": ...\`, \`if not
+     g.user.is_admin: ...\`, or an explicit RBAC lookup before the action.
+   - \`@login_required\` (flask_login) is NOT sufficient for admin-check —
+     it authenticates but does not authorize admin. An admin operation
+     guarded ONLY by \`@login_required\` (or a plain auth decorator), with
+     no \`@admin_required\` and no inline is_admin/role check, is
+     admin-gate-vulnerable: any authenticated non-admin user can perform
+     the admin action. This is the Flask looks-guarding-but-isn't case.
+   - A custom decorator whose admin behavior is defined in another module
+     is cross-file and OUT OF SCOPE — judge by decorator NAME convention.
 
 Set confidence:
 - HIGH: Hardcoded-admin shape with no DB or signed-claim verification in
@@ -435,13 +472,17 @@ IMPORTANT:
   the READ concern that triggered review — the admin gate lives cross-file
   in the ancestor layout. A parent layout that only enforces
   authentication (not admin) does NOT clear an admin-check finding.
-- For FastAPI / Flask: a route is NOT vulnerable if an admin-suggesting
-  Depends/Security dependency (name contains "admin"/"superuser") is in
-  the signature, OR a Flask \`@admin_required\` decorator wraps it, OR the
-  body contains an inline admin/superuser/role check before the action. A
+- For FastAPI: a route is NOT vulnerable if an admin-suggesting Depends/
+  Security dependency (name contains "admin"/"superuser") is in the
+  signature, OR the body contains an inline admin/superuser/role check. A
   plain-auth dependency (\`get_current_user\` / \`get_current_active_user\`
   / \`CurrentUser\`) is NOT sufficient — admin authorization is stricter
-  than authentication.`;
+  than authentication.
+- For Flask: a route is NOT vulnerable if decorated with \`@admin_required\`
+  (or an admin-named decorator), OR the body has an inline
+  \`current_user.is_admin\`/\`g.user.is_admin\`/role check. \`@login_required\`
+  alone is NOT sufficient for admin-check. Attribute Flask vs FastAPI by
+  the file's imports for the shared \`@app.get\`/\`@app.post\` shorthand.`;
 
 /**
  * Short fingerprint of SYSTEM_PROMPT, computed once at module load.
@@ -818,7 +859,8 @@ export class AdminCheckDetector implements Detector {
       trigger.patternId === "express_route_def" ||
       trigger.patternId === "app_router_route_def" ||
       trigger.patternId === "remix_handler_def" ||
-      trigger.patternId === "fastapi_route_def";
+      trigger.patternId === "fastapi_route_def" ||
+      trigger.patternId === "flask_route_def";
     const functionCode = buildFunctionCodePayload({
       content,
       anchorLine: trigger.line,
@@ -913,7 +955,10 @@ export class AdminCheckDetector implements Detector {
       // Python slice 1b (2026-05-28): lang-gate the route-def prefilters
       // so JS/TS and Python shapes never cross-fire. Content/hardcoded-
       // admin patterns stay cross-language (no gate).
-      if (p.id === "fastapi_route_def" && !isPythonPath(filePath)) {
+      if (
+        (p.id === "fastapi_route_def" || p.id === "flask_route_def") &&
+        !isPythonPath(filePath)
+      ) {
         continue;
       }
       if (

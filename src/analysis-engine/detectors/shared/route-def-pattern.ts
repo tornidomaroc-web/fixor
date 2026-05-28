@@ -144,6 +144,22 @@ export const REMIX_HANDLER_DEF_RE =
 export const FASTAPI_ROUTE_DEF_RE =
   /@[A-Za-z_]\w*(?:\.\w+)*\.(?:get|post|put|delete|patch|head|options|api_route)\b\s*\(/;
 
+/**
+ * Catches a Flask CLASSIC route decorator: `@app.route("/x", methods=[...])`,
+ * `@bp.route(...)`, `@blueprint.route(...)` (Python slice Flask, 2026-05-28).
+ *
+ * The `.route` decorator method is Flask-specific — FastAPI has no `.route`
+ * decorator (it uses `.get`/`.post`/`.api_route`, covered by
+ * FASTAPI_ROUTE_DEF_RE). So `.route` carries NO FastAPI overlap and needs no
+ * disambiguation. The Flask 2.0 `@app.get`/`@app.post` SHORTHAND, however,
+ * IS shared with FastAPI and is matched by FASTAPI_ROUTE_DEF_RE; the
+ * detectors disambiguate Flask-vs-FastAPI for that shorthand in the LLM
+ * stage by reading the file's imports (`from flask`/`flask_login` => Flask
+ * rubric; `from fastapi` => FastAPI rubric). Lang-gated to `.py`.
+ */
+export const FLASK_ROUTE_DEF_RE =
+  /@[A-Za-z_]\w*(?:\.\w+)*\.route\s*\(/;
+
 /** True for Python files (route-shape lang-gating; keeps the JS and Python
  *  route-def prefilters from cross-firing on each other's files). */
 export function isPythonPath(filePath: string): boolean {
