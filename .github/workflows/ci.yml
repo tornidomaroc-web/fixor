@@ -42,3 +42,6 @@ jobs:
 
       - name: Run SARIF smoke test
         run: npm run test:sarif
+
+      - name: Run auth-bypass prefilter test (regex-only, no API)
+        run: npm run test:auth-bypass-prefilter
