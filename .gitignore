@@ -28,6 +28,10 @@ npm-debug.log*
 # Local scan outputs
 scan-report-*.md
 
+# Generated artifacts (e.g. sample audit PDFs from scripts/build-*-pdf.cjs).
+# The generator scripts are tracked; their binary output is not.
+outputs/
+
 # Claude Code local state
 .claude/
 

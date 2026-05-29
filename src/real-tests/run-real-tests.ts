@@ -1,3 +1,20 @@
+/**
+ * ⚠️ SCOPE NOTE (2026-05-28): This harness is a LEGACY SQL-injection +
+ * Semgrep-comparison pipeline. It does NOT exercise the six shipping
+ * business-logic detectors (auth-bypass, admin-check, IDOR, env-exposure,
+ * secrets-exposure, webhook-unverified). SQL injection is explicitly OUT OF
+ * SCOPE and suppressed at output time (see docs/detector-capabilities.md
+ * "Out of scope" + src/config/finding-suppressions.ts), so `npm run test:real`
+ * measures a pipeline the product does not ship.
+ *
+ * For real-world / realistic-shape PROOF of the actual detectors, see:
+ *   - fixtures/real-shape/  (realistic multi-route mini-apps with planted
+ *     business-logic vulns + co-located gated controls)
+ *   - npm run test:real-shape  (deterministic, zero-API prefilter-reachability
+ *     proof over that corpus)
+ *   - the live-scan baselines in test-output/ produced by `npm run scan`
+ *     against that corpus.
+ */
 import * as fs from "fs";
 import * as path from "path";
 import { REAL_TEST_CASES, type RealTestCase } from "./cases";

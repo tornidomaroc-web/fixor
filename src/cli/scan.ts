@@ -28,6 +28,7 @@ import type { Finding } from "../analysis-engine/types.js";
 import { walkFiles } from "./file-walker.js";
 import { buildSyntheticDiff } from "./diff-builder.js";
 import { buildMarkdownReport, type FileScanResult } from "./report-builder.js";
+import { collapseFindings } from "./finding-merge.js";
 
 const DEFAULT_EXTENSIONS = ["ts", "tsx", "js", "jsx", "py", "go"];
 const DELAY_MS = 1500;            // between files
@@ -107,35 +108,6 @@ function normalizedToFinding(n: NormalizedFinding): Finding {
     example_fix: "",
     original_snippet: n.originalCode,
   };
-}
-
-function dedupeFindings(findings: Finding[]): Finding[] {
-  const seen = new Set<string>();
-  const out: Finding[] = [];
-  for (const f of findings) {
-    const key = `${f.file}:${f.line}:${f.type}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(f);
-  }
-  return out;
-}
-
-// Drop admin_check_risk findings on any (file, line) where auth_bypass_risk
-// also fires. Rationale: auth-bypass on a route with no auth at all already
-// subsumes the admin-check signal — reporting both inflates the count without
-// adding remediation value. Admin-check findings on file:line without an
-// auth-bypass sibling (e.g. ADMIN_EMAILS literal) are preserved.
-function suppressAdminCheckWhereAuthBypass(findings: Finding[]): Finding[] {
-  const authBypassKeys = new Set(
-    findings
-      .filter((f) => f.type === "auth_bypass_risk")
-      .map((f) => `${f.file}:${f.line}`),
-  );
-  return findings.filter(
-    (f) =>
-      !(f.type === "admin_check_risk" && authBypassKeys.has(`${f.file}:${f.line}`)),
-  );
 }
 
 interface CliOpts {
@@ -466,7 +438,7 @@ async function main(): Promise<void> {
       logger.error({ err, file: rel }, "scan failed for file");
     }
 
-    const merged = suppressAdminCheckWhereAuthBypass(dedupeFindings(allFindings));
+    const merged = collapseFindings(allFindings);
     results.push({ filePath: rel, findings: merged });
 
     if (i < files.length - 1) {

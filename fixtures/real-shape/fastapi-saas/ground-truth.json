@@ -1,0 +1,42 @@
+{
+  "corpus": "fastapi-saas",
+  "framework": "FastAPI + SQLModel",
+  "purpose": "Realistic multi-route mini-app. Planted business-logic vulnerabilities are co-located with benign and properly-gated sibling routes in the SAME modules, so the proof exercises in-file discrimination, not isolated single-pattern matching. Scanned .py files carry NO security-tell comments (a real PR would not annotate its own bugs); ground truth lives only in this non-.py manifest, which a `--ext=py` scan ignores.",
+  "note_on_lines": "Line numbers point at the route decorator. They are advisory for human cross-check; the reachability runner asserts by route signature + file, not by line.",
+  "expected_vulnerable": [
+    {
+      "file": "app/routers/users.py",
+      "route": "DELETE /users/{user_id}",
+      "detector": "auth-bypass",
+      "class": "missing-auth destructive route",
+      "why": "Destructive op (deletes any user). The only dependency is get_session (a DB session, NOT auth). No get_current_user, no CurrentUser, no inline check. Unauthenticated caller can delete any account."
+    },
+    {
+      "file": "app/routers/admin.py",
+      "route": "POST /admin/users/{user_id}/role",
+      "detector": "admin-check",
+      "class": "looks-guarded-but-isn't (auth-only on admin op)",
+      "why": "Privileged op (sets role; role=='admin' escalates is_superuser). Gated ONLY by CurrentUser (authenticated, NOT admin). No get_current_active_superuser, no is_superuser/role check. Any authenticated non-admin can promote anyone, including self."
+    },
+    {
+      "file": "app/routers/items.py",
+      "route": "GET /items/{item_id}",
+      "detector": "idor",
+      "class": "missing ownership filter/check",
+      "why": "Authenticated (CurrentUser), but session.get(Item, item_id) is keyed on a request-derived id with no owner_id filter and no post-fetch ownership check. Any authenticated user reads any item, including private ones owned by others."
+    }
+  ],
+  "expected_clear_controls": [
+    { "file": "app/main.py", "route": "GET /health", "why": "Public health check, non-sensitive, no destructive op. Benign no-auth route." },
+    { "file": "app/routers/users.py", "route": "GET /users/me", "why": "Authenticated read of own profile." },
+    { "file": "app/routers/users.py", "route": "PATCH /users/me", "why": "Authenticated update of OWN profile (current_user), no id from request." },
+    { "file": "app/routers/admin.py", "route": "GET /admin/stats", "why": "Admin-gated via dependencies=[Depends(get_current_active_superuser)] on the decorator." },
+    { "file": "app/routers/items.py", "route": "GET /items", "why": "List scoped to owner_id == current_user.id." },
+    { "file": "app/routers/items.py", "route": "DELETE /items/{item_id}", "why": "Explicit post-fetch ownership check (owner_id != current_user.id -> 403)." }
+  ],
+  "expected_no_prefilter_match": [
+    { "file": "app/auth.py", "why": "Auth dependency definitions; no route decorator. Must NOT over-match the route-def regex." },
+    { "file": "app/db.py", "why": "Engine + session factory; no route decorator." },
+    { "file": "app/models.py", "why": "SQLModel table classes; no route decorator." }
+  ]
+}
