@@ -9,6 +9,7 @@ import {
   computeBudgetWarning,
   sameUtcYearMonth,
   startOfNextMonthIso,
+  TIER_UPSELL,
   utcYearMonth,
 } from "../services/scan-limit-warning";
 
@@ -124,6 +125,34 @@ function run(): void {
     assert(
       startOfNextMonthIso(new Date(Date.UTC(2026, 11, 31))) === "2027-01-01",
       "Dec 31 → 2027-01-01",
+    );
+  }
+
+  // -- TIER_UPSELL: no phantom Pro rung; Indie upsells to Team -------
+  // Regression: the prior ladder pointed Indie at a "Pro $79" tier
+  // with no Paddle checkout (absent from tiers.ts), routing a paying
+  // customer to a dead end. Indie must upsell to Team, the only
+  // purchasable tier above it.
+  {
+    assert(
+      TIER_UPSELL.indie?.label === "Team",
+      `indie upsell label should be Team, got ${TIER_UPSELL.indie?.label}`,
+    );
+    assert(
+      TIER_UPSELL.indie?.priceUsd === 199,
+      `indie upsell price should be 199, got ${TIER_UPSELL.indie?.priceUsd}`,
+    );
+    assert(
+      !("pro" in TIER_UPSELL),
+      "no phantom 'pro' rung should remain in TIER_UPSELL",
+    );
+    assert(
+      TIER_UPSELL.free?.label === "Indie",
+      "free still upsells to Indie",
+    );
+    assert(
+      TIER_UPSELL.team === null,
+      "team is the top tier (no upsell)",
     );
   }
 

@@ -169,7 +169,11 @@ Independent of any specific detector, Fixor explicitly does not:
 
 ## Cross-detector overlap
 
-`scan.ts` includes a deterministic post-filter: if `admin-check` fires on a `file:line` where `auth-bypass` also fires, the `admin-check` finding is dropped (the auth-bypass finding subsumes it — "no auth at all" is strictly worse than "no admin gate" and the remediation is the same). This is the only inter-detector dependency in the pipeline; all other detectors run independently and their findings are reported independently.
+Detectors run independently and their findings are reported independently. The only post-processing is `collapseFindings` (`src/cli/finding-merge.ts`, applied in `scan.ts`), which collapses **exact duplicates only**: two findings that share the same `(file, line, type)` triple are the same finding reported twice and are merged to one. **Distinct vuln types at the same `file:line` are preserved as separate findings; there is no cross-detector suppression.**
+
+A prior step (`suppressAdminCheckWhereAuthBypass`) dropped every `admin-check` finding on a `file:line` where `auth-bypass` also fired, on the theory that "no auth at all" subsumes "no admin gate." That assumption is false for an authenticated-but-not-admin route (an admin action gated only by a generic current-user dependency, with no superuser check). There, `admin-check` is the correct, more-specific finding and `auth-bypass` is the cross-fire, and the suppression silently deleted the correct finding while keeping the mislabeled one. The real-shape FastAPI proof reproduced exactly this on the admin role route, so the step was removed and a regression test (`src/test/test-finding-merge.ts`) now guards against re-introducing it.
+
+**Consequence (a known limitation, not a defect):** because nothing is suppressed across detectors, one vulnerable route can draw two or three findings with different labels, and a cross-wired finding's mechanism description can be imprecise. That labeling work is tracked but not yet shipped. This is why a multi-detector scan emits more findings than there are vulnerable routes (finding-count inflation), with no effect on the false-positive count on safe routes. Visible cross-fire noise is self-announcing and is addressed at the detector/prompt layer, never by deleting findings.
 
 ## When this file changes
 

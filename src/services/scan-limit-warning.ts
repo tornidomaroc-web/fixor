@@ -78,7 +78,7 @@ export interface SendLimitWarningInput {
    *  Built by the caller from FIXOR_DASHBOARD_URL + orgId, so this
    *  module stays free of env reads beyond the Resend ones. */
   billingUrl: string;
-  /** Optional next tier label for the upsell line ("Indie", "Pro").
+  /** Optional next tier label for the upsell line ("Indie", "Team").
    *  Caller computes; this module just renders. Null for Team. */
   suggestedUpgradeLabel: string | null;
   suggestedUpgradePriceUsd: number | null;
@@ -237,13 +237,15 @@ export async function maybeSendLimitWarningEmail(
  *   - workflow has no budgetWarning (below 80% or already over cap)
  *   - org row not found
  */
-const TIER_UPSELL: Record<
+export const TIER_UPSELL: Record<
   string,
   { label: string; priceUsd: number; scans: number } | null
 > = {
   free: { label: "Indie", priceUsd: 29, scans: 100 },
-  indie: { label: "Pro", priceUsd: 79, scans: 500 },
-  pro: { label: "Team", priceUsd: 199, scans: 2000 },
+  // Indie upsells to Team (only purchasable tier above Indie); the
+  // phantom "Pro $79" rung had no Paddle checkout. Whether a middle
+  // tier should exist is a parked pricing-sweep question.
+  indie: { label: "Team", priceUsd: 199, scans: 2000 },
   team: null,
 };
 

@@ -184,10 +184,21 @@ hardcoded-admin sub-claim is content-based and still fires on
 router-style and file-system-routed (App Router, Remix) files
 normally.
 
-When auth-bypass and admin-check both fire on the same `file:line`,
-the admin-check finding is dropped (the auth-bypass finding subsumes
-it; "no auth at all" is strictly worse than "no admin gate" and the
-remediation is the same).
+Detectors run independently and report independently. The only
+post-processing is an exact-duplicate collapse: two findings sharing
+the same `(file, line, type)` are merged to one. Distinct vuln types
+at the same `file:line` are preserved as separate findings; there is
+no cross-detector suppression. (An earlier step dropped `admin-check`
+wherever `auth-bypass` coincided. It was removed because on an
+authenticated-but-not-admin route `admin-check` is the correct,
+more-specific finding and the suppression silently deleted it.)
+
+Because nothing is suppressed across detectors, one vulnerable route
+can draw two or three findings with different labels, and a
+cross-wired finding's mechanism description can be imprecise. That
+labeling work is tracked but not yet shipped. This inflates the
+finding count relative to the number of vulnerable routes, with no
+effect on the false-positive count on safe routes.
 
 ## IDOR (insecure direct object reference)
 

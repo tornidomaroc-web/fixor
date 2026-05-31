@@ -1,5 +1,7 @@
 # Launch day — playbook
 
+> **Status (2026-05-31):** updated post-pivot to the six business-logic detectors. Aligned to `docs/detector-capabilities.md` (the scope contract). QUARANTINED pending founder sign-off. Do not run a launch off this file or `LAUNCH-POSTS.md` until signed off.
+>
 > **Purpose:** turn launch-day into a mechanical exercise. The drafts in [`LAUNCH-POSTS.md`](LAUNCH-POSTS.md) are ready; this doc is the minute-by-minute timeline + readiness checklist + pre-thought answers to the 15 questions you'll get asked on every platform.
 >
 > **5F-7 itself is operator action — there is no code to ship.** This file is the runbook.
@@ -14,7 +16,7 @@ Walk this list the day before launch. Every item must be green; if anything is r
 
 - [ ] Latest `main` is deployed and `/health` (Railway) + `/api/health` (Vercel) both return `{"status":"ok"}`
 - [ ] All four monitors on `status.fixor.dev` have been green for ≥ 24 hours
-- [ ] Run a real install on a test repo, open a sandbox PR with a deliberate `mysql.query("..." + req.body.id)` line — confirm the comment lands within 30s
+- [ ] Run a real install on a test repo, open a sandbox PR with a deliberate IDOR (a `GET /:id` route returning a record with no ownership check), confirm the comment lands within 30s
 - [ ] Welcome email actually sends (check Vercel function logs aren't running in `[resend stub]` mode)
 - [ ] Sandbox Paddle checkout completes end-to-end (`transaction.completed` webhook flips `plan_tier` within 30s; Resend welcome email arrives)
 - [ ] Cancel via Paddle portal triggers downgrade + cancellation email
@@ -38,6 +40,7 @@ Walk this list the day before launch. Every item must be green; if anything is r
 ### Drafts swap-in
 
 - [ ] Open [`LAUNCH-POSTS.md`](LAUNCH-POSTS.md), do the find/replace pass listed at the top of that file:
+  - `<SIGN-OFF-REQUIRED-DO-NOT-POST>` → confirm founder sign-off, then delete this token from every post body; if it is still present, the copy is NOT cleared to post
   - `<install-url>` → real install URL
   - `<landing-url>` → real landing URL
   - `<demo-gif>`, `<pr-comment-screenshot>`, `<pdf-screenshot>`, `<dashboard-screenshot>` → asset URLs from the marketplace listing
@@ -87,11 +90,11 @@ These come up on every developer-tool launch. Pre-thinking them lets you reply i
 
 **Q: How is this different from Snyk Code?**
 
-> Honestly: less breadth, more depth on what it does cover. Snyk Code has 100+ rules across 10+ languages; Fixor has 4 detector families on JS/TS. The bet is that for indie hackers and small JS/TS teams, "fewest steps to a useful finding" wins over breadth — install the App, no CI step, no rules to write. If you're at a 50-person company with a polyglot stack, Snyk is the right call.
+> Honestly: less breadth, more depth on what it does cover. Snyk Code has 100+ rules across 10+ languages; Fixor has 6 business-logic detector families on JS/TS. The bet is that for indie hackers and small JS/TS teams, "fewest steps to a useful finding" wins over breadth — install the App, no CI step, no rules to write. If you're at a 50-person company with a polyglot stack, Snyk is the right call.
 
 **Q: Why not just use GitHub Code Scanning + CodeQL?**
 
-> CodeQL is excellent and free for public repos — go run it. Fixor is a layer on top: where CodeQL flags "this query is potentially unsafe", Fixor returns a concrete patched version with parameterized arguments, framework-aware. The two coexist on the same PR comfortably.
+> CodeQL is excellent and free for public repos, go run it. Fixor sits beside it on a different class: CodeQL's taint analysis is strong on injection and known sinks, while Fixor catches business-logic flaws (missing ownership checks, auth gaps, weak admin gates) that need reasoning about intent, not data flow. Each Fixor finding comes with a precise explanation and remediation steps. The two coexist on the same PR comfortably.
 
 **Q: Is this just `Claude.send(diff)` in a wrapper?**
 
@@ -119,7 +122,7 @@ These come up on every developer-tool launch. Pre-thinking them lets you reply i
 
 **Q: Is the free tier really free or is this a "free trial"?**
 
-> Really free. 5 scans / month on public repos, all four detectors, no card. The cap exists because every scan calls Anthropic and that has a real cost — we'd rather pause than overspend on someone who hasn't subscribed.
+> Really free. 5 scans / month on public repos, all 6 detectors, no card. The cap exists because every scan calls Anthropic and that has a real cost — we'd rather pause than overspend on someone who hasn't subscribed.
 
 **Q: Why is your card statement Paddle, not Fixor?**
 
@@ -137,7 +140,7 @@ These come up on every developer-tool launch. Pre-thinking them lets you reply i
 
 **Q: What's the SLA?**
 
-> No formal SLA on free or Indie tiers. Pro / Team get best-effort 99.5% uptime — we're a solo founder operation and won't promise more than we can keep. The status page is the source of truth for incidents.
+> No formal SLA on free or Indie tiers. Team gets best-effort 99.5% uptime — we're a solo founder operation and won't promise more than we can keep. The status page is the source of truth for incidents.
 
 **Q: Is the dashboard EU-hosted?**
 
@@ -151,7 +154,7 @@ These come up on every developer-tool launch. Pre-thinking them lets you reply i
 
 **Q: Can I contribute a Python detector?**
 
-> Yes please — open an issue first to align on the shape, then a PR. The detector interface lives at `src/analysis-engine/detector.types.ts`. The four existing detectors are each ~150-200 lines, so the per-detector cost is real but bounded.
+> Yes please — open an issue first to align on the shape, then a PR. The detector interface lives at `src/analysis-engine/detector.types.ts`. The six existing detectors are each ~150-200 lines, so the per-detector cost is real but bounded.
 
 ---
 

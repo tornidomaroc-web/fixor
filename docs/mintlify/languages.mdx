@@ -17,7 +17,7 @@ This page summarizes.
 | --- | --- | --- |
 | **JavaScript** | ✅ Full | All 6 detectors |
 | **TypeScript** | ✅ Full | All 6 detectors |
-| **Python** | 🟡 Partial | All 6 detectors have fixtures. `auth-bypass` and `admin-check` catch their sentinel/hardcoded shapes; their Express-router missing-middleware / missing-admin-gate patterns are JS/TS-only |
+| **Python** | 🟡 Partial | All 6 detectors have fixtures. `auth-bypass` and `admin-check` catch their sentinel/hardcoded shapes, plus FastAPI / Flask route-shape (missing-auth and missing-admin-gate, Python slices 1 and 1b, 2026-05-28); their Express-router route patterns remain JS/TS-only. Cross-file `Depends`/decorators and conditional router mounting are a named slice-2 limit |
 | **Go** | 🟡 Partial | Same shape as Python: all 6 detectors have fixtures; route-shape patterns are JS/TS-only |
 | **Ruby** | 🟡 Limited | `auth-bypass` and `idor` fixtures only |
 | **Java** | 🚧 Roadmap | First-class detectors planned |
@@ -29,19 +29,20 @@ Per-detector, per-language:
 
 | Detector | JS/TS | Python | Go | Ruby |
 | --- | --- | --- | --- | --- |
-| `auth-bypass-multi` | ✅ | 🟡 sentinels only | 🟡 sentinels only | 🟡 sentinels only |
-| `admin-check-multi` | ✅ | 🟡 hardcoded shapes only | 🟡 hardcoded shapes only | ❌ |
+| `auth-bypass-multi` | ✅ | 🟡 sentinels + FastAPI/Flask route-shape | 🟡 sentinels only | 🟡 sentinels only |
+| `admin-check-multi` | ✅ | 🟡 hardcoded + FastAPI/Flask missing-admin-gate | 🟡 hardcoded shapes only | ❌ |
 | `idor-multi` | ✅ | ✅ FastAPI | ✅ chi + raw SQL | ✅ Rails |
 | `env-exposure-multi` | ✅ | ✅ Flask, FastAPI | ✅ | ❌ |
 | `secrets-exposure-multi` | ✅ | ✅ | ✅ | ❌ |
 | `webhook-unverified-multi` | ✅ | ✅ Flask | ✅ HandleFunc | ❌ |
 
-The two JS/TS-only patterns are the route-definition shapes:
-`auth-bypass`'s missing-middleware case (Express `router.post(...)`
-without an auth middleware) and `admin-check`'s missing-admin-gate
-case (Express privileged route with no admin check anywhere). These
-look at routing structure specifically, and we have not built that
-out for Python/Go web frameworks yet.
+The route-definition shapes (`auth-bypass`'s missing-middleware case,
+`admin-check`'s missing-admin-gate case) cover Express on JS/TS, and
+now FastAPI / Flask on Python (in-file `Depends`/decorator
+name-convention; Python slices 1 and 1b, 2026-05-28). Cross-file
+`Depends`/decorators and conditional router mounting are a named
+slice-2 limit. We have not built route-shape out for Go web
+frameworks yet.
 
 **Framework-shape caveat within JS/TS.** Next.js App Router method-
 named exports (`export const POST = ...` / `export async function
