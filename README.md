@@ -42,6 +42,8 @@
 | ☕ Java · 🐘 PHP — first-class detectors planned | 🚧 On roadmap (Phase 6) |
 | 🤖 Auto-fix Pull Requests (commit back) | 🚧 On roadmap (Phase 6) |
 
+*Route-shape note: auth bypass, IDOR, and weak admin check run independently, so a route flagged by more than one of them can carry cross-wired labels. Every finding still lands on a genuinely vulnerable route, but a cross-wired finding's mechanism description can be imprecise; that labeling work is tracked but not yet shipped.*
+
 The full plan and what's already shipped is in [`docs/INDIE-SAAS-ROADMAP.md`](docs/INDIE-SAAS-ROADMAP.md).
 
 ## How it works
@@ -60,7 +62,7 @@ Total latency from PR push to comment: typically 10–30 seconds.
 
 A live Fixor Security Report, posted on a real pull request — [`fixor-demo` PR #1](https://github.com/tornidomaroc-web/fixor-demo/pull/1):
 
-<img src="docs/screenshots/pr-comment.png" alt="Fixor Security Report comment on a pull request — summary table and four business-logic findings" width="900"/>
+<img src="docs/screenshots/pr-comment.png" alt="Fixor Security Report comment on a pull request, showing a summary table and the four findings from this PR: secrets, env exposure, admin check, and IDOR" width="900"/>
 
 <!-- TODO: capture remaining assets, then uncomment -->
 <!-- ![PDF report](docs/screenshots/pdf-report.png) -->
@@ -107,7 +109,7 @@ The dashboard is a separate Next.js app at [`apps/dashboard/`](apps/dashboard/) 
 | Layer | Tech | Why |
 |---|---|---|
 | Runtime | Node.js 20 + TypeScript 5 | Boring, fast, well-supported |
-| AI | Claude (Anthropic SDK with prompt caching + tool use) | Reasons about diff context; lower FP rate than regex |
+| AI | Claude (Anthropic SDK with prompt caching + tool use) | Reasons about diff context, not just patterns |
 | Database | Neon Postgres + Drizzle ORM | Serverless, branching, type-safe |
 | Auth (App) | GitHub App — RS256 JWT + ≤1h installation tokens | Standard for App-based GitHub integrations |
 | Auth (Dashboard) | Clerk — GitHub OAuth only | 10k MAU free, OOTB |
