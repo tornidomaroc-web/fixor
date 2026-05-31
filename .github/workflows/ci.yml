@@ -48,3 +48,6 @@ jobs:
 
       - name: Run finding-merge collapse test (report-layer, no API)
         run: npm run test:finding-merge
+
+      - name: Run scan-limit-warning test (pure, no API)
+        run: npm run test:limit-warning
