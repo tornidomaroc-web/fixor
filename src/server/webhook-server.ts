@@ -9,6 +9,7 @@ import "../instrument";
 import * as Sentry from "@sentry/node";
 import * as http from "http";
 import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-handler";
+import { routeGitHubWebhook } from "./github-webhook-route";
 import { logger } from "../lib/logger";
 import { pingDb, runHealthChecks } from "../lib/health";
 import { provisionOrgForInstallation } from "../services/orgs.service";
@@ -254,96 +255,37 @@ async function main(): Promise<void> {
       }
 
       const rawBody = await readRawBody(req);
-      let payload: unknown;
-      try {
-        payload = JSON.parse(rawBody.toString("utf8"));
-      } catch {
-        jsonResponse(res, 400, { error: "Invalid JSON body" });
-        return;
-      }
 
-      const gitHubEvent = req.headers["x-github-event"];
-      const eventStr =
-        typeof gitHubEvent === "string"
-          ? gitHubEvent
-          : Array.isArray(gitHubEvent)
-            ? gitHubEvent[0] ?? ""
-            : "";
-
-      if (eventStr === "installation" || eventStr === "installation_repositories") {
-        const action = (payload as any)?.action;
-        const instId = (payload as any)?.installation?.id;
-        logger.info({ action, installationId: instId }, "installation event");
-
-        if (
-          eventStr === "installation" &&
-          action === "created" &&
-          instId !== undefined &&
-          instId !== null
-        ) {
-          try {
-            const result = await provisionOrgForInstallation(
-              String(instId),
-              eventStr,
-            );
-            jsonResponse(res, 200, {
-              status: "installation_acknowledged",
-              action,
-              installationId: instId,
-              orgId: result.orgId,
-              orgCreated: result.created,
-            });
-            return;
-          } catch (err) {
-            // Provisioning failed (DB outage, transient FK violation,
-            // etc). Return 5xx so GitHub retries the webhook — by 5B-2
-            // this path is the ONLY way an org gets a row, so a lost
-            // delivery would orphan the install.
-            Sentry.captureException(err, {
-              tags: { "fixor.phase": "org_provision" },
-              extra: { installationId: String(instId) },
-            });
-            logger.error(
-              { installationId: String(instId), err },
-              "org provisioning failed",
-            );
-            jsonResponse(res, 503, {
-              error: "org provisioning failed; will retry",
-            });
-            return;
-          }
-        }
-
-        jsonResponse(res, 200, { status: "installation_acknowledged", action, installationId: instId });
-        return;
-      }
-      if (eventStr !== "pull_request") {
-        jsonResponse(res, 200, { status: "ignored" });
-        return;
-      }
-
-      const sigHeaderRaw = req.headers["x-hub-signature-256"];
-      const signatureHeader =
-        typeof sigHeaderRaw === "string"
-          ? sigHeaderRaw
-          : Array.isArray(sigHeaderRaw)
-            ? sigHeaderRaw[0]
-            : undefined;
-
-      const dryRun = process.env.DRY_RUN?.trim() === "true";
-
-      const result = await handlePullRequestWebhook({
+      // All /webhook routing — including the signature gate that MUST run
+      // before any event branch — lives in routeGitHubWebhook so the
+      // auth-before-side-effect invariant is regression-tested
+      // (test-webhook-gate.ts) without a server or DB.
+      const routed = await routeGitHubWebhook({
         rawBody,
-        payload,
-        signatureHeader: signatureHeader ?? null,
-        webhookSecret: webhookSecret || undefined,
+        eventHeader: req.headers["x-github-event"],
+        signatureHeader: req.headers["x-hub-signature-256"],
+        webhookSecret,
         skipSignatureVerification,
-        dryRun,
-        updateExisting: true,
-        usePrDiffFallback: true,
+        deps: {
+          provisionOrg: provisionOrgForInstallation,
+          handlePullRequest: async ({ rawBody, payload, signatureHeader }) => {
+            const dryRun = process.env.DRY_RUN?.trim() === "true";
+            const result = await handlePullRequestWebhook({
+              rawBody,
+              payload,
+              signatureHeader,
+              webhookSecret: webhookSecret || undefined,
+              skipSignatureVerification,
+              dryRun,
+              updateExisting: true,
+              usePrDiffFallback: true,
+            });
+            return summarizeWebhookResult(result);
+          },
+        },
       });
 
-      jsonResponse(res, 200, summarizeWebhookResult(result));
+      jsonResponse(res, routed.status, routed.body);
     } catch (err) {
       Sentry.captureException(err);
       const message = err instanceof Error ? err.message : String(err);
