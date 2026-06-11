@@ -43,6 +43,8 @@ import {
   buildFunctionCodePayload,
   isRemixRoutePath,
   isPythonPath,
+  resolveRouteAnchorLine,
+  extractReportSnippet,
 } from "./shared/route-def-pattern";
 import { SIDECAR_KINDS } from "../sidecar-kinds";
 
@@ -72,6 +74,10 @@ interface LlmVerdict {
   confidence: "high" | "medium" | "low";
   reasoning: string;
   suggestedFix?: string | null;
+  /** Method+path of the single route this verdict concerns, copied verbatim
+   *  by the LLM, used to anchor the finding at that route (not the first
+   *  route in the file). Optional; absent → fall back to the trigger line. */
+  vulnerableRoute?: string | null;
 }
 
 interface FileDiagnostic {
@@ -519,6 +525,11 @@ const REPORT_TOOL: Tool = {
         description:
           "1-2 sentences suggesting a fix; empty string if not vulnerable.",
       },
+      vulnerableRoute: {
+        type: "string",
+        description:
+          "The HTTP method and path of the SINGLE route your verdict concerns, copied verbatim from its decorator/definition (e.g. \"POST /users/{user_id}/role\"). Empty string if not a route-specific finding or not vulnerable.",
+      },
     },
     required: ["isVulnerable", "confidence", "reasoning"],
   },
@@ -677,6 +688,11 @@ Analyze whether this is a real admin-check vulnerability. Consider:
    has an admin gate and only this one is missing, that is the
    missing-admin-gate vulnerability.
 
+When the finding is a specific route (missing-admin-gate cases), set
+\`vulnerableRoute\` to that route's HTTP method and path, copied verbatim from
+its decorator/definition (e.g. "POST /users/{user_id}/role") — NOT a sibling
+route you cite only for contrast.
+
 Call the report_admin_check_verdict tool with your verdict.`;
 }
 
@@ -831,7 +847,7 @@ export class AdminCheckDetector implements Detector {
       diag.preFilterReason = "llm-bypass";
       this.lastDiagnostics.push(diag);
 
-      const bypassSnippet = extractContextWindow(content, trigger.line);
+      const bypassSnippet = extractReportSnippet(content, trigger.line);
       return [
         {
           detectorId: DETECTOR_ID,
@@ -911,14 +927,23 @@ export class AdminCheckDetector implements Detector {
     diag.flagged = true;
     this.lastDiagnostics.push(diag);
 
-    const snippet = extractContextWindow(content, trigger.line);
+    // Anchor the finding at the route the verdict actually concerns (not the
+    // first route in the file, which on a multi-route file is often a safe
+    // sibling). Falls back to trigger.line when the LLM reports no route or
+    // the signature does not match a route definition. See resolveRouteAnchorLine.
+    const anchorLine = resolveRouteAnchorLine(
+      content,
+      verdict.vulnerableRoute,
+      trigger.line,
+    );
+    const snippet = extractReportSnippet(content, anchorLine);
     return [
       {
         detectorId: DETECTOR_ID,
         type: "admin_check_risk",
         file: filePath,
-        startLine: trigger.line,
-        endLine: trigger.line,
+        startLine: anchorLine,
+        endLine: anchorLine,
         originalCode: snippet,
         ruleId: `admin-check-${trigger.patternId}`,
         message: verdict.reasoning,
@@ -1018,6 +1043,7 @@ export class AdminCheckDetector implements Detector {
           confidence?: string;
           reasoning?: string;
           suggestedFix?: string | null;
+          vulnerableRoute?: string | null;
         }
       | undefined;
     if (
@@ -1041,6 +1067,10 @@ export class AdminCheckDetector implements Detector {
       confidence: conf as LlmVerdict["confidence"],
       reasoning: input.reasoning,
       suggestedFix: input.suggestedFix ?? null,
+      vulnerableRoute:
+        typeof input.vulnerableRoute === "string"
+          ? input.vulnerableRoute
+          : null,
     };
   }
 }

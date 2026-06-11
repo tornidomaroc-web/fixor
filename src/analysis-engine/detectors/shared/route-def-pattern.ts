@@ -248,3 +248,116 @@ export function buildFunctionCodePayload(params: {
   }
   return extractContextWindow(params.content, params.anchorLine);
 }
+
+/**
+ * Map an LLM-reported route signature ("POST /users/{user_id}/role") to the
+ * source line of its route definition, so a route-def finding anchors at the
+ * route its verdict actually concerns rather than at the FIRST route in the
+ * file (which, on a multi-route file, is frequently a safe sibling — the
+ * "finding anchored on a control route" defect, 2026-05-31).
+ *
+ * Deterministic by construction: the signature is matched against route
+ * definitions found by regex in the file. We NEVER ask the LLM for a line
+ * number (LLMs miscount lines); the LLM only copies a route signature
+ * verbatim, and the mapping back to a line is pure string/regex work.
+ *
+ * Tolerant matching (router prefixes, format drift):
+ *   - method compared case-insensitively; `route`/`all` are method-agnostic;
+ *     an absent reported method skips the method gate.
+ *   - paths normalized (query/hash stripped, trailing slash trimmed).
+ *   - a definition path matches when it EQUALS the reported path OR is a
+ *     SUFFIX of it (covers `APIRouter(prefix="/admin")` mounts, where the
+ *     decorator carries "/users/{id}" while the reported full path is
+ *     "/admin/users/{id}"). Longer matches win.
+ *
+ * Returns `fallbackLine` whenever `vulnerableRoute` is empty, unparseable, or
+ * no definition matches — so a miss degrades to prior behavior (the trigger
+ * line), never to something worse and never throwing.
+ *
+ * Known-unsupported shapes (degrade to fallback, documented limitation):
+ * decorators/route calls split across multiple lines, paths built from
+ * variables or string concatenation, and non-string-literal path args.
+ */
+export function resolveRouteAnchorLine(
+  content: string,
+  vulnerableRoute: string | null | undefined,
+  fallbackLine: number,
+): number {
+  if (typeof vulnerableRoute !== "string") return fallbackLine;
+  const sig = vulnerableRoute.trim();
+  if (!sig) return fallbackLine;
+
+  const normPath = (p: string): string => {
+    const bare = p.replace(/[?#].*$/, "");
+    return bare.length > 1 ? bare.replace(/\/+$/, "") : bare;
+  };
+
+  // "POST /users/{user_id}/role" -> method=post, path=/users/{user_id}/role
+  // "/items/{item_id}"           -> method=null, path=/items/{item_id}
+  let method: string | null = null;
+  let wantPath: string;
+  const withMethod = /^([A-Za-z]+)\s+(\/\S*)$/.exec(sig);
+  if (withMethod) {
+    method = withMethod[1]!.toLowerCase();
+    wantPath = normPath(withMethod[2]!);
+  } else if (sig.startsWith("/")) {
+    wantPath = normPath(sig.split(/\s+/)[0]!);
+  } else {
+    return fallbackLine;
+  }
+  if (!wantPath.startsWith("/")) return fallbackLine;
+
+  // A route definition line: `<ident>.<method>("<path>"...` — covers both the
+  // Python decorator (`@router.post("/x")`) and the Express call
+  // (`router.post("/x", handler)`). The required quoted first arg excludes
+  // non-route calls like `session.get(Item, id)` (no string literal).
+  const defRe =
+    /[\w$.]*\.(get|post|put|delete|patch|head|options|api_route|route|all)\s*\(\s*["'`]([^"'`]*)["'`]/i;
+  const lines = content.split(/\r?\n/);
+  let best: { line: number; score: number } | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const dm = defRe.exec(lines[i]!);
+    if (!dm) continue;
+    const defMethod = dm[1]!.toLowerCase();
+    const defPath = normPath(dm[2]!);
+    if (defPath !== "" && !defPath.startsWith("/")) continue;
+    if (
+      method &&
+      defMethod !== "route" &&
+      defMethod !== "all" &&
+      defMethod !== method
+    ) {
+      continue;
+    }
+    let score = -1;
+    if (defPath === wantPath) score = 10000;
+    else if (defPath !== "" && wantPath.endsWith(defPath)) score = defPath.length;
+    else if (defPath !== "" && defPath.endsWith(wantPath)) score = wantPath.length;
+    if (score < 0) continue;
+    if (!best || score > best.score) best = { line: i + 1, score };
+  }
+  return best ? best.line : fallbackLine;
+}
+
+/**
+ * Build the snippet rendered in a finding's report code-block. Starts AT the
+ * anchor line and extends downward, so the displayed evidence is the flagged
+ * route/sink itself and the lines below it (where a missing auth dependency
+ * or missing ownership check is visible) — NOT the lines above the anchor,
+ * which on a multi-route file are a sibling control route. Rendering those
+ * lines-above was the 2026-05-31 "code-block shows a `get_current_active_
+ * superuser`-guarded sibling under an auth_bypass finding" screenshot defect.
+ *
+ * Leading blank lines are skipped so the block opens on real code. Returns up
+ * to `maxLines` lines from the (blank-skipped) anchor.
+ */
+export function extractReportSnippet(
+  content: string,
+  anchorLine: number,
+  maxLines = 10,
+): string {
+  const lines = content.split(/\r?\n/);
+  let start = Math.max(0, anchorLine - 1);
+  while (start < lines.length && (lines[start] ?? "").trim() === "") start++;
+  return lines.slice(start, start + maxLines).join("\n");
+}

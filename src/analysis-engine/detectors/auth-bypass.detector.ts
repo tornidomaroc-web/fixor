@@ -37,6 +37,8 @@ import {
   buildFunctionCodePayload,
   isRemixRoutePath,
   isPythonPath,
+  resolveRouteAnchorLine,
+  extractReportSnippet,
 } from "./shared/route-def-pattern";
 import { SIDECAR_KINDS } from "../sidecar-kinds";
 
@@ -66,6 +68,10 @@ interface LlmVerdict {
   confidence: "high" | "medium" | "low";
   reasoning: string;
   suggestedFix?: string | null;
+  /** Method+path of the single route this verdict concerns, copied verbatim
+   *  by the LLM, used to anchor the finding at that route (not the first
+   *  route in the file). Optional; absent → fall back to the trigger line. */
+  vulnerableRoute?: string | null;
 }
 
 interface FileDiagnostic {
@@ -374,6 +380,11 @@ const REPORT_TOOL: Tool = {
         description:
           "1-2 sentences suggesting a fix; empty string if not vulnerable.",
       },
+      vulnerableRoute: {
+        type: "string",
+        description:
+          "The HTTP method and path of the SINGLE route your verdict concerns, copied verbatim from its decorator/definition (e.g. \"DELETE /users/{user_id}\"). Empty string if not a route-specific finding or not vulnerable.",
+      },
     },
     required: ["isVulnerable", "confidence", "reasoning"],
   },
@@ -512,6 +523,10 @@ Analyze whether this is a real authorization bypass. Consider:
 4. Are there other authorization layers (middleware, library internals)
    that would catch this?
 5. Does verification happen elsewhere in the code path?
+
+When the finding is a specific route, set \`vulnerableRoute\` to that route's
+HTTP method and path, copied verbatim from its decorator/definition (e.g.
+"DELETE /users/{user_id}") — NOT a sibling route you cite only for contrast.
 
 Call the report_auth_bypass_verdict tool with your verdict.`;
 }
@@ -685,14 +700,22 @@ export class AuthBypassDetector implements Detector {
     diag.flagged = true;
     this.lastDiagnostics.push(diag);
 
-    const snippet = extractContextWindow(content, trigger.line);
+    // Anchor at the route the verdict actually concerns (not the first route
+    // in the file, which on a multi-route file is often a safe sibling).
+    // Falls back to trigger.line on no LLM route / no signature match.
+    const anchorLine = resolveRouteAnchorLine(
+      content,
+      verdict.vulnerableRoute,
+      trigger.line,
+    );
+    const snippet = extractReportSnippet(content, anchorLine);
     return [
       {
         detectorId: DETECTOR_ID,
         type: "auth_bypass_risk",
         file: filePath,
-        startLine: trigger.line,
-        endLine: trigger.line,
+        startLine: anchorLine,
+        endLine: anchorLine,
         originalCode: snippet,
         ruleId: `auth-bypass-${trigger.patternId}`,
         message: verdict.reasoning,
@@ -792,6 +815,7 @@ export class AuthBypassDetector implements Detector {
           confidence?: string;
           reasoning?: string;
           suggestedFix?: string | null;
+          vulnerableRoute?: string | null;
         }
       | undefined;
     if (
@@ -815,6 +839,10 @@ export class AuthBypassDetector implements Detector {
       confidence: conf as LlmVerdict["confidence"],
       reasoning: input.reasoning,
       suggestedFix: input.suggestedFix ?? null,
+      vulnerableRoute:
+        typeof input.vulnerableRoute === "string"
+          ? input.vulnerableRoute
+          : null,
     };
   }
 }

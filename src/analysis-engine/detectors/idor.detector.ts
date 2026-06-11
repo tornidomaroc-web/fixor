@@ -36,6 +36,7 @@ import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
 import { SIDECAR_KINDS } from "../sidecar-kinds";
+import { extractReportSnippet } from "./shared/route-def-pattern";
 
 const DETECTOR_ID = "idor-multi";
 
@@ -754,7 +755,7 @@ export class IdorDetector implements Detector {
     this.lastDiagnostics.push(diag);
 
     const reportLine = pair.sink.line;
-    const snippet = extractContextWindow(content, reportLine);
+    const snippet = extractReportSnippet(content, reportLine);
     return [
       {
         detectorId: DETECTOR_ID,
