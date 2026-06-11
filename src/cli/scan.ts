@@ -119,6 +119,9 @@ interface CliOpts {
    *  piped scripts, smoke tests — that would otherwise block forever
    *  on `readline.question`. */
   assumeYes: boolean;
+  /** When true (`--no-suggested-fix`), omit the per-finding remediation line
+   *  and scope the report to detection. Used for the public proof corpus. */
+  omitSuggestedFix: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts | null {
@@ -128,6 +131,7 @@ function parseArgs(argv: string[]): CliOpts | null {
   let outputPath: string | undefined;
   let extensions = new Set(DEFAULT_EXTENSIONS);
   let assumeYes = false;
+  let omitSuggestedFix = false;
   for (const a of args) {
     if (a.startsWith("--output=")) {
       outputPath = a.slice("--output=".length);
@@ -140,12 +144,20 @@ function parseArgs(argv: string[]): CliOpts | null {
       if (list.length > 0) extensions = new Set(list);
     } else if (a === "--yes" || a === "-y") {
       assumeYes = true;
+    } else if (a === "--no-suggested-fix") {
+      omitSuggestedFix = true;
     } else if (!a.startsWith("--")) {
       if (!repoPath) repoPath = a;
     }
   }
   if (!repoPath) return null;
-  return { repoPath: resolve(repoPath), outputPath, extensions, assumeYes };
+  return {
+    repoPath: resolve(repoPath),
+    outputPath,
+    extensions,
+    assumeYes,
+    omitSuggestedFix,
+  };
 }
 
 function defaultReportPath(): string {
@@ -447,7 +459,9 @@ async function main(): Promise<void> {
   }
 
   const reportPath = opts.outputPath ?? defaultReportPath();
-  const markdown = buildMarkdownReport(opts.repoPath, results);
+  const markdown = buildMarkdownReport(opts.repoPath, results, {
+    omitSuggestedFix: opts.omitSuggestedFix,
+  });
   writeFileSync(reportPath, markdown, "utf8");
 
   const countsByType: Record<string, number> = {};
