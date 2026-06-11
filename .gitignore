@@ -59,6 +59,11 @@ docs/*-DRAFT.md
 docs/FIXOR-CURRENT-STATE-*.md
 docs/STATUS-SYNC-*.md
 docs/publish-day-materials.md
+# OWASP-DISCLOSURE: reconstructed from the founder's private Gmail — third-party
+# names/addresses + strategy framing. WHAT-FIXOR-IS: internal orientation/audit
+# doc; cites gitignored docs and outreach/ material and records launch status.
+docs/OWASP-DISCLOSURE.md
+docs/WHAT-FIXOR-IS.md
 
 # Temporary PR body files (created when piping rich markdown to gh pr create
 # via --body-file; safe to delete after the PR opens).
