@@ -248,5 +248,47 @@ export async function fetchPrDiff(
   return text;
 }
 
+/**
+ * `GET /repos/{owner}/{repo}/contents/{path}?ref={sha}` with the raw
+ * media type — returns the file's text content at that ref (H2 whole-
+ * file scan input). GitHub serves files up to ~1MB this way; larger
+ * files error and the caller falls back to the added-lines diff slice.
+ */
+export async function fetchFileAtRef(
+  owner: string,
+  repo: string,
+  filePath: string,
+  ref: string,
+  token: string,
+  apiBaseUrl?: string
+): Promise<string> {
+  const base = normalizeBase(apiBaseUrl);
+  // Path segments are encoded individually so directory slashes survive.
+  const encodedPath = filePath
+    .split("/")
+    .map((seg) => encodeURIComponent(seg))
+    .join("/");
+  const url = `${base}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`;
+
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github.raw+json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    let json: unknown = null;
+    try {
+      json = JSON.parse(text) as unknown;
+    } catch {
+      json = null;
+    }
+    throw new GitHubApiError(buildGitHubErrorDetails(res, json, text));
+  }
+  return text;
+}
+
 export { GitHubApiError } from "./github-api-error";
 export type { GitHubApiErrorDetails } from "./github-api-error";

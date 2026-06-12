@@ -20,7 +20,8 @@ import type { PostPrCommentResult } from "./github-types";
 import { validateGitHubPullRequestPayload } from "./github-payload-validation";
 import { buildFixorExecutionKey } from "./persistence/pilot-store";
 import { verifyGitHubWebhookSignature256 } from "./webhook-signature";
-import { fetchPrDiff } from "./github-client";
+import { fetchFileAtRef, fetchPrDiff } from "./github-client";
+import { buildWholeFileScanInput } from "./whole-file-scan-input";
 import { costContext } from "../../lib/cost-context";
 import { checkBudget } from "../../services/cost-store";
 import { logger } from "../../lib/logger";
@@ -58,6 +59,13 @@ export type HandlePullRequestWebhookOptions = {
   /** Overrides default `owner/repo/pr-N/sha` idempotency key. */
   executionKey?: string;
   usePrDiffFallback?: boolean;
+  /**
+   * H2 test/demo injection: overrides the GitHub contents fetch used to
+   * upgrade the PR diff to whole-file scan input. When provided and
+   * `resolveSemgrep` returns a raw diff string, the same whole-file
+   * enrichment runs deterministically (no network).
+   */
+  fetchFileAtRefImpl?: (path: string) => Promise<string>;
   pilotPersistence?: boolean;
   pilotStorePath?: string;
   forceRepost?: boolean;
@@ -218,6 +226,28 @@ async function handlePullRequestWebhookImpl(
         pullNumber,
         token,
         options.apiBaseUrl
+      );
+    }
+
+    // H2: upgrade a raw PR diff to whole-file scan input — the
+    // condition every detector baseline was measured under. Fetches
+    // each changed file at the PR head; fetch failures fall back to
+    // the diff slice AND surface as degraded scan input through the
+    // workflow's error machinery. Applies to the fetched-diff path and
+    // to resolver-supplied raw diff strings (deterministic demos via
+    // fetchFileAtRefImpl).
+    const enrichEligible =
+      (!options.resolveSemgrep || options.fetchFileAtRefImpl !== undefined) &&
+      typeof semgrepPayload === "string" &&
+      semgrepPayload.includes("diff --git");
+    if (enrichEligible) {
+      const fetchImpl =
+        options.fetchFileAtRefImpl ??
+        ((p: string) =>
+          fetchFileAtRef(owner, repo, p, headSha, token, options.apiBaseUrl));
+      semgrepPayload = await buildWholeFileScanInput(
+        semgrepPayload as string,
+        fetchImpl,
       );
     }
   } catch (e) {

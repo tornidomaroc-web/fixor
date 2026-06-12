@@ -1,5 +1,8 @@
 import type { SqlInjectionExploit } from "../services/risk-explainer.js";
-import type { NormalizedFixSuggestion } from "../analysis-engine/detector.types.js";
+import type {
+  NormalizedFinding,
+  NormalizedFixSuggestion,
+} from "../analysis-engine/detector.types.js";
 
 export interface ScanMetadata {
   repoName?: string;
@@ -55,6 +58,14 @@ export interface WorkflowResult {
    * wrong fix when mixed-family runs interleave SQL and XSS fixes.
    */
   exploits?: Record<string, SqlInjectionExploit>;
+  /**
+   * H2: findings in files this PR touches but on code the PR did NOT
+   * change. Reported detection-only — excluded from fix generation and
+   * rendered in a collapsed secondary PR-comment section. Present only
+   * when the payload carried a changed-line map (webhook whole-file
+   * path); see workflows/changed-line-partition.ts.
+   */
+  preExistingFindings?: NormalizedFinding[];
   /** Optional URL to the PDF report uploaded for this run. */
   pdfUrl?: string | null;
   /** Optional URL to the SARIF log uploaded for this run. */

@@ -53,6 +53,37 @@ function severityEmoji(severity: SqlInjectionExploit["severity"]): string {
 }
 
 /**
+ * H2: collapsed, capped, detection-only section for findings on code
+ * this PR did NOT touch. Never first-class (no fixes, no prominence) —
+ * but never silently dropped either; a security tool that saw something
+ * says so. See workflows/changed-line-partition.ts for the decision.
+ */
+function renderPreExistingBlock(workflow: WorkflowResult): string[] {
+  const pre = workflow.preExistingFindings ?? [];
+  if (pre.length === 0) return [];
+  const MAX_SHOWN = 10;
+  const shown = pre.slice(0, MAX_SHOWN);
+  const block: string[] = [
+    "",
+    "<details>",
+    `<summary>⚠️ <strong>${pre.length} pre-existing issue${pre.length === 1 ? "" : "s"}</strong> in files this PR touches — not introduced by this PR</summary>`,
+    "",
+    "_Detection-only: these sit on code this PR did not change. Listed for visibility, not as requests to fix them in this PR._",
+    "",
+  ];
+  for (const f of shown) {
+    block.push(
+      `- \`${f.file}:${f.startLine}\` · \`${f.type}\` · ${truncate(f.message, 160)}`,
+    );
+  }
+  if (pre.length > shown.length) {
+    block.push(`- _…and ${pre.length - shown.length} more_`);
+  }
+  block.push("", "</details>", "");
+  return block;
+}
+
+/**
  * One aggregated markdown body for a pull request issue comment.
  */
 export function buildPullRequestCommentMarkdown(
@@ -165,6 +196,7 @@ export function buildPullRequestCommentMarkdown(
 
   if (list.length === 0) {
     lines.push("_No findings in this run — no business-logic vulnerabilities detected._", "");
+    lines.push(...renderPreExistingBlock(workflow));
     lines.push(...renderDownloadsBlock());
     lines.push(
       FIXOR_PR_COMMENT_MARKER,
@@ -252,6 +284,7 @@ export function buildPullRequestCommentMarkdown(
     );
   }
 
+  lines.push(...renderPreExistingBlock(workflow));
   lines.push(...renderDownloadsBlock());
   lines.push(
     FIXOR_PR_COMMENT_MARKER,

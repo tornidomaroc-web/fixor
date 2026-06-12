@@ -28,6 +28,7 @@ import {
   llmCoverageSince,
   snapshotLlmCoverage,
 } from "../lib/llm-coverage.js";
+import { partitionFindingsByChangedLines } from "./changed-line-partition.js";
 
 function findingToNormalized(f: Finding): NormalizedFinding {
   const msg = f.explanation.slice(0, 500);
@@ -333,6 +334,29 @@ async function executeWorkflow(
   }
 
   const diffStr = extractDiffString(semgrepPayload);
+
+  // H2 (whole-file scan input) side-channel: the webhook handler passes
+  // the PR's changed-line map (drives the introduced/pre-existing
+  // partition) and any whole-file fetch failures (degraded scan input —
+  // surfaced as WorkflowErrors so the run can never present as a clean
+  // success). Absent on CLI / legacy payloads → behavior unchanged.
+  const payloadRecord =
+    semgrepPayload &&
+    typeof semgrepPayload === "object" &&
+    !Array.isArray(semgrepPayload)
+      ? (semgrepPayload as Record<string, unknown>)
+      : null;
+  const changedLinesByPath =
+    payloadRecord &&
+    payloadRecord.changedLinesByPath &&
+    typeof payloadRecord.changedLinesByPath === "object" &&
+    !Array.isArray(payloadRecord.changedLinesByPath)
+      ? (payloadRecord.changedLinesByPath as Record<string, number[]>)
+      : null;
+  const scanInputErrors = payloadRecord && Array.isArray(payloadRecord.scanInputErrors)
+    ? (payloadRecord.scanInputErrors as { path: string; reason: string }[])
+    : [];
+
   let findings: NormalizedFinding[];
   /** SQL-shaped findings retained for the risk explainer (SQL-only today). */
   let sqlFindingsForExplainer: NormalizedSqlInjectionFinding[] = [];
@@ -461,6 +485,29 @@ async function executeWorkflow(
     }
     findings = dedupeNormalizedFindings(findings);
     result.totalFindings = findings.length;
+
+    // H2 partition: findings on code the PR did not touch are reported
+    // detection-only (no fix generation, collapsed PR-comment section).
+    // See workflows/changed-line-partition.ts for the product decision
+    // and the fail-toward-introduced window semantics.
+    if (changedLinesByPath) {
+      const { introduced, preExisting } = partitionFindingsByChangedLines(
+        findings,
+        changedLinesByPath,
+      );
+      findings = introduced;
+      if (preExisting.length > 0) {
+        result.preExistingFindings = preExisting;
+        logger.info(
+          {
+            preExisting: preExisting.length,
+            introduced: introduced.length,
+            files: [...new Set(preExisting.map((f) => f.file))],
+          },
+          "pre-existing findings partitioned out of fix generation",
+        );
+      }
+    }
 
     logger.info(
       {
@@ -651,6 +698,18 @@ async function executeWorkflow(
     }
   }
   result.exploits = exploits;
+
+  // H2: whole-file fetch failures degrade the scan input below the
+  // baseline-measured conditions. Surfacing them as WorkflowErrors
+  // keeps the status machine honest (a run with unfetchable files can
+  // never be `no_action` or `success`), mirroring the LLM coverage
+  // gate's fail-loud posture.
+  for (const e of scanInputErrors) {
+    result.errors.push({
+      message: `Scan input degraded: ${e.path} could not be fetched at the PR head — judged without whole-file context`,
+      details: e.reason,
+    });
+  }
 
   // Surface degraded detection coverage BEFORE computing the final
   // status. Pushing a WorkflowError here is load-bearing: the status
