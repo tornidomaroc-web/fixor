@@ -815,6 +815,7 @@ export class IdorDetector implements Detector {
     }
 
     const result = await callClaude({
+      callerId: DETECTOR_ID,
       model: CLAUDE_MODELS.DETECTION,
       system: cachedSystem(SYSTEM_PROMPT),
       tool: REPORT_TOOL,

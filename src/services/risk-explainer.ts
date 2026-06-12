@@ -153,6 +153,7 @@ export async function generateSqlInjectionRiskExplanation(
   const includeProof = options?.includeProof !== false;
 
   const result = await callClaude({
+    coverage: "auxiliary",
     model: CLAUDE_MODELS.REASONING,
     system: cachedSystem(RISK_SYSTEM_PROMPT),
     tool: EMIT_RISK_TOOL,

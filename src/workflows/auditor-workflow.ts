@@ -24,6 +24,10 @@ import {
   type FilterStats,
 } from "../lib/org-settings-filter.js";
 import { isSuppressedFindingType } from "../config/finding-suppressions.js";
+import {
+  llmCoverageSince,
+  snapshotLlmCoverage,
+} from "../lib/llm-coverage.js";
 
 function findingToNormalized(f: Finding): NormalizedFinding {
   const msg = f.explanation.slice(0, 500);
@@ -143,8 +147,15 @@ function computeAutomationDecisionReason(
   finalStatus: WorkflowResult["status"],
   lowQualityPatches: number,
   anyPatchWarnings: boolean,
-  automationReady: boolean
+  automationReady: boolean,
+  llmCallsFailed: number
 ): string {
+  // Degraded detection coverage dominates every other reason: whatever
+  // else happened, the scan was partially blind and must not be acted
+  // on as if it were complete.
+  if (llmCallsFailed > 0) {
+    return `Detection coverage degraded: ${llmCallsFailed} LLM call(s) failed — results are incomplete, do not treat as a clean scan`;
+  }
   if (finalStatus === "failed") {
     return "Workflow failed";
   }
@@ -262,6 +273,12 @@ async function executeWorkflow(
   startedAt: string,
   startTimeMs: number
 ): Promise<WorkflowResult> {
+  // Coverage snapshot for the whole run: any detection-path LLM failure
+  // between here and the status computation marks the result degraded.
+  // Auxiliary calls (fix-gen, risk explainer) are excluded by tag at the
+  // callClaude chokepoint, so fix failures don't pollute this signal.
+  const llmSnap = snapshotLlmCoverage();
+
   const result: WorkflowResult = {
     status: "failed",
     automationReady: false,
@@ -635,6 +652,35 @@ async function executeWorkflow(
   }
   result.exploits = exploits;
 
+  // Surface degraded detection coverage BEFORE computing the final
+  // status. Pushing a WorkflowError here is load-bearing: the status
+  // machine below requires errors.length === 0 for both `no_action` and
+  // `success`, so a blind "0 findings" run becomes `failed` and a
+  // partially-blind run with fixes becomes `partial_success` — never a
+  // clean-looking result. (Previously every LLM failure was swallowed
+  // as [] by the detectors; proven live in audit run 3 when 68 of 90
+  // calls failed and the output still read as a clean scan.)
+  const llmCoverage = llmCoverageSince(llmSnap);
+  result.llmCoverage = llmCoverage;
+  if (llmCoverage.failed > 0) {
+    logger.error(
+      {
+        attempted: llmCoverage.attempted,
+        failed: llmCoverage.failed,
+        byReason: llmCoverage.byReason,
+        byCaller: llmCoverage.byCaller,
+      },
+      "detection coverage degraded: LLM call(s) failed — result is NOT a clean scan",
+    );
+    result.errors.push({
+      message: `Detection coverage degraded: ${llmCoverage.failed} of ${llmCoverage.attempted} LLM detection call(s) failed — findings are incomplete and "0 findings" must not be read as clean`,
+      details: {
+        byReason: llmCoverage.byReason,
+        byCaller: llmCoverage.byCaller,
+      },
+    });
+  }
+
   let finalStatus: WorkflowResult["status"] = "failed";
 
   if (result.classifiedFindings === 0 && result.errors.length === 0) {
@@ -662,7 +708,8 @@ async function executeWorkflow(
     finalStatus,
     result.lowQualityPatches,
     anyPatchWarnings,
-    result.automationReady
+    result.automationReady,
+    llmCoverage.failed
   );
 
   return finalize(finalStatus);

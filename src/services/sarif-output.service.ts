@@ -46,6 +46,16 @@ export interface SarifRun {
       rules: SarifRule[];
     };
   };
+  /** §3.14.11 — executionSuccessful is set false when detection coverage
+   *  was degraded (LLM calls failed), so SARIF consumers never treat a
+   *  partially-blind run's results as a complete clean scan. */
+  invocations: Array<{
+    executionSuccessful: boolean;
+    toolExecutionNotifications?: Array<{
+      level: "error" | "warning" | "note";
+      message: { text: string };
+    }>;
+  }>;
   results: SarifResult[];
 }
 
@@ -162,6 +172,28 @@ export function buildSarifLog(
     results.push(fixToSarifResult(fix, ruleType));
   }
 
+  const cov = workflow.llmCoverage;
+  const degraded = cov !== undefined && cov.failed > 0;
+  const invocations: SarifRun["invocations"] = [
+    {
+      executionSuccessful: !degraded,
+      ...(degraded
+        ? {
+            toolExecutionNotifications: [
+              {
+                level: "error" as const,
+                message: {
+                  text:
+                    `Detection coverage degraded: ${cov.failed} of ${cov.attempted} LLM detection call(s) failed. ` +
+                    `Results are incomplete; absence of findings must not be read as a clean scan.`,
+                },
+              },
+            ],
+          }
+        : {}),
+    },
+  ];
+
   return {
     $schema:
       "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
@@ -176,6 +208,7 @@ export function buildSarifLog(
             rules: buildRules(usedTypes),
           },
         },
+        invocations,
         results,
       },
     ],

@@ -61,6 +61,21 @@ export interface WorkflowResult {
   sarifUrl?: string | null;
   errors: WorkflowError[];
   /**
+   * Detection-coverage integrity for this run, from the llm-coverage
+   * tally. `failed > 0` means one or more LLM detection calls failed
+   * (dead key, timeout, network, rate limit) and the corresponding
+   * files/checks were NOT analyzed — a 0-finding result with
+   * `failed > 0` is a blind scan, not a clean one. A degraded run also
+   * pushes a WorkflowError, so `status` can never be `no_action` or
+   * `success` while coverage is degraded.
+   */
+  llmCoverage?: {
+    attempted: number;
+    failed: number;
+    byReason: Record<string, number>;
+    byCaller: Record<string, number>;
+  };
+  /**
    * Present only when status === "budget_exceeded": the live spend that
    * tripped the cap and the configured cap values. The handler renders
    * these into the PR comment.

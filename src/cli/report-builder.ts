@@ -5,6 +5,19 @@ import type { Finding } from "../analysis-engine/types.js";
 export interface FileScanResult {
   filePath: string;
   findings: Finding[];
+  /** LLM detection calls that failed while scanning this file. > 0 means
+   *  the file was NOT fully analyzed — absence of findings for it is
+   *  meaningless. Populated by scan.ts from per-file coverage deltas. */
+  llmFailures?: number;
+  /** Failure-reason breakdown for this file (e.g. { http_error: 2 }). */
+  llmFailuresByReason?: Record<string, number>;
+}
+
+/** Scan-wide detection-coverage summary, from the llm-coverage tally. */
+export interface ScanCoverage {
+  attempted: number;
+  failed: number;
+  byReason: Record<string, number>;
 }
 
 export interface ReportOptions {
@@ -14,6 +27,11 @@ export interface ReportOptions {
    *  remediation field is not part of what is being demonstrated. Product
    *  default is false (the field renders as before). */
   omitSuggestedFix?: boolean;
+  /** When present, the report states its own coverage explicitly: a full
+   *  run renders a positive "full coverage" line; any failed call renders
+   *  a degraded-coverage banner plus a "Coverage gaps" section. A clean
+   *  report and a blind report must never look the same. */
+  coverage?: ScanCoverage;
 }
 
 export function buildMarkdownReport(
@@ -28,6 +46,24 @@ export function buildMarkdownReport(
   const lines: string[] = [];
   lines.push(`# Fixor local scan report`);
   lines.push("");
+  const cov = opts.coverage;
+  if (cov && cov.failed > 0) {
+    const reasons = formatReasons(cov.byReason);
+    if (cov.failed >= cov.attempted) {
+      lines.push(
+        `> 🛑 **SCAN BLIND — ALL ${cov.attempted} LLM detection calls failed** (${reasons}).`,
+        `> This report contains NO LLM-verified results and MUST NOT be used as evidence of a clean codebase.`,
+        `> Fix the cause (API key, network, rate limits) and re-run.`,
+      );
+    } else {
+      lines.push(
+        `> ⚠️ **DEGRADED COVERAGE — NOT A CLEAN SCAN.** ${cov.failed} of ${cov.attempted} LLM detection calls failed (${reasons}).`,
+        `> Files under "Coverage gaps" below were NOT fully analyzed; absence of findings there is meaningless.`,
+        `> Findings that ARE listed remain real. Fix the cause and re-run for full coverage.`,
+      );
+    }
+    lines.push("");
+  }
   if (opts.omitSuggestedFix) {
     lines.push(
       `> This report is scoped to detection. Automated remediation is out of scope and not shown.`,
@@ -41,7 +77,35 @@ export function buildMarkdownReport(
   lines.push(
     `- Severity breakdown: critical=${sev.critical}, high=${sev.high}, medium=${sev.medium}`,
   );
+  if (cov) {
+    lines.push(
+      cov.failed > 0
+        ? `- LLM detection coverage: **DEGRADED** — ${cov.failed} of ${cov.attempted} calls failed (${formatReasons(cov.byReason)})`
+        : `- LLM detection coverage: full — ${cov.attempted}/${cov.attempted} calls succeeded`,
+    );
+  }
   lines.push("");
+
+  const gapFiles = results.filter((r) => (r.llmFailures ?? 0) > 0);
+  if (gapFiles.length > 0) {
+    lines.push(`## Coverage gaps (NOT fully analyzed)`);
+    lines.push("");
+    lines.push(
+      `The following files had failed LLM detection calls. "No findings" for these files is a coverage gap, not a clean result.`,
+    );
+    lines.push("");
+    for (const r of gapFiles) {
+      const reasons = r.llmFailuresByReason
+        ? ` (${formatReasons(r.llmFailuresByReason)})`
+        : "";
+      lines.push(
+        `- \`${fwdSlash(r.filePath)}\` — ${r.llmFailures} failed call(s)${reasons}`,
+      );
+    }
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
 
   for (const file of filesWithFindings) {
     lines.push(`## ${fwdSlash(file.filePath)}`);
@@ -71,6 +135,11 @@ export function buildMarkdownReport(
   }
 
   return lines.join("\n");
+}
+
+function formatReasons(byReason: Record<string, number>): string {
+  const parts = Object.entries(byReason).map(([r, n]) => `${r}: ${n}`);
+  return parts.length > 0 ? parts.join(", ") : "no breakdown available";
 }
 
 function severityBreakdown(findings: Finding[]): {

@@ -25,6 +25,11 @@ import type { DetectorContext } from "../analysis-engine/detector.types.js";
 import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import type { Finding } from "../analysis-engine/types.js";
+import {
+  coverageExitCode,
+  llmCoverageSince,
+  snapshotLlmCoverage,
+} from "../lib/llm-coverage.js";
 import { walkFiles } from "./file-walker.js";
 import { buildSyntheticDiff } from "./diff-builder.js";
 import { buildMarkdownReport, type FileScanResult } from "./report-builder.js";
@@ -370,10 +375,17 @@ async function main(): Promise<void> {
     }
   }
 
+  // Coverage integrity: snapshot the LLM tally for the whole scan and
+  // per file, so failed detection calls surface in the report (banner +
+  // per-file gaps) and the exit code instead of silently reading as
+  // "no findings". See src/lib/llm-coverage.ts for the defect history.
+  const scanSnap = snapshotLlmCoverage();
+
   const results: FileScanResult[] = [];
   for (let i = 0; i < files.length; i++) {
     const filePath = files[i]!;
     const rel = relative(opts.repoPath, filePath);
+    const fileSnap = snapshotLlmCoverage();
     logger.info(
       {
         file: rel,
@@ -451,16 +463,31 @@ async function main(): Promise<void> {
     }
 
     const merged = collapseFindings(allFindings);
-    results.push({ filePath: rel, findings: merged });
+    const fileCov = llmCoverageSince(fileSnap);
+    if (fileCov.failed > 0) {
+      logger.error(
+        { file: rel, failed: fileCov.failed, byReason: fileCov.byReason },
+        "file NOT fully analyzed: LLM detection call(s) failed",
+      );
+    }
+    results.push({
+      filePath: rel,
+      findings: merged,
+      llmFailures: fileCov.failed,
+      llmFailuresByReason: fileCov.byReason,
+    });
 
     if (i < files.length - 1) {
       await sleep(DELAY_MS);
     }
   }
 
+  const coverage = llmCoverageSince(scanSnap);
+
   const reportPath = opts.outputPath ?? defaultReportPath();
   const markdown = buildMarkdownReport(opts.repoPath, results, {
     omitSuggestedFix: opts.omitSuggestedFix,
+    coverage,
   });
   writeFileSync(reportPath, markdown, "utf8");
 
@@ -481,9 +508,26 @@ async function main(): Promise<void> {
       totalFindings,
       filesScanned: results.length,
       byType: countsByType,
+      llmCallsAttempted: coverage.attempted,
+      llmCallsFailed: coverage.failed,
     },
     "scan complete",
   );
+
+  // Exit 2 on degraded coverage so CI/automation can never mistake a
+  // partially-blind run for a clean one. The report is still written
+  // (partial findings are real); only the "clean" claim is withheld.
+  if (coverage.failed > 0) {
+    logger.error(
+      {
+        failed: coverage.failed,
+        attempted: coverage.attempted,
+        byReason: coverage.byReason,
+      },
+      "scan coverage DEGRADED — report must not be read as a clean result (exit 2)",
+    );
+    process.exitCode = coverageExitCode(coverage.failed);
+  }
 }
 
 main().catch((err) => {

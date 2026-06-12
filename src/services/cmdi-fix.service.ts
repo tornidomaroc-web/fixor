@@ -187,6 +187,7 @@ export async function generateCmdiFix(
   finding: NormalizedFinding
 ): Promise<NormalizedFixSuggestion> {
   const result = await callClaude({
+    coverage: "auxiliary",
     model: CLAUDE_MODELS.REASONING,
     system: cachedSystem(CMDI_FIX_SYSTEM_PROMPT),
     tool: EMIT_CMDI_FIX_TOOL,

@@ -161,6 +161,7 @@ export async function generateXssFix(
   finding: NormalizedFinding
 ): Promise<NormalizedFixSuggestion> {
   const result = await callClaude({
+    coverage: "auxiliary",
     model: CLAUDE_MODELS.REASONING,
     system: cachedSystem(XSS_FIX_SYSTEM_PROMPT),
     tool: EMIT_XSS_FIX_TOOL,

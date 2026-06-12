@@ -153,12 +153,15 @@ function parseToolInput(input: unknown): AnalysisResult {
  * Analyze a raw PR diff for vulnerabilities via Claude.
  * On any failure (missing API key, timeout, HTTP error, bad tool input),
  * returns `{ findings: [] }` so the caller can fall back to heuristics.
+ * The failure is NOT silent: callClaude tallies it in the llm-coverage
+ * module, and the workflow/CLI surface degraded coverage from there.
  */
 export async function analyzeCode(diff: string): Promise<AnalysisResult> {
   const trimmed = typeof diff === "string" ? diff.trim() : "";
   if (!trimmed) return { findings: [] };
 
   const result = await callClaude({
+    callerId: "central-analyzer",
     model: CLAUDE_MODELS.DETECTION,
     system: cachedSystem(SYSTEM_PROMPT),
     tool: RECORD_FINDINGS_TOOL,

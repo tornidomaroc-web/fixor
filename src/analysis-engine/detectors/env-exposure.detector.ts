@@ -490,6 +490,7 @@ export class EnvExposureDetector implements Detector {
     lineNumber: number;
   }): Promise<LlmVerdict | null> {
     const result = await callClaude({
+      callerId: DETECTOR_ID,
       model: CLAUDE_MODELS.DETECTION,
       system: cachedSystem(SYSTEM_PROMPT),
       tool: REPORT_TOOL,

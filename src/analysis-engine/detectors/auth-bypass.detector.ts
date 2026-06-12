@@ -794,6 +794,7 @@ export class AuthBypassDetector implements Detector {
     routeGuard?: string | null;
   }): Promise<LlmVerdict | null> {
     const result = await callClaude({
+      callerId: DETECTOR_ID,
       model: CLAUDE_MODELS.DETECTION,
       system: cachedSystem(SYSTEM_PROMPT),
       tool: REPORT_TOOL,

@@ -179,6 +179,7 @@ export async function generatePtFix(
   finding: NormalizedFinding
 ): Promise<NormalizedFixSuggestion> {
   const result = await callClaude({
+    coverage: "auxiliary",
     model: CLAUDE_MODELS.REASONING,
     system: cachedSystem(PT_FIX_SYSTEM_PROMPT),
     tool: EMIT_PT_FIX_TOOL,

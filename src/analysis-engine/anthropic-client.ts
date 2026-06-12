@@ -37,6 +37,7 @@ import {
   isRetryable,
   sleep,
 } from "../lib/anthropic-retry";
+import { recordLlmDetectionCall } from "../lib/llm-coverage";
 
 let _client: Anthropic | null = null;
 
@@ -79,6 +80,16 @@ export type MessagesCallOptions = {
   temperature?: number;
   /** Overrides MODEL_DEFAULTS[model].timeoutMs. */
   timeoutMs?: number;
+  /** Stable id of the calling analyzer/detector, for coverage attribution. */
+  callerId?: string;
+  /**
+   * "detection" calls count toward scan-coverage integrity (llm-coverage
+   * tally); "auxiliary" calls (fix generation, risk explainer) do not —
+   * their failures surface via visible fallbacks instead. Defaults to
+   * "detection": an untagged future call site can only over-warn about
+   * degraded coverage, never silently skip the tally.
+   */
+  coverage?: "detection" | "auxiliary";
 };
 
 export type MessagesCallResult =
@@ -112,9 +123,30 @@ export function cachedSystem(text: string): CacheableTextBlock[] {
 export async function callClaude(
   opts: MessagesCallOptions,
 ): Promise<MessagesCallResult> {
+  // Coverage tally: one entry per logical call (terminal outcome only —
+  // internal retries are not separate attempts). This is the load-bearing
+  // signal that keeps "LLM call failed" from masquerading as "no findings"
+  // downstream; see src/lib/llm-coverage.ts.
+  const tally = (reason?: "no_api_key" | "timeout" | "http_error"): void => {
+    if (opts.coverage === "auxiliary") return;
+    recordLlmDetectionCall(
+      reason === undefined
+        ? { ok: true }
+        : {
+            ok: false,
+            failure: {
+              caller: opts.callerId ?? "untagged",
+              reason,
+              model: opts.model,
+            },
+          },
+    );
+  };
+
   const client = getAnthropicClient();
   if (!client) {
     logger.error("callClaude failed: no_api_key (ANTHROPIC_API_KEY missing)");
+    tally("no_api_key");
     return { ok: false, reason: "no_api_key" };
   }
 
@@ -206,6 +238,7 @@ export async function callClaude(
         });
       }
 
+      tally();
       return {
         ok: true,
         message,
@@ -229,6 +262,7 @@ export async function callClaude(
           { model: opts.model, timeoutMs, attempts },
           "callClaude timeout",
         );
+        tally("timeout");
         return { ok: false, reason: "timeout", error: err };
       }
 
@@ -283,5 +317,6 @@ export async function callClaude(
     },
     attempts > 1 ? "callClaude http_error after retries" : "callClaude http_error",
   );
+  tally("http_error");
   return { ok: false, reason: "http_error", error: lastErr };
 }

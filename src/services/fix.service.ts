@@ -65,6 +65,7 @@ export async function llmFallbackSuggestion(
   dialect: SqlDialect
 ): Promise<SqlInjectionFixSuggestion> {
   const result = await callClaude({
+    coverage: "auxiliary",
     model: CLAUDE_MODELS.REASONING,
     system: cachedSystem(FIX_SYSTEM_PROMPT),
     tool: EMIT_FIX_TOOL,
