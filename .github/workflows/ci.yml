@@ -31,23 +31,8 @@ jobs:
       - name: Install deps (ci)
         run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Build
-        run: npm run build
-
-      - name: Run fixture tests
-        run: npm run test:fixtures
-
-      - name: Run SARIF smoke test
-        run: npm run test:sarif
-
-      - name: Run auth-bypass prefilter test (regex-only, no API)
-        run: npm run test:auth-bypass-prefilter
-
-      - name: Run finding-merge collapse test (report-layer, no API)
-        run: npm run test:finding-merge
-
-      - name: Run scan-limit-warning test (pure, no API)
-        run: npm run test:limit-warning
+      # test:ci is the single source of truth for the deterministic suite
+      # (lint + typecheck + every no-API test, incl. the webhook HMAC gate).
+      # API-spending tests (test:xss/cmdi/pt) live only in `npm test`.
+      - name: Run deterministic test suite (test:ci, no API spend)
+        run: npm run test:ci
