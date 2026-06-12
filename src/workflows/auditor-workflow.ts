@@ -1,5 +1,3 @@
-import type { Finding } from "../analysis-engine/types.js";
-import { analyzeCode } from "../analysis-engine/analyze.js";
 import {
   getDetectorFor,
   DETECTORS,
@@ -7,10 +5,6 @@ import {
 } from "../analysis-engine/detectors/registry.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import { extractSqlInjectionFromSemgrep } from "../services/vulnerability.service.js";
-import {
-  generateSqlInjectionRiskExplanation,
-  type SqlInjectionExploit,
-} from "../services/risk-explainer.js";
 import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types.js";
 import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
@@ -29,24 +23,6 @@ import {
   snapshotLlmCoverage,
 } from "../lib/llm-coverage.js";
 import { partitionFindingsByChangedLines } from "./changed-line-partition.js";
-
-function findingToNormalized(f: Finding): NormalizedFinding {
-  const msg = f.explanation.slice(0, 500);
-  const originalCode = f.original_snippet || `// ${f.file}:${f.line}`;
-  return {
-    detectorId: "central-llm-analyzer",
-    type: f.type,
-    file: f.file,
-    startLine: f.line,
-    endLine: f.line,
-    originalCode,
-    ruleId: `claude-analysis-${f.type}`,
-    message: msg,
-    explanation: f.why_it_matters,
-    confidence: f.confidence,
-    severity: f.severity,
-  };
-}
 
 /** Convert a SQL-specific finding back into the generic NormalizedFinding
  *  shape. Used for the legacy Semgrep path so it can reuse the registry. */
@@ -374,86 +350,32 @@ async function executeWorkflow(
   }
 
   if (diffStr) {
-    logger.debug("using Claude analysis engine on PR diff");
+    logger.debug("running specialized detectors on PR diff");
 
-    // Phase 7b — Stage A: run analyzeCode (Sonnet, ~15s) and the Phase 5
-    // detector pass (6 detectors, parallel internally) concurrently.
-    // Both consume only diffStr and produce independent finding arrays;
-    // merging happens in the sequential block below. Outer Promise.all
-    // (so analyzeCode failure rejects this stage and is caught by the
-    // existing executeWorkflow try/catch); inner allSettled keeps
-    // per-detector failure containment from Phase 7.
-    const [analysis, detectorResults] = await Promise.all([
-      analyzeCode(diffStr),
-      Promise.allSettled(
-        phase5Detectors.map((d) =>
-          d.detect
-            ? d.detect({ diff: diffStr })
-            : Promise.resolve([] as NormalizedFinding[]),
-        ),
+    // H3 (Phase H): the central analyzeCode pass was removed from this
+    // path. Every finding type it emitted (sql/xss/cmdi/path-traversal)
+    // is suppressed at the customer boundary
+    // (src/config/finding-suppressions.ts), so after the suppression
+    // filter its contribution to `findings` was provably empty — one
+    // unconditional Sonnet call per diff paying for nothing. The
+    // specialized detectors (which emit the 6 shipping, non-suppressed
+    // types) are now the only producers on this path. analyzeCode stays
+    // on disk; see analyze.ts for the re-enable conditions.
+    //
+    // Per-detector failure containment via allSettled (a thrown
+    // detector becomes a logged warning, not a workflow failure), as
+    // before.
+    const detectorResults = await Promise.allSettled(
+      phase5Detectors.map((d) =>
+        d.detect
+          ? d.detect({ diff: diffStr })
+          : Promise.resolve([] as NormalizedFinding[]),
       ),
-    ]);
+    );
 
-    // Drop globally-suppressed finding types before org-settings filter
-    // (xss/cmdi/path-traversal: see src/config/finding-suppressions.ts).
-    // Logged separately from filterStats so the suppression is visible
-    // in observability without conflating with org-settings counters.
-    const suppressedCounts: Record<string, number> = {};
-    let analysisFindings = analysis.findings.filter((f) => {
-      if (isSuppressedFindingType(f.type)) {
-        suppressedCounts[f.type] = (suppressedCounts[f.type] ?? 0) + 1;
-        return false;
-      }
-      return true;
-    });
-    if (Object.keys(suppressedCounts).length > 0) {
-      logger.info(
-        { category: "finding-suppressions", counts: suppressedCounts },
-        "suppressed findings of unmeasured types before customer surface",
-      );
-    }
+    findings = [];
 
-    // Apply org-settings filter at the analysis-finding level so both
-    // the NormalizedFinding[] and the SQL-shaped explainer array stay
-    // aligned (positional pairing in the explainer assumes alignment).
-    if (orgSettings) {
-      const settings = orgSettings;
-      analysisFindings = analysisFindings.filter((f) => {
-        const r = passesOrgSettings(
-          // Finding's severity union excludes "low" but the predicate
-          // accepts any Severity, so a widen-cast is safe here.
-          { file: f.file, type: f.type, severity: f.severity },
-          settings,
-        );
-        if (r.passes) return true;
-        tallyFilter(r.reason);
-        return false;
-      });
-    }
-
-    findings = analysisFindings.map(findingToNormalized);
-    sqlFindingsForExplainer = analysisFindings
-      .filter((f) => f.type === "sql_injection_risk")
-      .map(
-        (f): NormalizedSqlInjectionFinding => ({
-          type: "SQL_INJECTION",
-          findingType: "sql_injection_risk",
-          file: f.file,
-          startLine: f.line,
-          endLine: f.line,
-          ruleId: "claude-analysis-sql-injection-risk",
-          message: f.explanation.slice(0, 500),
-          originalCode: f.original_snippet || `// ${f.file}:${f.line}`,
-          explanation: f.why_it_matters,
-          classificationConfidence: f.confidence,
-          classificationScore:
-            f.confidence === "high" ? 90 : f.confidence === "medium" ? 50 : 20,
-        })
-      );
-
-    // Phase 7b — Stage B (merge): detectorResults already resolved in
-    // Stage A above. Per-detector containment + orgSettings filter +
-    // dedupe identical to Phase 7.
+    // Per-detector containment + orgSettings filter + dedupe.
     const settings = orgSettings;
     for (let i = 0; i < detectorResults.length; i++) {
       const detector = phase5Detectors[i]!;
@@ -512,10 +434,9 @@ async function executeWorkflow(
     logger.info(
       {
         totalFindings: result.totalFindings,
-        sqlInjectionFindings: sqlFindingsForExplainer.length,
         filterStats,
       },
-      "analysis findings extracted",
+      "specialized detector findings extracted",
     );
   } else {
     const { root, error } = parseSemgrepPayload(semgrepPayload);
@@ -672,32 +593,20 @@ async function executeWorkflow(
     "fix generation completed",
   );
 
-  // Risk explanations apply only to SQL fixes (no XSS equivalent exists
-  // yet). Key the map by the SQL fix's findingId so the comment builder
-  // attaches exploit text to the RIGHT fix even when the fixes array
-  // interleaves SQL and XSS findings.
-  const sqlFixesInOrder = result.fixes.filter(
-    (f) => f.findingType === "sql_injection_risk"
-  );
-  const exploits: Record<string, SqlInjectionExploit> = {};
-  if (sqlFixesInOrder.length > 0 && sqlFindingsForExplainer.length > 0) {
-    const pairs = sqlFindingsForExplainer
-      .slice(0, sqlFixesInOrder.length)
-      .map((finding, i) => ({ finding, fixId: sqlFixesInOrder[i]!.findingId }));
-    const riskResults = await Promise.allSettled(
-      pairs.map(async (p) => ({
-        fixId: p.fixId,
-        exploit: await generateSqlInjectionRiskExplanation(p.finding, {
-          dialect: "mysql",
-          includeProof: true,
-        }),
-      }))
-    );
-    for (const r of riskResults) {
-      if (r.status === "fulfilled") exploits[r.value.fixId] = r.value.exploit;
-    }
-  }
-  result.exploits = exploits;
+  // SQL risk explanations are structurally unreachable since H3 and the
+  // suppression gate: `generateSqlInjectionRiskExplanation` only fired
+  // on fixes whose `findingType === "sql_injection_risk"`, but SQL
+  // findings (from analyzeCode, now removed, or the legacy Semgrep path)
+  // are suppressed BEFORE fix routing, so `result.fixes` can never
+  // contain a SQL fix → `sqlFixesInOrder` was always empty → the
+  // explainer guard never passed. The dead invocation block was removed
+  // in H3. `exploits` stays on the result shape (consumed by the
+  // comment builder / webhook server) as a constant empty map. To
+  // re-enable: clear `sql_injection_risk` from
+  // src/config/finding-suppressions.ts (which requires the SQL family
+  // to earn a measured baseline per the audit's D2 rule), then restore
+  // the explainer call here. risk-explainer.ts stays on disk.
+  result.exploits = {};
 
   // H2: whole-file fetch failures degrade the scan input below the
   // baseline-measured conditions. Surfacing them as WorkflowErrors

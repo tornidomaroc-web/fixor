@@ -5,7 +5,6 @@ import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
 import { logger } from "../lib/logger.js";
-import { analyzeCode } from "../analysis-engine/analyze.js";
 import {
   DETECTORS,
   SHIPPING_DETECTOR_IDS,
@@ -22,7 +21,6 @@ import {
 import { resolveRemixRouteGuard } from "../analysis-engine/detectors/shared/route-guard-resolver.js";
 import { SIDECAR_KINDS } from "../analysis-engine/sidecar-kinds.js";
 import type { DetectorContext } from "../analysis-engine/detector.types.js";
-import { isSuppressedFindingType } from "../config/finding-suppressions.js";
 import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import type { Finding } from "../analysis-engine/types.js";
 import {
@@ -44,8 +42,8 @@ const SUB_DELAY_MS = 800;         // between LLM-hitting detector calls within a
 // A file that matches the route-shape prefilter (Next.js App Router
 // HTTP-method-named export, Express-family router.METHOD(...), or
 // Remix v2 loader/action export inside /routes/) routes to 3
-// additional detectors' LLM stages on top of the base analyzeCode
-// call: auth-bypass, admin-check, and webhook-unverified — all three
+// detectors' LLM stages: auth-bypass, admin-check, and
+// webhook-unverified — all three
 // ship whole-file context for App Router AND Remix route-def triggers
 // (webhook joined this discipline 2026-05-23 in the Path-A structural
 // follow-up to Phase F; Remix joined 2026-05-23 in Phase E; see
@@ -89,11 +87,13 @@ const CONTENT_PREFILTER_DETECTORS = 3;
 const PRECOUNT_FULL_THRESHOLD = 2000;
 const PRECOUNT_SAMPLE_SIZE = 500;
 
-// Specialized detectors invoked here in addition to analyzeCode (which
-// covers the original SQL/XSS/CMDI/PT families, output-suppressed). Those
-// 4 original detectors only generate fixes — they have no detect() pass —
-// so iterating DETECTORS by id-allowlist (the shared SHIPPING_DETECTOR_IDS
-// set from the registry) is enough.
+// Specialized detectors with a detect() pass — the only LLM-calling
+// detectors that run on this path since H3 removed the central
+// analyzeCode call (its SQL/XSS/CMDI/PT output is suppressed). The
+// fix-only detectors for those families remain in DETECTORS but have
+// no detect() pass, so iterating by id-allowlist (the shared
+// SHIPPING_DETECTOR_IDS set from the registry) selects only the active
+// ones.
 const newDetectors = DETECTORS.filter(
   (d) => SHIPPING_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
 );
@@ -279,18 +279,24 @@ async function main(): Promise<void> {
   }
 
   const routeShape = countRouteShapeFiles(files);
-  const baseCallsUsd = files.length * PER_CALL_COST_USD;
+  // H3: the central analyzeCode call (formerly one unconditional LLM
+  // call per file — `files.length * PER_CALL_COST_USD`) was removed
+  // because its output is 100% suppressed. The remaining cost is the
+  // specialized detectors, which only call the LLM when their pre-
+  // filter fires: route-shape files trigger 3 route detectors; the 3
+  // content-prefilter detectors (secrets/env/idor) are the worst-case
+  // upper bound (most files short-circuit before any LLM call).
   const routeShapeUsd =
     routeShape.count * ROUTE_SHAPE_EXTRA_DETECTORS * PER_CALL_COST_USD;
   const contentMaxUsd =
     files.length * CONTENT_PREFILTER_DETECTORS * PER_CALL_COST_USD;
-  const estTypicalUsd = baseCallsUsd + routeShapeUsd;
-  const estWorstUsd = baseCallsUsd + routeShapeUsd + contentMaxUsd;
-  // Worst-case runtime: per file = analyzeCode (~3s) + DELAY_MS sleep +
-  // up to N detectors × (~3s LLM + SUB_DELAY_MS sleep).
+  const estTypicalUsd = routeShapeUsd;
+  const estWorstUsd = routeShapeUsd + contentMaxUsd;
+  // Worst-case runtime: per file = DELAY_MS sleep + up to N specialized
+  // detectors × (~3s LLM + SUB_DELAY_MS sleep). No central call.
   const estRuntimeSec =
     files.length *
-    (3 + DELAY_MS / 1000 + newDetectors.length * (3 + SUB_DELAY_MS / 1000));
+    (DELAY_MS / 1000 + newDetectors.length * (3 + SUB_DELAY_MS / 1000));
 
   const routeShapeNote = routeShape.sampled
     ? `${routeShape.count} (estimated from ${routeShape.sampleSize}-file sample; each triggers 3 additional LLM calls)`
@@ -298,7 +304,7 @@ async function main(): Promise<void> {
 
   output.write(`\nFiles to scan:       ${files.length}\n`);
   output.write(
-    `Detectors per file:  1 central (analyzeCode) + ${newDetectors.length} specialized\n`,
+    `Detectors per file:  ${newDetectors.length} specialized (pre-filtered; no central pass)\n`,
   );
   output.write(
     `Estimated cost:      ~$${estTypicalUsd.toFixed(2)} typical / ~$${estWorstUsd.toFixed(2)} worst-case\n`,
@@ -391,9 +397,9 @@ async function main(): Promise<void> {
         file: rel,
         index: i + 1,
         total: files.length,
-        detectors: 1 + newDetectors.length,
+        detectors: newDetectors.length,
       },
-      "scanning (analyzeCode + N specialized)",
+      "scanning (N specialized detectors)",
     );
 
     const allFindings: Finding[] = [];
@@ -415,17 +421,15 @@ async function main(): Promise<void> {
           }
         : { diff };
 
-      // 1. Central LLM analyzer — original 4 families (SQL/XSS/CMDI/PT).
-      //    Suppressed types (see src/config/finding-suppressions.ts) are
-      //    dropped at the boundary so the report mirrors what the webhook
-      //    would deliver to a customer.
-      const central = await analyzeCode(diff);
-      const centralFindings = central.findings.filter(
-        (f) => !isSuppressedFindingType(f.type),
-      );
-      allFindings.push(...centralFindings);
-
-      // 2. Phase 5 specialized detectors. Each has its own pre-filter +
+      // Specialized detectors only. The central LLM analyzer
+      // (analyzeCode) was removed from this path in H3 (Phase H): every
+      // finding type it can emit (sql/xss/cmdi/path-traversal) is
+      // suppressed at the customer boundary
+      // (src/config/finding-suppressions.ts), so its output was 100%
+      // discarded — one unconditional LLM call per file paying for
+      // nothing. See analyze.ts for the re-enable conditions.
+      //
+      // Specialized detectors. Each has its own pre-filter +
       //    LLM gate; most short-circuit on path/regex misses, so the
       //    extra cost is small.
       for (const detector of newDetectors) {

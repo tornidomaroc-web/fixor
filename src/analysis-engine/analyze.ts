@@ -1,10 +1,36 @@
 /**
  * Detection engine: runs Claude against a raw PR diff and returns typed
- * findings.
+ * findings for SQL injection, XSS, command injection, and path traversal.
  *
  * Uses tool_use to force structured output (no JSON-parsing of free-form
  * text) and prompt caching on the system prompt for ~90% read-time savings
  * on warm calls.
+ *
+ * ─────────────────────────────────────────────────────────────────────
+ * NOT WIRED IN (H3, Phase H, 2026-06-13). This module is kept on disk as
+ * a capability but is no longer called by any scan path. Every finding
+ * type it emits — sql_injection_risk, xss_risk, command_injection_risk,
+ * path_traversal_risk — is in SUPPRESSED_FINDING_TYPES
+ * (src/config/finding-suppressions.ts), so its output was filtered to
+ * empty at the customer boundary while still costing one unconditional
+ * Sonnet call per file/diff (~$0.012/file; the single largest line on a
+ * real scan because it never short-circuits). scan.ts and
+ * auditor-workflow.ts previously called it; both now run only the six
+ * shipping specialized detectors.
+ *
+ * WHY suppressed in the first place: these four families run through
+ * this central analyzer but have no leakage-free fixture set + n=K
+ * stability baseline, so per the audit's D2 rule they can't be honestly
+ * claimed to a customer (see finding-suppressions.ts).
+ *
+ * TO RE-ENABLE a family: (1) give it a fixture set + measured baseline
+ * exactly like the six shipping detectors (D2/D5); (2) remove that
+ * type from SUPPRESSED_FINDING_TYPES; (3) re-wire this call into the
+ * scan path (the removed Promise.all stage in auditor-workflow.ts and
+ * the `analyzeCode(diff)` call in scan.ts — see their H3 comments).
+ * Do NOT re-wire it before step (1): you would pay per file for output
+ * that's still suppressed, which is exactly the waste H3 removed.
+ * ─────────────────────────────────────────────────────────────────────
  */
 
 import type { AnalysisResult, Finding, FindingType } from "./types";

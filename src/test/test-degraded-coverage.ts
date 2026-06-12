@@ -59,14 +59,31 @@ function assert(cond: unknown, msg: string): void {
   }
 }
 
-const INNOCUOUS_DIFF = [
-  "diff --git a/src/util.js b/src/util.js",
-  "--- a/src/util.js",
-  "+++ b/src/util.js",
-  "@@ -1,3 +1,3 @@",
-  "-const greeting = 'hello';",
-  "+const greeting = 'hello world';",
-  " module.exports = { greeting };",
+// An IDOR-shaped FastAPI diff: a request-derived path param (SOURCE)
+// flowing into a session.get primary-key lookup (SINK) with no
+// ownership filter. This clears the IDOR detector's prefilter so it
+// makes a real callClaude — which fails to `no_api_key` here, exercising
+// the degraded-coverage gate on a SPECIALIZED detector.
+//
+// H3 NOTE: this used to be a benign JS diff that relied on the central
+// analyzeCode call (the only unconditional LLM call per diff). H3
+// removed analyzeCode, so a benign diff now makes ZERO detection calls
+// (specialized detectors short-circuit on the prefilter) and is
+// correctly clean. The gate is unchanged; the fixture now has to
+// actually trigger a detection call to test it.
+const DETECTION_TRIGGERING_DIFF = [
+  "diff --git a/app/routers/items.py b/app/routers/items.py",
+  "new file mode 100644",
+  "--- /dev/null",
+  "+++ b/app/routers/items.py",
+  "@@ -0,0 +1,8 @@",
+  "+from fastapi import APIRouter, Depends",
+  "+from app.db import get_session",
+  "+router = APIRouter()",
+  '+@router.get("/items/{item_id}")',
+  "+def read_item(item_id: int, session = Depends(get_session)):",
+  "+    item = session.get(Item, item_id)",
+  "+    return item",
 ].join("\n");
 
 function sampleFinding(file: string): Finding {
@@ -127,7 +144,7 @@ async function testChokepointTally(): Promise<void> {
 async function testWorkflowSurfacesDegradation(): Promise<void> {
   console.log("\n--- 2. workflow surfaces degraded coverage ---");
 
-  const result = await runAuditorWorkflow({ diff: INNOCUOUS_DIFF });
+  const result = await runAuditorWorkflow({ diff: DETECTION_TRIGGERING_DIFF });
 
   assert(result.llmCoverage !== undefined, "workflow result carries llmCoverage");
   assert(
@@ -135,8 +152,8 @@ async function testWorkflowSurfacesDegradation(): Promise<void> {
     `llmCoverage.failed >= 1 (got ${result.llmCoverage?.failed})`,
   );
   assert(
-    (result.llmCoverage?.byCaller["central-analyzer"] ?? 0) >= 1,
-    "central analyzer's failed call is attributed",
+    (result.llmCoverage?.byCaller["idor-multi"] ?? 0) >= 1,
+    "the specialized detector's failed call is attributed by callerId",
   );
   assert(
     result.status === "failed",

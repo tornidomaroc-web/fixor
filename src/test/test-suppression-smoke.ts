@@ -3,6 +3,9 @@
  *
  * Asserts that for a curated multi-pattern diff:
  *   A) workflow.fixes contains no entry of a SUPPRESSED_FINDING_TYPES type
+ *      (since H3 this is structurally guaranteed — the central analyzeCode
+ *      pass that produced sql/xss/cmdi/pt findings was removed; kept as a
+ *      regression guard so a future re-wire can't silently emit them)
  *   B) workflow.fixes contains at least one of the measured Phase 5 types
  *      (idor_risk or auth_bypass_risk) — positive control that the pipeline
  *      actually executed end-to-end
@@ -11,7 +14,9 @@
  *   D) buildSarifLog output does not include rules for suppressed types
  *   E) generatePdfReport returns a non-trivial Buffer (renders without crash)
  *
- * Cost: ~$0.40-0.70 per run (1 Sonnet analyzeCode + Phase 5 detectors on Haiku).
+ * Cost since H3: ~$0.30-0.50 per run (Phase 5 specialized detectors only;
+ * the central analyzeCode Sonnet call per file was removed). NOT in
+ * test:ci — paid, run manually with ANTHROPIC_API_KEY.
  */
 
 import assert from "node:assert/strict";
