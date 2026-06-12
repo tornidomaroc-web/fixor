@@ -1,0 +1,21 @@
+# Gitleaks config for Fixor. Extends the default ruleset.
+# Allowlisted paths intentionally contain FAKE credential patterns:
+# - fixtures/ is the secrets-exposure detector's test corpus
+# - the coverage plan doc quotes a fake key in an example
+# - scripts/secrets_scan.py contains the detection patterns themselves
+title = "fixor"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Detector test corpus and pattern-bearing tooling"
+paths = [
+  '''fixtures/.*''',
+  '''docs/APP-ROUTER-COVERAGE-PLAN\.md''',
+  '''scripts/secrets_scan\.py''',
+]
+regexes = [
+  # AWS canonical documentation example key (docs/STEP4-PRODUCTION-VALIDATION.md)
+  '''AKIAIOSFODNN7EXAMPLE''',
+]
