@@ -81,6 +81,14 @@ interface LlmVerdict {
   confidence: "high" | "medium" | "low";
   reasoning: string;
   suggestedFix?: string | null;
+  /** Lane FACT (not a verdict): is the handler's caller authenticated?
+   *  "unauthenticated" is only claimable for in-signature DI frameworks
+   *  (FastAPI/Flask); middleware frameworks report "unclear". */
+  callerAuth: "authenticated" | "unauthenticated" | "unclear";
+  /** Lane FACT: user-ownable resource access vs an administrative
+   *  capability (role change, user management) where an ownership
+   *  filter could never be the right fix. */
+  operationClass: "user_resource" | "administrative" | "unclear";
 }
 
 interface FileDiagnostic {
@@ -89,6 +97,9 @@ interface FileDiagnostic {
   triggerCount: number;
   pairDistance?: number;
   verdict?: LlmVerdict | null;
+  /** Set when a HIGH verdict was deterministically routed to a sibling
+   *  detector's lane (R10) instead of emitting. */
+  laneDeferral?: string;
   flagged: boolean;
 }
 
@@ -294,6 +305,45 @@ Reject (treat as not vulnerable) when:
 Confidence ladder is strict: when in doubt between high and medium,
 choose medium. When in doubt between medium and low, choose low.
 
+LANE FACTS — report routing facts; never change your verdict logic.
+Fixor runs sibling detectors for missing authentication (auth-bypass)
+and missing admin gates (admin-check). Your isVulnerable judgment stays
+purely about object-level authorization, exactly as specified above.
+Alongside it, report two FACTS the pipeline uses to route findings to
+the right detector lane:
+
+- callerAuth — is the handler's caller authenticated?
+    * "authenticated": an auth mechanism is visible for this handler —
+      an auth dependency in the signature (\`Depends(get_current_user)\`,
+      \`CurrentUser\`, \`Security(...)\`), an auth decorator
+      (\`@login_required\`), \`before_action :authenticate*\`, auth
+      middleware in the route arglist, or handler code that uses the
+      authenticated session/user.
+    * "unauthenticated": ONLY when the framework expresses
+      authentication in the handler signature or decorator (FastAPI /
+      Flask style dependency injection) AND this handler visibly has no
+      auth dependency or decorator while the file's imports or sibling
+      handlers show the auth idiom is in use. A missing gate here is
+      the auth-bypass detector's lane, not an IDOR.
+    * "unclear": every other case — especially middleware-mounted
+      frameworks (Express, Go net/http, Next.js, Hono, NestJS, tRPC,
+      Rails without a visible before_action) where authentication
+      commonly lives in another file, so its absence from this window
+      proves nothing.
+- operationClass — what kind of operation does the route perform?
+    * "administrative": the operation is an admin capability — changing
+      another user's role / privileges / tier, managing arbitrary user
+      accounts (delete/provision users by id), instance-wide settings
+      or stats. The correct fix is an admin gate, not an ownership
+      filter; that gate's absence is the admin-check detector's lane.
+    * "user_resource": ordinary access to a resource a user can own
+      (documents, invoices, notes, items, projects, tickets, orders).
+    * "unclear": cannot tell from the visible context.
+
+These facts NEVER soften isVulnerable: report the ownership verdict as
+before, and the facts as you see them. When in doubt on either fact,
+report "unclear".
+
 CONTEXT BLOCKS — Verified RLS policy: when a block titled "Verified RLS policy for this file (ground truth):" appears in the user message, the SQL policy text is the authoritative authorization layer for queries in this file. Apply the existing "database-layer row-level security in force" exception even if the in-file handler shows a bare \`WHERE id = $1\`: the policy auto-scopes rows to the caller. When no such block is present, require handler-visible RLS signals per existing rules (current behavior, unchanged).
 
 CONTEXT BLOCKS — Verified middleware: when a block titled "Verified middleware for this file (ground truth):" appears in the user message, the middleware definition (auth gate, tenant scoping, ORM-level scoping wrapper such as Prisma \`$extends\`) is authoritative for the guarantees applied to handlers in this file. Use the middleware body to determine whether queries are admin-gated, tenant-scoped, or otherwise authorization-bounded before reaching the handler. When no such block is present, assess from handler code alone (current behavior, unchanged).`;
@@ -341,8 +391,26 @@ const REPORT_TOOL: Tool = {
         description:
           "1-2 sentences suggesting a fix; empty string if not vulnerable.",
       },
+      callerAuth: {
+        type: "string",
+        enum: ["authenticated", "unauthenticated", "unclear"],
+        description:
+          "Lane fact (see LANE FACTS in the system prompt): 'unauthenticated' ONLY when the framework expresses auth in the handler signature/decorator (FastAPI/Flask style) and this handler visibly lacks it; for middleware-based frameworks absence is 'unclear'.",
+      },
+      operationClass: {
+        type: "string",
+        enum: ["user_resource", "administrative", "unclear"],
+        description:
+          "Lane fact: 'administrative' when the operation is an admin capability (role/privilege change, arbitrary user management, instance-wide ops) where an ownership filter could never be the right fix.",
+      },
     },
-    required: ["isVulnerable", "confidence", "reasoning"],
+    required: [
+      "isVulnerable",
+      "confidence",
+      "reasoning",
+      "callerAuth",
+      "operationClass",
+    ],
   },
 };
 
@@ -751,6 +819,38 @@ export class IdorDetector implements Detector {
       return [];
     }
 
+    // Lane discipline (R10) — deterministic routing bound, in code per
+    // the deterministic-safety-bounds rule: the model rationalizes past
+    // prose lane clauses (a prompt-only clause was tried and reverted),
+    // so the LLM reports lane FACTS and THIS code decides. The gate only
+    // ever converts an emit-bound HIGH verdict into a review-queue
+    // deferral; "unclear" fails open and emits, so windows that cannot
+    // see auth (Express/Go middleware frameworks) are unaffected.
+    const laneDeferral =
+      verdict.callerAuth === "unauthenticated"
+        ? "caller unauthenticated — auth-bypass lane"
+        : verdict.operationClass === "administrative"
+          ? "administrative operation — admin-check lane"
+          : null;
+    if (laneDeferral) {
+      logger.warn(
+        {
+          category: "idor-lane-deferral",
+          file: filePath,
+          sourceLine: pair.source.line,
+          sinkLine: pair.sink.line,
+          callerAuth: verdict.callerAuth,
+          operationClass: verdict.operationClass,
+          laneDeferral,
+          reasoning: verdict.reasoning,
+        },
+        "idor: HIGH verdict deferred to sibling detector lane",
+      );
+      diag.laneDeferral = laneDeferral;
+      this.lastDiagnostics.push(diag);
+      return [];
+    }
+
     diag.flagged = true;
     this.lastDiagnostics.push(diag);
 
@@ -850,6 +950,8 @@ export class IdorDetector implements Detector {
           confidence?: string;
           reasoning?: string;
           suggestedFix?: string | null;
+          callerAuth?: string;
+          operationClass?: string;
         }
       | undefined;
     if (
@@ -868,11 +970,25 @@ export class IdorDetector implements Detector {
     if (conf !== "high" && conf !== "medium" && conf !== "low") {
       return null;
     }
+    // Lane facts parse defensively to "unclear" (fail-open: emit). A
+    // missing or malformed fact must never suppress a finding.
+    const callerAuth =
+      input.callerAuth === "authenticated" ||
+      input.callerAuth === "unauthenticated"
+        ? input.callerAuth
+        : "unclear";
+    const operationClass =
+      input.operationClass === "user_resource" ||
+      input.operationClass === "administrative"
+        ? input.operationClass
+        : "unclear";
     return {
       isVulnerable: input.isVulnerable,
       confidence: conf as LlmVerdict["confidence"],
       reasoning: input.reasoning,
       suggestedFix: input.suggestedFix ?? null,
+      callerAuth,
+      operationClass,
     };
   }
 }

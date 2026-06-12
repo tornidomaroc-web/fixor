@@ -1,13 +1,15 @@
 /**
  * IDOR lane-boundary test (real-shape FastAPI corpus).
  *
- * STATUS: PENDING acceptance spec for a DEFERRED fix. The shipped idor prompt
- * still over-fires on the no-auth/admin-mutation lanes (~75% of runs on
- * users.py), so this test currently FAILS by design — that is expected, not a
- * regression. A surgical prompt clause was tried and reverted (commit history)
- * because it did not converge; reliable lane separation needs proper
- * prompt-lane iteration verified by a full idor nRuns stability re-baseline.
- * Do NOT wire into CI until that fix lands and this passes across nRuns.
+ * STATUS: PASSING since 2026-06-12 (lane-separation fix). The fix is NOT a
+ * prompt-prose lane clause (one was tried and reverted — it did not
+ * converge): the LLM reports two structured lane FACTS (callerAuth,
+ * operationClass) and a deterministic bound in idor.detector.ts defers
+ * HIGH verdicts to the auth-bypass / admin-check lanes in code, per the
+ * deterministic-safety-bounds rule. Acceptance held at 5/5 lane runs
+ * (15/15 assertions) with the full suite at 18/18 in the same state
+ * (log: test-output/idor-baseline-2026-06-12.log). Stays OUT of CI for
+ * cost + nondeterminism reasons only — it spends real Sonnet calls.
  *
  * Reproduces the over-firing surfaced by the real-shape proof: the idor
  * detector claimed routes whose DOMINANT defect belongs to another detector's

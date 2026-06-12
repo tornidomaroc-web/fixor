@@ -85,7 +85,9 @@ The contract has three goals:
 - Business-logic IDOR ("user can change another user's email by knowing the email").
 - TOCTOU race conditions on ownership checks.
 
-**Measured baseline:** 18/18 (9/9 positives, 9/9 negatives) at the current 18-fixture set — measured three full n=5 harness runs during the 2026-06 audit session, captured in conversation, not yet saved as a baseline log (re-baseline pending per the "Inline" convention above; next `npm run test:idor` run should be saved to `test-output/` to close this). Prior on-disk baseline: 16/16 at the then-16-fixture set (log: `test-output/idor-day4-run.log`).
+**Measured baseline:** 18/18 (9/9 positives ≥4/5, 9/9 negatives 5/5; 90 calls, 0 LLM errors) — log: `test-output/idor-baseline-2026-06-12.log`, taken at SYSTEM_PROMPT fingerprint `5f5129f12b11` (the lane-separation extension). Prior on-disk baseline: 16/16 at the then-16-fixture set (log: `test-output/idor-day4-run.log`).
+
+**Lane discipline (2026-06-12):** the detector defers HIGH verdicts whose dominant defect belongs to a sibling lane — unauthenticated handlers (in-signature DI frameworks only, e.g. FastAPI) defer to auth-bypass; administrative operations (role/privilege mutation, arbitrary user management) defer to admin-check. The LLM reports structured lane facts; the suppression bound is deterministic detector code, fail-open on "unclear" (middleware-framework windows that cannot see auth still emit). Deferrals are logged to the review queue (`category: "idor-lane-deferral"`), never silently dropped. Acceptance: `test:idor-lane` 5/5 runs on the real-shape FastAPI corpus with the 18/18 baseline holding in the same state.
 
 ---
 
