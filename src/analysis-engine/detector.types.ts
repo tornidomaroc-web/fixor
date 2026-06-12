@@ -114,7 +114,7 @@ export interface DetectorContext {
    * sidecars (`<fixture>.<kind>` files next to the fixture).
    *
    * Adding a new sidecar kind is a capability extension per
-   * detector-test-rules.md R8, not a calibration iteration.
+   * detector-test-rules.md R7, not a calibration iteration.
    */
   sidecarsByPath?: Record<string, Record<string, string>>;
 }

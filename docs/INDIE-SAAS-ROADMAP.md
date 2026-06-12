@@ -11,10 +11,11 @@
 ### Pricing tiers
 | Tier | Price | Scans/month | Repos | Detectors |
 |---|---|---|---|---|
-| Free | $0 | 5 | Public only | All 4 |
-| Indie | $29/month | 100 | 1 private + unlimited public | All 4 |
-| Pro | $79/month | 500 | 5 private + unlimited public | All + Slack/Jira |
-| Team | $199/month | 2000 | Unlimited | All + priority support |
+| Free | $0 | 5 | Public only | All 6 |
+| Indie | $29/month | 100 | 1 private + unlimited public | All 6 |
+| Team | $199/month | 2000 | Unlimited | All 6 + priority support |
+
+> Table synced 2026-06-12 to the canonical `apps/dashboard/src/lib/tiers.ts`: the $79 Pro tier was removed 2026-05-31 (a2a0886) and the shipping detector count is 6, not 4. Completed `[x]` task entries further down intentionally keep their original Pro/$79 references — they are historical records of work as it was done (e.g. PR #34 really did create `price_pro_79`), not current claims.
 
 ### Tech stack (chosen, do not switch)
 | Layer | Tech | Why |

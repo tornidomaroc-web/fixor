@@ -13,7 +13,7 @@
  * rather than inline string literals, so TypeScript catches typos
  * at compile time instead of runtime.
  *
- * Adding a new kind is a capability extension (rule R8 in
+ * Adding a new kind is a capability extension (rule R7 in
  * docs/detector-test-rules.md): add the constant here, the
  * extension mapping below, the detector's read site, the addendum
  * paragraph, and the user-message render. Co-locate all five

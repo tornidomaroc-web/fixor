@@ -105,7 +105,11 @@ export interface HarnessOptions {
   combinedMinPassing?: number;
   /** Sleep between iterations to space out API calls. Default 800ms. */
   sleepMsBetween?: number;
-  /** For cost estimate logging. Default 0.004 (Haiku-class). */
+  /** For cost estimate logging. Default 0.01 — Sonnet 4.6 detection-call
+   *  empirical (~$0.007–0.013/call measured, Phase D burn + 2026-06-12
+   *  estimation pass). The old 0.004 default was a Haiku-class figure and
+   *  understated real spend ~2.5×; detection runs CLAUDE_MODELS.DETECTION
+   *  (claude-sonnet-4-6), not Haiku. */
   costPerLlmCallUsd?: number;
   /** Optional fingerprint string to print in the run header. */
   systemPromptFingerprint?: string;
@@ -296,7 +300,7 @@ export async function runStabilityHarness(
   const perPositiveThreshold = opts.perPositiveThreshold ?? nRuns - 1;
   const perNegativeThreshold = opts.perNegativeThreshold ?? nRuns;
   const sleepMsBetween = opts.sleepMsBetween ?? 800;
-  const costPerLlmCallUsd = opts.costPerLlmCallUsd ?? 0.004;
+  const costPerLlmCallUsd = opts.costPerLlmCallUsd ?? 0.01;
 
   process.stdout.write(
     `${opts.detectorName} stability run (n=${nRuns} per fixture)\n` +

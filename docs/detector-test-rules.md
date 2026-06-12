@@ -2,7 +2,9 @@
 
 Central home for the rules that govern how Fixor detectors are validated. Rules accumulate from calibration sessions; each one is here because we got it wrong once and don't want to get it wrong again. Read this before authoring a new fixture set, refactoring a harness, or proposing a prompt edit.
 
-Last reviewed: 2026-05-14 (post Mass-Assignment + IDOR audit sessions).
+Last reviewed: 2026-06-12 (post-audit doc cleanup; previous review 2026-05-14, post Mass-Assignment + IDOR audit sessions).
+
+Numbering note (2026-06-12): two rule-number collisions were resolved. "Lane discipline" (formerly a second R5) is now **R10**, and "No prompt iteration on FAIL" (formerly a second R6) is now **R11**. R5 (regex false-negative on positives) and R6 (fixture misclassification surfaced by LLM disagreement) keep their numbers — every external reference (session-close docs, META.md files, baseline reports) uses those meanings. A stray duplicate R8 heading was also removed; R8 is defined once, below.
 
 ---
 
@@ -151,9 +153,7 @@ The classification "regex-scope negative" applies regardless of how clean the co
 
 **High R4 rate in a detector's negatives is a product signal, not just a fixture-authoring signal.** Detectors where >20% of negatives are regex-scope may not need LLM cognition on the negative path at all — the regex layer is already doing the work, and the LLM is either rubber-stamping or producing inconsistent verdicts on cases it never sees. Observed Day 3: secrets-exposure 30%, auth-bypass 20%, vs. IDOR 0%. Detectors relying on infrastructure markers (`server-only`, `NEXT_PUBLIC_*`, script paths) cluster at the high end; detectors relying on code-shape patterns (source/sink, middleware calls) cluster at the low end. If Day 4 stability confirms the high-R4-rate detectors are getting their accuracy primarily from regex on negatives, the product question for Day 5 is whether LLM cognition belongs on the negative path of those detectors at all.
 
-### R8. Stop-and-report on unexpected outcomes, even when the recovery is obvious.
-
-### R5. Lane discipline — detectors flag only within their assigned scope.
+### R10. Lane discipline — detectors flag only within their assigned scope.
 
 Cross-detector signal is FP-shaped even if the underlying observation is real. Examples:
 - Mass-Assignment detector flagging an IDOR pattern (body-controlled `where`) — even though the IDOR is real, this is scope creep. We have an IDOR detector.
@@ -165,7 +165,7 @@ The remedy when this happens is to tighten the lane in the detector's system pro
 
 ## Iteration discipline
 
-### R6. No prompt iteration on FAIL during validation runs.
+### R11. No prompt iteration on FAIL during validation runs.
 
 When a stability run produces an unexpected verdict (positive that didn't flag, negative that flagged), the response is **stop and report**. Do not propose-and-fix in the same execution. Do not edit the prompt to make the verdict come out right.
 
@@ -222,6 +222,12 @@ R6 cases are audit value, not noise. They mean the fixture set is being stress-t
 
 **First instance (Day 5)**: `env-exposure/negative/07-redacted-diagnostics.js`. LLM consistently flagged at MEDIUM confidence (5/5 runs) arguing the redaction regex `KEY|SECRET|TOKEN|PASSWORD|DSN` misses common sensitive vars (`DATABASE_URL`, `MONGO_URI`, `REDIS_URL`, etc.). Reclassified to positive per Option 1; medium-confidence ceiling is a logger-config sidecar candidate (P0.5).
 
+### R8. Stop-and-report on unexpected outcomes, even when the recovery is obvious.
+
+Even if the right next move feels obvious (e.g., the addendum wording has a known ambiguity), the operator decides what to do next, not the executor. Surface the failure with reasoning excerpts; propose recommendations as "for next turn"; do not write the fix in the same execution.
+
+This rule exists because previous-session-Claude compounded corrective edits silently and produced false confidence. The discipline is annoying when the fix is one line; it matters when the fix is wrong.
+
 ### R8a. Incremental commit when a failure mode would swallow batched work.
 
 When the work-shape ahead is sequential and a single failure point can invalidate everything downstream (e.g., a typo in a shared harness lift breaks 6 refactored test files, or a misclassified pre-filter behavior taints 10 stripped fixtures), commit the stable upstream piece before continuing. The split point is wherever the work transitions from "edit one thing in isolation" to "edit N things that depend on a shared assumption."
@@ -229,12 +235,6 @@ When the work-shape ahead is sequential and a single failure point can invalidat
 Failure mode this guards against: batching all of Day N into one commit, hitting a contamination problem on fixture 9 of 10, and finding the only way back is to undo 1-3 days of work. Granular commits cap blast radius.
 
 Concrete signal that a split point has arrived: when the next operation would copy a pattern you just built (refactor, addendum, sidecar shape) into 3+ more places. Pause first. Inspect the pattern. Then continue.
-
-### R8. Stop-and-report on unexpected outcomes, even when the recovery is obvious.
-
-Even if the right next move feels obvious (e.g., the addendum wording has a known ambiguity), the operator decides what to do next, not the executor. Surface the failure with reasoning excerpts; propose recommendations as "for next turn"; do not write the fix in the same execution.
-
-This rule exists because previous-session-Claude compounded corrective edits silently and produced false confidence. The discipline is annoying when the fix is one line; it matters when the fix is wrong.
 
 ### Cognitive case classification (post Day-5+ analysis).
 
@@ -276,7 +276,9 @@ The discipline matters because the alternative — stop on every anomaly — wou
 
 Until per-detector pattern documentation ships publicly, the canonical Fixor wedge positioning is:
 
-> "Detects 6 vulnerability classes in Node/TypeScript codebases: route-level auth bypass (sentinel and missing-middleware), missing admin gates (hardcoded-admin and missing-admin-gate), IDOR, environment-variable exposure, hardcoded secrets, and unverified webhook handlers. Express-family routers covered for the route-based detectors; Fastify/Koa/Hono/NestJS not yet. The webhook detector additionally recognizes Flask, Rails, and Go HTTP handlers, and covers Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC signing; Shopify / Discord / AWS SNS / GCP Pub/Sub / Mailgun and other provider-specific schemes not yet."
+> "Detects 6 vulnerability classes in Node/TypeScript codebases: route-level auth bypass (sentinel and missing-middleware), missing admin gates (hardcoded-admin and missing-admin-gate), IDOR, environment-variable exposure, hardcoded secrets, and unverified webhook handlers. Express-family routers covered for the route-based detectors; Fastify/Koa/Hono/NestJS not yet. The webhook detector additionally recognizes Flask and Go HTTP handlers, and covers Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC signing; Shopify / Discord / AWS SNS / GCP Pub/Sub / Mailgun and other provider-specific schemes not yet."
+
+(2026-06-12 correction: "Rails" was removed from the wedge's webhook clause. A Rails route-shape prefilter pattern exists (`rails_post_webhook`) and such routes reach the LLM stage, but there is no Rails fixture, so the claim is not baseline-anchored — per detector-capabilities.md rule 1, regex reach without a fixture is not a public claim. Flask and Go both have positive + negative webhook fixtures and stay.)
 
 This is the load-bearing positioning across outreach drafts, README, mintlify FAQ, launch post 1, and any other public copy. Two sentences, no em-dashes, no specific cadence commitment. Honest about scope (the six pattern families it names) and method (stability harness + published numbers + miss documentation).
 
@@ -341,7 +343,7 @@ Any non-trivial product or engineering decision (new detector, new feature, re-a
 
 The audit's value came from converting "9 detectors PERFECT 20/20" (speculative) into "59/60 cognitive cases at n=5 on stripped fixtures, with R4/R5 documented per detector" (measured). The same discipline applies to Option G refactor, new harness builds, public post claims, and any future feature. If a proposal cannot answer "what specific outcome would prove this wrong," the proposal isn't ready to ship.
 
-**Estimate validation: before greenlighting a spend, run the cost math independently.** Surface deltas before execution, not retroactively. Retroactive cost surprises are measurement failures, not budgeting failures. Concrete instance: the Day 5 sidecar falsifier was estimated at $0.05; the actual math (16 fixtures × 5 runs × $0.004 = $0.32) was 6x larger. Catching the delta pre-spend converted a "cheap test" rationale into "decision-bearing test, cost justified by value" rationale, which is structurally honest. Apply to every dollar-attached decision: independent cost math before the greenlight, not after the invoice.
+**Estimate validation: before greenlighting a spend, run the cost math independently.** Surface deltas before execution, not retroactively. Retroactive cost surprises are measurement failures, not budgeting failures. Concrete instance: the Day 5 sidecar falsifier was estimated at $0.05; the actual math (16 fixtures × 5 runs × $0.004 = $0.32) was 6x larger. Catching the delta pre-spend converted a "cheap test" rationale into "decision-bearing test, cost justified by value" rationale, which is structurally honest. (Note 2026-06-12: the $0.004/call figure used that day was itself wrong — it was a Haiku-class assumption, but detection runs Sonnet 4.6 at ~$0.010/call measured. The rule's lesson compounds: even the independent cost math needs the right per-call constant. The harness default has been corrected.) Apply to every dollar-attached decision: independent cost math before the greenlight, not after the invoice.
 
 ### D6. Audit customer-experienced reality, not harness reality.
 

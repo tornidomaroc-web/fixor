@@ -85,7 +85,7 @@ The contract has three goals:
 - Business-logic IDOR ("user can change another user's email by knowing the email").
 - TOCTOU race conditions on ownership checks.
 
-**Measured baseline:** 16/16 (log: `test-output/idor-day4-run.log`).
+**Measured baseline:** 18/18 (9/9 positives, 9/9 negatives) at the current 18-fixture set — measured three full n=5 harness runs during the 2026-06 audit session, captured in conversation, not yet saved as a baseline log (re-baseline pending per the "Inline" convention above; next `npm run test:idor` run should be saved to `test-output/` to close this). Prior on-disk baseline: 16/16 at the then-16-fixture set (log: `test-output/idor-day4-run.log`).
 
 ---
 
@@ -131,7 +131,7 @@ The contract has three goals:
 ### 6. webhook-unverified (`webhook-unverified-multi`)
 
 **CLAIMS:**
-- Webhook handler routes for `/webhook`, `/hook`, `/hooks` in Express/Fastify-style routers, Flask decorators (`@bp.post`), Rails `post` routes, and Go `HandleFunc` / named `*Webhook*` handlers.
+- Webhook handler routes for `/webhook`, `/hook`, `/hooks` in Express/Fastify-style routers, Flask decorators (`@bp.post`), and Go `HandleFunc` / named `*Webhook*` handlers. (Rails `post '/webhook'` routes are matched by a prefilter pattern — `rails_post_webhook` — and reach the LLM stage, but have **no Rails fixture** and are therefore not baseline-anchored; per rule 1 below this is a regex-reach note, not a CLAIMS row. Moved out of CLAIMS 2026-06-12; re-promote only with a positive + negative Rails fixture pair and a fresh baseline.)
 - Detects: no signature verification at all; explicit env-flag bypass of verification (e.g. `WEBHOOK_VERIFY=off` short-circuits `constructEvent`); raw string-compare of signatures (`sig != expected`, classified MEDIUM as a timing-leak — see precision note below).
 - Correctly recognizes (and skips) verification done via: `stripe.webhooks.constructEvent` / `stripe.Webhook.construct_event`, `@octokit/webhooks` + `createNodeMiddleware`, `twilio.validateRequest`, `crypto.timingSafeEqual`, Python `hmac.compare_digest`, Go `subtle.ConstantTimeCompare`, Go `hmac.Equal`, dedicated verification middleware mounted before the handler.
 - Providers covered by fixtures: Stripe, GitHub, Twilio, Slack, Lemon Squeezy, custom HMAC.

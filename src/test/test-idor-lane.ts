@@ -21,9 +21,10 @@
  *   - admin.py  POST /users/{id}/role     -> idor SILENT  (admin-check lane)
  *   - users.py  DELETE /users/{user_id}   -> idor SILENT  (auth-bypass lane)
  *
- * COST: LLM detector test — ~3 DETECTION-model (Haiku) calls per run, one per
- * file that clears the prefilter. Not wired into CI (cost + non-determinism),
- * mirroring test:idor. Run: npm run test:idor-lane  (needs ANTHROPIC_API_KEY).
+ * COST: LLM detector test — ~3 DETECTION-model (Sonnet 4.6) calls per run,
+ * one per file that clears the prefilter; ~$0.01/call ≈ $0.03/run real cost.
+ * Not wired into CI (cost + non-determinism), mirroring test:idor.
+ * Run: npm run test:idor-lane  (needs ANTHROPIC_API_KEY).
  */
 
 import { readFileSync } from "node:fs";
