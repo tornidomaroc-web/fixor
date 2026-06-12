@@ -34,6 +34,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 import {
   APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
@@ -87,12 +88,6 @@ interface FileDiagnostic {
   verdict?: LlmVerdict | null;
   flagged: boolean;
 }
-
-interface DiffFile {
-  path: string;
-  content: string;
-}
-
 interface PrefilterPattern {
   id: string;
   re: RegExp;
@@ -577,31 +572,6 @@ function langDisplay(lang: SupportedLang): string {
   }
 }
 
-function parseDiff(diff: string): DiffFile[] {
-  const out: DiffFile[] = [];
-  const parts = diff.split(/^diff --git /m);
-  for (const part of parts) {
-    if (!part.trim()) continue;
-    const lines = part.split(/\r?\n/);
-    let path: string | null = null;
-    let inHunk = false;
-    const content: string[] = [];
-    for (const line of lines) {
-      if (line.startsWith("+++ b/")) {
-        path = line.slice("+++ b/".length).trim();
-      } else if (line.startsWith("@@")) {
-        inHunk = true;
-      } else if (inHunk && line.startsWith("+") && !line.startsWith("+++")) {
-        content.push(line.slice(1));
-      }
-    }
-    if (path && content.length > 0) {
-      out.push({ path, content: content.join("\n") });
-    }
-  }
-  return out;
-}
-
 function countLinesBefore(content: string, idx: number): number {
   let count = 0;
   const stop = Math.min(idx, content.length);
@@ -777,7 +747,8 @@ export class AdminCheckDetector implements Detector {
         lang,
         sidecars,
       );
-      findings.push(...fileFindings);
+      // Real-file line translation; identity on synthetic diffs.
+      findings.push(...remapFindingLines(fileFindings, file.lineMap));
     }
 
     return findings;

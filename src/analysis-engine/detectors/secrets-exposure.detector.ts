@@ -28,6 +28,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 
 const DETECTOR_ID = "secrets-exposure-multi";
 
@@ -65,12 +66,6 @@ interface FileDiagnostic {
   verdict?: LlmVerdict | null;
   flagged: boolean;
 }
-
-interface DiffFile {
-  path: string;
-  content: string;
-}
-
 interface PrefilterPattern {
   id: string;
   re: RegExp;
@@ -311,31 +306,6 @@ function langDisplay(lang: SupportedLang): string {
   }
 }
 
-function parseDiff(diff: string): DiffFile[] {
-  const out: DiffFile[] = [];
-  const parts = diff.split(/^diff --git /m);
-  for (const part of parts) {
-    if (!part.trim()) continue;
-    const lines = part.split(/\r?\n/);
-    let path: string | null = null;
-    let inHunk = false;
-    const content: string[] = [];
-    for (const line of lines) {
-      if (line.startsWith("+++ b/")) {
-        path = line.slice("+++ b/".length).trim();
-      } else if (line.startsWith("@@")) {
-        inHunk = true;
-      } else if (inHunk && line.startsWith("+") && !line.startsWith("+++")) {
-        content.push(line.slice(1));
-      }
-    }
-    if (path && content.length > 0) {
-      out.push({ path, content: content.join("\n") });
-    }
-  }
-  return out;
-}
-
 function extractContextWindow(content: string, lineNumber: number): string {
   const lines = content.split(/\r?\n/);
   const start = Math.max(0, lineNumber - 1 - 8);
@@ -482,7 +452,8 @@ export class SecretsExposureDetector implements Detector {
         file.content,
         lang,
       );
-      findings.push(...fileFindings);
+      // Real-file line translation; identity on synthetic diffs.
+      findings.push(...remapFindingLines(fileFindings, file.lineMap));
     }
 
     return findings;

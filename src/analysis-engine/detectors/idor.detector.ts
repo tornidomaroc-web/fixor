@@ -35,6 +35,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 import { SIDECAR_KINDS } from "../sidecar-kinds";
 import { extractReportSnippet } from "./shared/route-def-pattern";
 
@@ -102,12 +103,6 @@ interface FileDiagnostic {
   laneDeferral?: string;
   flagged: boolean;
 }
-
-interface DiffFile {
-  path: string;
-  content: string;
-}
-
 /**
  * SOURCE patterns: a request-derived identifier enters the handler.
  * The pre-filter is permissive on purpose; the LLM is the final judge of
@@ -456,31 +451,6 @@ function langDisplay(lang: SupportedLang): string {
   }
 }
 
-function parseDiff(diff: string): DiffFile[] {
-  const out: DiffFile[] = [];
-  const parts = diff.split(/^diff --git /m);
-  for (const part of parts) {
-    if (!part.trim()) continue;
-    const lines = part.split(/\r?\n/);
-    let path: string | null = null;
-    let inHunk = false;
-    const content: string[] = [];
-    for (const line of lines) {
-      if (line.startsWith("+++ b/")) {
-        path = line.slice("+++ b/".length).trim();
-      } else if (line.startsWith("@@")) {
-        inHunk = true;
-      } else if (inHunk && line.startsWith("+") && !line.startsWith("+++")) {
-        content.push(line.slice(1));
-      }
-    }
-    if (path && content.length > 0) {
-      out.push({ path, content: content.join("\n") });
-    }
-  }
-  return out;
-}
-
 function countLinesBefore(content: string, idx: number): number {
   let count = 0;
   const stop = Math.min(idx, content.length);
@@ -720,7 +690,10 @@ export class IdorDetector implements Detector {
         lang,
         sidecars,
       );
-      findings.push(...fileFindings);
+      // Translate content-relative line numbers to real target-file
+      // lines (identity for synthetic whole-file diffs; hunk-mapped
+      // for real PR diffs). See shared/diff-parser.ts.
+      findings.push(...remapFindingLines(fileFindings, file.lineMap));
     }
 
     return findings;

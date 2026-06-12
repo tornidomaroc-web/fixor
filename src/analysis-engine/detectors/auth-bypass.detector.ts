@@ -28,6 +28,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 import {
   APP_ROUTER_ROUTE_DEF_RE,
   EXPRESS_ROUTE_DEF_RE,
@@ -81,12 +82,6 @@ interface FileDiagnostic {
   verdict?: LlmVerdict | null;
   flagged: boolean;
 }
-
-interface DiffFile {
-  path: string;
-  content: string;
-}
-
 const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   // anonymous bypass (multi-language)
   { id: "anon_strict_eq", re: /\b(userId|user_id|userID)\s*={2,3}\s*['"]anonymous['"]/i },
@@ -432,31 +427,6 @@ function langDisplay(lang: SupportedLang): string {
   }
 }
 
-function parseDiff(diff: string): DiffFile[] {
-  const out: DiffFile[] = [];
-  const parts = diff.split(/^diff --git /m);
-  for (const part of parts) {
-    if (!part.trim()) continue;
-    const lines = part.split(/\r?\n/);
-    let path: string | null = null;
-    let inHunk = false;
-    const content: string[] = [];
-    for (const line of lines) {
-      if (line.startsWith("+++ b/")) {
-        path = line.slice("+++ b/".length).trim();
-      } else if (line.startsWith("@@")) {
-        inHunk = true;
-      } else if (inHunk && line.startsWith("+") && !line.startsWith("+++")) {
-        content.push(line.slice(1));
-      }
-    }
-    if (path && content.length > 0) {
-      out.push({ path, content: content.join("\n") });
-    }
-  }
-  return out;
-}
-
 function extractContextWindow(content: string, lineNumber: number): string {
   const lines = content.split(/\r?\n/);
   const start = Math.max(0, lineNumber - 1 - 8);
@@ -583,7 +553,8 @@ export class AuthBypassDetector implements Detector {
         lang,
         sidecars,
       );
-      findings.push(...fileFindings);
+      // Real-file line translation; identity on synthetic diffs.
+      findings.push(...remapFindingLines(fileFindings, file.lineMap));
     }
 
     return findings;
