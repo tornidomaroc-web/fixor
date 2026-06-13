@@ -1,0 +1,48 @@
+{
+  "corpus": "express-saas",
+  "framework": "Express + TypeORM (JS)",
+  "purpose": "Express/JS sibling of fastapi-saas, built for H4 (Phase H Tier 1). Measures whether IDOR's lane facts (callerAuth/operationClass) behave on a MIDDLEWARE framework the way they do on FastAPI's in-signature DI, and whether auth-bypass / admin-check / idor cross-fire on the same JS routes. Each route module has exactly ONE idor source/sink pair so the one-finding-per-file ceiling (G3) cannot confound the cross-fire reading. Scanned .js files carry NO security-tell comments; ground truth lives only here.",
+  "key_difference_from_fastapi": "FastAPI expresses auth in the handler SIGNATURE (Depends/CurrentUser), so 'no auth dependency present' is a knowable fact from the route file alone -> callerAuth='unauthenticated' -> idor defers to the auth-bypass lane. Express expresses auth via MIDDLEWARE that often lives in another file or a router.use() elsewhere, so 'no visible auth' proves nothing -> the lane rule requires callerAuth='unclear' -> idor does NOT defer. The hypothesis under test (H4): this makes idor CROSS-FIRE with auth-bypass on the unauthenticated route, where FastAPI's clarity let it defer.",
+  "expected_lane_behavior": [
+    {
+      "file": "src/routes/documents.js",
+      "route": "GET /:id",
+      "fires": "idor",
+      "defers": [],
+      "why": "Authenticated (router.use(requireAuth) visible in-file), Document.findOne keyed on req.params.id with no ownerId filter and no post-fetch check. Genuine object-ownership IDOR. callerAuth=authenticated, operationClass=user_resource -> idor FIRES, no deferral. auth-bypass and admin-check should stay silent."
+    },
+    {
+      "file": "src/routes/admin.js",
+      "route": "POST /:id/role",
+      "fires": "admin-check",
+      "defers": ["idor"],
+      "why": "Privileged op (sets role; role=='admin' escalates isSuperuser), gated only by requireAuth (authenticated, NOT admin) while sibling /stats is requireAdmin-gated. admin-check FIRES (looks-guarded-but-isn't). idor's prefilter fires on req.params.id->findOne, but operationClass=administrative -> idor DEFERS to admin-check lane. auth-bypass silent (auth present)."
+    },
+    {
+      "file": "src/routes/accounts.js",
+      "route": "DELETE /:id",
+      "fires": "auth-bypass",
+      "defers_on_fastapi": ["idor"],
+      "cross_fire_hypothesis": "idor",
+      "why": "Destructive op (removes a Document by request id) with NO auth middleware on the route, while sibling GET / passes requireAuth. auth-bypass FIRES (missing-middleware). idor's prefilter fires on req.params.id->findOne with no ownership filter; callerAuth SHOULD be 'unclear' on Express (middleware could be mounted elsewhere) -> idor does NOT defer -> idor is EXPECTED to also fire = cross-fire. On FastAPI the equivalent (users.py DELETE) deferred because in-signature DI made it provably unauthenticated. THIS ROUTE IS THE MEASUREMENT."
+    }
+  ],
+  "measured_result_2026_06_13": {
+    "log": "test-output/express-lane-2026-06-13.log",
+    "n": 5,
+    "coverage": "45 attempted, 0 failed (clean)",
+    "matrix": {
+      "documents.js": { "idor": "5/5", "auth-bypass": "0/5", "admin-check": "0/5" },
+      "admin.js": { "idor": "0/5", "auth-bypass": "5/5", "admin-check": "5/5" },
+      "accounts.js": { "idor": "0/5", "auth-bypass": "5/5", "admin-check": "0/5" }
+    },
+    "idor_cross_fire": "ABSENT — hypothesis REFUTED. idor fired 0/5 on accounts.js, not the predicted cross-fire. The FastAPI lane envelope transfers to Express: idor fires only on the genuine IDOR (documents.js 5/5) and stays in its lane on both the admin route (0/5) and the unauthenticated route (0/5). H7 does NOT need to touch Express IDOR.",
+    "real_cross_fire_found": "auth-bypass <-> admin-check on admin.js (both 5/5). On the auth-only-on-admin-op route, auth-bypass cross-fires into admin-check's lane (the dominant defect is the missing ADMIN gate). These two detectors have NO lane facts / routing today. This is the Express cross-fire H7 should address — NOT idor, and via the auth-bypass/admin-check pair.",
+    "note": "Fixture cross_fire_hypothesis above (idor) was the pre-measurement prediction; it was wrong. Kept as the recorded hypothesis; this block is the measured truth."
+  },
+  "expected_clear_controls": [
+    { "file": "src/routes/documents.js", "route": "GET /", "why": "List scoped to ownerId == req.user.id; no request-id source." },
+    { "file": "src/routes/admin.js", "route": "GET /stats", "why": "Admin-gated via requireAuth + requireAdmin; no request-id source." },
+    { "file": "src/routes/accounts.js", "route": "GET /", "why": "Authenticated list scoped to ownerId; no request-id source." }
+  ]
+}

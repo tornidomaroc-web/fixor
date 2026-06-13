@@ -73,6 +73,18 @@ function runApp(appDir: string): void {
     readFileSync(join(appDir, "ground-truth.json"), "utf8")
   ) as GroundTruth;
 
+  // This proof is the PYTHON route-shape reachability gate (FastAPI /
+  // Flask regexes + isPythonPath). Corpora without the
+  // `expected_vulnerable` manifest shape are out of scope — e.g. the
+  // express-saas JS lane corpus (H4), exercised by its own
+  // `npm run test:express-lane`, not here. Skip rather than crash.
+  if (!Array.isArray(gt.expected_vulnerable)) {
+    console.log(`\n${"═".repeat(64)}`);
+    console.log(`App: ${gt.corpus}  (${gt.framework}) — SKIPPED`);
+    console.log(`     (no expected_vulnerable manifest; not a Python reachability corpus)`);
+    return;
+  }
+
   console.log(`\n${"═".repeat(64)}`);
   console.log(`App: ${gt.corpus}  (${gt.framework})`);
   console.log(`Dir: ${appDir}`);
