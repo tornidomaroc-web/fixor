@@ -73,6 +73,14 @@ interface LlmVerdict {
    *  by the LLM, used to anchor the finding at that route (not the first
    *  route in the file). Optional; absent → fall back to the trigger line. */
   vulnerableRoute?: string | null;
+  /** Lane fact (H7): is the route under review gated by an AUTHENTICATION
+   *  mechanism (caller identified)? Distinct from authorization for the
+   *  specific action. A sabotaged/bypassed check reports "no". */
+  authPresent: "yes" | "no" | "unclear";
+  /** Lane fact (H7): is the sensitive operation administrative (manages
+   *  other users / roles / privilege / system state) or a general
+   *  authenticated operation? */
+  operationKind: "admin" | "general";
 }
 
 interface FileDiagnostic {
@@ -81,6 +89,9 @@ interface FileDiagnostic {
   triggerCount: number;
   verdict?: LlmVerdict | null;
   flagged: boolean;
+  /** Set when a HIGH verdict was deferred to a sibling detector's lane
+   *  (H7) instead of emitted — e.g. auth present on an admin route. */
+  laneDeferral?: string;
 }
 const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   // anonymous bypass (multi-language)
@@ -344,7 +355,42 @@ IMPORTANT:
   \`current_user\`/\`g.user\`/\`session\` for an authorization decision. A
   bare \`@app.route\`/\`@app.post\` with no auth decorator and no inline
   user check is unguarded. Attribute Flask vs FastAPI by the file's imports
-  for the shared \`@app.get\`/\`@app.post\` shorthand.`;
+  for the shared \`@app.get\`/\`@app.post\` shorthand.
+
+LANE FACTS (report ALWAYS, alongside every verdict — even when not
+vulnerable). These route a finding to the correct detector's lane. Judge
+them only from the context shown; do not assume beyond the file.
+- authPresent: is the route/handler gated by AUTHENTICATION — is the CALLER
+  IDENTIFIED (logged in)? This is distinct from whether the caller is
+  AUTHORIZED for this specific action.
+  * "yes": an auth signal gates the route — an auth middleware argument
+    (requireAuth, isAuthenticated, ensureLoggedIn), a router-level
+    \`router.use(requireAuth)\` visible in this file, an auth-suggesting
+    \`Depends(...)\`/\`Security(...)\` in the FastAPI signature, a parameter
+    typed as the current user (\`current_user: CurrentUser\`,
+    \`user: CurrentUser\`, or any alias that injects the authenticated
+    principal), a Flask \`@login_required\`, or an inline session/token
+    check that BLOCKS (401/403/redirect) when the caller is absent.
+  * "no": reachable anonymously — no auth middleware, no auth dependency, no
+    auth decorator, no blocking inline identity check. A non-auth dependency
+    alone (\`Depends(get_db)\`, a bare DB \`get_session\`) is NOT auth. A
+    SABOTAGED or BYPASSED check is also "no" — \`role === "admin" || true\`,
+    \`role || "admin"\`, a swallowed \`jwt.verify\` downgrading to anon: the
+    check is defeated, so authentication is effectively absent (and that
+    bypass is squarely auth-bypass's own lane, NOT a deferral).
+  * "unclear": auth may exist but cannot be confirmed here (mounted on the
+    router elsewhere, or behind an ambiguously named wrapper). When unsure,
+    prefer "unclear" or "no" over "yes".
+- operationKind: is the sensitive operation ADMINISTRATIVE or GENERAL?
+  * "admin": manages OTHER users or system-wide state, assigns or escalates
+    roles/privileges (sets \`role\`, \`is_superuser\`/\`isSuperuser\`, grants
+    permissions), or otherwise legitimately requires elevated (admin)
+    privilege.
+  * "general": an ordinary authenticated operation — a user acting on their
+    own resource, routine CRUD, a general-purpose API.
+These two facts are reported in addition to — and never change — your
+isVulnerable / confidence verdict above. Report what you see; downstream
+code decides routing.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
   .update(SYSTEM_PROMPT)
@@ -380,8 +426,20 @@ const REPORT_TOOL: Tool = {
         description:
           "The HTTP method and path of the SINGLE route your verdict concerns, copied verbatim from its decorator/definition (e.g. \"DELETE /users/{user_id}\"). Empty string if not a route-specific finding or not vulnerable.",
       },
+      authPresent: {
+        type: "string",
+        enum: ["yes", "no", "unclear"],
+        description:
+          "Lane fact: is the route/handler under review gated by an AUTHENTICATION mechanism (is the CALLER IDENTIFIED — logged in)? NOT about authorization for the specific action. \"yes\" = an auth middleware arg (requireAuth), a router.use(requireAuth) visible in-file, an auth-suggesting Depends/Security or a current-user-typed param (e.g. current_user: CurrentUser), an @login_required decorator, or an inline session/token check that BLOCKS when absent. \"no\" = reachable anonymously, OR the only check is sabotaged/bypassed (|| true, role||\"admin\", swallowed jwt.verify) — a defeated check is NOT auth present. \"unclear\" = auth may be mounted cross-file or behind an ambiguous wrapper.",
+      },
+      operationKind: {
+        type: "string",
+        enum: ["admin", "general"],
+        description:
+          "Lane fact: is the sensitive operation ADMINISTRATIVE — manages OTHER users, assigns/escalates roles or privileges (role, is_superuser/isSuperuser, permissions), or mutates system-wide state — or GENERAL (a user acting on their own resource, routine CRUD, general API)?",
+      },
     },
-    required: ["isVulnerable", "confidence", "reasoning"],
+    required: ["isVulnerable", "confidence", "reasoning", "authPresent", "operationKind"],
   },
 };
 
@@ -667,6 +725,44 @@ export class AuthBypassDetector implements Detector {
       return [];
     }
 
+    // Lane discipline (H7, 2026-06-13) — deterministic routing bound in
+    // CODE, not prompt prose (per the deterministic-safety-bounds rule).
+    // A ROUTE-DEF finding where authentication IS present and the operation
+    // is administrative is a missing-ADMIN-GATE defect, which is
+    // admin-check's lane — not an auth bypass. Defer it (admin-check, which
+    // we never suppress, owns and reports it). Two bounds keep this safe:
+    //  - Scoped to route-def triggers: sentinel / HOC bypasses (`|| true`,
+    //    role||"admin", swallowed jwt.verify) are auth-bypass's OWN lane and
+    //    must keep firing — they never reach this gate.
+    //  - Fails OPEN: only authPresent==="yes" defers; "no"/"unclear" auth
+    //    FIRES (a missed admin-gate finding is worse than a redundant one).
+    // Preserves shape #3 (auth absent + admin → fires, honest double-report)
+    // and all general missing-auth findings.
+    const laneDeferral =
+      routeDefTrigger !== undefined &&
+      verdict.authPresent === "yes" &&
+      verdict.operationKind === "admin"
+        ? "auth present on an admin operation; missing admin gate is admin-check's lane"
+        : null;
+    if (laneDeferral) {
+      logger.warn(
+        {
+          category: "auth-bypass-lane-deferral",
+          file: filePath,
+          line: trigger.line,
+          pattern: trigger.patternText,
+          authPresent: verdict.authPresent,
+          operationKind: verdict.operationKind,
+          laneDeferral,
+          reasoning: verdict.reasoning,
+        },
+        "auth-bypass: HIGH verdict deferred to admin-check lane",
+      );
+      diag.laneDeferral = laneDeferral;
+      this.lastDiagnostics.push(diag);
+      return [];
+    }
+
     // HIGH confidence — emit.
     diag.flagged = true;
     this.lastDiagnostics.push(diag);
@@ -788,6 +884,8 @@ export class AuthBypassDetector implements Detector {
           reasoning?: string;
           suggestedFix?: string | null;
           vulnerableRoute?: string | null;
+          authPresent?: unknown;
+          operationKind?: unknown;
         }
       | undefined;
     if (
@@ -806,6 +904,18 @@ export class AuthBypassDetector implements Detector {
     if (conf !== "high" && conf !== "medium" && conf !== "low") {
       return null;
     }
+    // Lane facts — lenient parse with fail-OPEN defaults: an unrecognized or
+    // missing value must NOT trigger the admin-check deferral. authPresent
+    // defaults to "unclear" and operationKind to "general"; both make the
+    // deferral gate fall through to firing (over-report > missed finding).
+    const authPresent =
+      input.authPresent === "yes" ||
+      input.authPresent === "no" ||
+      input.authPresent === "unclear"
+        ? input.authPresent
+        : "unclear";
+    const operationKind =
+      input.operationKind === "admin" ? "admin" : "general";
     return {
       isVulnerable: input.isVulnerable,
       confidence: conf as LlmVerdict["confidence"],
@@ -815,6 +925,8 @@ export class AuthBypassDetector implements Detector {
         typeof input.vulnerableRoute === "string"
           ? input.vulnerableRoute
           : null,
+      authPresent,
+      operationKind,
     };
   }
 }
