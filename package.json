@@ -34,6 +34,7 @@
     "test:finding-merge": "npm run build && node dist/test/test-finding-merge.js",
     "test:idor-lane": "npm run build && node dist/test/test-idor-lane.js",
     "test:idor-tenant": "npm run build && node dist/test/test-idor-tenant.js",
+    "test:idor-multi": "npm run build && node dist/test/test-idor-multi.js",
     "test:express-lane": "npm run build && node dist/test/test-express-lane.js",
     "test:route-guard-resolver": "npm run build && node dist/test/test-route-guard-resolver.js",
     "test:layout-guard": "npm run build && node dist/test/test-layout-guard.js",

@@ -213,6 +213,21 @@ const SERVER_ONLY_RE = /^\s*import\s+["']server-only["']\s*;?\s*$/m;
  */
 const PROXIMITY_THRESHOLD = 200;
 
+/**
+ * H6: max candidate IDOR sites judged per file in one call. Bounds the
+ * verdict-array size (and thus cost/output) on pathological files. When
+ * exceeded, the excess is logged — never silently dropped.
+ */
+const MAX_PAIRS_PER_FILE = 12;
+
+/**
+ * H6: whole-file payload cap. At or under this, the LLM sees the whole
+ * file (so context like a post-fetch guard a few lines below the sink is
+ * never truncated — the G4 fix). Over it, fall back to a bounded window
+ * spanning the candidate pairs.
+ */
+const IDOR_MAX_FILE_BYTES = 200_000;
+
 const SYSTEM_PROMPT = `You are a security auditor analyzing a code change for IDOR (Insecure
 Direct Object Reference) vulnerabilities, also known as broken
 object-level authorization.
@@ -363,49 +378,67 @@ export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
 let systemPromptLogged = false;
 
 const REPORT_TOOL: Tool = {
-  name: "report_idor_verdict",
+  name: "report_idor_findings",
   description:
-    "Report the IDOR analysis verdict for the supplied code context.",
+    "Report an IDOR verdict for EACH candidate site listed in the user message — exactly one verdict object per pairIndex.",
   input_schema: {
     type: "object",
     properties: {
-      isVulnerable: {
-        type: "boolean",
-        description: "True if this is a real IDOR vulnerability.",
-      },
-      confidence: {
-        type: "string",
-        enum: ["high", "medium", "low"],
-      },
-      reasoning: {
-        type: "string",
-        description: "1-2 sentences explaining your decision.",
-      },
-      suggestedFix: {
-        type: "string",
+      verdicts: {
+        type: "array",
         description:
-          "1-2 sentences suggesting a fix; empty string if not vulnerable.",
-      },
-      callerAuth: {
-        type: "string",
-        enum: ["authenticated", "unauthenticated", "unclear"],
-        description:
-          "Lane fact (see LANE FACTS in the system prompt): 'unauthenticated' ONLY when the framework expresses auth in the handler signature/decorator (FastAPI/Flask style) and this handler visibly lacks it; for middleware-based frameworks absence is 'unclear'.",
-      },
-      operationClass: {
-        type: "string",
-        enum: ["user_resource", "administrative", "unclear"],
-        description:
-          "Lane fact: 'administrative' when the operation is an admin capability (role/privilege change, arbitrary user management, instance-wide ops) where an ownership filter could never be the right fix.",
+          "One verdict per candidate IDOR site. Include every pairIndex from the candidate list, judged independently.",
+        items: {
+          type: "object",
+          properties: {
+            pairIndex: {
+              type: "integer",
+              minimum: 0,
+              description:
+                "The index of the candidate site (from the user message) this verdict is for.",
+            },
+            isVulnerable: {
+              type: "boolean",
+              description: "True if this site is a real IDOR vulnerability.",
+            },
+            confidence: {
+              type: "string",
+              enum: ["high", "medium", "low"],
+            },
+            reasoning: {
+              type: "string",
+              description: "1-2 sentences explaining your decision for this site.",
+            },
+            suggestedFix: {
+              type: "string",
+              description:
+                "1-2 sentences suggesting a fix; empty string if not vulnerable.",
+            },
+            callerAuth: {
+              type: "string",
+              enum: ["authenticated", "unauthenticated", "unclear"],
+              description:
+                "Lane fact (see LANE FACTS in the system prompt): 'unauthenticated' ONLY when the framework expresses auth in the handler signature/decorator (FastAPI/Flask style) and this handler visibly lacks it; for middleware-based frameworks absence is 'unclear'.",
+            },
+            operationClass: {
+              type: "string",
+              enum: ["user_resource", "administrative", "unclear"],
+              description:
+                "Lane fact: 'administrative' when the operation is an admin capability (role/privilege change, arbitrary user management, instance-wide ops) where an ownership filter could never be the right fix.",
+            },
+          },
+          required: [
+            "pairIndex",
+            "isVulnerable",
+            "confidence",
+            "reasoning",
+            "callerAuth",
+            "operationClass",
+          ],
+        },
       },
     },
-    required: [
-      "isVulnerable",
-      "confidence",
-      "reasoning",
-      "callerAuth",
-      "operationClass",
-    ],
+    required: ["verdicts"],
   },
 };
 
@@ -492,24 +525,47 @@ function findPatternHits(
 }
 
 /**
- * Returns the SOURCE/SINK pair closest by absolute line distance, or
- * null if no pair sits within PROXIMITY_THRESHOLD lines.
+ * H6: enumerate ALL candidate IDOR sites, not just the closest pair.
+ * For each SINK (db lookup), pair it with its NEAREST source within
+ * PROXIMITY_THRESHOLD — one candidate per dangerous db-lookup. Deduped
+ * by sink line (two sink-pattern matches on one line, or two genuine
+ * IDORs sharing a line, collapse to one pair — consistent with the
+ * downstream `file:line:type` dedupe key, which would collapse them
+ * anyway). Sorted by sink line for stable verdict-array ordering.
+ *
+ * Lifts the G3 one-finding-per-file ceiling: a file with two independent
+ * IDORs now yields two pairs, judged together in one whole-file call.
  */
-function closestSourceSinkPair(
+function enumerateSinkPairs(
   sourceHits: PatternHit[],
   sinkHits: PatternHit[],
-): IdorPrefilterHit | null {
-  let best: IdorPrefilterHit | null = null;
-  for (const s of sourceHits) {
-    for (const k of sinkHits) {
-      const distance = Math.abs(s.line - k.line);
+): { pairs: IdorPrefilterHit[]; truncated: number } {
+  const pairs: IdorPrefilterHit[] = [];
+  const seenSinkLines = new Set<number>();
+  for (const sink of sinkHits) {
+    if (seenSinkLines.has(sink.line)) continue;
+    let best: PatternHit | null = null;
+    let bestDist = Infinity;
+    for (const source of sourceHits) {
+      const distance = Math.abs(source.line - sink.line);
       if (distance > PROXIMITY_THRESHOLD) continue;
-      if (best === null || distance < best.distance) {
-        best = { source: s, sink: k, distance };
+      if (distance < bestDist) {
+        bestDist = distance;
+        best = source;
       }
     }
+    if (best) {
+      seenSinkLines.add(sink.line);
+      pairs.push({ source: best, sink, distance: bestDist });
+    }
   }
-  return best;
+  pairs.sort((a, b) => a.sink.line - b.sink.line);
+  let truncated = 0;
+  if (pairs.length > MAX_PAIRS_PER_FILE) {
+    truncated = pairs.length - MAX_PAIRS_PER_FILE;
+    pairs.length = MAX_PAIRS_PER_FILE;
+  }
+  return { pairs, truncated };
 }
 
 /**
@@ -582,16 +638,13 @@ function extractImports(content: string): string {
   return out.join("\n");
 }
 
-function buildUserMessage(params: {
+function buildMultiPairUserMessage(params: {
   filePath: string;
   language: string;
-  contextWindow: string;
+  fileBody: string;
+  bodyIsWholeFile: boolean;
   imports: string;
-  sourcePattern: string;
-  sourceLine: number;
-  sinkPattern: string;
-  sinkLine: number;
-  pairDistance: number;
+  pairs: IdorPrefilterHit[];
   sidecars?: Record<string, string>;
 }): string {
   const policy = params.sidecars?.[SIDECAR_KINDS.RLS_POLICY];
@@ -603,12 +656,24 @@ function buildUserMessage(params: {
   if (middleware) {
     sidecarSection += `\n\nVerified middleware for this file (ground truth):\n\`\`\`typescript\n${middleware.trim()}\n\`\`\``;
   }
+
+  const siteList = params.pairs
+    .map(
+      (p, i) =>
+        `- [${i}] SOURCE (request-derived id) line ${p.source.line}: ${p.source.patternText}  ->  SINK (DB lookup) line ${p.sink.line}: ${p.sink.patternText}`,
+    )
+    .join("\n");
+
+  const bodyLabel = params.bodyIsWholeFile
+    ? "Full file content:"
+    : "Code context (file exceeds the whole-file cap; bounded window spanning the candidate sites):";
+
   return `CONTEXT:
 File: ${params.filePath}
 Language: ${params.language}${sidecarSection}
-Code context (covers both source and sink):
+${bodyLabel}
 \`\`\`${params.language}
-${params.contextWindow}
+${params.fileBody}
 \`\`\`
 
 Imports in file:
@@ -616,12 +681,10 @@ Imports in file:
 ${params.imports}
 \`\`\`
 
-Pre-filter triggers:
-- SOURCE (request-derived identifier) at line ${params.sourceLine}: ${params.sourcePattern}
-- SINK (database lookup) at line ${params.sinkLine}: ${params.sinkPattern}
-- Lines between source and sink: ${params.pairDistance}
+Candidate IDOR sites (each is a request-derived id flowing into a DB lookup; judge EACH independently and return one verdict per pairIndex):
+${siteList}
 
-Analyze whether this is a real IDOR. Specifically:
+For EACH candidate site above, analyze whether it is a real IDOR. Specifically:
 
 1. Does the request-derived identifier flow into the DB lookup, in the
    same handler / control-flow path?
@@ -635,7 +698,9 @@ Analyze whether this is a real IDOR. Specifically:
    NOT, for IDOR; only middleware that injects an ownership filter or
    guards object-level access counts.
 
-Call the report_idor_verdict tool with your verdict.`;
+Each candidate site is independent: one site being safe does not make
+another safe, and vice versa. Call the report_idor_findings tool with
+one verdict per candidate site (matched by pairIndex).`;
 }
 
 export class IdorDetector implements Detector {
@@ -740,110 +805,143 @@ export class IdorDetector implements Detector {
       return [];
     }
 
-    const pair = closestSourceSinkPair(sourceHits, sinkHits);
-    if (!pair) {
+    // H6: enumerate ALL candidate sites (one per dangerous sink), judged
+    // together in one whole-file call — lifts the one-finding ceiling.
+    const { pairs, truncated } = enumerateSinkPairs(sourceHits, sinkHits);
+    if (pairs.length === 0) {
       diag.preFilterReason = `source/sink > ${PROXIMITY_THRESHOLD} lines apart`;
       this.lastDiagnostics.push(diag);
       return [];
     }
-    diag.pairDistance = pair.distance;
+    diag.pairDistance = pairs[0]!.distance; // back-compat: first pair's distance
+    if (truncated > 0) {
+      logger.warn(
+        { file: filePath, judged: pairs.length, notJudged: truncated },
+        `idor: candidate sites capped at ${MAX_PAIRS_PER_FILE}; ${truncated} not judged`,
+      );
+    }
 
-    const verdict = await this.callLlm({
+    // Whole-file payload (G4): the LLM sees the whole file so context a
+    // few lines below the sink (e.g. a post-fetch ownership guard) is
+    // never truncated. Over the byte cap, fall back to a bounded window
+    // spanning the candidate sites.
+    const fileBytes = Buffer.byteLength(content, "utf8");
+    let fileBody: string;
+    let bodyIsWholeFile: boolean;
+    if (fileBytes <= IDOR_MAX_FILE_BYTES) {
+      fileBody = content;
+      bodyIsWholeFile = true;
+    } else {
+      const lineNums = pairs.flatMap((p) => [p.source.line, p.sink.line]);
+      fileBody = extractIdorContextWindow(
+        content,
+        Math.min(...lineNums),
+        Math.max(...lineNums),
+      );
+      bodyIsWholeFile = false;
+      logger.warn(
+        { file: filePath, bytes: fileBytes, cap: IDOR_MAX_FILE_BYTES },
+        "idor: file over whole-file cap; using bounded window",
+      );
+    }
+
+    const verdictByIndex = await this.callLlm({
       filePath,
       language: langDisplay(lang),
-      contextWindow: extractIdorContextWindow(
-        content,
-        pair.source.line,
-        pair.sink.line,
-      ),
+      fileBody,
+      bodyIsWholeFile,
       imports: extractImports(content),
-      sourcePattern: pair.source.patternText,
-      sourceLine: pair.source.line,
-      sinkPattern: pair.sink.patternText,
-      sinkLine: pair.sink.line,
-      pairDistance: pair.distance,
+      pairs,
       sidecars,
     });
-    diag.verdict = verdict;
 
-    if (!verdict || !verdict.isVulnerable) {
+    // Representative verdict for diagnostics + the harness llmError gate
+    // (a null verdict on a non-prefiltered file = LLM error). Null map =
+    // the whole call failed/parsed-empty.
+    diag.verdict = verdictByIndex ? (verdictByIndex.get(0) ?? null) : null;
+    if (!verdictByIndex) {
       this.lastDiagnostics.push(diag);
       return [];
     }
-    if (verdict.confidence === "low") {
-      this.lastDiagnostics.push(diag);
-      return [];
-    }
-    if (verdict.confidence === "medium") {
+    if (verdictByIndex.size !== pairs.length) {
       logger.warn(
-        {
-          category: "idor-review-queue",
-          file: filePath,
-          sourceLine: pair.source.line,
-          sinkLine: pair.sink.line,
-          // Log pattern IDs only: matched line text may contain secrets or PII.
-          sourcePatternId: pair.source.patternId,
-          sinkPatternId: pair.sink.patternId,
-          reasoning: verdict.reasoning,
-        },
-        "idor: medium-confidence verdict suppressed",
+        { file: filePath, pairs: pairs.length, verdicts: verdictByIndex.size },
+        "idor: verdict count != candidate count; judging only matched indices",
       );
-      this.lastDiagnostics.push(diag);
-      return [];
     }
 
-    // Lane discipline (R10) — deterministic routing bound, in code per
-    // the deterministic-safety-bounds rule: the model rationalizes past
-    // prose lane clauses (a prompt-only clause was tried and reverted),
-    // so the LLM reports lane FACTS and THIS code decides. The gate only
-    // ever converts an emit-bound HIGH verdict into a review-queue
-    // deferral; "unclear" fails open and emits, so windows that cannot
-    // see auth (Express/Go middleware frameworks) are unaffected.
-    const laneDeferral =
-      verdict.callerAuth === "unauthenticated"
-        ? "caller unauthenticated — auth-bypass lane"
-        : verdict.operationClass === "administrative"
-          ? "administrative operation — admin-check lane"
-          : null;
-    if (laneDeferral) {
-      logger.warn(
-        {
-          category: "idor-lane-deferral",
-          file: filePath,
-          sourceLine: pair.source.line,
-          sinkLine: pair.sink.line,
-          callerAuth: verdict.callerAuth,
-          operationClass: verdict.operationClass,
-          laneDeferral,
-          reasoning: verdict.reasoning,
-        },
-        "idor: HIGH verdict deferred to sibling detector lane",
-      );
-      diag.laneDeferral = laneDeferral;
-      this.lastDiagnostics.push(diag);
-      return [];
-    }
+    const findings: NormalizedFinding[] = [];
+    for (let i = 0; i < pairs.length; i++) {
+      const pair = pairs[i]!;
+      const verdict = verdictByIndex.get(i);
+      if (!verdict) continue; // unmatched index: not judged, no finding
 
-    diag.flagged = true;
-    this.lastDiagnostics.push(diag);
+      // Per-pair verdict logic — IDENTICAL to the pre-H6 single-verdict
+      // path, applied independently to each candidate site.
+      if (!verdict.isVulnerable) continue;
+      if (verdict.confidence === "low") continue;
+      if (verdict.confidence === "medium") {
+        logger.warn(
+          {
+            category: "idor-review-queue",
+            file: filePath,
+            sourceLine: pair.source.line,
+            sinkLine: pair.sink.line,
+            sourcePatternId: pair.source.patternId,
+            sinkPatternId: pair.sink.patternId,
+            reasoning: verdict.reasoning,
+          },
+          "idor: medium-confidence verdict suppressed",
+        );
+        continue;
+      }
 
-    const reportLine = pair.sink.line;
-    const snippet = extractReportSnippet(content, reportLine);
-    return [
-      {
+      // Lane discipline (R10) — deterministic routing bound per the
+      // deterministic-safety-bounds rule. "unclear" fails open and
+      // emits. Applied per candidate site.
+      const laneDeferral =
+        verdict.callerAuth === "unauthenticated"
+          ? "caller unauthenticated — auth-bypass lane"
+          : verdict.operationClass === "administrative"
+            ? "administrative operation — admin-check lane"
+            : null;
+      if (laneDeferral) {
+        logger.warn(
+          {
+            category: "idor-lane-deferral",
+            file: filePath,
+            sourceLine: pair.source.line,
+            sinkLine: pair.sink.line,
+            callerAuth: verdict.callerAuth,
+            operationClass: verdict.operationClass,
+            laneDeferral,
+            reasoning: verdict.reasoning,
+          },
+          "idor: HIGH verdict deferred to sibling detector lane",
+        );
+        diag.laneDeferral = laneDeferral;
+        continue;
+      }
+
+      const reportLine = pair.sink.line;
+      findings.push({
         detectorId: DETECTOR_ID,
         type: "idor_risk",
         file: filePath,
         startLine: reportLine,
         endLine: reportLine,
-        originalCode: snippet,
+        originalCode: extractReportSnippet(content, reportLine),
         ruleId: `idor-${pair.source.patternId}-${pair.sink.patternId}`,
         message: verdict.reasoning,
         explanation: verdict.reasoning,
         confidence: "high",
         severity: "critical",
-      },
-    ];
+      });
+    }
+
+    diag.flagged = findings.length > 0;
+    this.lastDiagnostics.push(diag);
+    return findings;
   }
 
   private shouldSkipPath(filePath: string): boolean {
@@ -858,16 +956,13 @@ export class IdorDetector implements Detector {
   private async callLlm(params: {
     filePath: string;
     language: string;
-    contextWindow: string;
+    fileBody: string;
+    bodyIsWholeFile: boolean;
     imports: string;
-    sourcePattern: string;
-    sourceLine: number;
-    sinkPattern: string;
-    sinkLine: number;
-    pairDistance: number;
+    pairs: IdorPrefilterHit[];
     sidecars?: Record<string, string>;
-  }): Promise<LlmVerdict | null> {
-    const userMessage = buildUserMessage(params);
+  }): Promise<Map<number, LlmVerdict> | null> {
+    const userMessage = buildMultiPairUserMessage(params);
     const debugLlm = process.env.FIXOR_DEBUG_IDOR_LLM === "1";
 
     if (debugLlm) {
@@ -877,8 +972,7 @@ export class IdorDetector implements Detector {
         {
           category: "idor-debug-llm-input",
           file: params.filePath,
-          sourceLine: params.sourceLine,
-          sinkLine: params.sinkLine,
+          candidatePairs: params.pairs.length,
           systemPromptFingerprint: SYSTEM_PROMPT_FINGERPRINT,
           ...(includeFullPrompt ? { systemPrompt: SYSTEM_PROMPT } : {}),
           userMessage,
@@ -917,51 +1011,77 @@ export class IdorDetector implements Detector {
       return null;
     }
 
-    const input = result.toolInput as
-      | {
-          isVulnerable?: boolean;
-          confidence?: string;
-          reasoning?: string;
-          suggestedFix?: string | null;
-          callerAuth?: string;
-          operationClass?: string;
-        }
-      | undefined;
-    if (
-      !input ||
-      typeof input.isVulnerable !== "boolean" ||
-      typeof input.confidence !== "string" ||
-      typeof input.reasoning !== "string"
-    ) {
+    const input = result.toolInput as { verdicts?: unknown } | undefined;
+    if (!input || !Array.isArray(input.verdicts)) {
       logger.warn(
         { file: params.filePath, input },
-        "idor: malformed verdict",
+        "idor: malformed verdict array",
       );
       return null;
     }
-    const conf = input.confidence.toLowerCase();
-    if (conf !== "high" && conf !== "medium" && conf !== "low") {
-      return null;
+
+    const byIndex = new Map<number, LlmVerdict>();
+    for (const raw of input.verdicts) {
+      const parsed = parseOneVerdict(raw);
+      if (!parsed) continue;
+      const { pairIndex, verdict } = parsed;
+      // Ignore out-of-range or duplicate indices (keep the first).
+      if (pairIndex < 0 || pairIndex >= params.pairs.length) continue;
+      if (!byIndex.has(pairIndex)) byIndex.set(pairIndex, verdict);
     }
-    // Lane facts parse defensively to "unclear" (fail-open: emit). A
-    // missing or malformed fact must never suppress a finding.
-    const callerAuth =
-      input.callerAuth === "authenticated" ||
-      input.callerAuth === "unauthenticated"
-        ? input.callerAuth
-        : "unclear";
-    const operationClass =
-      input.operationClass === "user_resource" ||
-      input.operationClass === "administrative"
-        ? input.operationClass
-        : "unclear";
-    return {
-      isVulnerable: input.isVulnerable,
+    // A non-failed call that parsed zero usable verdicts is still a
+    // "call happened" — return the empty map (not null) so it is not
+    // counted as an LLM error; analyzeFile simply emits nothing.
+    return byIndex;
+  }
+}
+
+/**
+ * Parse one element of the verdicts array into { pairIndex, verdict }.
+ * Lane facts default to "unclear" (fail-open: emit). Returns null on a
+ * structurally invalid element.
+ */
+function parseOneVerdict(
+  raw: unknown,
+): { pairIndex: number; verdict: LlmVerdict } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const v = raw as {
+    pairIndex?: unknown;
+    isVulnerable?: unknown;
+    confidence?: unknown;
+    reasoning?: unknown;
+    suggestedFix?: unknown;
+    callerAuth?: unknown;
+    operationClass?: unknown;
+  };
+  if (
+    typeof v.pairIndex !== "number" ||
+    !Number.isInteger(v.pairIndex) ||
+    typeof v.isVulnerable !== "boolean" ||
+    typeof v.confidence !== "string" ||
+    typeof v.reasoning !== "string"
+  ) {
+    return null;
+  }
+  const conf = v.confidence.toLowerCase();
+  if (conf !== "high" && conf !== "medium" && conf !== "low") return null;
+  const callerAuth =
+    v.callerAuth === "authenticated" || v.callerAuth === "unauthenticated"
+      ? v.callerAuth
+      : "unclear";
+  const operationClass =
+    v.operationClass === "user_resource" || v.operationClass === "administrative"
+      ? v.operationClass
+      : "unclear";
+  return {
+    pairIndex: v.pairIndex,
+    verdict: {
+      isVulnerable: v.isVulnerable,
       confidence: conf as LlmVerdict["confidence"],
-      reasoning: input.reasoning,
-      suggestedFix: input.suggestedFix ?? null,
+      reasoning: v.reasoning,
+      suggestedFix: typeof v.suggestedFix === "string" ? v.suggestedFix : null,
       callerAuth,
       operationClass,
-    };
-  }
+    },
+  };
 }
