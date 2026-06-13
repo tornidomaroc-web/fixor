@@ -37,8 +37,15 @@
       "accounts.js": { "idor": "0/5", "auth-bypass": "5/5", "admin-check": "0/5" }
     },
     "idor_cross_fire": "ABSENT — hypothesis REFUTED. idor fired 0/5 on accounts.js, not the predicted cross-fire. The FastAPI lane envelope transfers to Express: idor fires only on the genuine IDOR (documents.js 5/5) and stays in its lane on both the admin route (0/5) and the unauthenticated route (0/5). H7 does NOT need to touch Express IDOR.",
-    "real_cross_fire_found": "auth-bypass <-> admin-check on admin.js (both 5/5). On the auth-only-on-admin-op route, auth-bypass cross-fires into admin-check's lane (the dominant defect is the missing ADMIN gate). These two detectors have NO lane facts / routing today. This is the Express cross-fire H7 should address — NOT idor, and via the auth-bypass/admin-check pair.",
+    "real_cross_fire_found": "auth-bypass <-> admin-check on admin.js (both 5/5). On the auth-only-on-admin-op route, auth-bypass cross-fires into admin-check's lane (the dominant defect is the missing ADMIN gate). These two detectors have NO lane facts / routing today. This is the Express cross-fire H7 should address — NOT idor, and via the auth-bypass/admin-check pair. RESOLVED by H7 (06a130b, 2026-06-13): auth-bypass now reports lane facts and DEFERS admin.js POST /:id/role to admin-check — measured auth-bypass 0/5 (deferred 5/5), admin-check 5/5 in the H7 lane corpus; see post_h7_lane_fix_2026_06_13.",
     "note": "Fixture cross_fire_hypothesis above (idor) was the pre-measurement prediction; it was wrong. Kept as the recorded hypothesis; this block is the measured truth."
+  },
+  "post_h7_lane_fix_2026_06_13": {
+    "shipped": "06a130b — H7 Phase 2, auth-bypass<->admin-check lane discipline",
+    "source": "test-output/auth-bypass-lane-h7-2026-06-13.log (H7 lane corpus, n=5, 50/50 calls clean). NOT a test:express-lane re-run — sourced from the saved H7 log to avoid spend.",
+    "change": "auth-bypass now reports lane facts (authPresent, operationKind) and deterministically defers a route-def finding to admin-check's lane when authPresent='yes' AND operationKind='admin'. admin.js POST /:id/role is exactly that shape (requireAuth present, requireAdmin absent), so auth-bypass now DEFERS instead of cross-firing.",
+    "admin_js_now": "auth-bypass 0/5 (deferred 5/5), admin-check 5/5 — was auth-bypass 5/5 cross-fire pre-H7",
+    "result": "The auth-bypass<->admin-check cross-fire on admin.js recorded in measured_result_2026_06_13 is RESOLVED: admin.js now draws one correctly-labeled admin-check finding, matching expected_lane_behavior (which always specified 'auth-bypass silent (auth present)'). idor (0/5) and the documents.js / accounts.js cells are UNCHANGED — H7 touched only auth-bypass's deferral, not idor or admin-check; those cells were not re-measured and stand as in measured_result_2026_06_13."
   },
   "expected_clear_controls": [
     { "file": "src/routes/documents.js", "route": "GET /", "why": "List scoped to ownerId == req.user.id; no request-id source." },
