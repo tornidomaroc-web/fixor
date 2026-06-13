@@ -183,6 +183,24 @@ A prior step (`suppressAdminCheckWhereAuthBypass`) dropped every `admin-check` f
 
 **Consequence (a known limitation, not a defect):** because nothing is suppressed across detectors, one vulnerable route can draw two or three findings with different labels, and a cross-wired finding's mechanism description can be imprecise. That labeling work is tracked but not yet shipped. This is why a multi-detector scan emits more findings than there are vulnerable routes (finding-count inflation), with no effect on the false-positive count on safe routes. Visible cross-fire noise is self-announcing and is addressed at the detector/prompt layer, never by deleting findings. **Update (H7, 2026-06-13):** the auth-bypass↔admin-check cross-fire on authenticated-admin routes (auth present, no admin gate) is now resolved at the detector layer — auth-bypass reports lane facts and defers that shape to admin-check (see auth-bypass §Lane discipline), so the route draws one correctly-labeled admin-check finding instead of a cross-fired pair. This is the same mechanism IDOR already uses to defer to its siblings; it stands down the less-specific detector via its own verdict, and still never deletes another detector's finding.
 
+## Verdict-layer escalation (H8, Phase H Tier 3, 2026-06-13) — EXPERIMENTAL, default-OFF
+
+**Status: mechanism-validated, NOT accuracy-validated. The flag ships OFF and stays OFF for real scans.** This section does not add or widen any CLAIMS — it documents an internal capability that is wired but not enabled.
+
+**What it is.** A MEDIUM-confidence verdict from any of the six detectors is otherwise suppressed to the internal review queue and dies there (the audit's "fuzzy middle"). When `FIXOR_ESCALATE_MEDIUM=true`, that MEDIUM is re-asked to a stronger second model (Opus 4.8, `claude-opus-4-8`) with WHOLE-FILE context and a structured promote/clear/uncertain question, through one shared module (`src/analysis-engine/verdict-escalation.ts`, `resolveMediumVerdict`). The detection model stays Sonnet 4.6; escalation is a bounded, flagged second pass reached only on a MEDIUM (single digits per corpus).
+
+**Deterministic handling, non-deterministic model.** Opus 4.8 has no `temperature:0` and is not run-to-run deterministic. What is deterministic is the mapping of its structured `decision`: `promote_to_high → emit HIGH`, `clear → drop`, and a **total fail-safe** — `still_uncertain`, refusal, no tool_use, timeout, http_error, parse_error, or a missing API key all collapse to `review-queue` (today's behavior). The escalation call is tagged `coverage:"auxiliary"`, so an escalation failure never degrades scan-coverage integrity.
+
+**Flag OFF (default) is inert.** `resolveMediumVerdict` returns `review-queue` on its first line, before any client is constructed or any call is made — proven by the off-path acceptance test (`lastEscalationDiag` stays null). The six detector MEDIUM branches behave byte-identically to pre-H8; `test:ci` is green with the flag unset. IDOR keeps its own per-pair `continue` control flow and source/sink telemetry — the shared module returns a uniform decision, it does not flatten that difference.
+
+**What "validated" means here (binding scope).** Validation is the 4-anchor falsifier in `src/test/test-h8-escalation-anchors.ts` (`npm run test:h8-escalation`, K=5 replays each, any flip = fail; log: `test-output/h8-escalation/anchors-k5-run1.json`, $0.26 spend):
+- `POS-15` outlook no-compare → **promote** (5/5) — real vuln rescued from the queue.
+- outlook neg/15 clientState challenge → **clear** (5/5) — in-file compare+403 recognized.
+- H5 idor-tenant neg/02 membership → **clear** (5/5) — in-file membership check recognized as tenant scoping.
+- apple neg/14 cross-file verifier → **stay-uncertain** (5/5) — the binding negative control: the verifier body is cross-file, so escalation must NOT clear; it correctly refused on every replay.
+
+This authorizes ONLY **"the wiring is correct and fail-safe."** It is **NOT an accuracy claim.** Four anchors (1 promote / 2 clear / 1 uncertain) exercise all three branches but cannot substantiate an escalation accuracy number — that requires a proper MEDIUM corpus (≥8–10 cases/lane with symmetric pins, run K-of-N) which does not exist yet. K=5-with-zero-flips bounds only gross instability; a true stability claim would need K≈20+. Until that corpus exists, the flag is experimental and default-off; do not flip it on for real scans and do not advertise escalation on any public surface.
+
 ## When this file changes
 
 Three rules:

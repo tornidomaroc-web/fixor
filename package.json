@@ -39,6 +39,7 @@
     "test:auth-bypass-lane": "npm run build && node dist/test/test-auth-bypass-lane.js",
     "test:route-guard-resolver": "npm run build && node dist/test/test-route-guard-resolver.js",
     "test:layout-guard": "npm run build && node dist/test/test-layout-guard.js",
+    "test:h8-escalation": "npm run build && node --env-file=.env dist/test/test-h8-escalation-anchors.js",
     "validate:layout-guard-documenso": "npm run build && node dist/test/validate-documenso-layout-guard.js",
     "test:smoke": "npm run build && node dist/test/test-suppression-smoke.js",
     "test:real": "npm run build && node dist/real-tests/run-real-tests.js",

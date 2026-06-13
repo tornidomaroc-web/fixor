@@ -28,6 +28,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { resolveMediumVerdict } from "../verdict-escalation";
 import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 
 const DETECTOR_ID = "secrets-exposure-multi";
@@ -576,18 +577,46 @@ export class SecretsExposureDetector implements Detector {
       return [];
     }
     if (verdict.confidence === "medium") {
+      // H8: route the MEDIUM through the shared verdict-layer escalation.
+      // Flag OFF (default) → resolveMediumVerdict returns "review-queue"
+      // synchronously (no call), so this branch behaves exactly as before.
+      const escalation = await resolveMediumVerdict({
+        detectorId: DETECTOR_ID,
+        findingType: "secrets_exposure_risk",
+        filePath,
+        candidateLine: trigger.line,
+        originalReasoning: verdict.reasoning,
+        wholeFileContent: content,
+      });
+      if (escalation !== "emit-high") {
+        if (escalation === "review-queue") {
+          logger.warn(
+            {
+              category: "secrets-exposure-review-queue",
+              file: filePath,
+              line: trigger.line,
+              pattern: trigger.patternText,
+              reasoning: verdict.reasoning,
+            },
+            "secrets-exposure: medium-confidence verdict suppressed",
+          );
+        }
+        // "drop": escalation cleared it — silent, like LOW.
+        this.lastDiagnostics.push(diag);
+        return [];
+      }
+      // "emit-high": escalation promoted the MEDIUM — fall through to the
+      // HIGH-emit path below.
       logger.warn(
         {
-          category: "secrets-exposure-review-queue",
+          category: "secrets-exposure-escalation-promoted",
           file: filePath,
           line: trigger.line,
           pattern: trigger.patternText,
           reasoning: verdict.reasoning,
         },
-        "secrets-exposure: medium-confidence verdict suppressed",
+        "secrets-exposure: medium-confidence verdict promoted to HIGH by escalation",
       );
-      this.lastDiagnostics.push(diag);
-      return [];
     }
 
     diag.flagged = true;

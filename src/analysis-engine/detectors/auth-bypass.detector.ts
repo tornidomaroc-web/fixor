@@ -28,6 +28,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { resolveMediumVerdict } from "../verdict-escalation";
 import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 import {
   APP_ROUTER_ROUTE_DEF_RE,
@@ -711,18 +712,48 @@ export class AuthBypassDetector implements Detector {
       return [];
     }
     if (verdict.confidence === "medium") {
+      // H8: route the MEDIUM through the shared verdict-layer escalation.
+      // Flag OFF (default) → resolveMediumVerdict returns "review-queue"
+      // synchronously (no call), so this branch behaves exactly as before.
+      // A promoted (emit-high) verdict falls through to the H7 lane gate
+      // below — a promoted HIGH still respects lane discipline.
+      const escalation = await resolveMediumVerdict({
+        detectorId: DETECTOR_ID,
+        findingType: "auth_bypass_risk",
+        filePath,
+        candidateLine: trigger.line,
+        originalReasoning: verdict.reasoning,
+        wholeFileContent: content,
+      });
+      if (escalation !== "emit-high") {
+        if (escalation === "review-queue") {
+          logger.warn(
+            {
+              category: "auth-bypass-review-queue",
+              file: filePath,
+              line: trigger.line,
+              pattern: trigger.patternText,
+              reasoning: verdict.reasoning,
+            },
+            "auth-bypass: medium-confidence verdict suppressed",
+          );
+        }
+        // "drop": escalation cleared it — silent, like LOW.
+        this.lastDiagnostics.push(diag);
+        return [];
+      }
+      // "emit-high": escalation promoted the MEDIUM — fall through to the
+      // lane gate + HIGH-emit path below.
       logger.warn(
         {
-          category: "auth-bypass-review-queue",
+          category: "auth-bypass-escalation-promoted",
           file: filePath,
           line: trigger.line,
           pattern: trigger.patternText,
           reasoning: verdict.reasoning,
         },
-        "auth-bypass: medium-confidence verdict suppressed",
+        "auth-bypass: medium-confidence verdict promoted to HIGH by escalation",
       );
-      this.lastDiagnostics.push(diag);
-      return [];
     }
 
     // Lane discipline (H7, 2026-06-13) — deterministic routing bound in

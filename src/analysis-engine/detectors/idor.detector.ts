@@ -35,6 +35,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { resolveMediumVerdict } from "../verdict-escalation";
 import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 import { SIDECAR_KINDS } from "../sidecar-kinds";
 import { extractReportSnippet } from "./shared/route-def-pattern";
@@ -881,9 +882,44 @@ export class IdorDetector implements Detector {
       if (!verdict.isVulnerable) continue;
       if (verdict.confidence === "low") continue;
       if (verdict.confidence === "medium") {
+        // H8: route the MEDIUM through the shared verdict-layer escalation.
+        // Flag OFF (default) → resolveMediumVerdict returns "review-queue"
+        // synchronously (no call), so this per-pair branch behaves exactly
+        // as before. IDOR keeps its OWN telemetry shape (source/sink lines +
+        // both pattern ids) and its `continue` control flow — the shared
+        // module returns a uniform decision; it does NOT flatten this.
+        const escalation = await resolveMediumVerdict({
+          detectorId: DETECTOR_ID,
+          findingType: "idor_risk",
+          filePath,
+          candidateLine: pair.sink.line,
+          originalReasoning: verdict.reasoning,
+          wholeFileContent: content,
+        });
+        if (escalation !== "emit-high") {
+          if (escalation === "review-queue") {
+            logger.warn(
+              {
+                category: "idor-review-queue",
+                file: filePath,
+                sourceLine: pair.source.line,
+                sinkLine: pair.sink.line,
+                sourcePatternId: pair.source.patternId,
+                sinkPatternId: pair.sink.patternId,
+                reasoning: verdict.reasoning,
+              },
+              "idor: medium-confidence verdict suppressed",
+            );
+          }
+          // "drop": escalation cleared it — silent, like LOW.
+          continue;
+        }
+        // "emit-high": escalation promoted the MEDIUM — fall through to the
+        // lane-deferral (R10) + HIGH-emit path below. A promoted HIGH still
+        // respects lane discipline, exactly like a native HIGH verdict.
         logger.warn(
           {
-            category: "idor-review-queue",
+            category: "idor-escalation-promoted",
             file: filePath,
             sourceLine: pair.source.line,
             sinkLine: pair.sink.line,
@@ -891,9 +927,8 @@ export class IdorDetector implements Detector {
             sinkPatternId: pair.sink.patternId,
             reasoning: verdict.reasoning,
           },
-          "idor: medium-confidence verdict suppressed",
+          "idor: medium-confidence verdict promoted to HIGH by escalation",
         );
-        continue;
       }
 
       // Lane discipline (R10) — deterministic routing bound per the

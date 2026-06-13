@@ -33,6 +33,7 @@ import { deriveFindingId } from "../detector.types";
 import { callClaude, cachedSystem } from "../anthropic-client";
 import { CLAUDE_MODELS } from "../../config/models";
 import { logger } from "../../lib/logger";
+import { resolveMediumVerdict } from "../verdict-escalation";
 import { parseDiff, remapFindingLines } from "./shared/diff-parser";
 import {
   APP_ROUTER_ROUTE_DEF_RE,
@@ -549,18 +550,46 @@ export class WebhookUnverifiedDetector implements Detector {
       return [];
     }
     if (verdict.confidence === "medium") {
+      // H8: route the MEDIUM through the shared verdict-layer escalation.
+      // Flag OFF (default) → resolveMediumVerdict returns "review-queue"
+      // synchronously (no call), so this branch behaves exactly as before.
+      const escalation = await resolveMediumVerdict({
+        detectorId: DETECTOR_ID,
+        findingType: "webhook_unverified_risk",
+        filePath,
+        candidateLine: trigger.line,
+        originalReasoning: verdict.reasoning,
+        wholeFileContent: content,
+      });
+      if (escalation !== "emit-high") {
+        if (escalation === "review-queue") {
+          logger.warn(
+            {
+              category: "webhook-unverified-review-queue",
+              file: filePath,
+              line: trigger.line,
+              pattern: trigger.patternText,
+              reasoning: verdict.reasoning,
+            },
+            "webhook-unverified: medium-confidence verdict suppressed",
+          );
+        }
+        // "drop": escalation cleared it — silent, like LOW.
+        this.lastDiagnostics.push(diag);
+        return [];
+      }
+      // "emit-high": escalation promoted the MEDIUM — fall through to the
+      // HIGH-emit path below.
       logger.warn(
         {
-          category: "webhook-unverified-review-queue",
+          category: "webhook-unverified-escalation-promoted",
           file: filePath,
           line: trigger.line,
           pattern: trigger.patternText,
           reasoning: verdict.reasoning,
         },
-        "webhook-unverified: medium-confidence verdict suppressed",
+        "webhook-unverified: medium-confidence verdict promoted to HIGH by escalation",
       );
-      this.lastDiagnostics.push(diag);
-      return [];
     }
 
     diag.flagged = true;

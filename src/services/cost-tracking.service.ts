@@ -21,6 +21,9 @@ export interface ModelPricing {
 export const MODEL_PRICING: Record<ClaudeModelId, ModelPricing> = {
   "claude-sonnet-4-6": { input: 3.0, output: 15.0 },
   "claude-opus-4-7": { input: 15.0, output: 75.0 },
+  // H8 escalation model. Opus 4.8 is priced BELOW Opus 4.7 ($5/$25 vs
+  // $15/$75); it is only reached on flagged MEDIUM escalations.
+  "claude-opus-4-8": { input: 5.0, output: 25.0 },
   "claude-haiku-4-5-20251001": { input: 0.8, output: 4.0 },
 };
 

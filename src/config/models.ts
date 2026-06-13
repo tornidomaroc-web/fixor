@@ -11,6 +11,13 @@ export const CLAUDE_MODELS = {
   DETECTION: "claude-sonnet-4-6",
   /** Heavier reasoning — used for fix generation and risk explanation. */
   REASONING: "claude-opus-4-7",
+  /**
+   * Stronger second-opinion model for the H8 MEDIUM-verdict escalation
+   * (Phase H Tier 3). ONLY reached on a MEDIUM-confidence verdict when the
+   * FIXOR_ESCALATE_MEDIUM flag is on (off by default). Detection stays on
+   * DETECTION (Sonnet 4.6); this is a bounded, flagged second pass.
+   */
+  ESCALATION: "claude-opus-4-8",
   /** Low-latency fallback for trivial transformations. */
   HAIKU: "claude-haiku-4-5-20251001",
 } as const;
@@ -41,6 +48,15 @@ export const MODEL_DEFAULTS: Record<ClaudeModelId, ModelDefaults> = {
   [CLAUDE_MODELS.REASONING]: {
     // Opus 4.7 deprecated `temperature`; rely on the API server-side default.
     maxTokens: 4096,
+    timeoutMs: 60_000,
+  },
+  [CLAUDE_MODELS.ESCALATION]: {
+    // Opus 4.8 also deprecates `temperature` (same family as 4.7) — omit it
+    // and rely on the server-side default. NOTE: this means the escalation
+    // verdict is NOT run-to-run deterministic; the H8 anchor gate replays
+    // each anchor K times and treats any flip as a failure. The structured
+    // answer is small (one decision + reasoning), so a tight token cap.
+    maxTokens: 1024,
     timeoutMs: 60_000,
   },
   [CLAUDE_MODELS.HAIKU]: {

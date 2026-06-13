@@ -1,0 +1,228 @@
+{
+  "k": 5,
+  "model": "claude-opus-4-8",
+  "cumulativeUsd": 0.255325,
+  "allPass": true,
+  "outcomes": [
+    {
+      "id": "POS-15-outlook-no-compare",
+      "expected": "emit-high",
+      "pass": true,
+      "flipped": false,
+      "decisions": [
+        "emit-high",
+        "emit-high",
+        "emit-high",
+        "emit-high",
+        "emit-high"
+      ],
+      "replays": [
+        {
+          "k": 1,
+          "decision": "emit-high",
+          "decisionRaw": "promote_to_high",
+          "reasoning": "The handler reads notification.clientState into an unused variable and never compares it against an expected secret; the comment confirms notifications are processed regardless, so the Graph clientState verification control is genuinely absent in this file.",
+          "failure": null,
+          "usd": 0.01252
+        },
+        {
+          "k": 2,
+          "decision": "emit-high",
+          "decisionRaw": "promote_to_high",
+          "reasoning": "The handler reads notification.clientState into _clientState but never compares it against any expected secret; the comment confirms \"No compare\" and the notification is processed unconditionally, so the verification control is genuinely absent in this file.",
+          "failure": null,
+          "usd": 0.012545
+        },
+        {
+          "k": 3,
+          "decision": "emit-high",
+          "decisionRaw": "promote_to_high",
+          "reasoning": "The handler reads notification.clientState into an unused variable and explicitly never compares it against any expected secret before calling processGraphNotification; no verification control is present anywhere in the file, so the Graph webhook is processed unverified.",
+          "failure": null,
+          "usd": 0.012645
+        },
+        {
+          "k": 4,
+          "decision": "emit-high",
+          "decisionRaw": "promote_to_high",
+          "reasoning": "The handler reads notification.clientState into a discarded variable but never compares it to an expected secret; the comment confirms notifications are processed regardless, so the protective control is genuinely absent in this file.",
+          "failure": null,
+          "usd": 0.012395
+        },
+        {
+          "k": 5,
+          "decision": "emit-high",
+          "decisionRaw": "promote_to_high",
+          "reasoning": "The handler reads notification.clientState but never compares it against an expected secret (comment explicitly states \"No compare\"); the notification is processed unconditionally with no verification, so the protective control is genuinely absent in this file.",
+          "failure": null,
+          "usd": 0.012545
+        }
+      ]
+    },
+    {
+      "id": "neg-15-outlook-clientstate-challenge",
+      "expected": "drop",
+      "pass": true,
+      "flipped": false,
+      "decisions": [
+        "drop",
+        "drop",
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "replays": [
+        {
+          "k": 1,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "The handler reads notification.clientState and compares it to process.env.GRAPH_CLIENT_STATE, returning 403 on mismatch before processGraphNotification — a complete read+compare+reject control gating the sink, visible in this file.",
+          "failure": null,
+          "usd": 0.0128
+        },
+        {
+          "k": 2,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "The handler reads notification.clientState and compares it against process.env.GRAPH_CLIENT_STATE, returning 403 on mismatch before processing — a complete read+compare+reject control gating the sink, fully visible in this file.",
+          "failure": null,
+          "usd": 0.012725
+        },
+        {
+          "k": 3,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "The handler reads notification.clientState and compares it against process.env.GRAPH_CLIENT_STATE, returning 403 on mismatch before processGraphNotification runs — a complete read+compare+reject control gating the sink is visible in-file.",
+          "failure": null,
+          "usd": 0.01285
+        },
+        {
+          "k": 4,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "The handler compares notification.clientState against process.env.GRAPH_CLIENT_STATE and returns 403 on mismatch before processGraphNotification runs — a complete read+compare+reject control gating the sink is fully visible in this file.",
+          "failure": null,
+          "usd": 0.0128
+        },
+        {
+          "k": 5,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "The handler reads notification.clientState and compares it against process.env.GRAPH_CLIENT_STATE, returning 403 on mismatch before processGraphNotification is ever called — the full read+compare+reject-on-mismatch control gates the sink in-file.",
+          "failure": null,
+          "usd": 0.012975
+        }
+      ]
+    },
+    {
+      "id": "H5-idor-tenant-neg-02-membership",
+      "expected": "drop",
+      "pass": true,
+      "flipped": false,
+      "decisions": [
+        "drop",
+        "drop",
+        "drop",
+        "drop",
+        "drop"
+      ],
+      "replays": [
+        {
+          "k": 1,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "After fetching the project, the handler does an in-file membership lookup tying req.user.id to project.organizationId and returns 403 on no match, gating the sink with a visible ownership/membership check.",
+          "failure": null,
+          "usd": 0.01289
+        },
+        {
+          "k": 2,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "After fetching the project, the handler performs an in-file membership check (req.user.id + project.organizationId) and returns 403 on mismatch, gating the sink with a visible ownership/membership control.",
+          "failure": null,
+          "usd": 0.012915
+        },
+        {
+          "k": 3,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "After fetching the project, the handler does an in-file membership lookup tying req.user.id to project.organizationId and returns 403 on mismatch, fully gating the sink before returning the record.",
+          "failure": null,
+          "usd": 0.01284
+        },
+        {
+          "k": 4,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "After fetching the project, the handler performs an in-file membership lookup tying req.user.id to project.organizationId and returns 403 if no membership exists, fully gating the response on the caller's org membership.",
+          "failure": null,
+          "usd": 0.01294
+        },
+        {
+          "k": 5,
+          "decision": "drop",
+          "decisionRaw": "clear",
+          "reasoning": "The handler fetches the project, then performs a membership check (userId = req.user.id against project.organizationId) and returns 403 on mismatch before returning the record — a complete ownership/membership control gating the sink is fully visible in this file.",
+          "failure": null,
+          "usd": 0.013215
+        }
+      ]
+    },
+    {
+      "id": "neg-14-apple-cross-file-verifier",
+      "expected": "review-queue",
+      "pass": true,
+      "flipped": false,
+      "decisions": [
+        "review-queue",
+        "review-queue",
+        "review-queue",
+        "review-queue",
+        "review-queue"
+      ],
+      "replays": [
+        {
+          "k": 1,
+          "decision": "review-queue",
+          "decisionRaw": "still_uncertain",
+          "reasoning": "The verification depends on the imported verifyApplePayload helper whose body is in another file (@/lib/apple/verify); the reject-on-mismatch gate is visible but whether it performs real cryptographic verification cannot be confirmed from this file alone.",
+          "failure": null,
+          "usd": 0.01278
+        },
+        {
+          "k": 2,
+          "decision": "review-queue",
+          "decisionRaw": "still_uncertain",
+          "reasoning": "The verification is delegated to the imported helper verifyApplePayload from \"@/lib/apple/verify\", whose body is not in this file; the gating shape (reject on !verified) is present but the actual signature-verification logic lives cross-file, so safety cannot be confirmed here.",
+          "failure": null,
+          "usd": 0.01298
+        },
+        {
+          "k": 3,
+          "decision": "review-queue",
+          "decisionRaw": "still_uncertain",
+          "reasoning": "The gate shape (verify + reject-on-failure) is visible, but verifyApplePayload's implementation lives in another file (@/lib/apple/verify), so whether signature verification is genuinely enforced cannot be confirmed from this file alone.",
+          "failure": null,
+          "usd": 0.012755
+        },
+        {
+          "k": 4,
+          "decision": "review-queue",
+          "decisionRaw": "still_uncertain",
+          "reasoning": "The gating shape (verify + reject-on-failure) is present, but verifyApplePayload is imported from @/lib/apple/verify and its implementation is not in this file, so the actual signature verification cannot be confirmed here.",
+          "failure": null,
+          "usd": 0.012555
+        },
+        {
+          "k": 5,
+          "decision": "review-queue",
+          "decisionRaw": "still_uncertain",
+          "reasoning": "The gate shape (verify, reject-on-mismatch with 401) is visible, but verifyApplePayload's implementation lives in @/lib/apple/verify and isn't in this file, so I cannot confirm the signature check is effective.",
+          "failure": null,
+          "usd": 0.012655
+        }
+      ]
+    }
+  ]
+}
