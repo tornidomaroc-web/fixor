@@ -145,7 +145,7 @@ Per-fix object fields:
 | `originalCode` | string | The original snippet the fix targets. |
 | `fixedCode` | string | The proposed replacement. |
 | `explanation` | string | Why this is vulnerable and what the fix does, in prose. |
-| `confidence` | string | `high` or `medium` (low is filtered before emission). |
+| `confidence` | string | The model's own self-reported confidence (not an externally calibrated or validated score): `high` or `medium` (low is filtered before emission). |
 | `patchQuality` | string | `high`, `medium`, or `low`. |
 | `patchWarnings` | array | Strings flagging caveats on the patch (e.g. "schema not verified"). |
 | `metadata` | object (optional) | Family-specific extras, discriminated by `findingType`. |

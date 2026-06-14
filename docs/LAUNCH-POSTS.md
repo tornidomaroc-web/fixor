@@ -347,7 +347,9 @@ business-logic flaws anyway. Fixor flips that:
 ✓ Install once on GitHub
 ✓ Open a PR, get a structured review back in ~30s
 ✓ A precise explanation and remediation steps per finding (Claude
-  reasons about your specific code, not regex)
+  reasons about your specific code for five of the six detectors, not
+  just regex; the hardcoded-secrets detector runs on high-precision
+  patterns)
 ✓ Branded PDF + SARIF report linked in the comment
 ✓ Per-org Anthropic budget cap so the bill never surprises you
 ✓ Real free tier: 5 scans/month on public repos, all 6 detectors,

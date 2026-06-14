@@ -27,7 +27,8 @@ Open or update a PR on a watched repo. Within ~30 seconds Fixor:
 
 1. Receives the GitHub webhook
 2. Pulls the diff (only the changed lines, never the full repo)
-3. Sends it to Claude for analysis
+3. Scans the diff with its detectors — regex prefilters, plus Claude
+   for the model-backed detectors
 4. Posts a structured comment back
 
 There's no CI step to wire and no token to rotate. Fixor speaks

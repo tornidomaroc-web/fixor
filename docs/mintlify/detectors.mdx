@@ -7,9 +7,12 @@ Fixor ships six detector families. All six run on every scan unless
 you have narrowed the allowlist in your org settings. Each detector
 is implemented as a `Detector` class under
 [`src/analysis-engine/detectors/`](https://github.com/tornidomaroc-web/fixor/tree/main/src/analysis-engine/detectors)
-and is gated by a regex prefilter before any LLM call, so a file
-that contains none of the detector's sentinel patterns is dropped
-without spending a token.
+and is gated by a regex prefilter, so a file that contains none of
+the detector's sentinel patterns is dropped without spending a token.
+Five of the six detectors then send prefilter hits to Claude for a
+verdict; `secrets-exposure` is regex-only by default and emits
+deterministically without an LLM call (its opt-in LLM path is off by
+default — see the Hardcoded secrets section).
 
 The authoritative scope contract for what each detector catches and
 explicitly does not catch lives at
@@ -256,6 +259,14 @@ What we look for:
 - Supabase service-role key reaching client-side code.
 - Firebase admin SDK credentials inside client components.
 
+<Note>
+  This detector runs on **high-precision literal patterns and emits a
+  finding deterministically from the regex match with a hand-authored
+  explanation — no LLM call by default.** The LLM-validation path is
+  opt-in (`FIXOR_SECRETS_LLM_OPT_IN`) and off by default, chosen so the
+  model never re-quotes a matched secret into the output.
+</Note>
+
 Explicitly not covered: secrets in git history (only the present tree
 is scanned), secrets in built bundles after a build step, secrets in
 `.env*` files (path-skipped) or test fixtures (path-skipped), secrets
@@ -393,21 +404,27 @@ Each detector follows the same two-stage pipeline:
 1. **Regex prefilter:** sentinel strings plus (for `auth-bypass`,
    `admin-check`, `webhook-unverified`) route-definition patterns.
    Files with zero matches are dropped without an LLM call. This is
-   what keeps a scan's cost bounded — typically about $0.012 per file
-   for the base analyzer pass, plus roughly $0.036 extra per
-   route-shape file (Next.js App Router HTTP-method exports or
-   Express-family `router.METHOD(...)` declarations) where three
-   additional detector passes run. The CLI prints a corpus-specific
-   estimate before each scan, so you see the actual figure for your
-   repo rather than a flat per-file number.
+   what keeps a scan's cost bounded: a file costs an LLM call only for
+   each model-backed detector whose prefilter it trips, so route-shape
+   files (Next.js App Router HTTP-method exports or Express-family
+   `router.METHOD(...)` declarations, where the three route-shape
+   detectors run) cost more than a file that trips a single detector,
+   and a file that trips none costs nothing. The CLI prints a
+   corpus-specific estimate before each scan, so you see the actual
+   figure for your repo rather than a flat per-file number.
 2. **LLM verdict:** for files that pass the prefilter, Claude reads
    the full file (for route-definition triggers) or a windowed
    context (for sentinel triggers) and produces a confidence-graded
-   verdict. Only HIGH confidence verdicts surface as PR-comment
-   findings; MEDIUM verdicts land in an internal review queue.
+   verdict. (`secrets-exposure` is the exception — by default it emits
+   from the regex match directly, with no LLM verdict.) The
+   `high`/`medium`/`low` tier is the model's own self-reported
+   confidence, not an externally calibrated or validated score. The
+   emit policy is HIGH-only: only HIGH verdicts surface as PR-comment
+   findings, MEDIUM verdicts land in an internal review queue, and LOW
+   is dropped.
 
-The driver of false-positive control is Claude reasoning per
-finding, not a single tunable rate.
+The driver of false-positive control is Claude reasoning per finding
+(for the five model-backed detectors), not a single tunable rate.
 
 ## What about false positives?
 
