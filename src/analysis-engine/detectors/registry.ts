@@ -15,10 +15,6 @@
 
 import type { Detector } from "../detector.types";
 import type { FindingType } from "../types";
-import { SqlInjectionDetector } from "./sql-injection.detector";
-import { XssDetector } from "./xss.detector";
-import { CommandInjectionDetector } from "./command-injection.detector";
-import { PathTraversalDetector } from "./path-traversal.detector";
 import { AuthBypassDetector } from "./auth-bypass.detector";
 import { SecretsExposureDetector } from "./secrets-exposure.detector";
 import { WebhookUnverifiedDetector } from "./webhook-unverified.detector";
@@ -51,10 +47,6 @@ export const SHIPPING_DETECTOR_IDS: ReadonlySet<string> = new Set<string>([
 ]);
 
 export const DETECTORS: readonly Detector[] = [
-  new SqlInjectionDetector(),
-  new XssDetector(),
-  new CommandInjectionDetector(),
-  new PathTraversalDetector(),
   new AuthBypassDetector(),
   new SecretsExposureDetector(),
   new WebhookUnverifiedDetector(),
