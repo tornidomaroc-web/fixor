@@ -10,11 +10,11 @@
 
 > **Detects 6 business-logic vulnerability classes in Node/TypeScript: auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, and unverified webhooks.**
 
-[Landing](https://tornidomaroc-web.github.io/fixor/) ·
+[Landing](https://fixor.dev/) ·
 [Dashboard](https://app.fixor.dev) ·
 [Docs](https://docs.fixor.dev) ·
 [Status](https://status.fixor.dev) ·
-[Security](https://tornidomaroc-web.github.io/fixor/security.html)
+[Security](https://fixor.dev/security.html)
 
 </div>
 
@@ -143,7 +143,7 @@ docs/                     # Roadmap, marketplace listing, status-page, legal, mi
 
 ## Security
 
-Every claim in this README is checkable against the source — Fixor is fully open. The trust center page at [`landing/security.html`](landing/security.html) (live at `https://tornidomaroc-web.github.io/fixor/security.html`) has the full posture: HMAC-verified webhooks on both inbound surfaces, in-memory diff handling, signed report URLs, hashed API tokens, redacted Pino logs, audit trail in `audit_log`. Vulnerability disclosure: email `support@fixor.dev` with subject `SECURITY:`. Safe-harbor terms in the trust center page.
+Every claim in this README is checkable against the source — Fixor is fully open. The trust center page at [`landing/security.html`](landing/security.html) (live at `https://fixor.dev/security.html`) has the full posture: HMAC-verified webhooks on both inbound surfaces, in-memory diff handling, signed report URLs, hashed API tokens, redacted Pino logs, audit trail in `audit_log`. Vulnerability disclosure: email `support@fixor.dev` with subject `SECURITY:`. Safe-harbor terms in the trust center page.
 
 ## Contributing
 
