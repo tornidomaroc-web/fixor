@@ -471,13 +471,16 @@
 | | |
 |-|-|
 | **Workflow status** | ✅ `success` |
-| **Findings** | 2 |
-| **Detection confidence** | high: 2 |
+| **Findings** | 5 |
+| **Detection confidence** | high: 5 |
 
 ### Findings
 
-▸ 1. `src/auth/session.js:42` · `AUTH_BYPASS` · **high**
-▸ 2. `src/api/orders.js:87` · `IDOR` · **high**
+▸ 1. `src/routes/admin.ts:25` · `AUTH_BYPASS` · **high**
+▸ 2. `src/routes/orders.ts:9` · `IDOR` · **high**
+▸ 3. `src/routes/users.ts:12` · `ADMIN_CHECK` · **high**
+▸ 4. `src/routes/debug.ts:7` · `ENV_EXPOSURE` · **high**
+▸ 5. `src/config/payments.ts:4` · `SECRETS_EXPOSURE` · **high**
 
 ---
 
