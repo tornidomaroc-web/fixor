@@ -243,3 +243,54 @@ export function resolveRemixRouteGuard(
   if (proven.length === 0) return null;
   return renderGuardSidecar(proven);
 }
+
+/**
+ * Enumerate the candidate ancestor `_layout.*` file paths for a Remix/RR
+ * v7 route, walking the route's directory chain up to (and including) the
+ * `.../routes` root.
+ *
+ * This is the FETCH-CANDIDATE list for environments that have no
+ * synchronous filesystem — the GitHub App / webhook path, which can only
+ * fetch a file by path asynchronously (`fetchFileAtRef`). The caller
+ * fetches each candidate, populates an in-memory `GuardFs`, then calls
+ * `resolveRemixRouteGuard(routePath, memFs)` — which ALONE makes the
+ * PROVEN/UNVERIFIED coverage decision.
+ *
+ * By design this function contains NO coverage logic: it only lists where
+ * a layout *could* live (every `_layout.*` basename in every ancestor dir
+ * up to the routes root), so the already-validated resolver stays the
+ * single source of truth for what actually clears a route. The walk bounds
+ * (64-deep guard, stop at routes root, fs-root guard) mirror
+ * `resolveRemixRouteGuard` so the candidate set can never miss a directory
+ * the resolver would inspect.
+ *
+ * Returns `[]` for non-`/routes/` paths (App Router / utility files),
+ * matching the resolver's own gate — so a caller can cheaply skip
+ * non-Remix files with no fetches.
+ */
+export function candidateLayoutPaths(routePath: string): string[] {
+  const norm = normalize(routePath);
+  if (!/(^|\/)routes\//.test(norm)) return [];
+  const routesRoot = findRoutesRoot(norm);
+  if (!routesRoot) return [];
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  let dir = dirname(norm);
+  for (let guard = 0; guard < 64; guard++) {
+    const dirNorm = normalize(dir);
+    for (const lb of LAYOUT_BASENAMES) {
+      const cand = normalize(join(dir, lb));
+      if (cand === norm) continue; // never the route file itself
+      if (!seen.has(cand)) {
+        seen.add(cand);
+        out.push(cand);
+      }
+    }
+    if (dirNorm === routesRoot) break;
+    const parent = dirname(dir);
+    if (normalize(parent) === dirNorm) break; // fs root guard
+    dir = parent;
+  }
+  return out;
+}
