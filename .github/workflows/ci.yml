@@ -33,6 +33,7 @@ jobs:
 
       # test:ci is the single source of truth for the deterministic suite
       # (lint + typecheck + every no-API test, incl. the webhook HMAC gate).
-      # API-spending tests (test:xss/cmdi/pt) live only in `npm test`.
+      # Live-LLM detector tests are opt-in only: they require ANTHROPIC_API_KEY,
+      # are never part of test:ci, and skip cleanly when the key is absent.
       - name: Run deterministic test suite (test:ci, no API spend)
         run: npm run test:ci
