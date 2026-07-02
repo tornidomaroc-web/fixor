@@ -21,7 +21,10 @@ import { validateGitHubPullRequestPayload } from "./github-payload-validation";
 import { buildFixorExecutionKey } from "./persistence/pilot-store";
 import { verifyGitHubWebhookSignature256 } from "./webhook-signature";
 import { fetchFileAtRef, fetchPrDiff } from "./github-client";
-import { buildWholeFileScanInput } from "./whole-file-scan-input";
+import {
+  buildWholeFileScanInput,
+  resolveRouteGuardSidecars,
+} from "./whole-file-scan-input";
 import { costContext } from "../../lib/cost-context";
 import { checkBudget } from "../../services/cost-store";
 import { logger } from "../../lib/logger";
@@ -245,10 +248,26 @@ async function handlePullRequestWebhookImpl(
         options.fetchFileAtRefImpl ??
         ((p: string) =>
           fetchFileAtRef(owner, repo, p, headSha, token, options.apiBaseUrl));
-      semgrepPayload = await buildWholeFileScanInput(
+      const scanInput = await buildWholeFileScanInput(
         semgrepPayload as string,
         fetchImpl,
       );
+      // F-001: resolve parent-layout route guards on the webhook path so
+      // Engine B clears layout-gated Remix/RR-v7 routes exactly as Engine A
+      // (cli/scan.ts) does. Additive — only /routes/ files with a PROVEN
+      // blocking ancestor layout get a sidecar; a non-404 layout fetch
+      // failure surfaces as a routeGuardError (fail-loud), never silently.
+      // Guard errors ride their OWN channel (not scanInputErrors) so H2's
+      // whole-file failure message stays byte-identical.
+      const guards = await resolveRouteGuardSidecars(
+        Object.keys(scanInput.changedLinesByPath),
+        fetchImpl,
+      );
+      semgrepPayload = {
+        ...scanInput,
+        sidecarsByPath: guards.sidecarsByPath,
+        routeGuardErrors: guards.routeGuardErrors,
+      };
     }
   } catch (e) {
     if (e instanceof GitHubApiError) {

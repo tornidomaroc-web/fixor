@@ -332,6 +332,26 @@ async function executeWorkflow(
   const scanInputErrors = payloadRecord && Array.isArray(payloadRecord.scanInputErrors)
     ? (payloadRecord.scanInputErrors as { path: string; reason: string }[])
     : [];
+  // F-001 fail-loud channel (distinct from H2's scanInputErrors above so
+  // the operator message can name the route and point at layout resolution
+  // rather than whole-file scanning). Populated by resolveRouteGuardSidecars.
+  const routeGuardErrors = payloadRecord && Array.isArray(payloadRecord.routeGuardErrors)
+    ? (payloadRecord.routeGuardErrors as { route: string; layout: string; reason: string }[])
+    : [];
+
+  // F-001: parent-layout route-guard sidecars, resolved on the webhook
+  // path by resolveRouteGuardSidecars (Engine A parity — cli/scan.ts wires
+  // the same sidecar synchronously). Absent on CLI / legacy payloads →
+  // undefined → detectors behave exactly as before. Only routes with a
+  // PROVEN blocking ancestor layout carry an entry, so non-layout routes
+  // (and non-Remix files) see identical input to today.
+  const sidecarsByPath =
+    payloadRecord &&
+    payloadRecord.sidecarsByPath &&
+    typeof payloadRecord.sidecarsByPath === "object" &&
+    !Array.isArray(payloadRecord.sidecarsByPath)
+      ? (payloadRecord.sidecarsByPath as Record<string, Record<string, string>>)
+      : undefined;
 
   let findings: NormalizedFinding[];
   /** SQL-shaped findings retained for the risk explainer (SQL-only today). */
@@ -368,7 +388,7 @@ async function executeWorkflow(
     const detectorResults = await Promise.allSettled(
       phase5Detectors.map((d) =>
         d.detect
-          ? d.detect({ diff: diffStr })
+          ? d.detect({ diff: diffStr, sidecarsByPath })
           : Promise.resolve([] as NormalizedFinding[]),
       ),
     );
@@ -616,6 +636,20 @@ async function executeWorkflow(
   for (const e of scanInputErrors) {
     result.errors.push({
       message: `Scan input degraded: ${e.path} could not be fetched at the PR head — judged without whole-file context`,
+      details: e.reason,
+    });
+  }
+
+  // F-001: a parent-layout auth guard whose ancestor layout could not be
+  // fetched (non-404) degrades scan input for THAT route. Distinct message
+  // from the H2 whole-file failure above — it names the route and points at
+  // layout resolution, so an operator does not misdiagnose whole-file
+  // scanning. Same WorkflowError channel → identical status-machine effect
+  // (the run can never read as no_action/success while a guard could not be
+  // resolved; fail-loud is not weakened).
+  for (const e of routeGuardErrors) {
+    result.errors.push({
+      message: `Scan input degraded: parent-layout auth guard could not be resolved for ${e.route} — ancestor layout ${e.layout} could not be fetched at the PR head; route judged without its parent-layout guard`,
       details: e.reason,
     });
   }

@@ -43,6 +43,12 @@
 import { buildSyntheticDiff } from "../../cli/diff-builder";
 import { parseDiff } from "../../analysis-engine/detectors/shared/diff-parser";
 import { logger } from "../../lib/logger";
+import {
+  candidateLayoutPaths,
+  resolveRemixRouteGuard,
+  type GuardFs,
+} from "../../analysis-engine/detectors/shared/route-guard-resolver";
+import { SIDECAR_KINDS } from "../../analysis-engine/sidecar-kinds";
 
 export interface ScanInputError {
   path: string;
@@ -202,6 +208,149 @@ export async function buildWholeFileScanInput(
     wholeFilePaths,
     fallbackPaths,
   };
+}
+
+export interface RouteGuardError {
+  /** The ROUTE whose parent-layout guard could not be resolved (the file
+   *  being judged), not merely the layout candidate that failed. */
+  route: string;
+  /** The ancestor `_layout.*` candidate whose fetch failed (non-404). */
+  layout: string;
+  /** Precise underlying reason, carried into the WorkflowError `details`. */
+  reason: string;
+}
+
+export interface RouteGuardSidecars {
+  /** Path -> { "route-guard": <resolved parent-layout guard body> }.
+   *  Only routes with a PROVEN blocking ancestor layout appear. */
+  sidecarsByPath: Record<string, Record<string, string>>;
+  /** Routes whose parent-layout guard could NOT be resolved because an
+   *  ancestor `_layout.*` fetch failed for a non-404 reason (rate-limit,
+   *  5xx, network). Kept as a DISTINCT channel from H2's whole-file
+   *  `scanInputErrors` so the operator-facing message points at layout
+   *  resolution (and names the route), not whole-file scanning. The
+   *  workflow surfaces these as WorkflowErrors — same fail-loud status
+   *  effect, different (accurate) wording. */
+  routeGuardErrors: RouteGuardError[];
+}
+
+/**
+ * Distinguish "layout genuinely absent" (HTTP 404) from a real fetch
+ * failure. `fetchFileAtRef` throws a `GitHubApiError` carrying
+ * `details.status`; a genuine 404 is the normal "no guard here" case and
+ * must stay silent, while any other status (403 rate-limit, 5xx) or a
+ * non-HTTP throw (network/timeout) is a fetch error that must fail loud.
+ * Duck-typed on `.details.status` / `.status` so test stubs can signal a
+ * 404 without importing GitHubApiError.
+ */
+function isAbsent404(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const withDetails = err as { details?: { status?: unknown }; status?: unknown };
+  const status = withDetails.details?.status ?? withDetails.status;
+  return status === 404;
+}
+
+/**
+ * Resolve Phase-G parent-layout route-guard sidecars for the webhook /
+ * GitHub App path (Engine B), bringing it to parity with the CLI (Engine
+ * A), which resolves them synchronously via `resolveRemixRouteGuard(absPath)`
+ * in `cli/scan.ts`. The webhook path has no local checkout — only an async
+ * `fetchFile(path)` (GitHub contents at the PR head) — so we fetch the
+ * candidate ancestor `_layout.*` files, build an in-memory `GuardFs`, and
+ * call the UNCHANGED resolver (which alone decides PROVEN coverage).
+ *
+ * Additive and safe by construction:
+ *   - Only paths under `/routes/` incur any fetches; every other changed
+ *     file returns no candidates, so non-Remix PRs do zero extra work and
+ *     get no sidecar (behavior unchanged).
+ *   - Only a PROVEN, blocking ancestor layout yields a sidecar entry, so a
+ *     route without one is judged exactly as before.
+ *
+ * Fail-loud policy (same status effect as H2's `scanInputErrors`, distinct
+ * message):
+ *   - a candidate fetch that 404s -> layout absent (normal; no guard, no
+ *     noise).
+ *   - a candidate fetch that fails for any OTHER reason -> a RouteGuardError
+ *     is recorded against EACH route that layout was an ancestor of (a
+ *     failed fetch means we cannot prove whether that layout would have
+ *     cleared the route). The workflow surfaces it as a WorkflowError, so
+ *     the scan can never read as a clean success while a parent-layout
+ *     guard could not be resolved — F-001 cannot quietly reappear on an
+ *     API blip (the route may re-flag, but never silently).
+ */
+export async function resolveRouteGuardSidecars(
+  paths: string[],
+  fetchFile: (path: string) => Promise<string>,
+): Promise<RouteGuardSidecars> {
+  const sidecarsByPath: Record<string, Record<string, string>> = {};
+  const routeGuardErrors: RouteGuardError[] = [];
+
+  const norm = (p: string) => p.replace(/\\/g, "/");
+  const routePaths = paths.filter((p) => /(^|\/)routes\//.test(norm(p)));
+  if (routePaths.length === 0) return { sidecarsByPath, routeGuardErrors };
+
+  // Enumerate every candidate ancestor layout once — sibling routes under
+  // the same layout share ancestors, so dedupe before fetching. Cache the
+  // per-route candidate list so the attribution pass below doesn't recompute.
+  const candidatesByRoute = new Map<string, string[]>();
+  const wanted = new Set<string>();
+  for (const rp of routePaths) {
+    const cands = candidateLayoutPaths(rp);
+    candidatesByRoute.set(rp, cands);
+    for (const cand of cands) wanted.add(cand);
+  }
+
+  const contentByPath = new Map<string, string>();
+  /** Candidate (normalized) -> reason, for NON-404 fetch failures only. */
+  const failedCandidates = new Map<string, string>();
+  await Promise.all(
+    [...wanted].map(async (cand) => {
+      try {
+        const content = await fetchFile(cand);
+        contentByPath.set(norm(cand), content);
+      } catch (err) {
+        if (isAbsent404(err)) return; // genuinely absent -> no guard, no noise
+        const reason = err instanceof Error ? err.message : String(err);
+        failedCandidates.set(norm(cand), reason);
+        logger.error(
+          { path: cand, err: reason },
+          "route-guard resolution: layout fetch failed — parent-layout guard could not be resolved (scan input degraded)",
+        );
+      }
+    }),
+  );
+
+  // In-memory GuardFs backed by the fetched layouts; the resolver queries
+  // it with join()-produced paths (OS separators on Windows), so normalize
+  // both sides. This reuses the validated resolver with ZERO changes.
+  const memFs: GuardFs = {
+    exists: (p) => contentByPath.has(norm(p)),
+    read: (p) => contentByPath.get(norm(p)) ?? null,
+  };
+
+  for (const rp of routePaths) {
+    // Fail-loud, attributed to THIS route: if any of its ancestor-layout
+    // candidates failed to fetch (non-404), we could not prove coverage —
+    // record one error naming the route (one is enough to force off-clean).
+    for (const cand of candidatesByRoute.get(rp) ?? []) {
+      const nc = norm(cand);
+      if (failedCandidates.has(nc)) {
+        routeGuardErrors.push({
+          route: rp,
+          layout: nc,
+          reason: `route-guard layout fetch failed: ${failedCandidates.get(nc)}`,
+        });
+        break;
+      }
+    }
+
+    const body = resolveRemixRouteGuard(rp, memFs);
+    if (body) {
+      sidecarsByPath[rp] = { [SIDECAR_KINDS.ROUTE_GUARD]: body };
+    }
+  }
+
+  return { sidecarsByPath, routeGuardErrors };
 }
 
 /** Re-exported for tests asserting the detector-visible shape. */
