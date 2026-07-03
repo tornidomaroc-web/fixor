@@ -34,7 +34,8 @@ remaining READY-gating blocker is:
 - **F-004 - the live-LLM detection brain is not guarded by any automated gate.** Until
   at least the deterministic replay gate lands, a recall or precision regression in the
   detectors past the regex prefilters would not be caught by CI. F-004 stage 1 (below)
-  is in review but does NOT by itself close F-004.
+  is now merged (PR #77), but does NOT by itself close F-004; stages 2 and 3 remain in
+  the deferred worklist.
 
 Recall is clean on current evidence (no missed exploit survives re-measurement); the
 remaining non-gating items are precision, signal-hygiene, and coverage-integrity
@@ -64,11 +65,8 @@ constraints.
   Marked F-001 RESOLVED in `READINESS-FINDINGS.md` and reworded the banner from
   DIAGNOSIS-ONLY to REMEDIATION STARTED. Docs only.
 
-### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
-
-- **F-004 stage 1 quick wins - PR #77, branch `chore/f004-ci-quick-wins`, commit
-  `08e2c1f`.** Status: open PR, all three required checks green through the gate,
-  awaiting the owner's merge command. Exact scope, and only this scope:
+- **F-004 stage 1 quick wins MERGED - PR #77, squash
+  `e3aa4222b0cf35787730b68e74ecace9394b41f5`.** Exact scope, and only this scope:
   1. Added the already-deterministic, keyless `test:real-shape` to the `test:ci`
      enumeration (route-def reachability coverage, free).
   2. Converted the 15 live-LLM detector tests from hard-fail (`process.exit(1)` or a
@@ -77,7 +75,14 @@ constraints.
      assertions unchanged.
   3. Fixed the stale `ci.yml` comment that referenced `npm test` and the nonexistent
      `test:xss/cmdi/pt` scripts.
-  This does NOT add live detection to CI and does NOT close F-004.
+  This does NOT add live detection to CI and does NOT by itself close F-004: it is
+  stage 1 of the hybrid; stages 2 and 3 remain in the deferred worklist below.
+
+### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
+
+- **This roadmap file (`REMEDIATION-PROGRESS.md`) - PR #78, branch
+  `docs/remediation-progress`.** Documentation only; in review, not merged. It lands
+  once the owner gives the merge command and its CI is green.
 
 ---
 
