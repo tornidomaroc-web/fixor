@@ -257,10 +257,10 @@ async function main(): Promise<void> {
   process.env[FLAG] = "true";
   if (!process.env.ANTHROPIC_API_KEY) {
     out.write(
-      "PHASE B skipped: ANTHROPIC_API_KEY not set. Re-run with the key " +
+      "PHASE B skipped: ANTHROPIC_API_KEY not set (opt-in live-LLM test). Re-run with the key " +
         "(e.g. `node --env-file=.env dist/test/test-h8-escalation-anchors.js`).\n",
     );
-    process.exit(2);
+    process.exit(0);
   }
 
   out.write(`PHASE B — on-path K-replay (flag ON, K=${K})\n`);

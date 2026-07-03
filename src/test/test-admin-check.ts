@@ -213,10 +213,10 @@ function printDiagnostic(
 
 async function main(): Promise<void> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    process.stderr.write(
-      "ANTHROPIC_API_KEY is not set. Export it before running this test.\n",
+    process.stdout.write(
+      "SKIPPED: ANTHROPIC_API_KEY not set (opt-in live-LLM test). Set the key to run it live.\n",
     );
-    process.exit(1);
+    return;
   }
 
   const detector = new AdminCheckDetector();

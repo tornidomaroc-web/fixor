@@ -25,6 +25,10 @@ import {
 import { runStabilityHarness } from "./lib/stability-harness";
 
 async function main(): Promise<void> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    process.stdout.write("SKIPPED: ANTHROPIC_API_KEY not set (opt-in live-LLM test). Set the key to run it live.\n");
+    return;
+  }
   const detector = new IdorDetector();
   const report = await runStabilityHarness({
     detectorName: "IDOR-tenant",
