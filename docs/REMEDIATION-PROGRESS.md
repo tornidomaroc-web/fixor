@@ -1,6 +1,6 @@
 # Fixor Remediation Progress - Living Roadmap and Status
 
-Snapshot date: 2026-07-03. This file is the cross-session source of truth for what
+Snapshot date: 2026-07-04. This file is the cross-session source of truth for what
 is done, what is in review, and what is deferred, so no step is silently skipped or
 repeated. It is built strictly from the reconciled ledger (`READINESS-FINDINGS.md`),
 the audit (`READINESS-AUDIT.md`), and what has actually happened in these sessions.
@@ -32,10 +32,11 @@ clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED, so the si
 remaining READY-gating blocker is:
 
 - **F-004 - the live-LLM detection brain is not guarded by any automated gate.** Until
-  at least the deterministic replay gate lands, a recall or precision regression in the
-  detectors past the regex prefilters would not be caught by CI. F-004 stage 1 (below)
-  is now merged (PR #77), but does NOT by itself close F-004; stages 2 and 3 remain in
-  the deferred worklist.
+  the deterministic replay gate covers the detectors, a recall or precision regression
+  past the regex prefilters would not be caught by CI. Stage 1 is merged (PR #77) and
+  stage 2 sub-step 2a (the env-exposure replay gate) is now merged (PR #79), but F-004 is
+  NOT closed: stage 2 sub-step 2b (the other five detectors) and stage 3 (the opt-in live
+  model-judgment workflow) both remain in the deferred worklist.
 
 Recall is clean on current evidence (no missed exploit survives re-measurement); the
 remaining non-gating items are precision, signal-hygiene, and coverage-integrity
@@ -78,11 +79,38 @@ constraints.
   This does NOT add live detection to CI and does NOT by itself close F-004: it is
   stage 1 of the hybrid; stages 2 and 3 remain in the deferred worklist below.
 
+- **Roadmap first landed - PR #78, squash `a37c766b33ad0e37b2f4a9a08385fddb2491264a`.**
+  The initial `REMEDIATION-PROGRESS.md` living roadmap. Documentation only.
+
+- **F-004 stage 2 sub-step 2a MERGED - PR #79, squash
+  `f2abd102aa4bdfb4938d07b611ac881674dc6238`.** A deterministic, free replay gate for the
+  env-exposure detector. Exact scope:
+  1. A record/replay shim (`src/analysis-engine/llm-replay.ts`) wired at the single
+     `callClaude` choke point (`anthropic-client.ts`), keyed by a SHA-256 over the
+     canonical request shape (model, system, messages, tool). In replay mode it returns
+     the recorded response and short-circuits before any client is constructed: no key,
+     no network, no spend. A missing or key-drifted fixture fails loud
+     (`ReplayFixtureMissing`), never a silent live call.
+  2. 17 recorded env-exposure fixtures under `fixtures/replay/env-exposure-multi/`, one
+     per LLM-reaching fixture. Recorded once locally on the owner's key at a one-time cost
+     of ~$0.133; recording is the only path that spends and never runs in CI.
+  3. A dedicated keyless replay round-trip test (`test:replay-env-exposure`) that rebuilds
+     each synthetic diff, runs the real detector in replay mode, and asserts
+     `flagged === meta.expectedFlagged` per fixture, with a completeness manifest so a
+     deleted or renamed recording fails loud rather than silently shrinking coverage.
+  4. The shim safety guard test (`test:replay-guard`) proving no-flag `callClaude` stays
+     byte-identical to pre-shim behavior.
+  Both tests are wired into `test:ci` and were verified running keyless (no key, no
+  network) on the GitHub runners for the post-merge commit (node 20.x and 22.x green).
+  This is a wiring-and-parsing gate only: it does NOT verify detection quality or model
+  behavior, and does NOT by itself close F-004; sub-step 2b and stage 3 remain below.
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- **This roadmap file (`REMEDIATION-PROGRESS.md`) - PR #78, branch
-  `docs/remediation-progress`.** Documentation only; in review, not merged. It lands
-  once the owner gives the merge command and its CI is green.
+- **This tracker update (F-004 2a-merged status) - branch `docs/f004-2a-merged-status`.**
+  Documentation only: records F-004 stage 2 sub-step 2a as merged and re-scopes the
+  remaining F-004 work (2b and stage 3). In review, not merged; it lands once the owner
+  gives the merge command and its CI is green.
 
 ---
 
@@ -90,17 +118,30 @@ constraints.
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
-F-004 is NOT closed until at least stage 2 (the replay gate) lands. The model-judgment
-gate (stage 3) is only ever exercised by opt-in live runs, never free-in-CI.
+F-004 is NOT closed until stage 2 (the replay gate) covers the detectors; sub-step 2a
+(env-exposure) is merged, sub-step 2b (the other five detectors) is pending. The
+model-judgment gate (stage 3) is only ever exercised by opt-in live runs, never
+free-in-CI.
 
-- **Stage 2 - deterministic replay gate (required, free, in CI).** Add a replay shim at
-  the single `callClaude` choke point (`src/analysis-engine/anthropic-client.ts`) that,
-  in replay mode, returns a recorded per-detector response keyed by a hash of the request
-  (model, system, messages, tools) instead of calling the network. Record fixtures once
-  against the existing detector fixtures. This guards wiring, tool-schema parsing, verdict
-  and lane mapping, and finding emission. It CANNOT catch a model-behavior regression
-  (a frozen sample replayed N times is not repeated sampling), and must be labeled as a
-  wiring-and-parsing gate, not a detection-quality gate.
+- **Stage 2 - deterministic replay gate (required, free, in CI).** The replay shim
+  (`src/analysis-engine/llm-replay.ts`, wired at the single `callClaude` choke point in
+  `anthropic-client.ts`) returns a recorded per-detector response keyed by a hash of the
+  request (model, system, messages, tool) instead of calling the network. It guards
+  wiring, tool-schema parsing, verdict and lane mapping, and finding emission. It CANNOT
+  catch a model-behavior regression (a frozen sample replayed N times is not repeated
+  sampling), and is labeled a wiring-and-parsing gate, not a detection-quality gate.
+  - **Sub-step 2a (env-exposure): DONE, merged (PR #79).** See DONE above.
+  - **Sub-step 2b (the other five detectors): PENDING.** Repeat the same recorded-fixture
+    pattern per detector for secrets-exposure, admin-check, auth-bypass, webhook-unverified,
+    and idor. The mechanism is now proven end to end on env-exposure and generalizes: the
+    shim, the key derivation, the record harness shape, and the keyless round-trip test are
+    all detector-agnostic, so 2b is largely a repeat of 2a per detector (record once on the
+    owner's key, then assert `flagged === meta.expectedFlagged` offline). Known nuance:
+    secrets-exposure carries F-010 (a known false positive on an obvious placeholder). Its
+    fixture will FREEZE the current behavior as a wiring sample only; it does NOT endorse
+    that verdict as correct. Fixing F-010 is separate precision work (see Priority 3), and
+    when it lands it will move the request or the response, so that fixture must then be
+    re-recorded.
 
 - **Stage 3 - opt-in live workflow (manual, spends only when run).** A GitHub Actions
   workflow on `workflow_dispatch` only (NO fork-PR trigger, NO nightly schedule), reading
