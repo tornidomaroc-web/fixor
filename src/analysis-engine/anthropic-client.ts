@@ -38,6 +38,11 @@ import {
   sleep,
 } from "../lib/anthropic-retry";
 import { recordLlmDetectionCall } from "../lib/llm-coverage";
+import {
+  resolveReplayMode,
+  loadReplayFixture,
+  saveReplayFixture,
+} from "./llm-replay";
 
 let _client: Anthropic | null = null;
 
@@ -97,6 +102,29 @@ export type MessagesCallResult =
   | { ok: false; reason: "no_api_key" | "timeout" | "http_error" | "parse_error"; error?: unknown };
 
 /**
+ * DB-free cost observability for the most recent successful callClaude.
+ *
+ * The production cost ledger (cost-store) is Postgres-backed and only fires
+ * when an installationId is present in the async context. An offline tool (the
+ * F-004 recording harness) has neither, so we ALSO expose the per-call USD
+ * computed straight from `message.usage`. Pure arithmetic, no I/O, independent
+ * of installationId. Set on every successful call; stays null on failures and
+ * on the replay path (which never reaches a real call).
+ */
+export interface CallCostDiag {
+  model: ClaudeModelId;
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  costUsd: number;
+}
+export let lastCallCost: CallCostDiag | null = null;
+export function resetLastCallCost(): void {
+  lastCallCost = null;
+}
+
+/**
  * Wraps the system prompt in a cache-eligible block.
  *
  * Anthropic prompt caching costs 25% more to write but 90% less to read, so
@@ -142,6 +170,27 @@ export async function callClaude(
           },
     );
   };
+
+  // [F-004 replay gate] Deterministic record/replay of model responses.
+  // Inert unless FIXOR_REPLAY/FIXOR_RECORD is set: with neither, resolveReplayMode
+  // returns "live" and callClaude behaves exactly as before (see
+  // test-llm-replay-guard). Replay verifies detector wiring, tool-input parsing,
+  // and lane logic against a FROZEN sample only - never detection quality or
+  // model behavior (a replay is one sample, not repeated sampling).
+  const replayMode = resolveReplayMode();
+  if (replayMode === "replay") {
+    // Runs before any client is constructed: zero network, zero spend. A missing
+    // fixture throws ReplayFixtureMissing (fail loud) - it never falls through to
+    // a real call and never returns the no_api_key empty-verdict path.
+    const replayed = loadReplayFixture(opts);
+    tally();
+    return {
+      ok: true,
+      message: replayed.message,
+      toolInput: replayed.toolInput,
+      text: replayed.text,
+    };
+  }
 
   const client = getAnthropicClient();
   if (!client) {
@@ -193,25 +242,43 @@ export async function callClaude(
         .map((b) => b.text)
         .join("\n");
 
+      // Compute per-call USD once from message.usage. Pure arithmetic, no I/O.
+      // Exposed via lastCallCost (DB-free, always) AND persisted to the ledger
+      // (only when an installationId is in context).
+      const usage = message.usage as
+        | (typeof message.usage & {
+            cache_creation_input_tokens?: number;
+            cache_read_input_tokens?: number;
+            cacheCreationInputTokens?: number;
+            cacheReadInputTokens?: number;
+          })
+        | undefined;
+      const inputTokens = usage?.input_tokens ?? 0;
+      const outputTokens = usage?.output_tokens ?? 0;
+      const cacheCreationInputTokens =
+        usage?.cache_creation_input_tokens ??
+        usage?.cacheCreationInputTokens ??
+        0;
+      const cacheReadInputTokens =
+        usage?.cache_read_input_tokens ?? usage?.cacheReadInputTokens ?? 0;
+      const costUsd = calculateCost({
+        model: opts.model,
+        inputTokens,
+        outputTokens,
+        cacheCreationInputTokens,
+        cacheReadInputTokens,
+      });
+      lastCallCost = {
+        model: opts.model,
+        inputTokens,
+        outputTokens,
+        cacheCreationInputTokens,
+        cacheReadInputTokens,
+        costUsd,
+      };
+
       const installationId = currentInstallationId();
-      if (installationId !== undefined && message.usage) {
-        const usage = message.usage as typeof message.usage & {
-          cache_creation_input_tokens?: number;
-          cache_read_input_tokens?: number;
-          cacheCreationInputTokens?: number;
-          cacheReadInputTokens?: number;
-        };
-        const costUsd = calculateCost({
-          model: opts.model,
-          inputTokens: message.usage.input_tokens ?? 0,
-          outputTokens: message.usage.output_tokens ?? 0,
-          cacheCreationInputTokens:
-            usage.cache_creation_input_tokens ??
-            usage.cacheCreationInputTokens ??
-            0,
-          cacheReadInputTokens:
-            usage.cache_read_input_tokens ?? usage.cacheReadInputTokens ?? 0,
-        });
+      if (installationId !== undefined && usage) {
         try {
           await recordCost(installationId, costUsd);
         } catch (err) {
@@ -238,6 +305,11 @@ export async function callClaude(
         });
       }
 
+      // [F-004 replay gate] In record mode, persist this real response keyed by
+      // the request hash. Only runs when FIXOR_RECORD=1 (owner-local, with a key).
+      if (replayMode === "record") {
+        saveReplayFixture(opts, { toolInput: toolBlock?.input, text });
+      }
       tally();
       return {
         ok: true,
