@@ -1,0 +1,31 @@
+{
+  "key": "ed44f8a6a3b748aabfafeb397e87297ade51b8ae932f3c522cc1b387e6f7ff87",
+  "meta": {
+    "detectorId": "env-exposure-multi",
+    "model": "claude-sonnet-4-6",
+    "systemPromptFingerprint": "d2ca2f022d99",
+    "recordedAtIso": "2026-07-04T08:28:58.283Z",
+    "sourceFixture": "negative/09-fastapi-runtime-specific.py",
+    "expectedFlagged": false
+  },
+  "request": {
+    "model": "claude-sonnet-4-6",
+    "system": "You are a security auditor analyzing a code change for environment-variable\nexposure vulnerabilities. Env exposure means server environment variables\n(secrets, database URLs, API keys, configuration) are returned in HTTP\nresponses or written to user-accessible logs, allowing attackers to read\nthe entire server configuration.\n\nSet confidence:\n- HIGH: Full process.env or os.environ dumped to a response or log accessible\n  to non-admin callers\n- MEDIUM: Subset returned but includes potentially sensitive keys\n  (DATABASE_URL, AUTH, KEY, SECRET, TOKEN patterns)\n- LOW: Hand-picked non-secret values (NODE_ENV, region, version), or full\n  env behind strict admin+prod gating, or env routed through a redacting\n  logger (not a response)\n\nIMPORTANT:\n- Only return findings with confidence \"high\" or \"medium\".\n- Reject when the response includes ONLY explicitly allowlisted, non-secret\n  values (NODE_ENV, APP_VERSION, REGION, SITE_URL).\n- Reject when the route is gated by both admin auth AND a production check,\n  and returns a curated subset.\n- Reject when env is logged via a redacting logger (pino redact, winston\n  format.combine with redaction).\n- Reject when only env KEY NAMES are returned (no values), and the route\n  is dev-only / 404 in production.\n- Reject when regex redaction strips SECRET/KEY/TOKEN/PASSWORD before responding.",
+    "messages": [
+      {
+        "role": "user",
+        "content": "CONTEXT:\nFile: src/app/handlers/env-exposure/09-fastapi-runtime-specific.py\nLanguage: python\nFunction context:\n```python\nimport os\nfrom fastapi import APIRouter\n\nrouter = APIRouter()\n\n\n@router.get(\"/internal/runtime\")\ndef runtime() -> dict:\n    return {\n        \"region\": os.environ.get(\"AWS_REGION\", \"us-east-1\"),\n        \"app_version\": os.environ.get(\"APP_VERSION\", \"dev\"),\n        \"node_role\": os.environ.get(\"NODE_ROLE\", \"worker\"),\n    }\n```\n\nImports in file:\n```python\nimport os\nfrom fastapi import APIRouter\n```\n\nPattern that triggered review: return {\nTriggered at line: 9\n\nAnalyze whether this is a real env-exposure vulnerability. Consider:\n\n1. Is the response body or log payload returning the full process.env /\n   os.environ, or just a hand-picked subset?\n2. Is the route gated by admin auth AND a production check before returning?\n3. Are SECRET / KEY / TOKEN / PASSWORD values redacted before being emitted?\n4. Are only env KEY NAMES returned (no values), with a dev-only / 404-in-prod\n   guard?\n5. Is process.env passed only to a redacting logger (pino redact list, etc.)\n   rather than to an HTTP response?\n\nCall the report_env_exposure_verdict tool with your verdict."
+      }
+    ],
+    "tool": "report_env_exposure_verdict"
+  },
+  "response": {
+    "toolInput": {
+      "isVulnerable": false,
+      "confidence": "low",
+      "reasoning": "The route returns only three explicitly hand-picked, non-secret environment variables — AWS_REGION, APP_VERSION, and NODE_ROLE — none of which match sensitive patterns like SECRET, KEY, TOKEN, PASSWORD, or DATABASE_URL. This is a curated subset of innocuous operational/configuration values.",
+      "suggestedFix": ""
+    },
+    "text": ""
+  }
+}
