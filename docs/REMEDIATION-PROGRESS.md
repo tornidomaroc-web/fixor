@@ -1,6 +1,6 @@
 # Fixor Remediation Progress - Living Roadmap and Status
 
-Snapshot date: 2026-07-04. This file is the cross-session source of truth for what
+Snapshot date: 2026-07-06. This file is the cross-session source of truth for what
 is done, what is in review, and what is deferred, so no step is silently skipped or
 repeated. It is built strictly from the reconciled ledger (`READINESS-FINDINGS.md`),
 the audit (`READINESS-AUDIT.md`), and what has actually happened in these sessions.
@@ -35,7 +35,7 @@ remaining READY-gating blocker is:
   the deterministic replay gate covers the detectors, a recall or precision regression
   past the regex prefilters would not be caught by CI. Stage 1 is merged (PR #77) and
   stage 2 sub-step 2a (the env-exposure replay gate) is now merged (PR #79), but F-004 is
-  NOT closed: stage 2 sub-step 2b (the other five detectors) and stage 3 (the opt-in live
+  NOT closed: stage 2 sub-steps 2b.1-2b.5 (the five detectors) and stage 3 (the opt-in live
   model-judgment workflow) both remain in the deferred worklist.
 
 Recall is clean on current evidence (no missed exploit survives re-measurement); the
@@ -105,12 +105,41 @@ constraints.
   This is a wiring-and-parsing gate only: it does NOT verify detection quality or model
   behavior, and does NOT by itself close F-004; sub-step 2b and stage 3 remain below.
 
+- **F-004 2a-merged tracker update MERGED - PR #80, squash
+  `9f3c2db8234838c9f7a9bc6b81fda1ab152cde6b`.** Documentation only: recorded F-004 stage 2
+  sub-step 2a as merged and re-scoped the remaining F-004 work (2b and stage 3).
+
+- **F-004 stage 2 sub-step 2b.0 MERGED - PR #81, squash
+  `b83e066b4c52ac39dff89d87f534aeb66f6454d7`.** A test-infrastructure refactor that
+  generalizes the stage-2a env-exposure replay gate into a shared, parameterized harness so
+  the remaining detectors plug in as specs. Exact scope:
+  1. Adds `src/test/replay-harness.ts`: the parameterized engine, with the byte-frozen
+     `loadFixture`/`buildSyntheticDiff` moved verbatim from 2a (their exact bytes preserve
+     every recorded request key), plus `recordFixtures`, `runReplayGate`, the
+     `DetectorReplaySpec`/`Layout`/`OutcomeAssertion` contracts, `positiveNegativeLayout`
+     with an optional `loadSidecars` hook for a future idor spec, `flaggedOutcome`, and
+     `assertEscalationUnset`.
+  2. Adds `src/test/specs/env-exposure.replay-spec.ts`: env-exposure expressed as one spec,
+     every 2a value (detector id, the 17-fixture manifest, the expected-flagged map, the
+     MEDIUM-ceiling notes, the positive/negative layout) carried over unchanged.
+  3. Reduces the two 2a files (`record-env-exposure-fixtures.ts`,
+     `test-replay-env-exposure.ts`) to thin delegators over the shared harness
+     (net -503/+47 on those two).
+  4. Deliberate net-new behavior: `assertEscalationUnset` keeps `FIXOR_ESCALATE_MEDIUM`
+     unset inside the harness, hard-stopping the colon-in-callerId Windows footgun (an
+     escalation call is tagged `escalation:<detectorId>`, whose colon is an invalid Windows
+     path segment for a fixture dir). CI never sets the flag, so all 17 outcomes are
+     unchanged.
+  This is a test-infrastructure refactor only: it changes no CI, no production code, and no
+  detection behavior. The env-exposure gate still reproduces all 17 frozen recordings (11
+  positives incl. two MEDIUM-ceiling flagged:false, 6 negatives), confirmed green keyless on
+  the GitHub runners for the merge (node 20.x and 22.x). It does NOT by itself close F-004;
+  sub-steps 2b.1-2b.5 and stage 3 remain below.
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- **This tracker update (F-004 2a-merged status) - branch `docs/f004-2a-merged-status`.**
-  Documentation only: records F-004 stage 2 sub-step 2a as merged and re-scopes the
-  remaining F-004 work (2b and stage 3). In review, not merged; it lands once the owner
-  gives the merge command and its CI is green.
+- No open tracker PR at this moment. (The stage 2b.0 tracker update itself is prepared
+  next and is not yet listed here.)
 
 ---
 
@@ -119,9 +148,9 @@ constraints.
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
 F-004 is NOT closed until stage 2 (the replay gate) covers the detectors; sub-step 2a
-(env-exposure) is merged, sub-step 2b (the other five detectors) is pending. The
-model-judgment gate (stage 3) is only ever exercised by opt-in live runs, never
-free-in-CI.
+(env-exposure) is merged and sub-step 2b.0 (the shared harness) is merged, while sub-steps
+2b.1-2b.5 (the five detectors) are pending. The model-judgment gate (stage 3) is only ever
+exercised by opt-in live runs, never free-in-CI.
 
 - **Stage 2 - deterministic replay gate (required, free, in CI).** The replay shim
   (`src/analysis-engine/llm-replay.ts`, wired at the single `callClaude` choke point in
@@ -131,17 +160,21 @@ free-in-CI.
   catch a model-behavior regression (a frozen sample replayed N times is not repeated
   sampling), and is labeled a wiring-and-parsing gate, not a detection-quality gate.
   - **Sub-step 2a (env-exposure): DONE, merged (PR #79).** See DONE above.
-  - **Sub-step 2b (the other five detectors): PENDING.** Repeat the same recorded-fixture
-    pattern per detector for secrets-exposure, admin-check, auth-bypass, webhook-unverified,
-    and idor. The mechanism is now proven end to end on env-exposure and generalizes: the
-    shim, the key derivation, the record harness shape, and the keyless round-trip test are
-    all detector-agnostic, so 2b is largely a repeat of 2a per detector (record once on the
-    owner's key, then assert `flagged === meta.expectedFlagged` offline). Known nuance:
-    secrets-exposure carries F-010 (a known false positive on an obvious placeholder). Its
-    fixture will FREEZE the current behavior as a wiring sample only; it does NOT endorse
-    that verdict as correct. Fixing F-010 is separate precision work (see Priority 3), and
-    when it lands it will move the request or the response, so that fixture must then be
-    re-recorded.
+  - **Sub-step 2b.0 (harness generalization): DONE, merged (PR #81).** See DONE above. The
+    stage-2a gate is now a shared, parameterized harness (`src/test/replay-harness.ts`) so
+    the remaining detectors plug in as specs; a test-infrastructure refactor only, no
+    detection change.
+  - **Sub-step 2b.1-2b.5 (the five detector specs: secrets-exposure, admin-check,
+    auth-bypass, webhook-unverified, idor): PENDING.** Repeat the same recorded-fixture
+    pattern per detector. The mechanism is now proven end to end on env-exposure and
+    generalizes: the shim, the key derivation, the record harness shape, and the keyless
+    round-trip test are all detector-agnostic (2b.0 lifted them into the shared harness), so
+    each is largely a repeat of 2a per detector (record once on the owner's key, then assert
+    `flagged === meta.expectedFlagged` offline). Known nuance: secrets-exposure carries F-010
+    (a known false positive on an obvious placeholder). Its fixture will FREEZE the current
+    behavior as a wiring sample only; it does NOT endorse that verdict as correct. Fixing
+    F-010 is separate precision work (see Priority 3), and when it lands it will move the
+    request or the response, so that fixture must then be re-recorded.
 
 - **Stage 3 - opt-in live workflow (manual, spends only when run).** A GitHub Actions
   workflow on `workflow_dispatch` only (NO fork-PR trigger, NO nightly schedule), reading
