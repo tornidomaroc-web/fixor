@@ -133,6 +133,21 @@ export type OutcomeAssertion = (o: OutcomeInput) => {
 };
 
 /**
+ * An expected verdict-lane for one fixture id. For detectors with a
+ * MEDIUM/review-queue anchor (webhook-unverified negatives 14/15), the lane is
+ * NOT observable from `findings` - a MEDIUM verdict returns [] with escalation
+ * off, byte-identical to LOW/drop, and any emitted finding is always
+ * confidence:"high". The lane is observable ONLY on the recorded diagnostic's
+ * verdict, so this descriptor is matched against
+ * `detector.lastDiagnostics[0].verdict` (see verdictLaneOutcome and the
+ * record-time lane check in recordOne).
+ */
+export interface ExpectedLane {
+  isVulnerable: boolean;
+  confidence: string;
+}
+
+/**
  * One detector's full replay configuration. The engines below are pure
  * functions of a spec; a per-detector file supplies a spec and calls
  * `recordFixtures` / `runReplayGate`.
@@ -154,6 +169,15 @@ export interface DetectorReplaySpec {
   makeDetector(): HarnessDetector;
   /** Record-time expected class per id: drives the class assertion + meta.expectedFlagged. */
   expectedFlagged(id: string): boolean;
+  /**
+   * Optional record-time/replay-time expected verdict-lane per id, for
+   * detectors with a MEDIUM/review-queue anchor (webhook-unverified 14/15).
+   * Returns undefined for ids with no declared lane. The record-time lane
+   * check (recordOne) and the replay-time verdictLaneOutcome BOTH read this,
+   * so both gates share one source of truth. Optional: env-exposure and other
+   * lane-free specs omit it and are unaffected.
+   */
+  expectedLane?(id: string): ExpectedLane | undefined;
   /** Optional human note stamped into a recording's meta.note. */
   note?(id: string): string | undefined;
   /** Replay-time outcome shape (see the *Outcome helper factories below). */
@@ -189,6 +213,56 @@ export function flaggedOutcome(): OutcomeAssertion {
     return {
       pass: flagged === expected,
       detail: `flagged:${flagged} ${flagged === expected ? "==" : "!="} expected:${expected}  (${vstr})`,
+    };
+  };
+}
+
+/**
+ * MEDIUM/review-queue verdict-lane assertion (webhook-unverified 14/15 anchor).
+ *
+ * WHY THIS READS THE DIAGNOSTIC, NOT THE FINDING: with escalation off (the
+ * only record/replay mode, enforced by assertEscalationUnset), a MEDIUM verdict
+ * routes to "review-queue" and the detector returns [] - byte-identical to LOW
+ * and to drop - and any emitted finding is hard-coded confidence:"high". So the
+ * lane is invisible in `findings`; it lives ONLY on
+ * `detector.lastDiagnostics[0].verdict`. Each fixture is a single-file synthetic
+ * diff (positiveNegativeLayout builds one file), so exactly one diagnostic is
+ * pushed and lastDiagnostics[0] is unambiguous.
+ *
+ * The expected lane is read from the SAME source the recorder uses (the spec's
+ * expectedLane); this factory is closed over that accessor and dispatched by the
+ * spec's assertOutcome ONLY to ids that declare a lane. An id reaching here with
+ * no declared lane is a dispatch/config error, reported as a loud pass:false
+ * rather than silently passing.
+ *
+ * Parameterized by the declared lane's {isVulnerable, confidence} (a trivial
+ * equality against the descriptor the spec already carries) rather than
+ * hard-coding "medium"; for webhook the declared lane is
+ * {isVulnerable:true, confidence:"medium"}, so this encodes the locked
+ * MEDIUM/review-queue anchor contract while staying reusable.
+ */
+export function verdictLaneOutcome(
+  expectedLane: (id: string) => ExpectedLane | undefined,
+): OutcomeAssertion {
+  return ({ id, detector }) => {
+    const lane = expectedLane(id);
+    if (!lane) {
+      return {
+        pass: false,
+        detail: `verdictLaneOutcome dispatched to ${id} with no declared expectedLane (config error)`,
+      };
+    }
+    const verdict = detector.lastDiagnostics[0]?.verdict ?? null;
+    const vstr = verdict
+      ? `isVulnerable:${verdict.isVulnerable}@${verdict.confidence}`
+      : "verdict:none";
+    const pass =
+      verdict !== null &&
+      verdict.isVulnerable === lane.isVulnerable &&
+      verdict.confidence === lane.confidence;
+    return {
+      pass,
+      detail: `lane ${vstr} ${pass ? "==" : "!="} expected:isVulnerable:${lane.isVulnerable}@${lane.confidence}`,
     };
   };
 }
@@ -236,6 +310,16 @@ interface RecordRow {
   match: boolean;
   costUsd: number | null;
   recorded: boolean;
+  /** Declared expected lane for this id, or null when the spec declares none. */
+  laneExpected: ExpectedLane | null;
+  /**
+   * Record-time lane assertion result. True when no lane is declared (not
+   * applicable) OR the recorded verdict matches the declared lane. A false here
+   * is a hard failure, exactly like a class (flagged) mismatch: it would freeze
+   * a recording whose verdict violates the locked lane contract (e.g. a live
+   * model returning LOW for webhook negatives 14/15).
+   */
+  laneOk: boolean;
   error?: string;
 }
 
@@ -257,6 +341,18 @@ async function recordOne(
   const cost = lastCallCost;
   const rec = lastRecordedFixture;
 
+  // Additional record-time lane pin (ADDITIVE; the flagged check below is
+  // unchanged). Only ids the spec declares a lane for are checked. Read from
+  // the SAME source verdictLaneOutcome uses at replay time. Computed from the
+  // verdict already in scope, so it needs no detector API change.
+  const lane = spec.expectedLane?.(id) ?? null;
+  const laneOk =
+    lane === null
+      ? true
+      : verdict !== null &&
+        verdict.isVulnerable === lane.isVulnerable &&
+        verdict.confidence === lane.confidence;
+
   const row: RecordRow = {
     id,
     sha: rec?.key ?? null,
@@ -267,6 +363,8 @@ async function recordOne(
     match: flagged === expected,
     costUsd: cost ? cost.costUsd : null,
     recorded: rec !== null,
+    laneExpected: lane,
+    laneOk,
   };
 
   if (!rec) {
@@ -342,9 +440,14 @@ export async function recordFixtures(
         ? "verdict:none"
         : `isVulnerable:${row.isVulnerable}@${row.confidence}`;
     const usd = row.costUsd === null ? "n/a" : `$${row.costUsd.toFixed(5)}`;
+    const rowOk = row.match && row.laneOk;
+    const laneLine = row.laneExpected
+      ? `        lane:${row.laneOk ? "OK" : "MISMATCH"} expected:isVulnerable:${row.laneExpected.isVulnerable}@${row.laneExpected.confidence}\n`
+      : "";
     out.write(
-      `  [${i + 1}/${ids.length}] ${row.match ? "OK  " : "MISMATCH"} ${id}\n` +
+      `  [${i + 1}/${ids.length}] ${rowOk ? "OK  " : "MISMATCH"} ${id}\n` +
         `        ${v}  flagged:${row.flagged} expected:${row.expected}  cost:${usd}\n` +
+        laneLine +
         `        sha:${row.sha ?? "(none)"}${row.error ? `  ERROR: ${row.error}` : ""}\n`,
     );
     if (i < ids.length - 1) await sleep(SLEEP_MS_BETWEEN);
@@ -355,6 +458,7 @@ export async function recordFixtures(
   const avg = measured.length > 0 ? total / measured.length : 0;
   const mismatches = rows.filter((r) => !r.match);
   const notRecorded = rows.filter((r) => !r.recorded);
+  const laneMismatches = rows.filter((r) => !r.laneOk);
 
   out.write("\n=== BATCH SUMMARY ===\n");
   out.write(`  recorded:          ${rows.filter((r) => r.recorded).length}/${rows.length}\n`);
@@ -364,6 +468,7 @@ export async function recordFixtures(
     `  projected manifest: ~$${(avg * spec.manifest.length).toFixed(4)} (extrapolated; cache-warm reads make later calls cheaper)\n`,
   );
   out.write(`  class mismatches:  ${mismatches.length}\n`);
+  out.write(`  lane mismatches:   ${laneMismatches.length}\n`);
 
   if (notRecorded.length > 0) {
     out.write(`\n  NOT RECORDED (no fixture file written):\n`);
@@ -382,12 +487,32 @@ export async function recordFixtures(
         "  behavior. Review before committing; do not freeze it as-is.\n",
     );
   }
+  if (laneMismatches.length > 0) {
+    out.write(
+      `\n  LANE MISMATCHES (recorded verdict != declared MEDIUM/review-queue lane):\n`,
+    );
+    for (const r of laneMismatches) {
+      const got =
+        r.isVulnerable === null
+          ? "verdict:none"
+          : `isVulnerable:${r.isVulnerable}@${r.confidence}`;
+      const want = r.laneExpected
+        ? `isVulnerable:${r.laneExpected.isVulnerable}@${r.laneExpected.confidence}`
+        : "(no lane)";
+      out.write(`    ${r.id}: got ${got}  want ${want}\n`);
+    }
+    out.write(
+      "\n  A lane mismatch means the live verdict does not match the locked lane\n" +
+        "  contract (e.g. a negative anchor returned LOW instead of MEDIUM). Freezing\n" +
+        "  it would silence the anchor. Do not record it as-is; re-check the tune.\n",
+    );
+  }
 
-  if (mismatches.length > 0 || notRecorded.length > 0) {
+  if (mismatches.length > 0 || notRecorded.length > 0 || laneMismatches.length > 0) {
     out.write("\nRESULT: FAIL\n");
     process.exit(1);
   }
-  out.write("\nRESULT: PASS (all recorded, all classes matched)\n");
+  out.write("\nRESULT: PASS (all recorded, all classes matched, all lanes matched)\n");
 }
 
 // ===========================================================================
@@ -402,7 +527,21 @@ function loadRecordings(
   replayDir: string,
   fail: (label: string) => void,
 ): Map<string, ReplayFixture> {
-  const files = readdirSync(replayDir).filter((f) => f.endsWith(".json"));
+  // A wholly ABSENT recordings dir (a spec whose fixtures have not been recorded
+  // yet) is treated as zero recordings, NOT a crash: readdirSync would throw a
+  // raw ENOENT and mask the real problem. Returning [] lets the manifest
+  // completeness check downstream report each expected fixture id as a clean,
+  // loud "missing recordings for: ..." failure. Only ENOENT is swallowed; any
+  // other fs error (EACCES, ENOTDIR, ...) still throws. The populated-dir path
+  // is unchanged: when the dir exists, readdirSync succeeds exactly as before.
+  let entries: string[];
+  try {
+    entries = readdirSync(replayDir);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    entries = [];
+  }
+  const files = entries.filter((f) => f.endsWith(".json"));
   const bySource = new Map<string, ReplayFixture>();
   for (const f of files) {
     const fixture = JSON.parse(
