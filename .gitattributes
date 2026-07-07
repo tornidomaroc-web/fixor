@@ -1,0 +1,4 @@
+# Pin replay golden fixtures to LF so the frozen recordings stay byte-stable
+# across OSes and checkouts (the replay key is LF-normalized; this is
+# future-proofing, not a correctness fix).
+fixtures/replay/**/*.json text eol=lf
