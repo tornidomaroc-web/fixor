@@ -1,6 +1,6 @@
 # Fixor Remediation Progress - Living Roadmap and Status
 
-Snapshot date: 2026-07-06. This file is the cross-session source of truth for what
+Snapshot date: 2026-07-08. This file is the cross-session source of truth for what
 is done, what is in review, and what is deferred, so no step is silently skipped or
 repeated. It is built strictly from the reconciled ledger (`READINESS-FINDINGS.md`),
 the audit (`READINESS-AUDIT.md`), and what has actually happened in these sessions.
@@ -31,12 +31,14 @@ The audit (`READINESS-AUDIT.md`) states that items 1 and 2 of its ordered work g
 clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED, so the single
 remaining READY-gating blocker is:
 
-- **F-004 - the live-LLM detection brain is not guarded by any automated gate.** Until
-  the deterministic replay gate covers the detectors, a recall or precision regression
-  past the regex prefilters would not be caught by CI. Stage 1 is merged (PR #77) and
-  stage 2 sub-step 2a (the env-exposure replay gate) is now merged (PR #79), but F-004 is
-  NOT closed: stage 2 sub-steps 2b.1-2b.5 (the five detectors) and stage 3 (the opt-in live
-  model-judgment workflow) both remain in the deferred worklist.
+- **F-004 - the live-LLM detection brain is only partially guarded by an automated gate.**
+  Two detectors (env-exposure and webhook-unverified) are now covered by the deterministic
+  replay gate; until it also covers the four remaining stage-2 detectors, a recall or
+  precision regression in them past the regex prefilters would not be caught by CI. Stage 1
+  is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0 (shared harness,
+  PR #81/#82), and 2b.1 (webhook-unverified, PR #83/#84/#85) are merged, but F-004 is NOT
+  closed: stage 2 sub-steps 2b.2-2b.5 (the four remaining detectors) and stage 3 (the
+  opt-in live model-judgment workflow) both remain in the deferred worklist.
 
 Recall is clean on current evidence (no missed exploit survives re-measurement); the
 remaining non-gating items are precision, signal-hygiene, and coverage-integrity
@@ -136,10 +138,38 @@ constraints.
   the GitHub runners for the merge (node 20.x and 22.x). It does NOT by itself close F-004;
   sub-steps 2b.1-2b.5 and stage 3 remain below.
 
+- **F-004 2b.0-merged tracker update MERGED - PR #82, squash
+  `f18d43d9094cc73072b8637a0b82d3aee4fe8d6e`.** Documentation only: recorded F-004 stage 2
+  sub-step 2b.0 as merged and corrected the status of PR #80. No code, test, or CI change.
+
+- **F-004 stage 2 sub-step 2b.1 (webhook-unverified replay gate) MERGED - three PRs landed
+  in order, #83 then #84 then #85.** The second detector to plug into the shared harness,
+  taken from structure to an enforced CI guard:
+  1. **PR #83, squash `d3b00142df7bd0024818963d0715e98d5e5e3ff0`** - the webhook-unverified
+     replay spec plus lane-path support in the shared harness: `verdictLaneOutcome` reads
+     the diagnostic verdict off `detector.lastDiagnostics[0].verdict`, an optional
+     `expectedLane` per id, and a hardened `loadRecordings`. Structure only; the gate was
+     not yet wired and the recordings dir was still empty, so running it failed loud.
+  2. **PR #84, squash `b2fd53601b968de3e444f33f3df2df28c167232d`** - the 34 recorded
+     fixtures under `fixtures/replay/webhook-unverified-multi/`: 16 HIGH positives, 3
+     MEDIUM/review-queue anchors (positive/10 go-github eq-compare, reclassified from a HIGH
+     positive to a review-queue anchor alongside negatives 14 and 15 because it verifies the
+     HMAC but uses a non-constant-time compare), and 15 not-flagged negatives; plus a
+     `.gitattributes` pinning `fixtures/replay/**/*.json` to LF. Recorded once locally on the
+     owner's key at a one-time cost of ~$0.248; recording never runs in CI.
+  3. **PR #85, squash `456c639fe2091f92fdb6eaa0182c8a6cb25ecb52`** - wired the gate into
+     `test:ci` as its final step (a `test:replay-webhook-unverified` script mirroring
+     `test:replay-env-exposure`). It runs keyless and offline on both node 20.x and 22.x
+     required checks with no workflow YAML change, and `assertEscalationUnset` holds on the
+     runners. Verified green keyless on the GitHub runners for the merge.
+  Net: the webhook-unverified replay gate is now an enforced CI guard on `main`. Like the
+  env-exposure gate it is a wiring-and-parsing gate only (not detection quality), and it
+  does NOT by itself close F-004; sub-steps 2b.2-2b.5 and stage 3 remain below.
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- No open tracker PR at this moment. (The stage 2b.0 tracker update itself is prepared
-  next and is not yet listed here.)
+- **This 2b.1-merged tracker update** is the open docs PR, prepared and awaiting the merge
+  command; it is not yet merged and is not listed under DONE until it lands.
 
 ---
 
@@ -148,9 +178,9 @@ constraints.
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
 F-004 is NOT closed until stage 2 (the replay gate) covers the detectors; sub-step 2a
-(env-exposure) is merged and sub-step 2b.0 (the shared harness) is merged, while sub-steps
-2b.1-2b.5 (the five detectors) are pending. The model-judgment gate (stage 3) is only ever
-exercised by opt-in live runs, never free-in-CI.
+(env-exposure), sub-step 2b.0 (the shared harness), and sub-step 2b.1 (webhook-unverified)
+are merged, while sub-steps 2b.2-2b.5 (the four remaining detectors) are pending. The
+model-judgment gate (stage 3) is only ever exercised by opt-in live runs, never free-in-CI.
 
 - **Stage 2 - deterministic replay gate (required, free, in CI).** The replay shim
   (`src/analysis-engine/llm-replay.ts`, wired at the single `callClaude` choke point in
@@ -160,21 +190,30 @@ exercised by opt-in live runs, never free-in-CI.
   catch a model-behavior regression (a frozen sample replayed N times is not repeated
   sampling), and is labeled a wiring-and-parsing gate, not a detection-quality gate.
   - **Sub-step 2a (env-exposure): DONE, merged (PR #79).** See DONE above.
-  - **Sub-step 2b.0 (harness generalization): DONE, merged (PR #81).** See DONE above. The
-    stage-2a gate is now a shared, parameterized harness (`src/test/replay-harness.ts`) so
-    the remaining detectors plug in as specs; a test-infrastructure refactor only, no
-    detection change.
-  - **Sub-step 2b.1-2b.5 (the five detector specs: secrets-exposure, admin-check,
-    auth-bypass, webhook-unverified, idor): PENDING.** Repeat the same recorded-fixture
-    pattern per detector. The mechanism is now proven end to end on env-exposure and
-    generalizes: the shim, the key derivation, the record harness shape, and the keyless
-    round-trip test are all detector-agnostic (2b.0 lifted them into the shared harness), so
-    each is largely a repeat of 2a per detector (record once on the owner's key, then assert
-    `flagged === meta.expectedFlagged` offline). Known nuance: secrets-exposure carries F-010
-    (a known false positive on an obvious placeholder). Its fixture will FREEZE the current
-    behavior as a wiring sample only; it does NOT endorse that verdict as correct. Fixing
-    F-010 is separate precision work (see Priority 3), and when it lands it will move the
-    request or the response, so that fixture must then be re-recorded.
+  - **Sub-step 2b.0 (harness generalization): DONE, merged (PR #81, tracker #82).** See DONE
+    above. The stage-2a gate is now a shared, parameterized harness
+    (`src/test/replay-harness.ts`) so the remaining detectors plug in as specs; a
+    test-infrastructure refactor only, no detection change.
+  - **Sub-step 2b.1 (webhook-unverified): DONE, merged (PR #83/#84/#85).** See DONE above.
+    The second detector plugged into the shared harness (spec plus lane-path support, 34
+    recorded fixtures, wired into `test:ci`); now an enforced keyless CI guard.
+  - **Sub-steps 2b.2-2b.5 (the four remaining detector specs: 2b.2 auth-bypass, 2b.3
+    admin-check, 2b.4 idor, 2b.5 secrets-exposure): PENDING.** Repeat the same
+    recorded-fixture pattern per detector. The mechanism is now proven end to end on
+    env-exposure and webhook-unverified and generalizes: the shim, the key derivation, the
+    record harness shape, and the keyless round-trip test are all detector-agnostic (2b.0
+    lifted them into the shared harness), so each is largely a repeat per detector (record
+    once on the owner's key, then assert `flagged === meta.expectedFlagged` offline, with a
+    lane assertion where a detector has a review-queue ceiling, as webhook-unverified did).
+    Known per-detector nuances:
+    - **2b.4 idor** needs the `loadSidecars` hook already stubbed into
+      `positiveNegativeLayout` (its fixtures carry route/context sidecars), so its spec is
+      the one that is not a pure repeat of the no-sidecar detectors.
+    - **2b.5 secrets-exposure** carries F-010 (a known false positive on an obvious
+      placeholder). Its fixture will FREEZE the current behavior as a wiring sample only; it
+      does NOT endorse that verdict as correct. Fixing F-010 is separate precision work (see
+      Priority 3), and when it lands it will move the request or the response, so that
+      fixture must then be re-recorded.
 
 - **Stage 3 - opt-in live workflow (manual, spends only when run).** A GitHub Actions
   workflow on `workflow_dispatch` only (NO fork-PR trigger, NO nightly schedule), reading
