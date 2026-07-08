@@ -15,13 +15,17 @@
  * Category B / context.)
  *
  * LANE CONTRACT (fixtures/webhook-unverified/META.md, Phase F locked merge gate):
- * negatives 14 and 15 must land at MEDIUM/review-queue - verdict.isVulnerable
- * === true AND verdict.confidence === "medium" - NOT skip (LOW / not-vulnerable,
- * which would be a silencing regression) and NOT HIGH (which would re-create the
- * false positive). With escalation off (the record/replay mode), that MEDIUM
- * routes to "review-queue" and the detector returns [], so both negatives are
- * expectedFlagged:false; the lane is asserted separately on the diagnostic
- * verdict via verdictLaneOutcome. The two positive anchors (14/15) must FLAG.
+ * THREE ids must land at MEDIUM/review-queue - verdict.isVulnerable === true AND
+ * verdict.confidence === "medium" - NOT skip (LOW / not-vulnerable, which would
+ * be a silencing regression) and NOT HIGH (which would re-create the false
+ * positive). Negatives 14 and 15 are the Phase F locked anchors. positive/10
+ * joins them for a DIFFERENT reason: it verifies the HMAC but compares it with a
+ * non-constant-time equality (a timing side-channel the model stably rates
+ * MEDIUM, unlike the no-verification positives that flag HIGH). With escalation
+ * off (the record/replay mode), that MEDIUM routes to "review-queue" and the
+ * detector returns [], so all three are expectedFlagged:false; the lane is
+ * asserted separately on the diagnostic verdict via verdictLaneOutcome. The two
+ * positive anchors (14/15) must FLAG.
  */
 
 import {
@@ -59,7 +63,9 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   "positive/07-flask-stripe-no-sig.py": true,
   "positive/08-flask-github-no-sig.py": true,
   "positive/09-go-stripe-no-hmac.go": true,
-  "positive/10-go-github-eq-compare.go": true,
+  // MEDIUM/review-queue -> [] (verifies HMAC but non-constant-time compare;
+  // lane pinned in EXPECTED_LANE below), so flagged:false is its correct class.
+  "positive/10-go-github-eq-compare.go": false,
   "positive/11-app-router-stripe-no-sig.ts": true,
   "positive/12-app-router-lemon-diy-hmac-stub.ts": true,
   "positive/13-app-router-custom-url-sig-header-no-verify.ts": true,
@@ -88,12 +94,23 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
 };
 
 /**
- * Phase F locked lane anchors: negatives 14 and 15 must record a MEDIUM verdict
+ * MEDIUM/review-queue lane anchors: these ids must record a MEDIUM verdict
  * (isVulnerable:true, confidence:"medium") - the review-queue lane - not LOW and
  * not HIGH. Read by BOTH the record-time lane check and replay-time
- * verdictLaneOutcome, so the two gates share one source of truth.
+ * verdictLaneOutcome, so the two gates share one source of truth. Negatives
+ * 14/15 are the Phase F locked anchors; positive/10 joins them (see its note).
  */
 const EXPECTED_LANE: Record<string, ExpectedLane> = {
+  // Filed under positive/ but its recorded verdict is MEDIUM, not HIGH: unlike
+  // the no-verification positives, 10-go-github-eq-compare.go DOES verify the
+  // HMAC and only compares it with a non-constant-time `!=` (a timing side-
+  // channel), which the model stably rates MEDIUM -> review-queue -> [] (never
+  // HIGH). So it is pinned to the review-queue lane, same contract as 14/15,
+  // rather than expected to flag.
+  "positive/10-go-github-eq-compare.go": {
+    isVulnerable: true,
+    confidence: "medium",
+  },
   "negative/14-app-router-apple-cross-file-verifier-helper.ts": {
     isVulnerable: true,
     confidence: "medium",
