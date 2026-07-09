@@ -1,6 +1,6 @@
 # Fixor Remediation Progress - Living Roadmap and Status
 
-Snapshot date: 2026-07-08. This file is the cross-session source of truth for what
+Snapshot date: 2026-07-09. This file is the cross-session source of truth for what
 is done, what is in review, and what is deferred, so no step is silently skipped or
 repeated. It is built strictly from the reconciled ledger (`READINESS-FINDINGS.md`),
 the audit (`READINESS-AUDIT.md`), and what has actually happened in these sessions.
@@ -32,13 +32,18 @@ clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED, so the si
 remaining READY-gating blocker is:
 
 - **F-004 - the live-LLM detection brain is only partially guarded by an automated gate.**
-  Two detectors (env-exposure and webhook-unverified) are now covered by the deterministic
-  replay gate; until it also covers the four remaining stage-2 detectors, a recall or
-  precision regression in them past the regex prefilters would not be caught by CI. Stage 1
-  is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0 (shared harness,
-  PR #81/#82), and 2b.1 (webhook-unverified, PR #83/#84/#85) are merged, but F-004 is NOT
-  closed: stage 2 sub-steps 2b.2-2b.5 (the four remaining detectors) and stage 3 (the
-  opt-in live model-judgment workflow) both remain in the deferred worklist.
+  Three detectors (env-exposure, webhook-unverified, and auth-bypass) are now covered by the
+  deterministic replay gate; until it also covers the three remaining stage-2 detectors, a
+  recall or precision regression in them past the regex prefilters would not be caught by CI.
+  Stage 1 is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0 (shared
+  harness, PR #81/#82), 2b.1 (webhook-unverified, PR #83/#84/#85), and 2b.2 (auth-bypass,
+  PR #87/#88) are merged, but F-004 is NOT closed: stage 2 sub-steps 2b.3-2b.5 (the three
+  remaining detectors) and stage 3 (the opt-in live model-judgment workflow) both remain in
+  the deferred worklist.
+
+  Three of six detectors gated is progress, not readiness. Every gate landed so far is a
+  wiring-and-parsing gate: none of them verifies detection quality, which is stage 3 (live)
+  work that has not started. F-004 stays NOT-READY.
 
 Recall is clean on current evidence (no missed exploit survives re-measurement); the
 remaining non-gating items are precision, signal-hygiene, and coverage-integrity
@@ -164,11 +169,59 @@ constraints.
      runners. Verified green keyless on the GitHub runners for the merge.
   Net: the webhook-unverified replay gate is now an enforced CI guard on `main`. Like the
   env-exposure gate it is a wiring-and-parsing gate only (not detection quality), and it
-  does NOT by itself close F-004; sub-steps 2b.2-2b.5 and stage 3 remain below.
+  does NOT by itself close F-004; sub-steps 2b.3-2b.5 and stage 3 remain below.
+
+- **F-004 2b.1-merged tracker update MERGED - PR #86, squash
+  `0321755b258f578c3852f9dfb1f5c73eb6bb68b1`.** Documentation only: recorded F-004 stage 2
+  sub-step 2b.1 as merged. No code, test, or CI change.
+
+- **F-004 stage 2 sub-step 2b.2 (auth-bypass replay gate) MERGED - two PRs landed in order,
+  #87 then #88.** The third detector to plug into the shared harness, taken from recorded
+  fixtures to an enforced CI guard:
+  1. **PR #87, squash `526841bd1e540874d5e5fc77e0848ac3f894fbe4`** - the auth-bypass replay
+     spec (`src/test/specs/auth-bypass.replay-spec.ts`), its recorder, its keyless
+     entrypoint, and 37 recorded fixtures under `fixtures/replay/auth-bypass-multi/`.
+     The source corpus is 45 files (22 positives + 23 negatives); 37 of them are
+     model-reaching and therefore recordable, and 8 negatives are excluded because
+     auth-bypass drops them before `callClaude` ever runs:
+     - **6 zero-prefilter** (`prefilterRegex` returns 0 hits, so `analyzeFile`
+       short-circuits): negatives 02, 03, 08, 09, 10, 19. (Negative/02 also sits on a
+       `SKIP_PATH_RE` path, `scripts/dev/`, so it is doubly excluded; it is counted once,
+       here.) Negative/19 is a Remix utility module outside `app/routes/`, the direct
+       analog of webhook-unverified negative/18.
+     - **2 via `SKIP_PATH_RE` at `detect()`** (dropped on path before the prefilter runs):
+       negative/05 (`scripts/seed/seed-uploads.js`) and negative/07 (`tests/conftest.py`).
+     Recorded one-shot clean, 37/37 against designed intent: all 22 positives flagged
+     `isVulnerable:true@high`, all 15 model-reaching negatives not flagged. ZERO cases
+     landed off-class, so `EXPECTED_LANE` is empty (`{}`): none of the three not-flagged
+     lanes (LOW confidence, MEDIUM review-queue, H7 `laneDeferral`) fired on this corpus.
+     Those lane anchors live in `fixtures/real-shape` (exercised by
+     `test-auth-bypass-lane.ts`), not here. Recorded once locally on the owner's key at a
+     one-time actual cost of $0.31472 (pre-record estimate was $0.27-0.35); recording is
+     the only path that spends and never runs in CI.
+  2. **PR #88, squash `9285ea6db00d3c5c081b81a4a39b09977cc41031`** - wired
+     `test:replay-auth-bypass` into `test:ci` as the final step of the chain, keeping the
+     `test:replay-*` group contiguous at the tail (a one-line change; the npm script itself
+     already existed from #87). Verified from the GitHub runner job logs, not merely from a
+     green check mark, that the gate executes in-chain keyless and offline on both node 20.x
+     and 22.x required checks, printing `Mode: replay, offline, no key, no network, no DB.`
+     and `recordings cover exactly the 37-fixture manifest`, with `assertEscalationUnset`
+     holding on the runners. No workflow YAML change.
+  Net: the auth-bypass replay gate is now an enforced CI guard on `main`. Like the
+  env-exposure and webhook-unverified gates it is a wiring-and-parsing gate only (not
+  detection quality), and it does NOT by itself close F-004; sub-steps 2b.3-2b.5 and stage 3
+  remain below.
+
+  **Durable count note (do not re-derive wrongly).** The recordable count for auth-bypass is
+  **37, not the ~39 first estimated.** The ~39 over-counted by including negatives 05 and 07,
+  which DO trigger the prefilter regex but are dropped on path by `SKIP_PATH_RE` inside
+  `detect()` before the model is ever reached. Any count derived from the prefilter alone
+  over-includes them. The authoritative number is the 37-entry manifest in
+  `auth-bypass.replay-spec.ts`, which the gate asserts for completeness on every CI run.
 
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- **This 2b.1-merged tracker update** is the open docs PR, prepared and awaiting the merge
+- **This 2b.2-merged tracker update** is the open docs PR, prepared and awaiting the merge
   command; it is not yet merged and is not listed under DONE until it lands.
 
 ---
@@ -178,9 +231,10 @@ constraints.
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
 F-004 is NOT closed until stage 2 (the replay gate) covers the detectors; sub-step 2a
-(env-exposure), sub-step 2b.0 (the shared harness), and sub-step 2b.1 (webhook-unverified)
-are merged, while sub-steps 2b.2-2b.5 (the four remaining detectors) are pending. The
-model-judgment gate (stage 3) is only ever exercised by opt-in live runs, never free-in-CI.
+(env-exposure), sub-step 2b.0 (the shared harness), sub-step 2b.1 (webhook-unverified), and
+sub-step 2b.2 (auth-bypass) are merged, while sub-steps 2b.3-2b.5 (the three remaining
+detectors) are pending. The model-judgment gate (stage 3) is only ever exercised by opt-in
+live runs, never free-in-CI.
 
 - **Stage 2 - deterministic replay gate (required, free, in CI).** The replay shim
   (`src/analysis-engine/llm-replay.ts`, wired at the single `callClaude` choke point in
@@ -197,23 +251,51 @@ model-judgment gate (stage 3) is only ever exercised by opt-in live runs, never 
   - **Sub-step 2b.1 (webhook-unverified): DONE, merged (PR #83/#84/#85).** See DONE above.
     The second detector plugged into the shared harness (spec plus lane-path support, 34
     recorded fixtures, wired into `test:ci`); now an enforced keyless CI guard.
-  - **Sub-steps 2b.2-2b.5 (the four remaining detector specs: 2b.2 auth-bypass, 2b.3
-    admin-check, 2b.4 idor, 2b.5 secrets-exposure): PENDING.** Repeat the same
-    recorded-fixture pattern per detector. The mechanism is now proven end to end on
-    env-exposure and webhook-unverified and generalizes: the shim, the key derivation, the
-    record harness shape, and the keyless round-trip test are all detector-agnostic (2b.0
-    lifted them into the shared harness), so each is largely a repeat per detector (record
-    once on the owner's key, then assert `flagged === meta.expectedFlagged` offline, with a
-    lane assertion where a detector has a review-queue ceiling, as webhook-unverified did).
-    Known per-detector nuances:
+  - **Sub-step 2b.2 (auth-bypass): DONE, merged (PR #87/#88).** See DONE above. The third
+    detector plugged into the shared harness (spec, recorder, entrypoint, 37 recorded
+    fixtures, wired into `test:ci` as the final chain step); now an enforced keyless CI
+    guard. `EXPECTED_LANE` is empty: the corpus produced zero off-class cases.
+  - **Sub-steps 2b.3-2b.5 (the three remaining detector specs: 2b.3 admin-check, 2b.4 idor,
+    2b.5 secrets-exposure): PENDING.** Repeat the same recorded-fixture pattern per detector.
+    The mechanism is now proven end to end on env-exposure, webhook-unverified, and
+    auth-bypass and generalizes: the shim, the key derivation, the record harness shape, and
+    the keyless round-trip test are all detector-agnostic (2b.0 lifted them into the shared
+    harness), so each is largely a repeat per detector (record once on the owner's key, then
+    assert `flagged === meta.expectedFlagged` offline, with a lane assertion where a detector
+    has a review-queue ceiling, as webhook-unverified did).
+
+    Important: 2b.3 and 2b.5 are NOT plain repeats. Both detectors reach findings on the
+    shipped path without calling the model, so a recorded-replay gate is the wrong instrument
+    for the deterministic part of their behavior. Known per-detector nuances:
+    - **2b.3 admin-check** is a mixed detector. Of its 42-file corpus (21 positives + 21
+      negatives), 30 files reach the model, but 9 positives are flagged by a deterministic
+      path with NO model call: the per-pattern "Option G" bypass in `admin-check.detector.ts`
+      (11 `literal`-tier patterns carry hand-authored explanations and skip `callClaude`
+      entirely; the 6 `judgment`-tier patterns such as `role_string_compare` stay on the LLM
+      path regardless, because the regex cannot disambiguate bug from safe usage). The
+      shipped default is `llmValidation = false` (env `FIXOR_ADMIN_CHECK_LLM_OPT_IN` wins
+      over the constructor option). Those 9 deterministic positives need a FREE deterministic
+      check, not replay: there is no request to key a recording on. Replay covers only the
+      model-reaching remainder. (The 30/9 split comes from the 2b.3 scoping pass and has not
+      been re-derived mechanically in this tracker update; the bypass mechanism above is
+      confirmed in code. Re-measure before relying on the exact numbers.)
     - **2b.4 idor** needs the `loadSidecars` hook already stubbed into
       `positiveNegativeLayout` (its fixtures carry route/context sidecars), so its spec is
-      the one that is not a pure repeat of the no-sidecar detectors.
-    - **2b.5 secrets-exposure** carries F-010 (a known false positive on an obvious
-      placeholder). Its fixture will FREEZE the current behavior as a wiring sample only; it
-      does NOT endorse that verdict as correct. Fixing F-010 is separate precision work (see
-      Priority 3), and when it lands it will move the request or the response, so that
-      fixture must then be re-recorded.
+      the one that is not a pure repeat of the no-sidecar detectors. It needs a layout-aware
+      recorder, sidecar injection through `loadSidecars`, and a finding-set outcome
+      assertion rather than the plain flagged-vs-expected boolean.
+    - **2b.5 secrets-exposure** never calls the model on the shipped path: `registry.ts`
+      constructs `SecretsExposureDetector()` with no options, so `llmValidation` defaults to
+      false and every prefilter hit is flagged regex-only from a hand-authored explanation
+      (`preFilterReason: "llm-bypass"`). An LLM path does exist in the class but is opt-in
+      (`FIXOR_SECRETS_LLM_OPT_IN=true` or `{ llmValidation: true }`) and is off in CI. So
+      guard the shipped behavior with a FREE deterministic regex test, not a replay gate;
+      there is no `callClaude` request to record.
+      Separately, secrets-exposure carries F-010 (a known false positive on an obvious
+      placeholder). Any fixture written for it FREEZES the current behavior as a wiring
+      sample only; it does NOT endorse that verdict as correct. Fixing F-010 is separate
+      precision work (see Priority 3) and is new work, and when it lands it will move the
+      request or the response, so that fixture must then be re-recorded.
 
 - **Stage 3 - opt-in live workflow (manual, spends only when run).** A GitHub Actions
   workflow on `workflow_dispatch` only (NO fork-PR trigger, NO nightly schedule), reading
