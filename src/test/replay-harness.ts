@@ -289,6 +289,32 @@ export function assertEscalationUnset(): void {
   }
 }
 
+/**
+ * admin-check resolves `llmValidation` as: env FIXOR_ADMIN_CHECK_LLM_OPT_IN wins
+ * when defined (`=== "true"`), else the constructor option, else false. The
+ * shipped registry constructs `new AdminCheckDetector()`, so the default is
+ * false: literal-tier first-triggers take the Option G bypass and never reach
+ * callClaude.
+ *
+ * With the flag set to "true" that bypass disappears and EVERY trigger goes to
+ * the model. Any manifest that partitions this corpus into "deterministic" and
+ * "model-reaching" is therefore only valid while the flag is unset - the
+ * partition is silently wrong otherwise, not loudly wrong. Assert it.
+ *
+ * Only the exact string "true" enables the opt-in (mirroring the detector's own
+ * comparison), so "false"/"1"/unset all resolve to the shipped default and pass.
+ */
+export function assertAdminCheckOptInUnset(): void {
+  if (process.env.FIXOR_ADMIN_CHECK_LLM_OPT_IN === "true") {
+    throw new Error(
+      "FIXOR_ADMIN_CHECK_LLM_OPT_IN=true is unsupported for the admin-check " +
+        "deterministic gate: it routes every trigger through callClaude, so the " +
+        "Option G bypass fixtures would reach the model and the bucket partition " +
+        "no longer holds. Unset FIXOR_ADMIN_CHECK_LLM_OPT_IN and re-run.",
+    );
+  }
+}
+
 // ===========================================================================
 // Record engine (owner-local, spends). Generalized from record-env-exposure.
 //
