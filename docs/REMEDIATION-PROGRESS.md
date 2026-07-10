@@ -28,12 +28,52 @@ An open PR is "in review," never "done."
 Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
 
 1. **Record every fixture for a detector in ONE process.** Each new recorder process re-pays
-   the system-prompt cache-write premium. For admin-check that premium is about $0.0136 per
-   cold process, because its `SYSTEM_PROMPT` is 1637 characters against auth-bypass's 399
-   (both measured from source). Splitting the first admin-check attempt into batches to
+   the system-prompt cache-write premium: the first call of a process writes the cached
+   system block, every later call in that process reads it. For admin-check that premium was
+   about $0.0136 (owner-reported). Splitting the first admin-check attempt into batches to
    enforce a spend ceiling cost roughly $0.027 extra for nothing. Batch, do not chunk.
 
-2. **Do NOT trust the harness's own "projected manifest" figure.** `replay-harness.ts:494`
+   This holds for EVERY detector, not only long-prompted ones: the premium is paid once per
+   process regardless of size, and it is the process count, not the prompt length, that the
+   batching decision controls.
+
+2. **Measured `SYSTEM_PROMPT` lengths (corrected; see the methodology note below).**
+   Measured from the intercepted `callClaude` request payload - the exact text
+   `cachedSystem()` puts on the wire - and independently verified three ways: the sha256 of
+   the captured text matches each detector's exported `SYSTEM_PROMPT_FINGERPRINT`, and both
+   match the `meta.systemPromptFingerprint` frozen into all 118 committed recordings.
+
+   | detector | chars | approx tokens | fingerprint |
+   |---|---|---|---|
+   | env-exposure | 1,339 | 335 | `d2ca2f022d99` |
+   | idor | 8,092 | 2,023 | `5f5129f12b11` |
+   | webhook-unverified | 8,696 | 2,174 | `c2c5deba87c9` |
+   | admin-check | 13,353 | 3,338 | `ed52ebe3db91` |
+   | auth-bypass | 14,237 | 3,559 | `45a17ae07c26` |
+
+   **Correction, and what it invalidates.** A previous revision of this file (PR #93) stated
+   that admin-check's prompt is 1637 characters against auth-bypass's 399, and reasoned that
+   admin-check therefore pays a bigger cache-write premium. Both numbers were wrong and the
+   comparison is INVERTED: auth-bypass's prompt (14,237) is LARGER than admin-check's
+   (13,353). That causal story is withdrawn - it explains nothing, and any per-detector cost
+   intuition built on it should be discarded.
+
+   What the evidence DOES support: the measured ~$0.0136 premium corroborates 13,353 chars.
+   At sonnet rates, 3,338 tokens x ($3.75 - $0.30)/Mtok is about $0.0115 - the right order.
+   A 1,637-char prompt would imply about $0.0014, ten-fold off. So the SPEND measurement was
+   right; the character count written beside it was wrong. The measurement refuted the
+   number, not the other way round.
+
+3. **METHODOLOGY, durable trap: never measure a prompt by regex over source.** The wrong
+   figures came from a non-greedy capture, `SYSTEM_PROMPT.*=\s*` + backtick + `(.*?)` +
+   backtick, run over the `.ts` source. Every detector's prompt embeds markdown code fences,
+   so the capture terminated at the first backtick of the first fence and returned a prefix.
+   It fails silently and returns a plausible-looking number. Measure the prompt from the
+   actual request payload (spy on `callClaude`, read `system[0].text`), then confirm the
+   sha256 prefix equals the detector's exported `SYSTEM_PROMPT_FINGERPRINT`. If those two
+   disagree, the capture is wrong, not the constant.
+
+4. **Do NOT trust the harness's own "projected manifest" figure.** `replay-harness.ts:494`
    prints `~$(avg * spec.manifest.length)`, where `avg` is the mean over calls measured SO
    FAR. Early in a run that mean still carries the cold cache-write outlier, so the
    projection is systematically inflated and drifts as the run warms. On 2b.3 it projected
@@ -42,7 +82,7 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    `(n x highest observed warm call) + one cache-write premium`, then report the MEASURED
    total, never the projection.
 
-3. **Cumulative F-004 recording spend to date: about $0.977.**
+5. **Cumulative F-004 recording spend to date: about $0.977.**
    2a $0.133 + 2b.1 $0.248 + 2b.2 $0.31472 + 2b.3 $0.28092 = $0.97664. The 2a figure is
    itself recorded as an approximation ("~$0.133"), so the trailing digits of that sum are
    false precision; treat it as ~$0.98.
@@ -54,7 +94,11 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    and the response carries no `usage` block). Anyone auditing these figures must re-run the
    recorder and spend money. They are logged here as testimony, not as verified fact.
 
-4. **2b.5 (secrets-exposure) is expected to cost $0.** `detectors/registry.ts:51` constructs
+   Note the asymmetry this file now records: the SPEND figures are testimony (nothing in the
+   repo can check them), while the PROMPT-LENGTH figures in item 2 are repo-verifiable and
+   were verified. Do not let the caveat on the former leak onto the latter.
+
+6. **2b.5 (secrets-exposure) is expected to cost $0.** `detectors/registry.ts:51` constructs
    `new SecretsExposureDetector()` with no options, so `llmValidation` is false and the
    shipped path is regex-only. Guard it deterministically, exactly as admin-check bucket (b)
    was guarded. There is no `callClaude` request to record, so there is nothing to pay for.
@@ -409,10 +453,36 @@ live runs, never free-in-CI.
     structurally the wrong instrument for that part of its behavior. Known per-detector
     nuances:
     - **2b.4 idor** needs the `loadSidecars` hook already stubbed into
-      `positiveNegativeLayout` (its fixtures carry route/context sidecars), so its spec is
-      the one that is not a pure repeat of the no-sidecar detectors. It needs a layout-aware
-      recorder, sidecar injection through `loadSidecars`, and a finding-set outcome
-      assertion rather than the plain flagged-vs-expected boolean.
+      `positiveNegativeLayout` (its fixtures carry RLS-policy and middleware sidecars), so its
+      spec is the one that is not a pure repeat of the no-sidecar detectors. It needs a
+      layout-aware recorder, sidecar injection through `loadSidecars`, and a finding-set
+      outcome assertion rather than the plain flagged-vs-expected boolean.
+
+      **Measured scoping facts (2b.4 diagnosis pass; execution, not reading).**
+      - The detector is **on `main`**: `src/analysis-engine/detectors/idor.detector.ts`, and
+        `detectors/registry.ts` constructs `new IdorDetector()`. There is NO
+        `feat/idor-detector` branch on origin (every remote head was listed). 2b.4 is not
+        blocked on unmerged work.
+      - **idor is currently ungated in CI entirely.** `test:idor`, `test:idor-lane`,
+        `test:idor-multi`, `test:idor-tenant` all exist, all require `ANTHROPIC_API_KEY`, and
+        NONE is in the `test:ci` chain. 2b.4 would be this detector's first CI coverage.
+      - **The inherited "29 recordable" figure is REFUTED.** It is a naive file count
+        (21 + 6 + 2) that merges three separate corpora AND counts three sidecar files as
+        fixtures (`03-postgres-rls.policy.sql`, `04-supabase-policy.policy.sql`,
+        `07-rls-via-prisma-extension.middleware.ts`, all in `fixtures/idor/negative/`).
+        Same failure mode as auth-bypass's "~39" that turned out to be 37: a count derived
+        from the filesystem rather than from execution.
+      - **Measured by driving the compiled detector keylessly: 26 source fixtures, ALL 26
+        reach `callClaude`.** `fixtures/idor` 18 (9 positive + 9 negative), `fixtures/idor-tenant`
+        6 (3 + 3), `fixtures/idor-multi` 2. Bucket (a) is EMPTY (no fixture is dropped by any
+        of the five pre-model gates; every `preFilterReason` was null) and bucket (b) is EMPTY
+        (idor has no Option-G-style bypass; `llm-bypass` does not appear in the detector).
+      - Therefore **idor needs NO free deterministic gate** - it is a pure replay detector,
+        the exact opposite shape from admin-check. The recordable count is 18, 24, or 26
+        depending on which corpora are in scope; it is not 29 under any reading.
+      - Method note: the same driver, run against `fixtures/admin-check`, independently
+        reproduced bucket (c) = 30, matching the merged 2b.3 manifest. The discriminator is
+        validated, not assumed.
     - **2b.5 secrets-exposure** never calls the model on the shipped path: `registry.ts`
       constructs `SecretsExposureDetector()` with no options, so `llmValidation` defaults to
       false and every prefilter hit is flagged regex-only from a hand-authored explanation
@@ -463,10 +533,11 @@ fixtures in `fixtures/admin-check/`, capturing `authPresent`/`operationKind` per
 intersecting the deferral set against admin-check's recorded confidences. This was NOT
 authorized, NOT performed, and its result is NOT inferred here.
 
-**Estimated cost to answer: about $0.22** (26 calls). Derived, not measured: the 2b.2
+**Estimated cost to answer: about $0.23** (26 calls). Derived, not measured: the 2b.2
 auth-bypass recording spent $0.31472 over 37 calls, or about $0.0085/call; 26 x $0.0085 is
-about $0.221. auth-bypass has a short `SYSTEM_PROMPT` (399 chars), so its cache-write premium
-is small. Per the cost lessons above, bound the worst case as
+about $0.221, plus one cache-write premium of roughly $0.012 (auth-bypass's prompt is 14,237
+chars, about 3,559 tokens; see the measured table above - an earlier revision wrongly called
+it "short, 399 chars" and treated its premium as negligible). Bound the worst case as
 `(26 x highest observed warm call) + one cache-write premium` and report the measured total,
 not this estimate.
 
