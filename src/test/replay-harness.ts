@@ -42,6 +42,7 @@ import {
   lastCallCost,
   resetLastCallCost,
 } from "../analysis-engine/anthropic-client";
+import { SIDECAR_EXTS } from "../analysis-engine/sidecar-kinds";
 
 const out = process.stdout;
 
@@ -148,6 +149,17 @@ export interface ExpectedLane {
 }
 
 /**
+ * One expected finding, for the exact finding-set assertion (findingSetOutcome).
+ * Identity only: `ruleId` plus the reported `startLine` (idor's sink line).
+ * Free-text fields (message/explanation, both raw model reasoning) are excluded
+ * on purpose - pinning them would make the gate a prose-diff, not a wiring gate.
+ */
+export interface ExpectedFinding {
+  ruleId: string;
+  startLine: number;
+}
+
+/**
  * One detector's full replay configuration. The engines below are pure
  * functions of a spec; a per-detector file supplies a spec and calls
  * `recordFixtures` / `runReplayGate`.
@@ -188,11 +200,12 @@ export interface DetectorReplaySpec {
 // Outcome helper factories.
 //
 // The engine treats the outcome as a pluggable function: ANY shape is supported
-// by supplying an OutcomeAssertion. `flaggedOutcome` below is the one shape
-// exercised so far (env-exposure). Other shapes a later detector needs - e.g. a
-// MEDIUM-vs-LOW verdict-lane assertion (webhook-unverified) or an exact
-// finding-set assertion (idor-multi) - are added as sibling factories in the PR
-// that wires AND fixture-tests them, not speculatively here.
+// by supplying an OutcomeAssertion. Three shapes exist, each added by the PR
+// that wires AND fixture-tests it, never speculatively:
+//   flaggedOutcome     - "did it flag" (env-exposure, auth-bypass, admin-check)
+//   verdictLaneOutcome - MEDIUM-vs-LOW lane on the diagnostic (webhook-unverified)
+//   findingSetOutcome  - the EXACT finding set (idor-multi, which emits one
+//                        finding per source/sink pair, so cardinality alone lies)
 // ===========================================================================
 
 /**
@@ -263,6 +276,91 @@ export function verdictLaneOutcome(
     return {
       pass,
       detail: `lane ${vstr} ${pass ? "==" : "!="} expected:isVulnerable:${lane.isVulnerable}@${lane.confidence}`,
+    };
+  };
+}
+
+/**
+ * EXACT finding-set assertion (idor-multi). The third outcome shape.
+ *
+ * WHY A BOOLEAN IS NOT ENOUGH: `flaggedOutcome` asserts `findings.length > 0`.
+ * idor emits ONE finding per (source, sink) candidate pair, up to six per file,
+ * so on a multi-pair positive the boolean passes when ANY single pair flags. A
+ * regression that silently drops five of six findings reads as green. That is
+ * precisely the regression class a multi-finding detector exists to catch, so
+ * the set - not its cardinality - is the contract.
+ *
+ * FINDING IDENTITY is `(ruleId, startLine)`. Measured across all 26 idor
+ * fixtures: every candidate pair within a file has a distinct sink line, and the
+ * finding's startLine IS the sink line, so this pair is unique per file. `file`
+ * is constant per fixture (single-file synthetic diff) and therefore carries no
+ * information; `message`/`explanation` are free-text model reasoning and are
+ * deliberately NOT part of identity.
+ *
+ * CANONICAL ORDER: both sides are sorted by (startLine, ruleId) before
+ * comparison. Emission order today is already ascending by sink line, but the
+ * assertion must not silently depend on prefilter iteration order - a future
+ * reordering of PREFILTER_PATTERNS would otherwise turn a correct detector into
+ * a red gate.
+ *
+ * DIAGNOSABILITY: a bare pass/fail cannot debug a shrunken set, so a mismatch
+ * reports the MISSING and UNEXPECTED findings by id. Expected sets live in the
+ * SPEC (a map, mirroring EXPECTED_LANE), never in `recording.meta` - the meta
+ * field is `expectedFlagged: boolean` and structurally cannot hold a set.
+ *
+ * An id reaching here with no declared set is a loud pass:false (config error),
+ * mirroring verdictLaneOutcome. It NEVER falls back to the boolean shape: a
+ * silent downgrade to `length > 0` is the exact failure this factory exists to
+ * prevent.
+ */
+export function findingSetOutcome(
+  expectedSet: (id: string) => readonly ExpectedFinding[] | undefined,
+): OutcomeAssertion {
+  // Canonical order: (startLine asc, then ruleId lexicographic). Sort the
+  // records, THEN render, so ordering never depends on string collation of a
+  // numeric prefix (":" vs digits would make "9:x" sort after "10:x").
+  const canonical = (
+    fs: readonly { ruleId: string; startLine: number }[],
+  ): string[] =>
+    [...fs]
+      .sort((a, b) =>
+        a.startLine !== b.startLine
+          ? a.startLine - b.startLine
+          : a.ruleId.localeCompare(b.ruleId),
+      )
+      .map((f) => `L${f.startLine}:${f.ruleId}`);
+
+  return ({ id, findings }) => {
+    const expected = expectedSet(id);
+    if (!expected) {
+      return {
+        pass: false,
+        detail:
+          `findingSetOutcome dispatched to ${id} with no declared expected set. ` +
+          `Expected sets are reconciled FROM the recordings (see the ` +
+          `RECONCILIATION HOOK in the spec); until then this gate cannot pass.`,
+      };
+    }
+    const got = canonical(findings);
+    const want = canonical(expected);
+
+    const gotSet = new Set(got);
+    const wantSet = new Set(want);
+    const missing = want.filter((k) => !gotSet.has(k));
+    const unexpected = got.filter((k) => !wantSet.has(k));
+
+    if (missing.length === 0 && unexpected.length === 0) {
+      return {
+        pass: true,
+        detail: `findings ${got.length}/${want.length} exact  [${got.join(" ")}]`,
+      };
+    }
+    const parts: string[] = [];
+    if (missing.length > 0) parts.push(`MISSING [${missing.join(" ")}]`);
+    if (unexpected.length > 0) parts.push(`UNEXPECTED [${unexpected.join(" ")}]`);
+    return {
+      pass: false,
+      detail: `finding-set mismatch (got ${got.length}, want ${want.length}): ${parts.join("  ")}`,
     };
   };
 }
@@ -702,11 +800,46 @@ export async function runReplayGate(spec: DetectorReplaySpec): Promise<void> {
 // ===========================================================================
 
 /**
+ * Is this directory entry a FIXTURE, as opposed to a companion sidecar or docs?
+ *
+ * Ported verbatim in behavior from `lib/stability-harness.ts` (isFixtureFile),
+ * which has always excluded sidecars. The replay layout below previously
+ * filtered only `.md` and dotfiles, so for any corpus whose sidecars sit NEXT TO
+ * the fixtures it enumerated them AS fixture ids. That is latent for every
+ * sidecar-free detector (env-exposure, webhook-unverified, auth-bypass,
+ * admin-check: zero sidecar files, so the old and new predicates agree exactly)
+ * and load-bearing for idor, whose `fixtures/idor/negative/` holds three:
+ * `03-postgres-rls.policy.sql`, `04-supabase-policy.policy.sql`, and
+ * `07-rls-via-prisma-extension.middleware.ts`.
+ *
+ * Enumerating a sidecar as a fixture is not a cosmetic miscount. `.policy.sql`
+ * has no language mapping, so it would be dropped by the detector's
+ * "unsupported language" gate and masquerade as a pre-model fixture; and the
+ * inherited "29 recordable" figure for idor is exactly this miscount (a naive
+ * file count that merged three corpora and counted these three files).
+ *
+ * `.disabled` is honored too: it temporarily excludes a fixture or sidecar
+ * without deleting it (the Day 5 sidecar falsifier).
+ */
+export function isFixtureFile(name: string): boolean {
+  if (name.startsWith(".")) return false;
+  if (name.endsWith(".md")) return false;
+  if (name.endsWith(".disabled")) return false;
+  for (const ext of SIDECAR_EXTS) {
+    if (name.endsWith(ext)) return false;
+  }
+  return true;
+}
+
+/**
  * The env-exposure / auth-bypass layout: fixtures live under
  * `<dir>/{positive,negative}/`, one file per id, id = "<class>/<file>". A
  * `// ASSUMED-PATH:` header (stripped by loadFixture) sets the diff path.
  * `loadSidecars`, when supplied, injects sidecar bodies for an id (idor
  * negatives); omit it and buildContext returns a bare `{ diff }`.
+ *
+ * Sidecar companion files are NEVER enumerated as fixture ids (see
+ * isFixtureFile). They reach the detector only through `loadSidecars`.
  */
 export function positiveNegativeLayout(opts: {
   dir: string;
@@ -717,9 +850,7 @@ export function positiveNegativeLayout(opts: {
 }): Layout {
   const { dir } = opts;
   const listClass = (cls: "positive" | "negative"): string[] =>
-    readdirSync(join(dir, cls))
-      .filter((f) => !f.endsWith(".md") && !f.startsWith("."))
-      .sort();
+    readdirSync(join(dir, cls)).filter(isFixtureFile).sort();
 
   return {
     resolveSelector(sel: string): string {
