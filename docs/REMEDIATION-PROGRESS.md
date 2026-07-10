@@ -1,6 +1,6 @@
 # Fixor Remediation Progress - Living Roadmap and Status
 
-Snapshot date: 2026-07-09. This file is the cross-session source of truth for what
+Snapshot date: 2026-07-10. This file is the cross-session source of truth for what
 is done, what is in review, and what is deferred, so no step is silently skipped or
 repeated. It is built strictly from the reconciled ledger (`READINESS-FINDINGS.md`),
 the audit (`READINESS-AUDIT.md`), and what has actually happened in these sessions.
@@ -23,6 +23,42 @@ An open PR is "in review," never "done."
   parsing, not detection quality. Only an opt-in live run verifies model judgment.
 - No em dash in human-facing text we author.
 
+## Recording-cost lessons (read this BEFORE the next recording session)
+
+Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
+
+1. **Record every fixture for a detector in ONE process.** Each new recorder process re-pays
+   the system-prompt cache-write premium. For admin-check that premium is about $0.0136 per
+   cold process, because its `SYSTEM_PROMPT` is 1637 characters against auth-bypass's 399
+   (both measured from source). Splitting the first admin-check attempt into batches to
+   enforce a spend ceiling cost roughly $0.027 extra for nothing. Batch, do not chunk.
+
+2. **Do NOT trust the harness's own "projected manifest" figure.** `replay-harness.ts:494`
+   prints `~$(avg * spec.manifest.length)`, where `avg` is the mean over calls measured SO
+   FAR. Early in a run that mean still carries the cold cache-write outlier, so the
+   projection is systematically inflated and drifts as the run warms. On 2b.3 it projected
+   ~$0.3914, then ~$0.2407; the measured total was $0.28092. It over-shot, then under-shot,
+   and was never right. Bound the worst case yourself as
+   `(n x highest observed warm call) + one cache-write premium`, then report the MEASURED
+   total, never the projection.
+
+3. **Cumulative F-004 recording spend to date: about $0.977.**
+   2a $0.133 + 2b.1 $0.248 + 2b.2 $0.31472 + 2b.3 $0.28092 = $0.97664. The 2a figure is
+   itself recorded as an approximation ("~$0.133"), so the trailing digits of that sum are
+   false precision; treat it as ~$0.98.
+
+   **Provenance caveat (important).** These four numbers are owner-reported record-time
+   observations read off recorder stdout. They are NOT reproducible from this repo: the
+   recorder persists no cost or token data (a recording's `meta` carries only `detectorId`,
+   `model`, `systemPromptFingerprint`, `recordedAtIso`, `sourceFixture`, `expectedFlagged`,
+   and the response carries no `usage` block). Anyone auditing these figures must re-run the
+   recorder and spend money. They are logged here as testimony, not as verified fact.
+
+4. **2b.5 (secrets-exposure) is expected to cost $0.** `detectors/registry.ts:51` constructs
+   `new SecretsExposureDetector()` with no options, so `llmValidation` is false and the
+   shipped path is regex-only. Guard it deterministically, exactly as admin-check bucket (b)
+   was guarded. There is no `callClaude` request to record, so there is nothing to pay for.
+
 ## Current readiness verdict
 
 **NOT-READY (temporary).**
@@ -32,18 +68,22 @@ clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED, so the si
 remaining READY-gating blocker is:
 
 - **F-004 - the live-LLM detection brain is only partially guarded by an automated gate.**
-  Three detectors (env-exposure, webhook-unverified, and auth-bypass) are now covered by the
-  deterministic replay gate; until it also covers the three remaining stage-2 detectors, a
-  recall or precision regression in them past the regex prefilters would not be caught by CI.
-  Stage 1 is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0 (shared
-  harness, PR #81/#82), 2b.1 (webhook-unverified, PR #83/#84/#85), and 2b.2 (auth-bypass,
-  PR #87/#88) are merged, but F-004 is NOT closed: stage 2 sub-steps 2b.3-2b.5 (the three
-  remaining detectors) and stage 3 (the opt-in live model-judgment workflow) both remain in
-  the deferred worklist.
+  Four detectors (env-exposure, webhook-unverified, auth-bypass, and admin-check) are now
+  covered by a deterministic CI gate; until the two remaining stage-2 detectors are covered,
+  a recall or precision regression in them past the regex prefilters would not be caught by
+  CI. Stage 1 is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0
+  (shared harness, PR #81/#82), 2b.1 (webhook-unverified, PR #83/#84/#85), 2b.2 (auth-bypass,
+  PR #87/#88/#89), and 2b.3 (admin-check, PR #90/#91/#92) are merged, but F-004 is NOT
+  closed: stage 2 sub-steps 2b.4-2b.5 (the two remaining detectors) and stage 3 (the opt-in
+  live model-judgment workflow) both remain in the deferred worklist.
 
-  Three of six detectors gated is progress, not readiness. Every gate landed so far is a
+  Four of six detectors gated is progress, not readiness. Every gate landed so far is a
   wiring-and-parsing gate: none of them verifies detection quality, which is stage 3 (live)
   work that has not started. F-004 stays NOT-READY.
+
+  Note on wording: admin-check needed TWO gates, not one. A replay gate alone cannot cover it
+  (see the 2b.3 entry). "Covered by a deterministic CI gate" is therefore the accurate phrase
+  for the set of four; only three of them are covered by the *replay* gate specifically.
 
 Recall is clean on current evidence (no missed exploit survives re-measurement); the
 remaining non-gating items are precision, signal-hygiene, and coverage-integrity
@@ -168,8 +208,10 @@ constraints.
      required checks with no workflow YAML change, and `assertEscalationUnset` holds on the
      runners. Verified green keyless on the GitHub runners for the merge.
   Net: the webhook-unverified replay gate is now an enforced CI guard on `main`. Like the
-  env-exposure gate it is a wiring-and-parsing gate only (not detection quality), and it
-  does NOT by itself close F-004; sub-steps 2b.3-2b.5 and stage 3 remain below.
+  env-exposure gate it is a wiring-and-parsing gate only (not detection quality), and it did
+  NOT by itself close F-004; as of that merge, sub-steps 2b.2-2b.5 and stage 3 remained.
+  (Corrected: this line previously read "2b.3-2b.5", which silently dropped 2b.2, still
+  pending at the time.)
 
 - **F-004 2b.1-merged tracker update MERGED - PR #86, squash
   `0321755b258f578c3852f9dfb1f5c73eb6bb68b1`.** Documentation only: recorded F-004 stage 2
@@ -209,8 +251,8 @@ constraints.
      holding on the runners. No workflow YAML change.
   Net: the auth-bypass replay gate is now an enforced CI guard on `main`. Like the
   env-exposure and webhook-unverified gates it is a wiring-and-parsing gate only (not
-  detection quality), and it does NOT by itself close F-004; sub-steps 2b.3-2b.5 and stage 3
-  remain below.
+  detection quality), and it did NOT by itself close F-004; as of that merge, sub-steps
+  2b.3-2b.5 and stage 3 remained.
 
   **Durable count note (do not re-derive wrongly).** The recordable count for auth-bypass is
   **37, not the ~39 first estimated.** The ~39 over-counted by including negatives 05 and 07,
@@ -219,9 +261,100 @@ constraints.
   over-includes them. The authoritative number is the 37-entry manifest in
   `auth-bypass.replay-spec.ts`, which the gate asserts for completeness on every CI run.
 
+- **F-004 2b.2-merged tracker update MERGED - PR #89, squash
+  `aa117a02a7ebb263942aeb802a3aea544d78551b`.** Documentation only: recorded F-004 stage 2
+  sub-step 2b.2 as merged. No code, test, or CI change. (Corrected: this PR was previously
+  listed under IN REVIEW; it merged 2026-07-09.)
+
+- **F-004 stage 2 sub-step 2b.3 (admin-check) MERGED - THREE PRs landed in order, #90 then
+  #91 then #92.** The fourth detector gated, and the FIRST that needed **two** gates rather
+  than one. Unlike 2b.1 and 2b.2, admin-check reaches findings on the shipped path both with
+  and without a model call, so no single instrument covers it.
+  1. **PR #90, squash `5cb5f5a8e849df3c6a3dcd405e99dcbfab0cb6c1`** - a FREE deterministic
+     prefilter gate (`src/test/test-admin-check-prefilter.ts`), zero spend, wired into
+     `test:ci` immediately beside `test:auth-bypass-prefilter`. It guards the two pre-model
+     buckets:
+     - **Bucket (b), 9 Option G deterministic bypass positives** (positives 01, 02, 03, 04,
+       05, 07, 08, 09, 10). Per fixture it asserts: the model was NOT reached, exactly 0 LLM
+       call attempts, exactly ONE finding, `preFilterReason === "llm-bypass"`,
+       `type === "admin_check_risk"`, `severity === "critical"`, and `ruleId` pinned to
+       `admin-check-<patternId>` for the specific pattern that must have produced it.
+     - **Bucket (a), 3 pre-model drops**: negative/03 and negative/18 (no prefilter regex
+       match at all) and negative/07 (dropped on path by the path filter). Previously guarded
+       by nothing.
+     Also added `assertAdminCheckOptInUnset` to `src/test/replay-harness.ts`, keeping
+     `FIXOR_ADMIN_CHECK_LLM_OPT_IN` unset so the 9 bucket-(b) fixtures cannot silently drift
+     onto the model path and invalidate the manifest instead of failing it.
+  2. **PR #91, squash `b301d86bf3a02d7d756f775fcaa972620b101d55`** - the admin-check replay
+     spec and recorder plus 30 recorded bucket-(c) fixtures under
+     `fixtures/replay/admin-check-multi/`. Recorded one-shot clean, 30/30 against designed
+     intent; ZERO cases landed off-class, so `EXPECTED_LANE` is empty (`{}`) - neither of
+     admin-check's two not-flagged-but-vulnerable model-path lanes (LOW confidence, MEDIUM
+     routed through `resolveMediumVerdict` to "review-queue") fired on this corpus. Measured
+     record-time spend $0.28092 (owner-reported; see the provenance caveat in the
+     recording-cost lessons above). Recording never runs in CI.
+  3. **PR #92, squash `491480e3b97de96dd5385b84c2ee3698490a5a62`** - wired
+     `test:replay-admin-check` into `test:ci` as the final chain step, keeping the
+     `test:replay-*` group contiguous at the tail (a one-line change; the script itself
+     already existed from #91). Verified from the GitHub runner job logs, not merely from a
+     green check mark, that the gate executes in-chain keyless and offline on both node 20.x
+     and 22.x required checks, printing `Mode: replay, offline, no key, no network, no DB.`
+     exactly once per job. Both `assertEscalationUnset` (invoked inside `runReplayGate`,
+     `replay-harness.ts:422`) and `assertAdminCheckOptInUnset` (invoked directly at
+     `test-replay-admin-check.ts:53`) are on the execution path, so the green run proves both
+     held on the runners. No workflow YAML change.
+
+  **Measured bucket split (do NOT re-derive by reading the source).** The corpus is 42 files
+  (21 positives + 21 negatives) under `fixtures/admin-check/`:
+  - **Bucket (a): 3** pre-model drops (negatives 03, 07, 18). Guarded free by #90.
+  - **Bucket (b): 9** Option G deterministic bypass positives. Guarded free by #90.
+  - **Bucket (c): 30** model-reaching (12 positives + 18 negatives), of which **26 fire a
+    route-def trigger** and **4 fire `role_string_compare`** (negatives 01, 02, 04, 10).
+    Guarded by the replay gate from #91/#92.
+
+  **Why the split cannot be re-derived by grep.** Bucket membership is decided by the tier of
+  `triggers[0]`, and `prefilterRegex` returns at most one hit: the match with the EARLIEST
+  `m.index` across all patterns. So a file containing a literal-tier pattern still reaches the
+  model when any judgment-tier pattern matches earlier in that file. This is not hypothetical:
+  `positive/06-client-supplied-role.js` is NAMED for the literal-tier `body_role_check`, yet an
+  `express_route_def` match occurs earlier, so it lands in bucket (c) and `body_role_check`
+  never fires. Likewise `positive/08-flask-endswith-domain.py` fires the generic
+  `email_endswith_at`, not the Python-specific `py_email_endswith_at`. The split above was
+  measured by executing the detector keylessly. Anyone regenerating it by searching for pattern
+  names WILL get it wrong.
+
+  **Why TWO gates were structurally necessary (this generalizes to 2b.5).** Bucket (b) emits
+  its finding without ever issuing a `callClaude` request. No request means no request key,
+  which means no recording can exist. And `runReplayGate` asserts that recordings cover the
+  manifest EXACTLY, so those 9 fixtures cannot be placed in a replay manifest even in
+  principle: adding them would fail the completeness assertion, not extend coverage. A replay
+  gate is structurally blind to them. Any detector with a deterministic no-model path needs a
+  free deterministic gate alongside (or instead of) replay. 2b.5 is the same shape.
+
+  **Honesty constraints on 2b.3 (carried forward).**
+  - A green replay check verifies wiring, tool-input parsing, and the verdict path ONLY. It
+    does NOT verify detection quality. Stage 3 (live, repeated sampling) remains.
+  - The #90 gate exercises **7 of the 11 literal-tier patterns**. Four are exercised by
+    NOTHING: `email_eq_literal`, `py_email_endswith_at`, `role_fallback_admin`,
+    `body_role_check`. Two of those four (`py_email_endswith_at`, `body_role_check`) are
+    shadowed by an earlier match in the very fixtures meant to exercise them, so adding an
+    assertion alone cannot reach them. They need NEW fixtures whose earliest match is the
+    intended pattern. Follow-up, not done here.
+  - **Sidecar freeze.** All 26 route-def bucket-(c) fixtures record `routeGuard === undefined`
+    (`fixtures/admin-check/` contains no sidecar files, and the spec uses
+    `positiveNegativeLayout` with no `loadSidecars` hook). This freezes ONLY the un-guarded
+    branch. The F-001 cross-file parent-layout admin-guard path lives in
+    `fixtures/f001-layout-guard/` and is not exercised here. Adding guarded-route sidecar
+    coverage later will move the request and force a re-record of those 26 fixtures.
+  - **Stale source comment, logged not fixed.** `admin-check.detector.ts:805` says the
+    judgment tier is "currently only role_string_compare". It is SIX patterns:
+    `role_string_compare`, `express_route_def`, `app_router_route_def`, `remix_handler_def`,
+    `fastapi_route_def`, `flask_route_def`. Deliberately not fixed in the 2b.3 PRs (out of
+    scope). Follow-up below.
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- **This 2b.2-merged tracker update** is the open docs PR, prepared and awaiting the merge
+- **This 2b.3-merged tracker update** is the open docs PR, prepared and awaiting the merge
   command; it is not yet merged and is not listed under DONE until it lands.
 
 ---
@@ -230,9 +363,9 @@ constraints.
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
-F-004 is NOT closed until stage 2 (the replay gate) covers the detectors; sub-step 2a
-(env-exposure), sub-step 2b.0 (the shared harness), sub-step 2b.1 (webhook-unverified), and
-sub-step 2b.2 (auth-bypass) are merged, while sub-steps 2b.3-2b.5 (the three remaining
+F-004 is NOT closed until stage 2 covers the detectors; sub-step 2a (env-exposure), sub-step
+2b.0 (the shared harness), sub-step 2b.1 (webhook-unverified), sub-step 2b.2 (auth-bypass),
+and sub-step 2b.3 (admin-check) are merged, while sub-steps 2b.4-2b.5 (the two remaining
 detectors) are pending. The model-judgment gate (stage 3) is only ever exercised by opt-in
 live runs, never free-in-CI.
 
@@ -251,34 +384,30 @@ live runs, never free-in-CI.
   - **Sub-step 2b.1 (webhook-unverified): DONE, merged (PR #83/#84/#85).** See DONE above.
     The second detector plugged into the shared harness (spec plus lane-path support, 34
     recorded fixtures, wired into `test:ci`); now an enforced keyless CI guard.
-  - **Sub-step 2b.2 (auth-bypass): DONE, merged (PR #87/#88).** See DONE above. The third
-    detector plugged into the shared harness (spec, recorder, entrypoint, 37 recorded
-    fixtures, wired into `test:ci` as the final chain step); now an enforced keyless CI
-    guard. `EXPECTED_LANE` is empty: the corpus produced zero off-class cases.
-  - **Sub-steps 2b.3-2b.5 (the three remaining detector specs: 2b.3 admin-check, 2b.4 idor,
-    2b.5 secrets-exposure): PENDING.** Repeat the same recorded-fixture pattern per detector.
-    The mechanism is now proven end to end on env-exposure, webhook-unverified, and
-    auth-bypass and generalizes: the shim, the key derivation, the record harness shape, and
-    the keyless round-trip test are all detector-agnostic (2b.0 lifted them into the shared
-    harness), so each is largely a repeat per detector (record once on the owner's key, then
-    assert `flagged === meta.expectedFlagged` offline, with a lane assertion where a detector
-    has a review-queue ceiling, as webhook-unverified did).
+  - **Sub-step 2b.2 (auth-bypass): DONE, merged (PR #87/#88, tracker #89).** See DONE above.
+    The third detector plugged into the shared harness (spec, recorder, entrypoint, 37
+    recorded fixtures, wired into `test:ci` as the final chain step); now an enforced keyless
+    CI guard. `EXPECTED_LANE` is empty: the corpus produced zero off-class cases.
+  - **Sub-step 2b.3 (admin-check): DONE, merged (PR #90/#91/#92).** See DONE above. The
+    fourth detector gated, and the first needing TWO gates: a free deterministic prefilter
+    gate for the 3 pre-model drops and the 9 Option G bypass positives (#90), plus a 30-
+    fixture replay gate for the model-reaching remainder (#91/#92). Measured bucket split
+    3 / 9 / 30 over a 42-file corpus. `EXPECTED_LANE` is empty. Both gates are enforced
+    keyless CI guards.
+  - **Sub-steps 2b.4-2b.5 (the two remaining detector specs: 2b.4 idor, 2b.5
+    secrets-exposure): PENDING.** Repeat the same recorded-fixture pattern per detector.
+    The mechanism is now proven end to end on env-exposure, webhook-unverified, auth-bypass,
+    and admin-check and generalizes: the shim, the key derivation, the record harness shape,
+    and the keyless round-trip test are all detector-agnostic (2b.0 lifted them into the
+    shared harness), so each is largely a repeat per detector (record once on the owner's key,
+    then assert `flagged === meta.expectedFlagged` offline, with a lane assertion where a
+    detector has a review-queue ceiling, as webhook-unverified did).
 
-    Important: 2b.3 and 2b.5 are NOT plain repeats. Both detectors reach findings on the
-    shipped path without calling the model, so a recorded-replay gate is the wrong instrument
-    for the deterministic part of their behavior. Known per-detector nuances:
-    - **2b.3 admin-check** is a mixed detector. Of its 42-file corpus (21 positives + 21
-      negatives), 30 files reach the model, but 9 positives are flagged by a deterministic
-      path with NO model call: the per-pattern "Option G" bypass in `admin-check.detector.ts`
-      (11 `literal`-tier patterns carry hand-authored explanations and skip `callClaude`
-      entirely; the 6 `judgment`-tier patterns such as `role_string_compare` stay on the LLM
-      path regardless, because the regex cannot disambiguate bug from safe usage). The
-      shipped default is `llmValidation = false` (env `FIXOR_ADMIN_CHECK_LLM_OPT_IN` wins
-      over the constructor option). Those 9 deterministic positives need a FREE deterministic
-      check, not replay: there is no request to key a recording on. Replay covers only the
-      model-reaching remainder. (The 30/9 split comes from the 2b.3 scoping pass and has not
-      been re-derived mechanically in this tracker update; the bypass mechanism above is
-      confirmed in code. Re-measure before relying on the exact numbers.)
+    Important: 2b.5 is NOT a plain repeat, for the reason 2b.3 already proved. A detector that
+    reaches findings on the shipped path without calling the model has no request to key a
+    recording on, and `runReplayGate` asserts exact manifest coverage, so a replay gate is
+    structurally the wrong instrument for that part of its behavior. Known per-detector
+    nuances:
     - **2b.4 idor** needs the `loadSidecars` hook already stubbed into
       `positiveNegativeLayout` (its fixtures carry route/context sidecars), so its spec is
       the one that is not a pure repeat of the no-sidecar detectors. It needs a layout-aware
@@ -290,7 +419,9 @@ live runs, never free-in-CI.
       (`preFilterReason: "llm-bypass"`). An LLM path does exist in the class but is opt-in
       (`FIXOR_SECRETS_LLM_OPT_IN=true` or `{ llmValidation: true }`) and is off in CI. So
       guard the shipped behavior with a FREE deterministic regex test, not a replay gate;
-      there is no `callClaude` request to record.
+      there is no `callClaude` request to record. **Expected recording cost: $0.** Guard it
+      deterministically, exactly as admin-check bucket (b) was guarded in PR #90; that PR is
+      the working template for this shape.
       Separately, secrets-exposure carries F-010 (a known false positive on an obvious
       placeholder). Any fixture written for it FREEZES the current behavior as a wiring
       sample only; it does NOT endorse that verdict as correct. Fixing F-010 is separate
@@ -303,6 +434,53 @@ live runs, never free-in-CI.
   through the existing `stability-harness` with repeated sampling (N>=3 and pass
   thresholds) so a single flaky verdict cannot pass as stable. This is the only gate that
   exercises the model's judgment.
+
+### Priority 1b - OPEN: the H7 double-silence risk (unresolved potential RECALL hole)
+
+This is a cross-detector gap, not part of 2b.3, and it is deliberately recorded on its own so
+it is not buried in a step marked DONE. It is the only known item that could LOSE a real
+vulnerability rather than merely add noise.
+
+**The mechanism.** `auth-bypass.detector.ts:772-777` suppresses its own HIGH finding and
+defers when its verdict carries `authPresent === "yes" && operationKind === "admin"`, logging
+`missing admin gate is admin-check's lane` and emitting nothing (`laneDeferral`). admin-check
+is the RECEIVING side of that lane, but it carries no `laneDeferral` field of its own and
+NOTHING asserts that it actually catches those cases. If admin-check independently returns LOW
+confidence, or MEDIUM routed to "review-queue", on the same route, then BOTH detectors go
+silent and a real vulnerability is lost with no signal anywhere.
+
+**Evidence so far, and its exact limit.** All 12 of the 12 route-def positives in the 2b.3
+corpus were recorded flagged `isVulnerable:true@high`, so on every measured case admin-check
+does hold its side of the lane. That is genuinely reassuring but it is NOT an answer, and it
+CANNOT be turned into one from the admin-check recordings: admin-check's verdict schema has no
+`authPresent` and no `operationKind` fields at all (its tool input is exactly `isVulnerable`,
+`confidence`, `reasoning`, `suggestedFix`, `vulnerableRoute`). Nothing in those 30 recordings
+can tell us which routes auth-bypass would have deferred on. The two detectors' verdicts are
+not joinable from the data we hold.
+
+**What answering it requires.** A separate, scoped auth-bypass run over the 26 route-def
+fixtures in `fixtures/admin-check/`, capturing `authPresent`/`operationKind` per fixture, then
+intersecting the deferral set against admin-check's recorded confidences. This was NOT
+authorized, NOT performed, and its result is NOT inferred here.
+
+**Estimated cost to answer: about $0.22** (26 calls). Derived, not measured: the 2b.2
+auth-bypass recording spent $0.31472 over 37 calls, or about $0.0085/call; 26 x $0.0085 is
+about $0.221. auth-bypass has a short `SYSTEM_PROMPT` (399 chars), so its cache-write premium
+is small. Per the cost lessons above, bound the worst case as
+`(26 x highest observed warm call) + one cache-write premium` and report the measured total,
+not this estimate.
+
+### Priority 1c - follow-ups opened by 2b.3 (small, deterministic, no spend)
+
+- **Four literal-tier admin-check patterns are exercised by nothing.** `email_eq_literal`,
+  `py_email_endswith_at`, `role_fallback_admin`, `body_role_check`. The #90 gate covers 7 of
+  11. Two of the four are shadowed by an earlier match in the very fixtures meant to exercise
+  them, so this needs NEW fixtures whose earliest `m.index` is the intended pattern; adding
+  assertions alone cannot reach them. No API spend (all four are bypass-tier, no model call).
+- **Stale comment at `admin-check.detector.ts:805`.** It claims the judgment tier is
+  "currently only role_string_compare"; there are six judgment-tier patterns
+  (`role_string_compare` plus the five route-def patterns). Comment-only fix. Left untouched
+  by the 2b.3 PRs on purpose.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
