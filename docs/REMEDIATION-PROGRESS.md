@@ -103,6 +103,18 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    shipped path is regex-only. Guard it deterministically, exactly as admin-check bucket (b)
    was guarded. There is no `callClaude` request to record, so there is nothing to pay for.
 
+7. **Recordings must be keyed to LF content; sidecar readers now normalize (learned on 2b.4).**
+   The replay key hashes `messages` with no EOL normalization. `loadFixture` LF-normalizes the
+   primary fixture, but until 2b.4 the two sidecar readers (`readCompanionSidecars`,
+   `loadFixtureSidecars`) read raw bytes, so a Windows (CRLF) recording produced a different key
+   than a Linux (LF) checkout, and the three sidecar-carrying idor negatives (03, 04, 07) missed
+   on CI (fixed in PR #97). RESOLVED for idor and generally: the shared `lfNormalize()` now
+   covers ANY sidecar-carrying corpus (for example a future secrets-exposure sidecar), and
+   `.gitattributes` pins the idor corpora to LF. The fix itself was zero model spend (rename plus
+   the top-level `key` field on three recordings, response bodies byte-identical, no re-record).
+   Lesson for 2b.5 and beyond: record on and key to LF content; the shared helper makes the key
+   OS-stable, but a new fixture corpus should still get an `eol=lf` pin.
+
 ## Current readiness verdict
 
 **NOT-READY (temporary).**
@@ -112,22 +124,24 @@ clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED, so the si
 remaining READY-gating blocker is:
 
 - **F-004 - the live-LLM detection brain is only partially guarded by an automated gate.**
-  Four detectors (env-exposure, webhook-unverified, auth-bypass, and admin-check) are now
-  covered by a deterministic CI gate; until the two remaining stage-2 detectors are covered,
-  a recall or precision regression in them past the regex prefilters would not be caught by
+  Five detectors (env-exposure, webhook-unverified, auth-bypass, admin-check, and idor) are
+  now covered by a deterministic CI gate; until the one remaining stage-2 detector is covered,
+  a recall or precision regression in it past the regex prefilters would not be caught by
   CI. Stage 1 is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0
   (shared harness, PR #81/#82), 2b.1 (webhook-unverified, PR #83/#84/#85), 2b.2 (auth-bypass,
-  PR #87/#88/#89), and 2b.3 (admin-check, PR #90/#91/#92) are merged, but F-004 is NOT
-  closed: stage 2 sub-steps 2b.4-2b.5 (the two remaining detectors) and stage 3 (the opt-in
-  live model-judgment workflow) both remain in the deferred worklist.
+  PR #87/#88/#89), 2b.3 (admin-check, PR #90/#91/#92), and 2b.4 (idor, PR #95/#96/#97) are
+  merged, but F-004 is NOT closed: stage 2 sub-step 2b.5 (the one remaining detector) and
+  stage 3 (the opt-in live model-judgment workflow) both remain in the deferred worklist.
 
-  Four of six detectors gated is progress, not readiness. Every gate landed so far is a
+  Five of six detectors gated is progress, not readiness. Every gate landed so far is a
   wiring-and-parsing gate: none of them verifies detection quality, which is stage 3 (live)
   work that has not started. F-004 stays NOT-READY.
 
   Note on wording: admin-check needed TWO gates, not one. A replay gate alone cannot cover it
   (see the 2b.3 entry). "Covered by a deterministic CI gate" is therefore the accurate phrase
-  for the set of four; only three of them are covered by the *replay* gate specifically.
+  for the set of five; four of them (env-exposure, webhook-unverified, auth-bypass, idor) are
+  covered by the *replay* gate specifically, while admin-check needs both a replay gate and a
+  free deterministic gate.
 
 Recall is clean on current evidence (no missed exploit survives re-measurement); the
 remaining non-gating items are precision, signal-hygiene, and coverage-integrity
@@ -396,9 +410,49 @@ constraints.
     `fastapi_route_def`, `flask_route_def`. Deliberately not fixed in the 2b.3 PRs (out of
     scope). Follow-up below.
 
+- **F-004 stage 2 sub-step 2b.4 (idor) MERGED - THREE PRs landed in order, #95 then #96 then
+  #97.** The fifth detector gated, and the FIRST to exercise sidecars end to end.
+  1. **PR #95, squash `477aac6`** - the idor replay spec, the `findingSetOutcome` assertion
+     (idor emits one finding per source/sink pair, so a boolean `length > 0` would pass a
+     partial set), and a `listClass` sidecar-exclusion fix so the three companion files are
+     never enumerated as fixtures. Structure only; the gate was not yet wired.
+  2. **PR #96, squash `23b8b45`** - 26 recorded fixtures under `fixtures/replay/idor-multi/`
+     (idor 18, idor-tenant 6, idor-multi 2; all DETECTOR_ID `idor-multi`) plus the pinned
+     `EXPECTED_SET`. All 26 reach the model; buckets (a) and (b) are empty, so idor needs no
+     free deterministic gate. `systemPromptFingerprint 5f5129f12b11` (matches the table in
+     the recording-cost lessons above). Record-time spend is owner-attested and not in this
+     tracker's evidence (the recorder persists no cost data; see the provenance caveat above).
+  3. **PR #97, squash `8351b09` (parent 23b8b45; tree `78eee68a`, byte-identical to the
+     CI-validated head cb0dada, empty diff)** - wired `test:replay-idor` into `test:ci` as the
+     tail step after `test:replay-admin-check` (package.json only, mirroring #88/#92), AND a
+     root-cause fix for non-portable replay keys that the wiring surfaced. The replay key
+     hashes `messages`, which embed sidecar bodies; `loadFixture` LF-normalizes the primary
+     fixture but `readCompanionSidecars`/`loadFixtureSidecars` read sidecars raw, so the three
+     sidecar-carrying negatives (`idor/negative/03,04,07`) were keyed to CRLF at #96 record
+     time and missed on Linux (`ReplayFixtureMissing`, 3/26). Fix: a shared `lfNormalize()`
+     applied at both sidecar readers; `.gitattributes` LF pins for `fixtures/idor/**`,
+     `fixtures/idor-tenant/**`, `fixtures/idor-multi/**`; and re-keyed ONLY those three
+     recordings to their LF keys by rename plus the top-level `key` field (response bodies
+     byte-identical, zero re-record, zero model spend; recomputed runtime key == new filename
+     proven for all three). Verified keyless: `test:ci` green on node 20.x and 22.x with real
+     durations, `test:replay-idor` 26/26 with 03/04/07 passing.
+  Net: the idor replay gate is now an enforced, CI-run guard on `main` - previously the gate
+  existed but was unwired, so idor was ungated on the runners. Like the others it is a
+  wiring-and-parsing gate only, not detection quality. `EXPECTED_LANE` is empty and deferred
+  (see Priority 1c). It did NOT by itself close F-004: sub-step 2b.5 and stage 3 remain.
+
+- **F-004 2b.3-merged tracker update MERGED - PR #93, squash `ba80fe0`.** Documentation only:
+  recorded F-004 stage 2 sub-step 2b.3 (admin-check, two gates) as merged. No code, test, or
+  CI change.
+
+- **F-004 SYSTEM_PROMPT/2b.4-scoping tracker update MERGED - PR #94, squash `5363d88`.**
+  Documentation only: corrected the measured `SYSTEM_PROMPT` length table (withdrawing the
+  inverted admin-check-vs-auth-bypass claim) and recorded the 2b.4 idor scoping facts. No
+  code, test, or CI change.
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- **This 2b.3-merged tracker update** is the open docs PR, prepared and awaiting the merge
+- **This 2b.4-merged tracker update** is the open docs PR, prepared and awaiting the merge
   command; it is not yet merged and is not listed under DONE until it lands.
 
 ---
@@ -409,9 +463,9 @@ constraints.
 
 F-004 is NOT closed until stage 2 covers the detectors; sub-step 2a (env-exposure), sub-step
 2b.0 (the shared harness), sub-step 2b.1 (webhook-unverified), sub-step 2b.2 (auth-bypass),
-and sub-step 2b.3 (admin-check) are merged, while sub-steps 2b.4-2b.5 (the two remaining
-detectors) are pending. The model-judgment gate (stage 3) is only ever exercised by opt-in
-live runs, never free-in-CI.
+sub-step 2b.3 (admin-check), and sub-step 2b.4 (idor) are merged, while sub-step 2b.5
+(secrets-exposure, the one remaining detector) is pending. The model-judgment gate (stage 3)
+is only ever exercised by opt-in live runs, never free-in-CI.
 
 - **Stage 2 - deterministic replay gate (required, free, in CI).** The replay shim
   (`src/analysis-engine/llm-replay.ts`, wired at the single `callClaude` choke point in
@@ -438,65 +492,39 @@ live runs, never free-in-CI.
     fixture replay gate for the model-reaching remainder (#91/#92). Measured bucket split
     3 / 9 / 30 over a 42-file corpus. `EXPECTED_LANE` is empty. Both gates are enforced
     keyless CI guards.
-  - **Sub-steps 2b.4-2b.5 (the two remaining detector specs: 2b.4 idor, 2b.5
-    secrets-exposure): PENDING.** Repeat the same recorded-fixture pattern per detector.
-    The mechanism is now proven end to end on env-exposure, webhook-unverified, auth-bypass,
-    and admin-check and generalizes: the shim, the key derivation, the record harness shape,
-    and the keyless round-trip test are all detector-agnostic (2b.0 lifted them into the
-    shared harness), so each is largely a repeat per detector (record once on the owner's key,
-    then assert `flagged === meta.expectedFlagged` offline, with a lane assertion where a
-    detector has a review-queue ceiling, as webhook-unverified did).
-
-    Important: 2b.5 is NOT a plain repeat, for the reason 2b.3 already proved. A detector that
-    reaches findings on the shipped path without calling the model has no request to key a
-    recording on, and `runReplayGate` asserts exact manifest coverage, so a replay gate is
-    structurally the wrong instrument for that part of its behavior. Known per-detector
-    nuances:
-    - **2b.4 idor** needs the `loadSidecars` hook already stubbed into
-      `positiveNegativeLayout` (its fixtures carry RLS-policy and middleware sidecars), so its
-      spec is the one that is not a pure repeat of the no-sidecar detectors. It needs a
-      layout-aware recorder, sidecar injection through `loadSidecars`, and a finding-set
-      outcome assertion rather than the plain flagged-vs-expected boolean.
-
-      **Measured scoping facts (2b.4 diagnosis pass; execution, not reading).**
-      - The detector is **on `main`**: `src/analysis-engine/detectors/idor.detector.ts`, and
-        `detectors/registry.ts` constructs `new IdorDetector()`. There is NO
-        `feat/idor-detector` branch on origin (every remote head was listed). 2b.4 is not
-        blocked on unmerged work.
-      - **idor is currently ungated in CI entirely.** `test:idor`, `test:idor-lane`,
-        `test:idor-multi`, `test:idor-tenant` all exist, all require `ANTHROPIC_API_KEY`, and
-        NONE is in the `test:ci` chain. 2b.4 would be this detector's first CI coverage.
-      - **The inherited "29 recordable" figure is REFUTED.** It is a naive file count
-        (21 + 6 + 2) that merges three separate corpora AND counts three sidecar files as
-        fixtures (`03-postgres-rls.policy.sql`, `04-supabase-policy.policy.sql`,
-        `07-rls-via-prisma-extension.middleware.ts`, all in `fixtures/idor/negative/`).
-        Same failure mode as auth-bypass's "~39" that turned out to be 37: a count derived
-        from the filesystem rather than from execution.
-      - **Measured by driving the compiled detector keylessly: 26 source fixtures, ALL 26
-        reach `callClaude`.** `fixtures/idor` 18 (9 positive + 9 negative), `fixtures/idor-tenant`
-        6 (3 + 3), `fixtures/idor-multi` 2. Bucket (a) is EMPTY (no fixture is dropped by any
-        of the five pre-model gates; every `preFilterReason` was null) and bucket (b) is EMPTY
-        (idor has no Option-G-style bypass; `llm-bypass` does not appear in the detector).
-      - Therefore **idor needs NO free deterministic gate** - it is a pure replay detector,
-        the exact opposite shape from admin-check. The recordable count is 18, 24, or 26
-        depending on which corpora are in scope; it is not 29 under any reading.
-      - Method note: the same driver, run against `fixtures/admin-check`, independently
-        reproduced bucket (c) = 30, matching the merged 2b.3 manifest. The discriminator is
-        validated, not assumed.
-    - **2b.5 secrets-exposure** never calls the model on the shipped path: `registry.ts`
-      constructs `SecretsExposureDetector()` with no options, so `llmValidation` defaults to
-      false and every prefilter hit is flagged regex-only from a hand-authored explanation
-      (`preFilterReason: "llm-bypass"`). An LLM path does exist in the class but is opt-in
-      (`FIXOR_SECRETS_LLM_OPT_IN=true` or `{ llmValidation: true }`) and is off in CI. So
-      guard the shipped behavior with a FREE deterministic regex test, not a replay gate;
-      there is no `callClaude` request to record. **Expected recording cost: $0.** Guard it
-      deterministically, exactly as admin-check bucket (b) was guarded in PR #90; that PR is
-      the working template for this shape.
-      Separately, secrets-exposure carries F-010 (a known false positive on an obvious
-      placeholder). Any fixture written for it FREEZES the current behavior as a wiring
-      sample only; it does NOT endorse that verdict as correct. Fixing F-010 is separate
-      precision work (see Priority 3) and is new work, and when it lands it will move the
-      request or the response, so that fixture must then be re-recorded.
+  - **Sub-step 2b.4 (idor): DONE, merged (PR #95/#96/#97).** See DONE above. The fifth
+    detector gated and the first to exercise sidecars end to end: an idor replay spec with a
+    `findingSetOutcome` assertion and a `listClass` sidecar-exclusion fix (#95), 26 recorded
+    fixtures with a pinned `EXPECTED_SET` (#96), and the `test:ci` wiring plus the
+    cross-platform replay-key portability fix (#97). Durable measured facts (execution, not
+    reading): 26 source fixtures across three corpora (`fixtures/idor` 18, `fixtures/idor-tenant`
+    6, `fixtures/idor-multi` 2), ALL 26 model-reaching, so buckets (a) and (b) are empty and
+    idor needs NO free deterministic gate - the opposite shape from admin-check. The inherited
+    "29 recordable" figure is REFUTED (a filesystem count that merged three corpora and counted
+    the three sidecar files as fixtures; the same failure mode as auth-bypass's "~39" that was
+    37). The three sidecar readers now LF-normalize, so the recording keys are OS-stable (see
+    the recording-cost lessons and the DONE entry). `EXPECTED_LANE` is empty and deferred
+    (Priority 1c). Now an enforced keyless CI guard; previously idor was ungated in CI entirely.
+  - **Sub-step 2b.5 (secrets-exposure): PENDING.** The one remaining detector. The replay
+    mechanism is proven end to end on the five gated detectors and generalizes (the shim, the
+    key derivation, the record harness shape, and the keyless round-trip test are all
+    detector-agnostic since 2b.0), but 2b.5 is NOT a plain repeat, for the reason 2b.3 already
+    proved. A detector that reaches findings on the shipped path WITHOUT calling the model has
+    no request to key a recording on, and `runReplayGate` asserts exact manifest coverage, so a
+    replay gate is structurally the wrong instrument for that part of its behavior. `registry.ts`
+    constructs `SecretsExposureDetector()` with no options, so `llmValidation` defaults to false
+    and every prefilter hit is flagged regex-only from a hand-authored explanation
+    (`preFilterReason: "llm-bypass"`). An LLM path does exist in the class but is opt-in
+    (`FIXOR_SECRETS_LLM_OPT_IN=true` or `{ llmValidation: true }`) and is off in CI. So guard
+    the shipped behavior with a FREE deterministic regex test, not a replay gate; there is no
+    `callClaude` request to record. **Expected recording cost: $0.** Guard it deterministically,
+    exactly as admin-check bucket (b) was guarded in PR #90; that PR is the working template for
+    this shape.
+    Separately, secrets-exposure carries F-010 (a known false positive on an obvious
+    placeholder). Any fixture written for it FREEZES the current behavior as a wiring
+    sample only; it does NOT endorse that verdict as correct. Fixing F-010 is separate
+    precision work (see Priority 3) and is new work, and when it lands it will move the
+    request or the response, so that fixture must then be re-recorded.
 
 - **Stage 3 - opt-in live workflow (manual, spends only when run).** A GitHub Actions
   workflow on `workflow_dispatch` only (NO fork-PR trigger, NO nightly schedule), reading
@@ -541,6 +569,23 @@ it "short, 399 chars" and treated its premium as negligible). Bound the worst ca
 `(26 x highest observed warm call) + one cache-write premium` and report the measured total,
 not this estimate.
 
+**The idor side of H7, ANSWERED by measurement (this corpus only).** idor is also a deferral
+SOURCE: `idor.detector.ts:937-942` hands a HIGH-vulnerable pair to auth-bypass when
+`callerAuth === "unauthenticated"` or to admin-check when `operationClass === "administrative"`
+(the same double-silence shape, in two directions). Measured across all 26 idor recordings (48
+verdict pairs): `callerAuth` is never `unauthenticated` (33 authenticated, 15 unclear, 0
+unauthenticated); `operationClass` is `administrative` on 5 pairs, but ALL 5 are
+`isVulnerable:false` (negatives 02, 05, 06), which `idor.detector.ts:882`
+(`if (!verdict.isVulnerable) continue;`) drops BEFORE the deferral branch is ever reached. Every
+one of the 20 `isVulnerable:true` pairs (the 20 emitted findings across the 12 positives) is
+`operationClass:user_resource` with `callerAuth` in {authenticated (13), unclear (7)}. So no
+vulnerable pair was unauthenticated or administrative, idor's R10 `laneDeferral` fired ZERO
+times, and idor emitted all 20 of its vulnerable pairs itself and handed nothing off. On this
+corpus idor cannot contribute to a double-silence. LIMITS: one frozen sample per fixture
+(F-008), a wiring-and-parsing gate not a detection-quality one, scoped to these 26 fixtures - it
+says nothing about corpora idor has not seen. The admin-check side (auth-bypass -> admin-check)
+remains OPEN as above.
+
 ### Priority 1c - follow-ups opened by 2b.3 (small, deterministic, no spend)
 
 - **Four literal-tier admin-check patterns are exercised by nothing.** `email_eq_literal`,
@@ -552,6 +597,16 @@ not this estimate.
   "currently only role_string_compare"; there are six judgment-tier patterns
   (`role_string_compare` plus the five route-def patterns). Comment-only fix. Left untouched
   by the 2b.3 PRs on purpose.
+- **idor diagnostic is lossy for lane anchoring (opened by 2b.4).** `idor.detector.ts:862`
+  exposes only pair 0's verdict on `diag.verdict`; `idor.detector.ts:957` assigns
+  `diag.laneDeferral` inside the per-pair loop (last-writer-wins). Neither affects shipped
+  findings, but any path-anchored `EXPECTED_LANE` gate on idor is incomplete across the 14
+  multi-pair files until both are widened to per-pair arrays. `EXPECTED_LANE` on idor is
+  therefore deferred (kept `{}`). No API spend.
+- **Generalize `assertEnvFlagUnset(name, why)` (opened by 2b.4).** `assertAdminCheckOptInUnset`
+  is detector-specific in a shared harness; 2b.5 will need the same guard for
+  `FIXOR_SECRETS_LLM_OPT_IN`. Generalize when the second caller exists, not preemptively. No
+  API spend.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
