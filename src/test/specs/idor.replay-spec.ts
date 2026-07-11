@@ -118,6 +118,7 @@ import {
   buildSyntheticDiff,
   findingSetOutcome,
   isFixtureFile,
+  lfNormalize,
   loadFixture,
   positiveNegativeLayout,
   type DetectorReplaySpec,
@@ -162,7 +163,8 @@ function readCompanionSidecars(
   const kinds: Record<string, string> = {};
   for (const ext of SIDECAR_EXTS) {
     const p = base + ext;
-    if (existsSync(p)) kinds[SIDECAR_EXT_TO_KIND[ext]!] = readFileSync(p, "utf8");
+    if (existsSync(p))
+      kinds[SIDECAR_EXT_TO_KIND[ext]!] = lfNormalize(readFileSync(p, "utf8"));
   }
   return Object.keys(kinds).length > 0 ? { [assumedPath]: kinds } : undefined;
 }

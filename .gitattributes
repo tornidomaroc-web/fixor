@@ -2,3 +2,11 @@
 # across OSes and checkouts (the replay key is LF-normalized; this is
 # future-proofing, not a correctness fix).
 fixtures/replay/**/*.json text eol=lf
+
+# Pin idor input fixtures + their companion sidecars to LF. The replay key
+# hashes sidecar bytes (loadFixture normalizes the primary fixture, but the
+# sidecar reader does not until it LF-normalizes at read time), so an unpinned
+# CRLF checkout would move the key. Keeps blobs and worktrees LF on every OS.
+fixtures/idor/** text eol=lf
+fixtures/idor-tenant/** text eol=lf
+fixtures/idor-multi/** text eol=lf
