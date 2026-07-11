@@ -1,11 +1,11 @@
 {
-  "key": "fe1beea7586eb428a17bccb3d93565ecfd36b9364eac3ab3285ff318a56ffef1",
+  "key": "fedcd9e7671b1acf995308f48b3349c3e90569dedf249d7ce447d51a862fcbed",
   "meta": {
     "detectorId": "idor-multi",
     "model": "claude-sonnet-4-6",
     "systemPromptFingerprint": "5f5129f12b11",
-    "recordedAtIso": "2026-07-10T19:32:15.014Z",
-    "sourceFixture": "idor/negative/07-rls-via-prisma-extension.ts",
+    "recordedAtIso": "2026-07-10T19:31:56.309Z",
+    "sourceFixture": "idor/negative/04-supabase-policy.ts",
     "expectedFlagged": false
   },
   "request": {
@@ -14,7 +14,7 @@
     "messages": [
       {
         "role": "user",
-        "content": "CONTEXT:\nFile: src/routes/contacts.ts\nLanguage: typescript\n\nVerified middleware for this file (ground truth):\n```typescript\n// src/db/tenant-prisma.ts\r\n\r\nimport { PrismaClient } from \"@prisma/client\";\r\nimport { requestContext } from \"../lib/request-context\";\r\n\r\nconst basePrisma = new PrismaClient();\r\n\r\nexport const tenantPrisma = basePrisma.$extends({\r\n  query: {\r\n    contact: {\r\n      async $allOperations({ args, query }) {\r\n        const ctx = requestContext.get();\r\n        if (!ctx?.organizationId) {\r\n          throw new Error(\"tenantPrisma used outside request context\");\r\n        }\r\n        args.where = {\r\n          ...(args.where ?? {}),\r\n          organizationId: ctx.organizationId,\r\n        };\r\n        return query(args);\r\n      },\r\n    },\r\n  },\r\n});\n```\nFull file content:\n```typescript\n// SIDECAR: 07-rls-via-prisma-extension.middleware.ts\n\nimport { Router, Request, Response } from \"express\";\nimport { tenantPrisma } from \"../db/tenant-prisma\";\n\nconst router = Router();\n\nrouter.get(\"/:id\", async (req: Request, res: Response) => {\n  const contact = await tenantPrisma.contact.findUnique({\n    where: { id: req.params.id },\n  });\n\n  if (!contact) {\n    return res.status(404).json({ error: \"Contact not found\" });\n  }\n\n  return res.json({\n    id: contact.id,\n    fullName: contact.fullName,\n    email: contact.email,\n    phone: contact.phone,\n  });\n});\n\nrouter.patch(\"/:id\", async (req: Request, res: Response) => {\n  const updated = await tenantPrisma.contact.update({\n    where: { id: req.params.id },\n    data: {\n      fullName: req.body.fullName,\n      phone: req.body.phone,\n    },\n  });\n\n  return res.json(updated);\n});\n\nexport default router;\n```\n\nImports in file:\n```typescript\nimport { Router, Request, Response } from \"express\";\nimport { tenantPrisma } from \"../db/tenant-prisma\";\n```\n\nCandidate IDOR sites (each is a request-derived id flowing into a DB lookup; judge EACH independently and return one verdict per pairIndex):\n- [0] SOURCE (request-derived id) line 10: where: { id: req.params.id },  ->  SINK (DB lookup) line 9: const contact = await tenantPrisma.contact.findUnique({\n\nFor EACH candidate site above, analyze whether it is a real IDOR. Specifically:\n\n1. Does the request-derived identifier flow into the DB lookup, in the\n   same handler / control-flow path?\n2. Is there an ownership filter in the query (e.g. `where { id, userId }`)?\n3. Is there an explicit ownership check after the fetch?\n4. Is the resource intentionally public, or owned (model has user_id /\n   organization_id / tenant_id)?\n5. Is authorization enforced at the DB layer (Postgres RLS, Supabase\n   policies, tenant-scoped Prisma client)?\n6. Does a role-only middleware appear sufficient here? It usually is\n   NOT, for IDOR; only middleware that injects an ownership filter or\n   guards object-level access counts.\n\nEach candidate site is independent: one site being safe does not make\nanother safe, and vice versa. Call the report_idor_findings tool with\none verdict per candidate site (matched by pairIndex)."
+        "content": "CONTEXT:\nFile: src/routes/projects.ts\nLanguage: typescript\n\nVerified RLS policy for this file (ground truth):\n```sql\nALTER TABLE projects ENABLE ROW LEVEL SECURITY;\r\n\r\nCREATE POLICY projects_owner_select ON projects\r\n  FOR SELECT\r\n  USING (auth.uid() = user_id);\r\n\r\nCREATE POLICY projects_owner_update ON projects\r\n  FOR UPDATE\r\n  USING (auth.uid() = user_id);\r\n\r\nCREATE POLICY projects_owner_insert ON projects\r\n  FOR INSERT\r\n  WITH CHECK (auth.uid() = user_id);\n```\nFull file content:\n```typescript\n// SIDECAR: 04-supabase-policy.policy.sql\n\nimport { Router, Request, Response } from \"express\";\nimport { Pool } from \"pg\";\n\nconst pool = new Pool({ connectionString: process.env.SUPABASE_DB_URL });\n\nconst router = Router();\n\nrouter.get(\"/:id\", async (req: Request, res: Response) => {\n  const accessToken =\n    (req.headers.authorization ?? \"\").replace(/^Bearer\\s+/i, \"\");\n  const client = await pool.connect();\n  try {\n    await client.query(\"BEGIN\");\n    await client.query(\"SET LOCAL request.jwt.claims = $1\", [accessToken]);\n\n    const { rows } = await client.query(\n      \"SELECT id, name, description, created_at FROM projects WHERE id = $1\",\n      [req.params.id],\n    );\n\n    await client.query(\"COMMIT\");\n\n    if (rows.length === 0) {\n      return res.status(404).json({ error: \"Project not found\" });\n    }\n    return res.json(rows[0]);\n  } catch (err) {\n    await client.query(\"ROLLBACK\");\n    throw err;\n  } finally {\n    client.release();\n  }\n});\n\nexport default router;\n```\n\nImports in file:\n```typescript\nimport { Router, Request, Response } from \"express\";\nimport { Pool } from \"pg\";\n```\n\nCandidate IDOR sites (each is a request-derived id flowing into a DB lookup; judge EACH independently and return one verdict per pairIndex):\n- [0] SOURCE (request-derived id) line 20: [req.params.id],  ->  SINK (DB lookup) line 15: await client.query(\"BEGIN\");\n- [1] SOURCE (request-derived id) line 20: [req.params.id],  ->  SINK (DB lookup) line 16: await client.query(\"SET LOCAL request.jwt.claims = $1\", [accessToken]);\n- [2] SOURCE (request-derived id) line 20: [req.params.id],  ->  SINK (DB lookup) line 18: const { rows } = await client.query(\n- [3] SOURCE (request-derived id) line 20: [req.params.id],  ->  SINK (DB lookup) line 19: \"SELECT id, name, description, created_at FROM projects WHERE id = $1\",\n- [4] SOURCE (request-derived id) line 20: [req.params.id],  ->  SINK (DB lookup) line 23: await client.query(\"COMMIT\");\n- [5] SOURCE (request-derived id) line 20: [req.params.id],  ->  SINK (DB lookup) line 30: await client.query(\"ROLLBACK\");\n\nFor EACH candidate site above, analyze whether it is a real IDOR. Specifically:\n\n1. Does the request-derived identifier flow into the DB lookup, in the\n   same handler / control-flow path?\n2. Is there an ownership filter in the query (e.g. `where { id, userId }`)?\n3. Is there an explicit ownership check after the fetch?\n4. Is the resource intentionally public, or owned (model has user_id /\n   organization_id / tenant_id)?\n5. Is authorization enforced at the DB layer (Postgres RLS, Supabase\n   policies, tenant-scoped Prisma client)?\n6. Does a role-only middleware appear sufficient here? It usually is\n   NOT, for IDOR; only middleware that injects an ownership filter or\n   guards object-level access counts.\n\nEach candidate site is independent: one site being safe does not make\nanother safe, and vice versa. Call the report_idor_findings tool with\none verdict per candidate site (matched by pairIndex)."
       }
     ],
     "tool": "report_idor_findings"
@@ -26,7 +26,52 @@
           "pairIndex": 0,
           "isVulnerable": false,
           "confidence": "low",
-          "reasoning": "The handler uses `tenantPrisma`, a tenant-scoped Prisma client (`$extends`) that automatically injects `organizationId: ctx.organizationId` into every `where` clause for the `contact` model. This means the lookup is always scoped to the caller's organization, preventing cross-tenant access even though no explicit ownership filter appears in the handler code.",
+          "reasoning": "The sink here is `BEGIN`, a transaction control statement — req.params.id does not flow into this query at all. Additionally, a verified RLS policy scopes all project access to the authenticated user via SET LOCAL jwt.claims.",
+          "callerAuth": "unclear",
+          "operationClass": "user_resource",
+          "suggestedFix": ""
+        },
+        {
+          "pairIndex": 1,
+          "isVulnerable": false,
+          "confidence": "low",
+          "reasoning": "The sink here is `SET LOCAL request.jwt.claims`, which receives the accessToken (not req.params.id). req.params.id does not flow into this statement; this is actually the RLS enforcement mechanism that scopes subsequent queries to the authenticated caller.",
+          "callerAuth": "unclear",
+          "operationClass": "user_resource",
+          "suggestedFix": ""
+        },
+        {
+          "pairIndex": 2,
+          "isVulnerable": false,
+          "confidence": "low",
+          "reasoning": "The actual SELECT query uses req.params.id, but a verified RLS policy (projects_owner_select) is in force, enforced via `SET LOCAL request.jwt.claims` within the same transaction, which auto-scopes rows to the authenticated caller's user_id. This is a handler-visible RLS signal per policy ground truth.",
+          "callerAuth": "unclear",
+          "operationClass": "user_resource",
+          "suggestedFix": ""
+        },
+        {
+          "pairIndex": 3,
+          "isVulnerable": false,
+          "confidence": "low",
+          "reasoning": "Same as pairIndex 2 — this is the SQL string for the SELECT query. The verified RLS policy `projects_owner_select` using `auth.uid() = user_id` is enforced at the database layer via the SET LOCAL jwt.claims session variable set earlier in the same transaction.",
+          "callerAuth": "unclear",
+          "operationClass": "user_resource",
+          "suggestedFix": ""
+        },
+        {
+          "pairIndex": 4,
+          "isVulnerable": false,
+          "confidence": "low",
+          "reasoning": "The sink is `COMMIT`, a transaction control statement — req.params.id does not flow into this query. No IDOR is possible here.",
+          "callerAuth": "unclear",
+          "operationClass": "user_resource",
+          "suggestedFix": ""
+        },
+        {
+          "pairIndex": 5,
+          "isVulnerable": false,
+          "confidence": "low",
+          "reasoning": "The sink is `ROLLBACK`, a transaction control statement — req.params.id does not flow into this query. No IDOR is possible here.",
           "callerAuth": "unclear",
           "operationClass": "user_resource",
           "suggestedFix": ""

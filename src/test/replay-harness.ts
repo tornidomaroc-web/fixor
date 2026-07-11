@@ -50,6 +50,17 @@ const out = process.stdout;
 // Byte-frozen fixture -> diff builders (moved VERBATIM from the 2a files).
 // ===========================================================================
 
+/**
+ * LF-normalize CRLF so sidecar bytes hash OS-independently. Symmetric with
+ * loadFixture's `split(/\r?\n/)` normalization of the primary fixture: without
+ * this, a companion sidecar read raw (readCompanionSidecars / loadFixtureSidecars)
+ * carries the checkout's line endings into the replay key, making the key CRLF on
+ * a Windows worktree and LF on Linux for the same committed bytes.
+ */
+export function lfNormalize(s: string): string {
+  return s.replace(/\r\n/g, "\n");
+}
+
 /** Read a fixture, parse the `// ASSUMED-PATH:` header, strip it from content. */
 export function loadFixture(filepath: string): {
   assumedPath: string;

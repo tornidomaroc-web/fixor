@@ -43,6 +43,7 @@ import {
   SIDECAR_EXTS,
   SIDECAR_KINDS,
 } from "../../analysis-engine/sidecar-kinds";
+import { lfNormalize } from "../replay-harness";
 
 /** Diagnostic shape every Phase 3-5 detector exposes via lastDiagnostics. */
 interface DetectorDiag {
@@ -171,7 +172,7 @@ export function loadFixtureSidecars(
     const sidecarPath = base + ext;
     if (existsSync(sidecarPath)) {
       const kind = SIDECAR_EXT_TO_KIND[ext]!;
-      out[kind] = readFileSync(sidecarPath, "utf8");
+      out[kind] = lfNormalize(readFileSync(sidecarPath, "utf8"));
     }
   }
   return out;
