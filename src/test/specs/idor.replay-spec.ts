@@ -295,29 +295,107 @@ const SOURCE_MANIFEST: readonly string[] = Object.keys(EXPECTED_FLAGGED);
 /**
  * The EXACT finding set per fixture, identity `(ruleId, startLine)`.
  *
- * DELIBERATELY EMPTY. The per-pair verdicts are a property of the model's
- * response, which does not exist until the (paid) recording step. Filling this
- * in by guessing would freeze a fabricated contract. Until it is populated,
- * `findingSetOutcome` fails LOUD for every id with a config-error detail, and
- * `test:replay-idor` cannot pass. This spec is therefore NOT wired into
- * `test:ci` in this step.
+ * RECONCILED FROM THE RECORDINGS (F-004 2b.4). Populated by enumerating the real
+ * detector end-to-end in replay mode against the committed recordings - not by
+ * guessing. `findingSetOutcome` now asserts these exact sets; a missing or
+ * unexpected finding fails LOUD by id.
  *
- * HOW TO FILL IT (next step, after recording):
- *   1. Record all 26 in ONE process (`npm run record:idor -- all`). One process,
- *      because each new process re-pays the system-prompt cache-write premium.
- *   2. For each id, read back the emitted findings and write
- *      `{ ruleId, startLine }` per finding. Negatives are expected to be `[]`.
- *   3. Cross-check the two idor-multi entries against the ALREADY-PINNED
- *      expectations in `src/test/test-idor-multi.ts`, which asserts finding
- *      count and exact sink lines for A and B. If the recorded set disagrees
- *      with those pins, STOP: that is a detector or prompt regression, not a
- *      calibration decision.
- *   4. A positive that records an EMPTY set is not a test-shape detail. It means
- *      the verdict went LOW, MEDIUM/review-queue, or was deferred to a sibling
- *      lane. That is the H7-shaped recall question in the header. Escalate it;
- *      do not paper over it by writing `[]` here.
+ * COORDINATES ARE REPLAY (HEADER-STRIPPED), NOT RAW. Every `startLine` here is
+ * the sink line as the detector emits it DURING REPLAY, i.e. after
+ * `loadFixture` (replay-harness.ts:67) strips the one-line `// ASSUMED-PATH:`
+ * header. That is a fixed −1 offset versus the raw-file line numbers pinned in
+ * `src/test/test-idor-multi.ts` (which asserts A={19,36}, B={22} against the
+ * on-disk file). The two are consistent: idor-multi A here is {18,35}, B is
+ * {21}. The offset is the loader convention, NOT a finding discrepancy -
+ * "correcting" these to the test-idor-multi numbers would make the gate fail.
+ *
+ * TWO POSITIVES PIN A SHORT SET, ON PURPOSE. `idor-tenant/positive/03` ({26})
+ * and `idor-multi/B` ({21}) each emit ONE finding, not two. The missing pair in
+ * each is a confident false@high SAFE pair (verified per-pair against the
+ * recorded verdicts), NOT a suppressed true positive - so the short set is the
+ * correct expected outcome, and `findingSetOutcome` (not a boolean) is what
+ * makes pinning it meaningful. A positive recording an EMPTY set would instead
+ * be the H7-shaped recall question in the header and must be escalated, not
+ * papered over with `[]`; none of the 12 positives does.
+ *
+ * All 12 negatives pin `[]` (9 in `fixtures/idor/negative`, 3 in
+ * `fixtures/idor-tenant/negative`); the 3 sidecar negatives (idor 03/04/07) are
+ * silent because `loadSidecars` injects their RLS/middleware ground truth.
  */
-const EXPECTED_SET: Record<string, readonly ExpectedFinding[]> = {};
+const EXPECTED_SET: Record<string, readonly ExpectedFinding[]> = {
+  // --- fixtures/idor: 9 positives ---
+  "idor/positive/01-nextjs-app-router.ts": [
+    { ruleId: "idor-nextjs_destructured-prisma_find_unique", startLine: 23 },
+  ],
+  "idor/positive/02-express.ts": [
+    { ruleId: "idor-express_params-orm_find_one", startLine: 13 },
+    { ruleId: "idor-express_params-orm_find_one", startLine: 27 },
+  ],
+  "idor/positive/03-fastapi.py": [
+    { ruleId: "idor-fastapi_path_params-node_pg_query", startLine: 20 },
+    { ruleId: "idor-fastapi_path_params-node_pg_query", startLine: 44 },
+  ],
+  "idor/positive/04-rails.rb": [
+    { ruleId: "idor-rails_params_sym-rails_find_by", startLine: 6 },
+    { ruleId: "idor-rails_params_sym-rails_find_by", startLine: 23 },
+  ],
+  "idor/positive/05-hono.ts": [
+    { ruleId: "idor-hono_param-prisma_find_first", startLine: 23 },
+    { ruleId: "idor-hono_param-prisma_find_first", startLine: 37 },
+  ],
+  "idor/positive/06-nestjs.ts": [
+    { ruleId: "idor-nestjs_param-orm_find_by_id", startLine: 33 },
+    { ruleId: "idor-nestjs_param-orm_find_by_id", startLine: 45 },
+  ],
+  "idor/positive/07-go-chi-raw-sql.go": [
+    { ruleId: "idor-go_chi_urlparam-raw_sql_where_id", startLine: 32 },
+  ],
+  "idor/positive/08-trpc.ts": [
+    { ruleId: "idor-trpc_input_access-prisma_find_unique", startLine: 22 },
+  ],
+  "idor/positive/09-fastapi-typed-path-param.py": [
+    {
+      ruleId: "idor-fastapi_typed_path_param-sqlalchemy_session_get",
+      startLine: 18,
+    },
+  ],
+
+  // --- fixtures/idor: 9 negatives (all silent) ---
+  "idor/negative/01-public-resource-no-owner.ts": [],
+  "idor/negative/02-admin-via-middleware.ts": [],
+  "idor/negative/03-postgres-rls.ts": [], // sidecar: rls-policy
+  "idor/negative/04-supabase-policy.ts": [], // sidecar: rls-policy
+  "idor/negative/05-admin-via-decorator.ts": [],
+  "idor/negative/06-role-check-in-handler.ts": [],
+  "idor/negative/07-rls-via-prisma-extension.ts": [], // sidecar: middleware
+  "idor/negative/08-trpc-with-ctx-scoping.ts": [],
+  "idor/negative/09-fastapi-ownership-check.py": [],
+
+  // --- fixtures/idor-tenant: 3 positives (03 is a SHORT set) ---
+  "idor-tenant/positive/01-express-prisma-query-scope.ts": [
+    { ruleId: "idor-express_params-prisma_find_unique", startLine: 18 },
+  ],
+  "idor-tenant/positive/02-express-prisma-membership.ts": [
+    { ruleId: "idor-express_params-prisma_find_unique", startLine: 21 },
+  ],
+  "idor-tenant/positive/03-fastapi-sqlalchemy-postfetch.py": [
+    { ruleId: "idor-fastapi_typed_path_param-node_pg_query", startLine: 26 },
+  ],
+
+  // --- fixtures/idor-tenant: 3 negatives (all silent) ---
+  "idor-tenant/negative/01-express-prisma-query-scope.ts": [],
+  "idor-tenant/negative/02-express-prisma-membership.ts": [],
+  "idor-tenant/negative/03-fastapi-sqlalchemy-postfetch.py": [],
+
+  // --- fixtures/idor-multi: 2 flat positives (A has two IDORs; B is a SHORT set) ---
+  "idor-multi/A-two-independent-idors.ts": [
+    { ruleId: "idor-express_params-prisma_find_unique", startLine: 18 },
+    { ruleId: "idor-express_params-prisma_find_unique", startLine: 35 },
+  ],
+  "idor-multi/B-one-real-one-safe.ts": [
+    { ruleId: "idor-express_params-prisma_find_unique", startLine: 21 },
+  ],
+};
 
 /**
  * No lane pins. See the LANE ANCHORING block in the header: idor's diagnostic
