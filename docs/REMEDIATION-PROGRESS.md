@@ -134,8 +134,9 @@ whether the shipped detectors actually find real bugs.
 
 Target: a read-only clone of the `tornidomaroc-web/scan-and-action` backend. Scope was four
 files chosen for known vulnerability shape:
-`apps/backend/src/controllers/documentController.ts` (385 LOC; mixed IDOR, an unscoped
-`where:{id: req.params.id}` alongside correctly scoped `where:{id, organizationId}` sites),
+`apps/backend/src/controllers/documentController.ts` (385 LOC; mixed IDOR, two unscoped sites,
+`where: { id: id as string }` at line 191 and `where: { id: documentId }` at line 333,
+alongside correctly scoped `where: { id, organizationId }` sites),
 `apps/backend/src/controllers/webhookController.ts` (a correctly verified Paddle HMAC webhook),
 `apps/backend/src/routes/documentRoutes.ts` (routes guarded only by a parent-mounted global
 `authMiddleware`), and `apps/backend/src/middleware/authMiddleware.ts`.
@@ -196,41 +197,64 @@ Every one of the three model calls returned `ok=true` and emitted zero findings.
 finding the entire scan produced came from a detector that made no model call at all
 (secrets-exposure, via its regex plus deterministic `llm-bypass` path; see L-002).
 
-**Why each of the three emitted nothing is UNRESOLVED for ALL THREE, and the harness cannot
-currently tell us.** This is the central result of Run 1, and it is a measurement gap rather
-than a conclusion. Do not read any of the three as a correct judgment, and do not read any of
-them as a model miss. Neither is proven.
+**RESOLVED for idor, at zero spend (this SUPERSEDES the two-hypothesis framing Run 1 shipped
+with).** Run 1 was written up as "the cause is unresolved for all three; it is either a model
+judgment or a wiring bug." For idor that dichotomy was WRONG, and it was resolved without
+spending anything, by the L-005 harness fix. See L-001, L-006, and L-007.
 
-`idor.detector.ts` has five zero-finding branches and only one of them logs:
+The correct capture point turned out to be the raw pre-parse `result.toolInput` on
+`MessagesCallResult`, reachable by wrapping `callClaude` with no change to Fixor's source.
+`diag.verdict` was insufficient: it is `verdictByIndex.get(0) ?? null`, so a null map
+(`idor.detector.ts:862`) and a missing index (`:876`) both collapse to `null`, and it samples
+only pair 0.
 
-- `!verdictByIndex` (call failed OR response parsed empty) - SILENT, `idor.detector.ts:862`
-- `!verdict` (unmatched tool-output index) - SILENT, `:876`
-- `!verdict.isVulnerable` - SILENT, `:880`
-- `confidence === "low"` - SILENT, `:881`
-- `confidence === "medium"` - LOGS `idor-review-queue`, `:882`
+MEASURED: the candidate block idor actually sent the model for `documentController.ts` was
+THREE pairs, not six:
 
-No `idor-review-queue` line appeared on any of the three calls. **That rules out a MEDIUM
-verdict and nothing else.** A model that judged the code safe and a tool-output parse failure
-are indistinguishable from outside the process. Those two have completely different fixes
-(prompt and judgment, versus wiring), so the cause must be established before either is
-attempted. The same silent-branch ambiguity applies to admin-check, so its zero-finding outcome
-on `documentRoutes.ts` is likewise UNVERIFIABLE: it may have correctly declined to flag
-`/all`, `/review`, `/stats`, and `/export.csv`, or it may have silently discarded a verdict.
-The run cannot distinguish these.
+| pairIndex | source | sink | scoped? |
+|---|---|---|---|
+| 0 | line 13 `req.params.id` | line 11 `prisma.document.findFirst` | SCOPED (`organizationId` in the where) |
+| 1 | line 13 | line 102 `prisma.organization.findUnique` | scoped / benign |
+| 2 | line 13 | line 181 `prisma.document.findFirst` | SCOPED |
 
-The one call whose reasoning we DID capture is auth-bypass, because its MEDIUM verdict logged
-before being suppressed (see L-003). That is the exception that proves the gap: we can see that
-verdict only because it happened to take the single branch that logs.
+MEASURED: the two genuinely UNSCOPED sites in that file are line 191
+(`prisma.document.update`, `where: { id: id as string }`) and line 333
+(`prisma.document.findUnique`, `where: { id: documentId }`). **NEITHER was sent to the model.**
 
-See Priority 1d (L-001 through L-005). L-005 is the blocking, zero-spend fix.
+So idor's zero-finding is the correct OUTCOME for the input it was given: every site it was
+shown is scoped. Note the exact limit of that statement. We know the OUTCOME was right; we do
+NOT know the model REASONED correctly, because Run 1's harness discarded the verdicts. Do not
+upgrade this to "the model judged correctly". It was asked the wrong question.
+
+The root cause is two structural prefilter and pairing gaps (L-006, L-007), not judgment and
+not parsing. The paid re-run was NOT taken and was NOT needed: it would have returned
+"not vulnerable" for three scoped pairs and falsely implied a judgment defect.
+
+**Still UNVERIFIABLE: admin-check.** Its zero-finding on `documentRoutes.ts` is NOT resolved by
+any of this. The same silent-branch ambiguity still applies: it may have correctly declined to
+flag `/all`, `/review`, `/stats`, and `/export.csv`, or it may have silently discarded a
+verdict. Run 1 cannot distinguish these. The L-005 harness now can, on any future run.
+
+The one Run 1 call whose reasoning we DID capture is auth-bypass, because its MEDIUM verdict
+logged before being suppressed (see L-003).
+
+For reference, idor's five zero-finding branches (only the last logs), which the L-005 capture
+now disambiguates: `!verdictByIndex` `:862`, `!verdict` `:876`, `!isVulnerable` `:880`,
+`confidence low` `:881`, `confidence medium` `:882` (logs `idor-review-queue`).
+
+See Priority 1d (L-001 through L-008). L-005 is DONE and was the prerequisite that unlocked
+this attribution at zero spend.
 
 ## Current readiness verdict
 
-**NOT-READY (F-004 is scoped work; L-001 is not yet attributed).**
+**NOT-READY (F-004 is scoped work; L-006 and L-007 are confirmed recall defects).**
 
 The audit (`READINESS-AUDIT.md`) states that items 1 and 2 of its ordered work gate a
 clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED. There are TWO
-remaining READY-gating blockers: F-004, and (PROVISIONALLY) L-001.
+remaining READY-gating blockers: F-004, and L-006 + L-007 (the confirmed recall defects that
+L-001 turned out to be a symptom of). The L-001 gate is no longer PROVISIONAL: it has been
+attributed, it hardened rather than lifted, and it is now carried by its root causes. See
+below.
 
 **Deliberate divergence from the audit's gate list.** The audit's formal gate is items 1 and
 2 only. L-001 is not an audit item: it was surfaced by live detection-quality measurement
@@ -263,43 +287,54 @@ what the audit itself gated.
   covered by the *replay* gate specifically, while admin-check needs both a replay gate and a
   free deterministic gate.
 
-- **L-001 (PROVISIONAL gate) - idor emitted nothing on a file with a known unscoped `where`.**
-  See Priority 1d for the full record. In the first live run, idor prefiltered 6 candidate
-  pairs on `documentController.ts`, shipped the whole file, made one model call, and returned
-  no finding, on a file carrying a known unscoped `where:{id: req.params.id}`.
+- **L-006 + L-007 (CONFIRMED gate; formerly the PROVISIONAL L-001 gate) - idor cannot see two
+  whole classes of IDOR.** L-001 (idor emitted nothing on a file carrying two unscoped `where`
+  clauses) is now ATTRIBUTED, at zero spend, via the L-005 harness fix. It is neither of the
+  two hypotheses this section previously carried. Both are SUPERSEDED.
 
-  **The cause is UNRESOLVED, and that is precisely why the gate is provisional.** This is NOT
-  a confirmed detection defect. The zero-finding outcome is equally consistent with a
-  detection-quality failure (the model judged the unscoped access safe or low-confidence) and
-  with a verdict-parsing or wiring bug (the model's answer was discarded before it was read).
-  Both hypotheses are live; see the five silent branches listed under "Live detection-quality
-  measurements". Nothing here asserts which one is true.
+  **What it is NOT** (SUPERSEDED): not a model-judgment failure, and not a verdict-parsing or
+  wiring bug. **What it IS** (MEASURED): a prefilter and pairing RECALL defect. The vulnerable
+  code was never put in front of the model. Every candidate site idor DID send was scoped, so
+  emitting nothing was the correct OUTCOME for that input. That is not the same as the model
+  reasoning correctly, and it must not be read as such: Run 1 discarded the verdicts, so the
+  model's reasoning was never observed. It was asked the wrong question.
 
-  It gates READY as a PRECAUTION, on the reasoning that a possible present-tense failure to
-  find a real vulnerability in real code outranks a regression guard against future failures
-  (F-004). Shipping READY while it is possible that the flagship detector silently misses its
-  flagship vulnerability class is not a defensible posture, even though that possibility is
-  unproven.
+  **The gate HARDENS rather than lifts.** The previous lift condition was "a cheap wiring fix
+  or a defensible judgment". Neither occurred. Attribution found something worse than either:
+  two structural gaps in the pattern sets themselves.
 
-  **Conditions to lift.** The gate is reconsidered as soon as L-001 is attributed. If the dig
-  shows a cheap wiring or parsing fix, or shows the verdict was a defensible judgment on this
-  specific code and not a defect, the gate is lifted and READY returns to being F-004-gated
-  alone. If it shows a genuine detection-quality failure, the gate hardens and stops being
-  provisional. Attribution requires L-005 first (zero spend, a field read) and then one
-  scoped re-run (about $0.03, one call). Until then this stays open and READY stays blocked.
+  **Why this is NOT a one-file finding.** The evidence is not `documentController.ts`. That
+  file is only the DEMONSTRATION. The evidence is the CONTENT OF THE PATTERN SETS, which are
+  repo-independent and hold for every file Fixor will ever scan:
+  - **L-006**: `SINK_PATTERNS` (`idor.detector.ts:173-202`) contains no ORM write method.
+    An IDOR on a write is not enumerable as a candidate in ANY file in ANY repository.
+  - **L-007**: the source matcher does not match destructured request params
+    (`const { id } = req.params`), so a real source-to-sink pair can fall outside
+    `PROXIMITY_THRESHOLD = 200` and be silently dropped by `enumerateSinkPairs`.
 
-  **L-005 is the critical path, name it as such.** L-005 (the zero-spend harness
-  verdict-capture fix, Priority 1d) is a PREREQUISITE to attributing L-001, and therefore a
-  prerequisite to lifting this gate. If L-005 does not land, L-001 cannot be attributed and
-  this gate CANNOT be lifted, regardless of any other progress on F-004 or anything else. A
-  zero-spend field read is currently sitting on the critical path to READY. Do not let it stay
-  invisible behind the higher-profile items.
+  A detector that structurally cannot see write-path IDOR, and that misses one of the most
+  common idioms for reading an id off a request, has a CONFIRMED recall defect. Shipping READY
+  on that basis is not defensible.
 
-Recall is NO LONGER clean on current evidence. The first live detection-quality run (see
-"Live detection-quality measurements") scanned a file carrying a known unscoped
-`where:{id: req.params.id}` and emitted nothing; idor made the call and returned no finding.
-Whether that is a judgment failure or a verdict-parsing bug is UNRESOLVED (L-001). Until it is
-attributed, the previous "no missed exploit survives re-measurement" claim does not hold. The
+  **Conditions to lift.** Fix L-006 (add ORM write sinks) and L-007 (match destructured
+  sources), then re-measure on this file with the L-005 verdict capture on. The gate lifts when
+  idor is SHOWN the unscoped sites at lines 191 and 333 and returns a verdict on them. Whether
+  it then flags them correctly is the NEXT question, and it will be the first honest test of
+  idor's judgment: Run 1 never tested judgment at all.
+
+  **L-005 is DONE, and the critical-path note it carried is resolved.** L-005 was named the
+  critical path and it was exactly that: the zero-spend harness fix is what produced this
+  attribution, and it removed the need for the roughly $0.03 paid re-run entirely. The
+  attribution cost nothing.
+
+Recall is NO LONGER clean, and this is now CONFIRMED rather than suspected. The first live
+detection-quality run (see "Live detection-quality measurements") scanned a file carrying two
+unscoped `where` clauses, `where: { id: id as string }` at line 191 and
+`where: { id: documentId }` at line 333, and emitted nothing. Attribution (zero spend, via
+L-005) showed the vulnerable sites were never sent to the model at all: idor's sink patterns
+contain no ORM write method (L-006) and its source matcher misses destructured request params
+(L-007). The earlier judgment-versus-parsing framing is SUPERSEDED, and the previous "no missed
+exploit survives re-measurement" claim is withdrawn. The
 remaining non-gating items are precision, signal-hygiene, and coverage-integrity constraints.
 
 ---
@@ -771,29 +806,103 @@ All five are OPEN. See "Live detection-quality measurements / Run 1" for the evi
 diagnostic, `L-` items by live detection-quality measurement. Where they overlap they are
 cross-referenced, not merged.
 
-- **L-001 (HIGH; potential RECALL defect) - idor emitted nothing on a file with a known
-  unscoped `where`.** `documentController.ts` carries an unscoped `where:{id: req.params.id}`
-  alongside correctly scoped `where:{id, organizationId}` sites. idor's prefilter found 6
-  candidate pairs, shipped the whole 385-LOC file, made one call ($0.031538), and emitted zero
-  findings. It did NOT reach the review queue (no `idor-review-queue` log line), which rules
-  out a MEDIUM verdict.
+- **L-001 (ATTRIBUTED; root cause L-006 + L-007) - idor emitted nothing on a file carrying two
+  unscoped `where` clauses.** Retained as the SYMPTOM that surfaced the two structural defects.
+  The defects themselves are L-006 and L-007; fix those and L-001 goes away. The READY gate is
+  carried by L-006 + L-007, not by this item.
 
+  **CORRECTION of a claim merged on `main` (squash `346ed45`).** That revision stated idor
+  "prefiltered 6 candidate pairs". That is WRONG. The 6 was `diag.triggerCount`, which counts
+  prefilter TRIGGERS (source-pattern and sink-pattern hits), not pairs. **The true candidate
+  count was 3.** The same revision described the vulnerability as `where:{id: req.params.id}`;
+  also wrong. `req.params.id` is the SOURCE. The unscoped WHERE clauses are
+  `where: { id: id as string }` (line 191) and `where: { id: documentId }` (line 333). Both
+  errors are recorded here as corrections rather than silently overwritten, per this file's
+  convention.
+
+  MEASURED (the candidate block actually sent to the model, captured pre-parse from
+  `result.toolInput`): 3 pairs. `[0]` source line 13 to sink line 11 (`findFirst`; its `where`
+  carries `organizationId`, so SCOPED). `[1]` source line 13 to sink line 102
+  (`organization.findUnique`, benign). `[2]` source line 13 to sink line 181 (`findFirst`,
+  SCOPED).
+  MEASURED (ground truth in the file): the unscoped sites are line 191 and line 333. NEITHER
+  appears in the candidate block.
   MEASURED: 1 call, `ok=true`, 0 findings, no review-queue log.
-  INFERRED / UNRESOLVED: the cause. Consistent with (a) `isVulnerable:false`, (b)
-  `confidence:"low"`, (c) a null or empty parsed verdict map (`idor.detector.ts:862`), or (d)
-  an unmatched tool-output index (`:876`). All four are silent. Hypotheses (a) and (b) are a
-  detection-quality failure in the flagship detector on its flagship vulnerability class;
-  (c) and (d) are a WIRING bug, and would mean the model's answer was discarded before it was
-  ever read. These require different fixes and the run cannot distinguish them. Do not pick
-  one without evidence.
+  SUPERSEDED: the earlier hypotheses (a) `isVulnerable:false`, (b) `confidence:"low"`, (c) a
+  null verdict map, (d) an unmatched tool-output index. None of them is the cause. The model
+  was never asked about the vulnerability.
 
-  This ranks ABOVE the remaining F-004 regression-guard work: F-004 guards against future
-  regressions in detection, whereas this is a possible present-tense failure of detection on
-  real code. Resolve L-005 first (zero spend), then re-run idor alone on this file with the
-  verdict captured (about $0.03, one call).
+  The zero-finding is therefore the correct OUTCOME for the input given. It does NOT show that
+  the model reasoned correctly, because Run 1 discarded the verdicts. It shows the model was
+  asked the wrong question.
 
-  Cross-reference: Priority 1b (H7) is a DIFFERENT recall mechanism (cross-detector lane
-  deferral). No lane deferral occurred here. These are two independent recall risks.
+  **The paid re-run (about $0.03) was correctly NOT taken.** It would have returned
+  "not vulnerable" for three scoped pairs and falsely implied a judgment defect. The
+  attribution cost $0.
+
+  Cross-reference: Priority 1b (H7) remains a DIFFERENT recall mechanism (cross-detector lane
+  deferral). No lane deferral occurred here.
+
+- **L-006 (HIGH; RECALL; STRUCTURAL, affects any repo) - IDOR on an ORM write operation is
+  undetectable.** `idor.detector.ts` `SINK_PATTERNS`.
+
+  MEASURED (the FULL array was read, `idor.detector.ts:173-202`, all 15 entries; this is not a
+  sample). No write verb (`update`, `delete`, `destroy`, `remove`, `save`, `create`) appears
+  anywhere in it. Every ORM sink is a READ method, across every ORM family present:
+  `prisma_find_unique` (`.findUnique(`), `prisma_find_first` (`.findFirst(`), `orm_find_one`
+  (`.findOne(`), `orm_find_by_id` (`.findById(`), `sequelize_find_by_pk` (`.findByPk(`),
+  `sqlalchemy_query_get` (`.query.get(`), `sqlalchemy_filter_by_id` (`.filter_by(id=`),
+  `sqlalchemy_session_get` (`session.get(`), `django_objects_get` (`.objects.get(`),
+  `django_objects_filter` (`.objects.filter(id=`), `rails_find_by` (`.find_by(`),
+  `rails_class_find` (`Class.find(`).
+
+  MEASURED NUANCE (do not overstate the gap). Two sinks are method-name based and WOULD
+  incidentally match a write routed through them: `node_pg_query` (`db.query(`) and
+  `go_db_queryrow` (`db.Exec(` / `.Query(`). So a raw-SQL write issued through those clients is
+  still enumerable. The third raw sink, `raw_sql_where_id`, requires a literal `SELECT`, so a
+  raw `UPDATE ... WHERE id =` is NOT matched by it. The gap is therefore precisely: **no ORM
+  write method is a sink.** It is not "no write is ever a sink".
+
+  CONSEQUENCE: an unscoped `prisma.document.update({ where: { id } })` is never enumerated as a
+  candidate, so it can never be flagged, in any file, in any repository. The same holds for
+  Sequelize `.update` / `.destroy`, Django `.update` / `.delete`, Rails `.update` / `.destroy`,
+  and Prisma `.delete` / `.updateMany`. DEMONSTRATED at `documentController.ts:190-191`, which
+  idor never sent to the model.
+
+  This is arguably the more damaging half of the pair: an unauthorized WRITE that mutates
+  another tenant's row is typically higher impact than an unauthorized read.
+
+  (The cross-ORM sub-check raised when this item was drafted is now CLOSED: the full array was
+  read rather than sampled, and every ORM family in it is read-only.)
+
+- **L-007 (HIGH; RECALL; STRUCTURAL, affects any repo) - destructured request params are not
+  matched as a source, so real pairs are dropped on distance.** `idor.detector.ts`
+  `SOURCE_PATTERNS` plus `enumerateSinkPairs` plus `PROXIMITY_THRESHOLD = 200`.
+
+  MEASURED: in `documentController.ts`, only the inline `req.params.id` at line 13 was matched
+  as a source. The destructured form `const { id } = req.params;` at lines 169 and 256 was NOT
+  matched.
+
+  MEASURED CONSEQUENCE: sink line 332 (`findUnique`, with the unscoped `where` at line 333) had
+  its nearest DETECTED source 319 lines away (line 13). `enumerateSinkPairs` pairs a sink only
+  with a source within `PROXIMITY_THRESHOLD = 200`. 319 exceeds it, so `if (best)` never fires
+  and the pair is silently dropped. The vulnerability is never enumerated, and nothing logs.
+
+  This is a COMPOUNDING failure, not a single missed source. The source gap does not merely
+  lose one source: it strands every downstream sink outside the proximity window of the one
+  source that IS matched. `const { id } = req.params` is a routine Express idiom, so this is
+  not an edge case.
+
+- **L-008 (LOW; harness hygiene; zero spend) - the scratch capture harness mis-derives the pair
+  count.** `attributeIdor` in the scratch harness used `diag.triggerCount` as the pair count.
+  `triggerCount` counts prefilter triggers, not pairs (6 versus 3 on this file), so its
+  per-pair branch attribution can mislabel pairs as out-of-range or unmatched. Derive the count
+  from the captured candidate block instead. One-line fix.
+
+  This does NOT affect the L-001, L-006, or L-007 conclusions, which rest on the captured
+  candidate block and on the pattern sets, not on the attribution helper. Recorded as its own
+  open item rather than buried inside L-005's DONE note, so that an open defect is not hidden
+  inside a closed one. Fix before the harness is reused.
 
 - **L-002 (MEDIUM; precision) - secrets-exposure fired critical/high on a server-only key,
   with remediation from the wrong framework.** The scan's ONLY emitted finding.
@@ -844,13 +953,24 @@ cross-referenced, not merged.
   signal this detector needs. It costs nothing here (the webhook is correctly verified), but an
   UNVERIFIED MVC webhook would be equally invisible.
 
-- **L-005 (BLOCKING, zero spend) - the measurement harness discards the verdict it is handed.**
-  Each detector already publishes its verdict on `lastDiagnostics` (`idor.detector.ts:861` sets
-  `diag.verdict`). The Run 1 harness read `lastDiagnostics[0]` but persisted only
-  `preFilterReason`, so all three zero-finding outcomes are unattributable and L-001 cannot be
-  diagnosed from the data we hold. Fixing this is a field read, not a re-run: zero model spend.
-  **Do this BEFORE any further live spend.** Any live run that does not persist
-  `verdict.isVulnerable`, `verdict.confidence`, and the raw tool input is not worth paying for.
+- **L-005 (DONE, zero spend) - the measurement harness discarded the verdict it was handed.**
+  The Run 1 harness read `lastDiagnostics[0]` but persisted only `preFilterReason`, so all
+  three zero-finding outcomes were unattributable. FIXED in the scratch harness at zero model
+  spend.
+
+  The fix is NOT the one this item originally proposed. Capturing `diag.verdict` would NOT have
+  been sufficient: it is `verdictByIndex.get(0) ?? null` (`idor.detector.ts:861`), so it is
+  post-parse, samples pair 0 only, and collapses a null verdict map (`:862`) and a missing index
+  (`:876`) to the same `null`. The correct capture point is the raw PRE-parse `result.toolInput`
+  on `MessagesCallResult`, which is already public and is reachable by wrapping `callClaude`
+  with NO change to Fixor's tracked source.
+
+  It paid for itself immediately: capturing the raw candidate block and tool input is what
+  attributed L-001 to L-006 and L-007, at zero spend, and removed the need for the roughly $0.03
+  paid re-run. Standing rule it establishes: any live run that does not persist the raw
+  `toolInput`, `verdict.isVulnerable`, and `verdict.confidence` is not worth paying for.
+
+  Remaining hygiene defect in the harness is tracked separately as L-008, not folded in here.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
