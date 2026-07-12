@@ -115,13 +115,130 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    Lesson for 2b.5 and beyond: record on and key to LF content; the shared helper makes the key
    OS-stable, but a new fixture corpus should still get an `eol=lf` pin.
 
+8. **The cache premium is paid once per DETECTOR, not once per process (measured).**
+   Item 1 above is correct for a single-detector recording batch, where every call shares one
+   system prompt. It does NOT generalize. Prompt caching is a prefix match keyed on the system
+   prompt, so a process that invokes N distinct detectors writes N distinct cache entries.
+   Measured on the first live scan: one warm process, three detectors, `cache_read = 0` on all
+   three calls, three separate cache writes, zero reuse. The worst-case formula in item 4 must
+   therefore read `(n x highest observed warm call) + one cache-write premium PER DISTINCT
+   DETECTOR`. See "Live detection-quality measurements" below for the numbers.
+
+## Live detection-quality measurements
+
+The first live measurement of detection QUALITY (not wiring) on real third-party code.
+Distinct from the recording-cost lessons above: those concern fixture recording, this concerns
+whether the shipped detectors actually find real bugs.
+
+### Run 1 - scan-and-action backend, 4 files (first live run)
+
+Target: a read-only clone of the `tornidomaroc-web/scan-and-action` backend. Scope was four
+files chosen for known vulnerability shape:
+`apps/backend/src/controllers/documentController.ts` (385 LOC; mixed IDOR, an unscoped
+`where:{id: req.params.id}` alongside correctly scoped `where:{id, organizationId}` sites),
+`apps/backend/src/controllers/webhookController.ts` (a correctly verified Paddle HMAC webhook),
+`apps/backend/src/routes/documentRoutes.ts` (routes guarded only by a parent-mounted global
+`authMiddleware`), and `apps/backend/src/middleware/authMiddleware.ts`.
+
+Driven through the real `cli/scan.ts` detector loop (`SHIPPING_DETECTOR_IDS` filter plus
+`resolveRemixRouteGuard`), one warm process, shipped path only: `FIXOR_ESCALATE_MEDIUM`,
+`FIXOR_ADMIN_CHECK_LLM_OPT_IN`, and `FIXOR_SECRETS_LLM_OPT_IN` all unset. Call count was
+predicted first by a zero-call stubbed dry run and matched exactly.
+
+**Calls: 3 of a possible 24** (6 detectors x 4 files). All others short-circuited at their
+prefilters.
+
+| # | detector | file | input | output | cache write | cache read | cost |
+|---|---|---|---|---|---|---|---|
+| 1 | idor | documentController.ts | 4,839 | 467 | 2,671 | 0 | $0.031538 |
+| 2 | auth-bypass | documentRoutes.ts | 1,280 | 364 | 4,495 | 0 | $0.026156 |
+| 3 | admin-check | documentRoutes.ts | 1,449 | 227 | 3,967 | 0 | $0.022628 |
+|   |  | **total** |  |  |  |  | **$0.080323** |
+
+**MEASURED total spend: $0.080323.** This is measured, not attested: computed from the raw
+`message.usage` on each API response at $3/$15 per Mtok with a 1.25x cache-write and 0.10x
+cache-read multiplier. Fixor's own `calculateCost()` (`services/cost-tracking.service.ts`)
+agreed to the last decimal on all three calls, which independently validates its price table.
+Note the contrast with the recording-spend figures in the section above: those are owner
+testimony, this one is reproducible from the response payloads.
+
+A pre-run estimate of about $0.04 was made and was WRONG by 2x. It assumed a warm process
+would amortize the system-prompt cache across the run. It does not (see the cost-model
+correction below). Record the measured number; the estimate is retained only as the thing the
+run disproved.
+
+### Cost-model correction (amends "Recording-cost lessons" items 1 and 4)
+
+`cache_read` was **0 on all three calls**. Prompt caching is a prefix match keyed on the system
+prompt, and the three calls come from three DIFFERENT detectors with three DIFFERENT system
+prompts. They are three separate cache entries with zero reuse.
+
+- A single warm process does NOT amortize the cache across distinct detectors. It amortizes
+  only across repeated calls to the SAME detector. Lesson 1's "record every fixture for a
+  detector in ONE process" is still correct, because that is a single-detector batch. Its
+  generalization ("the premium is paid once per process regardless of size") is not: a
+  multi-detector process pays once PER DETECTOR.
+- The write premium was therefore paid 3x and bought nothing. Its true magnitude is the 0.25x
+  surcharge over base on the cached tokens: 11,133 tokens x $3/Mtok x 0.25 = **$0.008350**
+  across the whole run. That is the real size of the "premium", not the ~$0.0136 per-process
+  figure, which measured something else (a whole cache write, not the surcharge).
+- Lesson 4's worst-case formula, `(n x highest observed warm call) + one cache-write premium`,
+  under-counts any multi-detector run. It needs one premium PER DISTINCT DETECTOR invoked.
+
+**This run measured a COLD-call unit, not a warm-call unit.** Mean $0.0268, range $0.0226 to
+$0.0315, all three calls cold. Zero cache reuse was structurally guaranteed here because each
+detector fired at most once. **The warm-call unit remains UNMEASURED.** Measuring it requires a
+scope where one detector fires on two or more files inside the 5-minute cache TTL.
+
+### Detection-quality result: 3 calls, $0.080323, zero model-emitted findings
+
+Every one of the three model calls returned `ok=true` and emitted zero findings. The only
+finding the entire scan produced came from a detector that made no model call at all
+(secrets-exposure, via its regex plus deterministic `llm-bypass` path; see L-002).
+
+**Why each of the three emitted nothing is UNRESOLVED for ALL THREE, and the harness cannot
+currently tell us.** This is the central result of Run 1, and it is a measurement gap rather
+than a conclusion. Do not read any of the three as a correct judgment, and do not read any of
+them as a model miss. Neither is proven.
+
+`idor.detector.ts` has five zero-finding branches and only one of them logs:
+
+- `!verdictByIndex` (call failed OR response parsed empty) - SILENT, `idor.detector.ts:862`
+- `!verdict` (unmatched tool-output index) - SILENT, `:876`
+- `!verdict.isVulnerable` - SILENT, `:880`
+- `confidence === "low"` - SILENT, `:881`
+- `confidence === "medium"` - LOGS `idor-review-queue`, `:882`
+
+No `idor-review-queue` line appeared on any of the three calls. **That rules out a MEDIUM
+verdict and nothing else.** A model that judged the code safe and a tool-output parse failure
+are indistinguishable from outside the process. Those two have completely different fixes
+(prompt and judgment, versus wiring), so the cause must be established before either is
+attempted. The same silent-branch ambiguity applies to admin-check, so its zero-finding outcome
+on `documentRoutes.ts` is likewise UNVERIFIABLE: it may have correctly declined to flag
+`/all`, `/review`, `/stats`, and `/export.csv`, or it may have silently discarded a verdict.
+The run cannot distinguish these.
+
+The one call whose reasoning we DID capture is auth-bypass, because its MEDIUM verdict logged
+before being suppressed (see L-003). That is the exception that proves the gap: we can see that
+verdict only because it happened to take the single branch that logs.
+
+See Priority 1d (L-001 through L-005). L-005 is the blocking, zero-spend fix.
+
 ## Current readiness verdict
 
-**NOT-READY (temporary).**
+**NOT-READY (F-004 is scoped work; L-001 is not yet attributed).**
 
 The audit (`READINESS-AUDIT.md`) states that items 1 and 2 of its ordered work gate a
-clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED, so the single
-remaining READY-gating blocker is:
+clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED. There are TWO
+remaining READY-gating blockers: F-004, and (PROVISIONALLY) L-001.
+
+**Deliberate divergence from the audit's gate list.** The audit's formal gate is items 1 and
+2 only. L-001 is not an audit item: it was surfaced by live detection-quality measurement
+(see "Live detection-quality measurements"), a source the audit did not have. This tracker's
+gate is therefore intentionally BROADER than `READINESS-AUDIT.md`'s. That divergence is
+recorded on purpose and is not an inconsistency to be reconciled away by narrowing this list
+back to the audit's. `READINESS-AUDIT.md` is left unedited; it remains an accurate record of
+what the audit itself gated.
 
 - **F-004 - the live-LLM detection brain is only partially guarded by an automated gate.**
   Five detectors (env-exposure, webhook-unverified, auth-bypass, admin-check, and idor) are
@@ -134,8 +251,11 @@ remaining READY-gating blocker is:
   stage 3 (the opt-in live model-judgment workflow) both remain in the deferred worklist.
 
   Five of six detectors gated is progress, not readiness. Every gate landed so far is a
-  wiring-and-parsing gate: none of them verifies detection quality, which is stage 3 (live)
-  work that has not started. F-004 stays NOT-READY.
+  wiring-and-parsing gate: none of them verifies detection quality. Stage 3 (live) has now
+  produced its first datapoint (see "Live detection-quality measurements"), and it did not go
+  well: 3 model calls on real third-party code emitted zero findings, including on a file with
+  a known IDOR, and the reason is unresolved for all three. That is a first sample, not a
+  verdict on the engine, but it is the opposite of reassuring. F-004 stays NOT-READY.
 
   Note on wording: admin-check needed TWO gates, not one. A replay gate alone cannot cover it
   (see the 2b.3 entry). "Covered by a deterministic CI gate" is therefore the accurate phrase
@@ -143,9 +263,44 @@ remaining READY-gating blocker is:
   covered by the *replay* gate specifically, while admin-check needs both a replay gate and a
   free deterministic gate.
 
-Recall is clean on current evidence (no missed exploit survives re-measurement); the
-remaining non-gating items are precision, signal-hygiene, and coverage-integrity
-constraints.
+- **L-001 (PROVISIONAL gate) - idor emitted nothing on a file with a known unscoped `where`.**
+  See Priority 1d for the full record. In the first live run, idor prefiltered 6 candidate
+  pairs on `documentController.ts`, shipped the whole file, made one model call, and returned
+  no finding, on a file carrying a known unscoped `where:{id: req.params.id}`.
+
+  **The cause is UNRESOLVED, and that is precisely why the gate is provisional.** This is NOT
+  a confirmed detection defect. The zero-finding outcome is equally consistent with a
+  detection-quality failure (the model judged the unscoped access safe or low-confidence) and
+  with a verdict-parsing or wiring bug (the model's answer was discarded before it was read).
+  Both hypotheses are live; see the five silent branches listed under "Live detection-quality
+  measurements". Nothing here asserts which one is true.
+
+  It gates READY as a PRECAUTION, on the reasoning that a possible present-tense failure to
+  find a real vulnerability in real code outranks a regression guard against future failures
+  (F-004). Shipping READY while it is possible that the flagship detector silently misses its
+  flagship vulnerability class is not a defensible posture, even though that possibility is
+  unproven.
+
+  **Conditions to lift.** The gate is reconsidered as soon as L-001 is attributed. If the dig
+  shows a cheap wiring or parsing fix, or shows the verdict was a defensible judgment on this
+  specific code and not a defect, the gate is lifted and READY returns to being F-004-gated
+  alone. If it shows a genuine detection-quality failure, the gate hardens and stops being
+  provisional. Attribution requires L-005 first (zero spend, a field read) and then one
+  scoped re-run (about $0.03, one call). Until then this stays open and READY stays blocked.
+
+  **L-005 is the critical path, name it as such.** L-005 (the zero-spend harness
+  verdict-capture fix, Priority 1d) is a PREREQUISITE to attributing L-001, and therefore a
+  prerequisite to lifting this gate. If L-005 does not land, L-001 cannot be attributed and
+  this gate CANNOT be lifted, regardless of any other progress on F-004 or anything else. A
+  zero-spend field read is currently sitting on the critical path to READY. Do not let it stay
+  invisible behind the higher-profile items.
+
+Recall is NO LONGER clean on current evidence. The first live detection-quality run (see
+"Live detection-quality measurements") scanned a file carrying a known unscoped
+`where:{id: req.params.id}` and emitted nothing; idor made the call and returned no finding.
+Whether that is a judgment failure or a verdict-parsing bug is UNRESOLVED (L-001). Until it is
+attributed, the previous "no missed exploit survives re-measurement" claim does not hold. The
+remaining non-gating items are precision, signal-hygiene, and coverage-integrity constraints.
 
 ---
 
@@ -536,8 +691,9 @@ is only ever exercised by opt-in live runs, never free-in-CI.
 ### Priority 1b - OPEN: the H7 double-silence risk (unresolved potential RECALL hole)
 
 This is a cross-detector gap, not part of 2b.3, and it is deliberately recorded on its own so
-it is not buried in a step marked DONE. It is the only known item that could LOSE a real
-vulnerability rather than merely add noise.
+it is not buried in a step marked DONE. It is one of two known items that could LOSE a real
+vulnerability rather than merely add noise; the other is L-001 (Priority 1d), which is a
+DIFFERENT mechanism (idor returning nothing on a single file, with no lane deferral involved).
 
 **The mechanism.** `auth-bypass.detector.ts:772-777` suppresses its own HIGH finding and
 defers when its verdict carries `authPresent === "yes" && operationKind === "admin"`, logging
@@ -607,6 +763,94 @@ remains OPEN as above.
   is detector-specific in a shared harness; 2b.5 will need the same guard for
   `FIXOR_SECRETS_LLM_OPT_IN`. Generalize when the second caller exists, not preemptively. No
   API spend.
+
+### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
+
+All five are OPEN. See "Live detection-quality measurements / Run 1" for the evidence. The
+`L-` prefix is a separate namespace from `F-`: `F-` items were surfaced by the readiness
+diagnostic, `L-` items by live detection-quality measurement. Where they overlap they are
+cross-referenced, not merged.
+
+- **L-001 (HIGH; potential RECALL defect) - idor emitted nothing on a file with a known
+  unscoped `where`.** `documentController.ts` carries an unscoped `where:{id: req.params.id}`
+  alongside correctly scoped `where:{id, organizationId}` sites. idor's prefilter found 6
+  candidate pairs, shipped the whole 385-LOC file, made one call ($0.031538), and emitted zero
+  findings. It did NOT reach the review queue (no `idor-review-queue` log line), which rules
+  out a MEDIUM verdict.
+
+  MEASURED: 1 call, `ok=true`, 0 findings, no review-queue log.
+  INFERRED / UNRESOLVED: the cause. Consistent with (a) `isVulnerable:false`, (b)
+  `confidence:"low"`, (c) a null or empty parsed verdict map (`idor.detector.ts:862`), or (d)
+  an unmatched tool-output index (`:876`). All four are silent. Hypotheses (a) and (b) are a
+  detection-quality failure in the flagship detector on its flagship vulnerability class;
+  (c) and (d) are a WIRING bug, and would mean the model's answer was discarded before it was
+  ever read. These require different fixes and the run cannot distinguish them. Do not pick
+  one without evidence.
+
+  This ranks ABOVE the remaining F-004 regression-guard work: F-004 guards against future
+  regressions in detection, whereas this is a possible present-tense failure of detection on
+  real code. Resolve L-005 first (zero spend), then re-run idor alone on this file with the
+  verdict captured (about $0.03, one call).
+
+  Cross-reference: Priority 1b (H7) is a DIFFERENT recall mechanism (cross-detector lane
+  deferral). No lane deferral occurred here. These are two independent recall risks.
+
+- **L-002 (MEDIUM; precision) - secrets-exposure fired critical/high on a server-only key,
+  with remediation from the wrong framework.** The scan's ONLY emitted finding.
+  `authMiddleware.ts:9`, `severity:critical`, `confidence:high`, zero model calls (regex plus
+  the deterministic `llm-bypass` path). It flags a Supabase service-role key read from
+  `process.env` in backend Express middleware.
+
+  The detection itself is literally true (that IS a service-role key reference). The
+  CALIBRATION is wrong on two counts. Its stated threat model is conditional on the file
+  shipping to a client bundle; Express middleware never does, so the condition cannot hold.
+  Its remediation instructs the reader to add `import 'server-only';`, which is a Next.js
+  convention and is meaningless in Express. A critical/high alert on a key used exactly where
+  it belongs, emitted with no model in the loop to check the context.
+
+  Related but distinct from F-010 (LOW, secrets FP on an obvious placeholder): that one is
+  about the VALUE being a non-secret, this one is about the CONTEXT making the threat model
+  inapplicable. Do not merge them without deciding both.
+
+- **L-003 (MEDIUM; precision, currently masked) - the cross-file auth blind spot is CONFIRMED
+  live on Express, and F-001's fix does not cover it.** auth-bypass judged the
+  `documentRoutes.ts` routes unprotected. They are in fact guarded by a global `authMiddleware`
+  mounted in a parent, which whole-file scanning cannot see. Its reasoning (captured verbatim
+  in the run log) cites `PATCH /:id/status`, `POST /:id/action`, and `POST /upload` as
+  unguarded.
+
+  It landed at MEDIUM, and with `FIXOR_ESCALATE_MEDIUM` unset (the shipped default) MEDIUM is
+  suppressed to a review queue and dies there. So the false positive never surfaced.
+  **Precision was preserved by a blanket suppression, not by correct reasoning.** Enabling
+  escalation surfaces this as a live FP.
+
+  This is the F-001 / F-013 theme, and it sharpens the open F-013 question. F-001's defense is
+  the parent-guard sidecar, but `resolveRemixRouteGuard` resolves Remix and RR v7 layouts only:
+  `guardBody` was null for all four Express files in this run. **F-001's fix does not
+  generalize to Express MVC.** That is a scope limit worth recording, and it is NOT the same as
+  answering F-013, which asks for a repeated-sample Engine B measurement. This run was a single
+  sample on the Engine A `cli/scan.ts` path. F-013 stays open and unanswered.
+
+- **L-004 (LOW; structural RECALL gap) - webhook-unverified is blind to MVC webhooks.**
+  Zero calls on `webhookController.ts`, a real Paddle HMAC webhook handler.
+  MEASURED: 0 calls, prefilter reason `no regex match`.
+  ANALYZED (from reading `PREFILTER_PATTERNS` and the target, not from the run alone): all 13
+  patterns key on route DEFINITIONS (`router.post('/webhook...')`), webhook-library imports,
+  `new Webhook(`, signature anti-patterns, or filesystem-routed handlers. The controller is
+  `export class WebhookController { static async handlePaddle }` with zero route definitions,
+  imports plain `crypto`, and uses `timingSafeEqual` correctly. There is no `webhookRoutes.ts`
+  in the repo at all; the `/webhook` path lives in parent app wiring.
+  In an Express MVC controller/route split, NO file in a controller-scoped scan carries the
+  signal this detector needs. It costs nothing here (the webhook is correctly verified), but an
+  UNVERIFIED MVC webhook would be equally invisible.
+
+- **L-005 (BLOCKING, zero spend) - the measurement harness discards the verdict it is handed.**
+  Each detector already publishes its verdict on `lastDiagnostics` (`idor.detector.ts:861` sets
+  `diag.verdict`). The Run 1 harness read `lastDiagnostics[0]` but persisted only
+  `preFilterReason`, so all three zero-finding outcomes are unattributable and L-001 cannot be
+  diagnosed from the data we hold. Fixing this is a field read, not a re-run: zero model spend.
+  **Do this BEFORE any further live spend.** Any live run that does not persist
+  `verdict.isVulnerable`, `verdict.confidence`, and the raw tool input is not worth paying for.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
