@@ -240,7 +240,8 @@ now settle this on any future run.
 
 The one Run 1 call whose reasoning we DID capture is auth-bypass (see L-003).
 
-See Priority 1d (L-001 through L-010).
+See Priority 1d (L-001 through L-010, surfaced by Run 1) and Priority 1e (L-011, surfaced by the
+zero-spend structural rig).
 
 ## Current readiness verdict
 
@@ -823,8 +824,25 @@ evidence. Not all are open: L-001 is RETRACTED and L-005 is DONE; the rest are o
 (CORRECTION of "All five are OPEN", a count merged on `346ed45` that predates the L-006 through
 L-010 additions and the L-005 DONE status.) The
 `L-` prefix is a separate namespace from `F-`: `F-` items were surfaced by the readiness
-diagnostic, `L-` items by live detection-quality measurement. Where they overlap they are
-cross-referenced, not merged.
+diagnostic, `L-` items by detector MEASUREMENT. Where they overlap they are cross-referenced,
+not merged.
+
+**CORRECTION of the namespace definition (2026-07-17).** This sentence previously read "`L-`
+items [were surfaced] by *live* detection-quality measurement". That was true when it was
+written, but only because Run 1 was the only measurement that existed at the time; "live" was
+describing the sole instance, not the boundary. It has since aged: the zero-spend structural rig
+(`IDOR-STRUCTURE-EXPOSURE.md`) surfaces real detector defects with no model call at all, and E'
+will surface more. The definition is therefore WIDENED to "detector measurement (live or
+structural)". The organising axis of the `F-`/`L-` split is unchanged and is the thing worth
+preserving: `F-` is what the readiness diagnostic found by READING, `L-` is what we found by
+RUNNING the detector. A third namespace for zero-spend findings was considered and REJECTED:
+that would split the taxonomy on SPEND, which says nothing about what an item is.
+
+Provenance within the namespace is recorded per sub-section, not per item: **Priority 1d** holds
+L-001 through L-010, surfaced by Run 1 (live). **Priority 1e** holds L-011, surfaced by the
+zero-spend structural rig. The alternative — filing L-011 under 1d — would have made that
+section's header ("defects surfaced by the first live detection-quality run") FALSE, which is
+the same defect class this tracker keeps correcting.
 
 - **L-001 (RETRACTED; this was a REPORTING ERROR, not a detection defect) - the file idor
   "missed" contained no vulnerability.** Retained in full, per this file's convention of
@@ -950,18 +968,13 @@ cross-referenced, not merged.
   "we have ZERO demonstrated missed vulnerabilities". L-009 remains UNWITNESSED in that sense
   and NON-gating. The cross-handler RATE on real ICP code is DEFERRED to E'.
 
-  **MEASURED amplification (2026-07-17, 13-repo step-4 corpus; PATTERN-MATCHING AXIS ONLY — that
-  corpus is disqualified for rates by `STEP4-PRODUCTION-VALIDATION.md` §3).** The `L-007`
-  constraint above ("more sources means more spurious cross-function pairs") now has a number
-  against one pattern. `trpc_input_access` is `/\binput\.\w+/` with NO `lang` restriction, while
-  tRPC is TypeScript-only. Over 46,632 post-filter files it fires in 390, of which **98.2% (383)
-  are spurious** — DOM `<input>` element handles (`input.value`, `input.checked`), plain string
-  variables, Go test-table fields, and CSS selectors inside string literals. Only 7 files carry a
-  genuine tRPC marker. Its L-009 effect: of 103 pairs it sources, **101 exist ONLY because it
-  fired** (the sink had no other source within 200 lines) and 2 HIJACKED a real source by being
-  nearer — handing the model the wrong origin for a real sink. 40 files reach the model solely on
-  its account. This is EXPOSURE, not a demonstrated false positive, and it is a candidate for its
-  own tracked item; it is recorded here for now because it is an L-009 amplifier.
+  **AMPLIFICATION: quantified against one pattern, and tracked as L-011.** The L-007 constraint
+  above ("more sources means more spurious cross-function pairs") has been measured against the
+  `trpc_input_access` source pattern. Those figures live in **L-011** and are deliberately NOT
+  restated here: a number carried in two entries drifts apart on the next edit, which is the
+  failure mode this tracker exists to correct. L-011 owns the pattern; L-009 owns the pairing.
+  The measured effects are a JOINT property of the two — fixing either reduces them — which is
+  why the extraction is a split of ownership, not a transfer of blame.
 
 - **L-010 (READY gate; NOT a defect) - detection quality is UNPROVEN on a real vulnerability.**
   See the readiness verdict for the full statement and the lift condition. Recorded here so it
@@ -1049,6 +1062,92 @@ cross-referenced, not merged.
   `verdict.isVulnerable`, and `verdict.confidence` is not worth paying for.
 
   Remaining hygiene defect in the harness is tracked separately as L-008, not folded in here.
+
+### Priority 1e - OPEN: defects surfaced by zero-spend structural measurement
+
+Same `L-` namespace as Priority 1d, different provenance: these items were surfaced by the
+zero-spend structural rig (`npm run measure:idor-structure`), which drives the real detector
+under a replay lock and makes NO model call. See `IDOR-STRUCTURE-EXPOSURE.md` for the evidence
+and its limits. Kept separate from 1d because 1d's header is a claim about Run 1, and an item
+that did not come from Run 1 does not belong under it.
+
+A note on what this provenance can and cannot establish. The rig measures the PREFILTER — which
+candidate pairs the detector builds and hands to the model. It does not measure model judgment,
+so it can show that a pair was FABRICATED but never that a finding was EMITTED. Every rate here
+is also bounded by its corpus: the 13-repo step-4 corpus is mature OSS, not the ICP, and
+`STEP4-PRODUCTION-VALIDATION.md` section 3 disqualifies it for rates while stating it IS
+predictive on the pattern-matching axis. Items in this section therefore carry measured
+pattern-axis facts and DEFER their ICP rates to E'.
+
+- **L-011 (OPEN; MEASURED; precision, with latent recall impact; NON-gating on ICP RATE) -
+  `trpc_input_access` matches any `input.<member>` access in any language.**
+
+  `idor.detector.ts` SOURCE_PATTERNS: `{ id: "trpc_input_access", re: /\binput\.\w+/ }`. It
+  carries NO `lang` restriction, so it applies to all 9 supported languages. tRPC is
+  TypeScript-only. EXTRACTED from L-009's body on 2026-07-17: it is a defect in a SOURCE
+  PATTERN, not a property of the pairing algorithm, it has an independent fix with independent
+  verification, and it therefore needs its own status. L-009 remains the pairing defect.
+
+  MEASURED (2026-07-17; 13-repo step-4 corpus; PATTERN-MATCHING AXIS ONLY). Over 46,632
+  post-filter files it fires in 390 files / 1,367 hits. 73 files are non-TypeScript, where tRPC
+  cannot exist. 310 are TypeScript with no tRPC marker anywhere in the file. **7 files carry a
+  genuine tRPC marker.** Spurious share: **98.2% (383/390)**. What it actually matches: DOM
+  `<input>` element handles (`input.value`, `input.checked`, `input.addEventListener`), plain
+  string variables (`input.trim()`, `input.split('(')`), Go test-table struct fields
+  (`tc.input.Expand()`), Playwright locators, and CSS selectors inside string literals
+  (`"input.bulk-select:not(:checked)"`) — `findPatternHits` matches raw content with no
+  string/comment awareness.
+
+  **98.2% is a LOWER bound.** The "genuine tRPC" marker regex includes a bare `.input(`, which
+  matches non-tRPC calls, so "genuine" is over-counted and spurious under-counted. The
+  generosity is deliberate: being generous to the pattern keeps the finding conservative.
+
+  MEASURED EFFECT ON L-009's PAIRING (same corpus and caveat; counterfactual = re-run the real
+  pairing with this ONE pattern removed). Of 103 pairs it sources, **101 exist ONLY because it
+  fired** (the sink had no other source within `PROXIMITY_THRESHOLD = 200`), and 2 HIJACKED a
+  real source by being nearer — handing the model the wrong origin for a real sink. 40 files
+  reach the model solely on its account. These effects are a JOINT property of this pattern and
+  L-009's scope-blind pairing; fixing either reduces them.
+
+  LATENT RECALL IMPACT, and its honest weight. `MAX_PAIRS_PER_FILE = 12`. Spurious sources
+  create pairs for sinks that would otherwise have none, so they can push a file past the cap
+  and truncate real pairs out. MEASURED: 2 files pushed over the cap by this pattern alone, and
+  in 1 of them a real (non-trpc-sourced) candidate pair was truncated out
+  (`hoppscotch/.../mock-server.service.ts`: 15 sinks, 12 pairs + 1 truncated). **That is n=1, on
+  non-ICP code, and a displaced CANDIDATE is not a missed vulnerability** — the model might have
+  cleared it anyway. It justifies "latent recall impact" in the descriptor and nothing stronger.
+
+  **Why this is NON-gating.** No customer-visible FALSE POSITIVE has been demonstrated. A
+  spurious pair is judged by the model, and a `false` verdict emits nothing; **zero emitted
+  findings from this pattern have been observed.** Every effect above was measured on a corpus
+  that is disqualified for rates, so the FP rate and the cost on ICP code are UNKNOWN and
+  DEFERRED to E'. READY gates remain F-004 and L-010; this is neither. (A rationale of the form
+  "it injects noise into every customer scan today" was CONSIDERED and REJECTED as unsupported:
+  it conflates a fabricated pair with an emitted finding, and "every customer scan" is a rate
+  claim on ICP code that this corpus cannot carry. Recorded because the rejected version is the
+  tempting one.)
+
+  **The fix, NOT implemented here.** `lang: ["ts", "tsx"]` is NOT the fix: it removes the 73
+  non-TypeScript files (320 hits) and leaves the 310 TypeScript files (1,033 hits) where
+  `input.value` is a DOM handle. That is roughly 19% of the file-level problem, and it would
+  READ as a fix while leaving the bulk in place. The real fix needs tRPC CONTEXT, not a language
+  pin: a file-level marker gate (`@trpc/`, `initTRPC`, `createTRPCRouter`, `protectedProcedure`)
+  as a precondition for the pattern, optionally with the regex tightened toward the
+  `{ input, ctx }` idiom. **This is a NEW CAPABILITY, not a one-liner:** `PrefilterPattern` is
+  `{ id, re, lang? }` today and has no file-level precondition (a `requires?: RegExp` would be
+  the smallest shape).
+
+  Verification any fix must carry:
+  1. Re-run the rig: spurious files collapse toward ~7 and fabricated pairs toward ~0.
+  2. `fixtures/idor/positive/08-trpc.ts` MUST still produce its pair, and
+     `fixtures/idor/negative/08-trpc-with-ctx-scoping.ts` must still behave. Both are genuine
+     tRPC and both depend on this pattern. Without this, the fix trades a precision defect for a
+     RECALL gap — the same trap recorded against L-006's sink-only patch.
+  3. **COST GATE, before any spend.** The replay key hashes the user message, which contains the
+     candidate block, so if the fix changes those two fixtures' pairs the key MOVES and they need
+     re-recording (~$0.03-0.06). The rig can PREDICT this for free: shadow the proposed change
+     over the 26 fixtures and diff the pairs. Predict first; the spend decision comes to the
+     owner with the prediction in hand, not after the fact.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
