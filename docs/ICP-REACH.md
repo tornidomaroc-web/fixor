@@ -14,7 +14,7 @@ This measures **REACH**: on how many ICP repos does the idor detector's prefilte
 
 - **Population:** 43 TS/JS ICP repos — a **SAMPLE, not a census**. GitHub search caps at 1000 results/query; the biases carried from sourcing (churn, TS/JS-only, star ceiling) are in the corpus manifest.
 - **It establishes NO loss** and **no ICP rate** for L-006 or L-009.
-- **It changes no gating status.** Whether reach = 2/43 *should* change anything on the tracker is a readiness call and is the owner's; it is raised separately from this artifact, not decided here. **L-010 wording untouched.**
+- **It changes no gating status.** The reach finding is now tracked as **L-012** (OPEN; reach / market-fit; NOT a defect; NON-gating) — a readiness call the owner has since made. L-012 changes no gate: reach says nothing about detection quality on a real vulnerability (that is C's job), and it neither lifts nor pressures F-004 or L-010. **L-010 wording untouched.**
 
 ---
 
