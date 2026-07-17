@@ -23,6 +23,36 @@ An open PR is "in review," never "done."
   parsing, not detection quality. Only an opt-in live run verifies model judgment.
 - No em dash in human-facing text we author.
 
+### Reasoning guardrails (learned in practice; each carries the case that produced it, because the rule without its case is a slogan)
+
+- **Twin-matching before namespace or classification.** Before assigning an item to a
+  namespace or category, find the existing item of the same SHAPE and match where its twin
+  already lives. Reason from where the twin sits, not from what the item means. Two same-shaped
+  items cannot sit in different series. CASE: reach (L-012) was nearly filed in `F-` on a
+  significance axis (market-fit vs detector-correctness), but the tracker's axis is PROVENANCE
+  (found by reading vs found by running). The tell was that L-010, its twin (readiness-bearing,
+  not-a-defect, measurement-surfaced), already sat in `L-`.
+
+- **A null-and-continue error path is a latent fabricator.** An error path that returns `null`
+  or `[]` and keeps going manufactures a finding shaped like data, because a silent failure is
+  indistinguishable from "analyzed, found nothing". Every error path lists its casualties BY
+  NAME, never as a count. CASE: the prospector's `ghJson` swallowed metadata-fetch failures
+  into `null` during the E' sourcing step and nearly shipped "the ICP is 92% TypeScript"; it was
+  caught only because a sampling skew happened to be visible, and next time there may be no skew
+  to notice. (First recorded in the "Failure accounting" section of `ICP-REACH.md`, now promoted
+  here; the artifact points back to this rule by name rather than restating it.)
+
+- **Coordinates rot; cross-reference by identifier.** Reference by a stable identifier, never by
+  a line number and never by a range over a growing series (for example "L-001 through L-010").
+  Both go stale silently on the next edit. CASE: the L-010 restatement contradiction, remembered
+  as the "306-vs-758" incident, whose own name is two line numbers that no longer point
+  anywhere; and the range reference the L-011 sweep had to widen the moment a new item was added.
+
+- **Form is not the judgment; read the guard.** Never classify a call from its shape. A bare
+  `where: { id }` is not an IDOR if an ownership check gates the path to it. WORKED CASE: the
+  L-001 retraction (see L-001), where the shape of a where clause was treated as a verdict and
+  the preceding scoped read that guarded the write was never checked.
+
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
 Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.

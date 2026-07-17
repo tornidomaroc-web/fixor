@@ -89,7 +89,7 @@ The prior step's near-miss (a silent-null error path that hid a sampling skew) i
 - **Every file is accounted for.** `filesWalked = 14,566`, `analyzable = 3,987`, `read-failures = 0`. Failures are listed **by name** in the artifact JSON, never a count.
 - **Zero-spend is hard-asserted**, not assumed: the run throws unless `successful === 0` and `no_api_key === 0`. `fixor-runner.ts` is never imported.
 
-**Standing rule, recorded for step three and all future measurement:** *a null-and-continue error path is a latent fabricator.* A file that fails to read or analyze and is silently skipped looks identical to "analyzed, found nothing" — which manufactures a finding shaped like data. Every error path lists its casualties by name.
+The standing rule this run practices ("a null-and-continue error path is a latent fabricator") now lives in the tracker's reasoning guardrails (`REMEDIATION-PROGRESS.md`), with its general statement and its case. It is referenced by name here, not restated.
 
 ---
 
