@@ -265,7 +265,10 @@ exactly this. It is measured here for one pattern only.
 
 ## 5. What this changes in the tracker
 
-**Only L-006's descriptor and rationale.** `REMEDIATION-PROGRESS.md` glosses "UNWITNESSED"
+Two things: **L-006's descriptor and rationale** (from §3), and a **new entry, L-011** (from §4;
+added 2026-07-17, see the end of this section).
+
+On the witnessed axis, **only L-006 changes.** `REMEDIATION-PROGRESS.md` glosses "UNWITNESSED"
 twice, identically and in apposition — in the readiness verdict, and in the "What survives" note
 on the void demonstration:
 
@@ -288,6 +291,24 @@ exists, Fixor misses it. If the shape does not occur in ICP code, the miss costs
 
 The gate question for L-006 is now explicitly: **does write-with-no-read code exist in ICP
 repos?** E' answers it.
+
+**§4 is tracked as L-011** (added 2026-07-17, under a new `Priority 1e`). The
+`trpc_input_access` finding was initially recorded inside L-009's body as an amplifier; it was
+extracted because it is a defect in a SOURCE PATTERN, not a property of the pairing algorithm,
+and it has an independent fix and verification. L-011 owns every figure in §4; L-009 keeps a
+numberless pointer, so no number lives in two places. Its descriptor carries **no
+witnessed/unwitnessed adjective in either direction** — that word is a recall-axis word meaning
+"a missed vulnerability has been demonstrated", and applying it to a precision defect would be
+true-but-vacuous and would re-blur the term §5 exists to sharpen. It follows the tracker's
+existing precedent for precision items (L-002, L-003, L-009): status + axis, with the evidence
+in a `MEASURED:` line.
+
+Minting L-011 also forced a **CORRECTION to the `L-` namespace definition**, which read "`L-`
+items [were surfaced] by *live* detection-quality measurement". This rig is not live and makes
+no model call, so filing L-011 under `Priority 1d` ("defects surfaced by the first live
+detection-quality run") would have made that header false. The definition is widened to
+"detector measurement (live or structural)"; the `F-`/`L-` axis (found by READING vs found by
+RUNNING) is unchanged.
 
 Swapping the adjective while leaving the old rationale in place would have left a status whose
 stated basis no longer supports it — the same defect as the L-010 contradiction this session
