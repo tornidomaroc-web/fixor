@@ -228,8 +228,11 @@ produces nothing. **Fixor has still never been measured against a real vulnerabi
 now the honest READY blocker; see L-010.
 
 The structural gaps the void demonstration accidentally surfaced (L-006, L-007, L-009) are
-verified from Fixor's SOURCE and remain true. They are UNWITNESSED, not demonstrated: we have
-ZERO demonstrated missed vulnerabilities.
+verified from Fixor's SOURCE and remain true. L-007 and L-009 are UNWITNESSED, not
+demonstrated. L-006 is no longer: it was WITNESSED under execution on 2026-07-17
+(`IDOR-STRUCTURE-EXPOSURE.md`). Restated precisely: we have ZERO demonstrated missed
+vulnerabilities IN REAL CODE, and ONE on a CONSTRUCTED input whose prevalence in real code is
+unknown (L-006; deferred to E').
 
 **Still UNVERIFIABLE: admin-check.** Its zero-finding on `documentRoutes.ts` was never
 attributed. It may have judged correctly or silently discarded a verdict. The L-005 harness can
@@ -251,8 +254,22 @@ READY-gating blockers: F-004, and L-010.
 "confirmed recall defects", hardened from a provisional L-001 gate. **That gate was VOID.** It
 rested on a demonstrated recall failure that did not occur: the file it was demonstrated on
 contains no IDOR (see L-001). L-006, L-007, and L-009 are demoted to OPEN, NON-gating
-structural gaps. They are real, they are verified from source, and they are UNWITNESSED.
-Gating READY on a recall failure we never observed would be dishonest in the other direction.
+structural gaps. They are real and they are verified from source. L-007 and L-009 are
+UNWITNESSED. Gating READY on a recall failure we never observed would be dishonest in the other
+direction.
+
+**UPDATE 2026-07-17: L-006 is no longer UNWITNESSED, and stays NON-gating for a DIFFERENT
+reason.** A genuine unguarded write-variant IDOR, constructed as the exact shape this tracker
+hypothesised at the L-006 entry, was driven through the real `analyzeFile` and dropped before
+the model (`IDOR-STRUCTURE-EXPOSURE.md`). That IS a demonstrated missed vulnerability — the
+thing "UNWITNESSED" denies — so the word is retired for L-006 and the sentence above no longer
+covers it. **The demotion survives, but not on its original basis.** What keeps L-006 non-gating
+is not that we never saw the miss; it is that the miss is CONDITIONAL. It proves that IF
+write-with-no-read code exists, Fixor misses it 100% of the time. Whether that shape occurs in
+ICP code is L-006 PREVALENCE, which is UNKNOWN and DEFERRED to E'. If prevalence is zero the
+miss costs nothing. The gate question for L-006 is now explicitly "does this shape exist in ICP
+repos?", and E' answers it. Witnessing exposure does not gate READY; only a demonstrated miss
+on REAL code would, and this is not one.
 
 The gate is REPLACED, not lifted. See L-010: detection quality is unproven on a real
 vulnerability. READY stays blocked because Fixor has never been measured against a genuine
@@ -723,7 +740,12 @@ it is not buried in a step marked DONE. It is once again the ONLY known item tha
 real vulnerability rather than merely add noise. A previous revision (`346ed45`) said "one of
 two", naming L-001 as the other; L-001 is now RETRACTED (it was a reporting error, not a recall
 defect), so this reverts. The three structural gaps L-006, L-007, and L-009 COULD lose a
-vulnerability in principle, but none has been observed to.
+vulnerability in principle. L-007 and L-009 have not been observed to. **L-006 HAS been, as of
+2026-07-17** (`IDOR-STRUCTURE-EXPOSURE.md`): a constructed unguarded write-variant IDOR was
+dropped before the model under execution. That observation is CONDITIONAL — it proves the miss
+occurs IF the shape is present, not that the shape occurs in real code (L-006 PREVALENCE,
+deferred to E'), which is why L-006 remains NON-gating. No structural gap has been observed to
+lose a vulnerability in REAL code.
 
 **The mechanism.** `auth-bypass.detector.ts:772-777` suppresses its own HIGH finding and
 defers when its verdict carries `authPresent === "yes" && operationKind === "admin"`, logging
@@ -835,12 +857,31 @@ cross-referenced, not merged.
 
   **What survives.** The void demonstration accidentally surfaced three real structural gaps in
   idor, all verified from Fixor's SOURCE and therefore independent of this repo: L-006, L-007,
-  L-009. They are UNWITNESSED. We have ZERO demonstrated missed vulnerabilities.
+  L-009. L-007 and L-009 are UNWITNESSED; L-006 was WITNESSED on 2026-07-17 (see its entry).
+  We have ZERO demonstrated missed vulnerabilities IN REAL CODE, and ONE on a CONSTRUCTED input
+  (L-006), whose prevalence in real code is unknown and deferred to E'.
 
-- **L-006 (OPEN; UNWITNESSED structural gap; NON-gating) - no ORM write method is a sink.**
-  DEMOTED from "HIGH, RECALL, confirmed" on `e394a09`. The MECHANISM is true and verified. The
-  DEMONSTRATION was void: the write it was demonstrated on (`documentController.ts:190-191`) is
-  guarded, not vulnerable.
+- **L-006 (OPEN; WITNESSED structural gap; NON-gating on PREVALENCE) - no ORM write method is a
+  sink.** DEMOTED from "HIGH, RECALL, confirmed" on `e394a09`. The MECHANISM is true and
+  verified. The DEMONSTRATION was void: the write it was demonstrated on
+  (`documentController.ts:190-191`) is guarded, not vulnerable.
+
+  **WITNESSED 2026-07-17 (`IDOR-STRUCTURE-EXPOSURE.md`).** The CONSEQUENCE below is no longer
+  theoretical. A genuine unguarded write-variant IDOR — exactly the `prisma.document.update({
+  where: { id } })` shape this entry hypothesised — was driven through the real `analyzeFile`
+  under a zero-spend lock and returned `[]` at the `:803-807` early return, model never reached.
+  A read control identical but for the ORM verb (`update` -> `findUnique`) DID reach the model,
+  which isolates the verb as the cause. The mechanism is universal from source, not an artefact
+  of the constructed file: no write verb is in `SINK_PATTERNS`, so EVERY file whose only sink is
+  an ORM write hits that same early return.
+
+  **Why this does NOT gate READY, and why the reason has CHANGED.** The old rationale was that
+  we had never observed the miss. That rationale is dead — we have now observed it. The miss is
+  CONDITIONAL: it proves that IF write-with-no-read code exists, Fixor misses it 100% of the
+  time. It does not establish that such code exists. That is L-006 PREVALENCE on ICP-shaped
+  code: UNKNOWN, and DEFERRED to E'. If prevalence is zero, the miss costs nothing. So L-006
+  stays NON-gating on PREVALENCE, not on absence of a witness, and the gate question is now
+  explicitly "does this shape exist in ICP repos?".
 
   MEASURED (the full `SINK_PATTERNS` array was read, `idor.detector.ts:173-202`, all 15
   entries): no write verb appears anywhere, and every ORM sink is a read method across every
@@ -849,8 +890,9 @@ cross-referenced, not merged.
   raw-SQL write; `raw_sql_where_id` requires a literal `SELECT`. The gap is specifically ORM
   write methods.
 
-  CONSEQUENCE (theoretical, UNWITNESSED): a genuinely UNGUARDED `prisma.document.update({
-  where: { id } })` would be undetectable. We have not observed one.
+  CONSEQUENCE (WITNESSED 2026-07-17; was "theoretical, UNWITNESSED"): a genuinely UNGUARDED
+  `prisma.document.update({ where: { id } })` is undetectable. We have now observed exactly this
+  on a constructed input; what remains unobserved is whether real ICP code contains the shape.
 
   **The fix is NOT a simple sink addition, and this is the important part.** The `SYSTEM_PROMPT`
   is read-framed ("an IDOR exists when a route handler FETCHES a resource", "flows into a DB
@@ -858,7 +900,9 @@ cross-referenced, not merged.
   guard-before-write idiom. Adding write sinks without a paired prompt change would enumerate
   the guarded writes in `documentController.ts` and invite the model to flag CORRECT code.
   Read-then-write is the single most common safe-write idiom, and it occurs TWICE in that one
-  file. A sink-only patch would trade an unwitnessed recall gap for real false positives.
+  file. A sink-only patch would trade a recall gap of UNKNOWN PREVALENCE for real false
+  positives. (Was "an unwitnessed recall gap"; the gap is now witnessed, but its prevalence —
+  the thing that decides whether the trade is worth making — is still the open question.)
   Any L-006 fix must ship as: write sinks + SYSTEM_PROMPT guard-before-write handling +
   NEGATIVE fixtures. `documentController.ts` supplies excellent negatives for free (two guarded
   writes, one guarded read).
@@ -895,6 +939,29 @@ cross-referenced, not merged.
   only attention. On another file it might not be.
 
   See the L-007 constraint: these two must be fixed together.
+
+  **MECHANISM WITNESSED under execution 2026-07-17 (`IDOR-STRUCTURE-EXPOSURE.md`), and this
+  does NOT change L-009's status.** A constructed two-handler file (source in handler A, sink in
+  handler B, no IDOR present) was driven through the real `analyzeFile`; the harvested candidate
+  block shows the pair crossing the two handlers and reaching the model. That witnesses the
+  MECHANISM, but L-009 is a PRECISION gap: a spurious pair is not a missed vulnerability, so
+  this does not touch "UNWITNESSED" in the sense this tracker uses it — the word is glossed, in
+  apposition and identically, in the readiness verdict and in the "What survives" note above, as
+  "we have ZERO demonstrated missed vulnerabilities". L-009 remains UNWITNESSED in that sense
+  and NON-gating. The cross-handler RATE on real ICP code is DEFERRED to E'.
+
+  **MEASURED amplification (2026-07-17, 13-repo step-4 corpus; PATTERN-MATCHING AXIS ONLY — that
+  corpus is disqualified for rates by `STEP4-PRODUCTION-VALIDATION.md` §3).** The `L-007`
+  constraint above ("more sources means more spurious cross-function pairs") now has a number
+  against one pattern. `trpc_input_access` is `/\binput\.\w+/` with NO `lang` restriction, while
+  tRPC is TypeScript-only. Over 46,632 post-filter files it fires in 390, of which **98.2% (383)
+  are spurious** — DOM `<input>` element handles (`input.value`, `input.checked`), plain string
+  variables, Go test-table fields, and CSS selectors inside string literals. Only 7 files carry a
+  genuine tRPC marker. Its L-009 effect: of 103 pairs it sources, **101 exist ONLY because it
+  fired** (the sink had no other source within 200 lines) and 2 HIJACKED a real source by being
+  nearer — handing the model the wrong origin for a real sink. 40 files reach the model solely on
+  its account. This is EXPOSURE, not a demonstrated false positive, and it is a candidate for its
+  own tracked item; it is recorded here for now because it is an L-009 amplifier.
 
 - **L-010 (READY gate; NOT a defect) - detection quality is UNPROVEN on a real vulnerability.**
   See the readiness verdict for the full statement and the lift condition. Recorded here so it
