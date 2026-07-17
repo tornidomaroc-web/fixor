@@ -240,8 +240,8 @@ now settle this on any future run.
 
 The one Run 1 call whose reasoning we DID capture is auth-bypass (see L-003).
 
-See Priority 1d (L-001 through L-010, surfaced by Run 1) and Priority 1e (L-011, surfaced by the
-zero-spend structural rig).
+See Priority 1d (L-001 through L-010, surfaced by Run 1), Priority 1e (L-011, surfaced by the
+zero-spend structural rig), and Priority 1f (L-012, reach / market-fit, structural measurement).
 
 ## Current readiness verdict
 
@@ -840,9 +840,11 @@ that would split the taxonomy on SPEND, which says nothing about what an item is
 
 Provenance within the namespace is recorded per sub-section, not per item: **Priority 1d** holds
 L-001 through L-010, surfaced by Run 1 (live). **Priority 1e** holds L-011, surfaced by the
-zero-spend structural rig. The alternative — filing L-011 under 1d — would have made that
-section's header ("defects surfaced by the first live detection-quality run") FALSE, which is
-the same defect class this tracker keeps correcting.
+zero-spend structural rig. **Priority 1f** holds L-012, also surfaced by structural measurement
+but kept separate from 1e because 1e's header says "defects" and L-012 is not one (it is a
+reach / market-fit finding, framed like L-010). The recurring alternative — filing an item under
+a sub-section whose header its content contradicts (L-011 under 1d, or L-012 under 1e) — would
+make that header FALSE, which is the defect class this tracker keeps correcting.
 
 - **L-001 (RETRACTED; this was a REPORTING ERROR, not a detection defect) - the file idor
   "missed" contained no vulnerability.** Retained in full, per this file's convention of
@@ -1148,6 +1150,59 @@ pattern-axis facts and DEFER their ICP rates to E'.
      re-recording (~$0.03-0.06). The rig can PREDICT this for free: shadow the proposed change
      over the 26 fixtures and diff the pairs. Predict first; the spend decision comes to the
      owner with the prediction in hand, not after the fact.
+
+  **REACH context (added 2026-07-17).** On the ICP sample this pattern dominates the detector's
+  reach surface (see L-012), which raises this fix's PRIORITY without changing its status.
+
+### Priority 1f - OPEN: reach / market-fit findings surfaced by structural measurement
+
+Same `L-` namespace as Priority 1d and 1e (found by RUNNING the detector), and a DELIBERATELY
+separate subsection from 1e because 1e's header says "defects" and the item here is NOT one. Its
+provenance is L- by the tracker's own axis (`F-` is what the readiness diagnostic found by
+READING; `L-` is what we found by RUNNING the detector). Reach was found by running the real
+`analyzeFile` over the corpus, so it is L- by that axis, not F-, regardless of the fact that it
+bears on readiness. Precedent: L-010 is a READY-gate, explicitly "NOT a defect", surfaced by
+measurement, and it lives in L-; readiness-relevance is orthogonal to the namespace. Filing this
+as an F- item would have forced F- to absorb "found by running" — which is L-'s definition — so
+F- and L- would overlap and stop being a partition. This subsection needs no definition change.
+
+- **L-012 (OPEN; MEASURED; reach / market-fit; NOT a defect; NON-gating) - the idor detector
+  reaches the model on 2 of 43 ICP repos.** Confirmed under real execution
+  (`ICP-REACH.md`).
+
+  NOT a defect, and framed like L-010: a MEASUREMENT finding, not a detector error. It carries
+  no witnessed/unwitnessed adjective — that word is a recall-axis word and this is neither
+  recall nor precision. It is a fact about where the detector APPLIES, not about whether it is
+  correct where it applies.
+
+  MEASURED (2026-07-17; 43 SHA-pinned TS/JS ICP repos; `icp-corpus-2026-07-17.json`). Every one
+  of the 3,987 analyzable files was driven through the REAL `analyzeFile` under the zero-spend
+  lock (not the shadow — this number is load-bearing). The real detector agreed with the
+  drift-guarded shadow on every file: ZERO disagreements. Repos where the model is reached: 2 /
+  43 (`azirbel/npoint`, `jasonkneen/tiny-world-builder`), 8 files. Wilson 95% over repos:
+  [1.3%, 15.5%].
+
+  NOT A BROKEN DETECTOR — this is the whole finding, and it must not be misread. When a repo IS
+  a server app with request-id→sink flows, the detector reaches it fine (tiny-world-builder, 7
+  serverless functions). 41 of 43 ICP repos are NOT that kind of app: they are libraries,
+  components, browser extensions, and CLIs with no HTTP route handler (see `ICP-REACH.md` §4 for
+  the per-repo typing). The finding is about the MARKET, not the detector's correctness: IDOR
+  detection applies to a small minority of what the ICP actually ships.
+
+  **Why NON-gating, live rationale.** Reach says nothing about detection quality on a real
+  vulnerability — that is C's job (the CVE target that lifts L-010). It neither lifts nor
+  pressures F-004 or L-010; the READY gates stand exactly where they are. It is filed as a
+  first-order market-fit finding the product owner must weigh, not as a gate.
+
+  CAVEAT, in its own words: n=43, a SAMPLE not a census (GitHub search caps at 1000/query),
+  TS/JS only, with churn and language bias carried from sourcing. "The detector reaches ~5% of
+  the ICP" is DESCRIPTIVE of these 43 repos; the Wilson interval [1.3%, 15.5%] is descriptive of
+  this sample, not an inference to all ICP repos. Acting on it as market truth needs a larger
+  sample or explicit acceptance of that interval.
+
+  CROSS-REFERENCE: L-011 owns the reason 7 of the 8 reaching files are what they are (the
+  `trpc_input_access` pattern dominates the reach surface). L-012 owns the reach fact; L-011
+  owns the pattern. Neither restates the other's figures.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
