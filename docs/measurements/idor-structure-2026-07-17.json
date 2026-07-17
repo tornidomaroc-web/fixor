@@ -1,0 +1,234 @@
+{
+  "measurement": "idor structural exposure (L-006 / L-009 / trpc_input_access)",
+  "date": "2026-07-17",
+  "scope": {
+    "isA": "EXPOSURE: detector mechanisms witnessed under execution on constructed inputs.",
+    "isNot": "NOT LOSS. No missed vulnerability in real ICP code is claimed, and no rate is emitted.",
+    "gating": "Does NOT make L-006 or L-009 READY-gating. L-006 is a WITNESSED conditional miss whose PREVALENCE on ICP-shaped code is unknown; that unknown, not the absence of a witness, is why it stays non-gating. L-009 is precision-only and remains UNWITNESSED in the tracker's sense of the word (no missed vulnerability demonstrated).",
+    "deferredToEPrime": [
+      "L-009 cross-handler RATE - how often real ICP code produces a cross-handler pair. This rig witnesses the mechanism; it does not count incidence.",
+      "L-006 write-only PREVALENCE - how often real ICP code contains a write-with-no-read handler. This is the question that decides whether the witnessed L-006 miss costs anything."
+    ],
+    "corpusLimit": "The 13-repo corpus is mature OSS, not Fixor's ICP, and is disqualified for rates by STEP4-PRODUCTION-VALIDATION.md section 3 (zero true positives => precision is 0/0). It is used here ONLY on the pattern-matching axis, which that same section states it IS predictive on."
+  },
+  "zeroSpend": {
+    "locks": [
+      "FIXOR_REPLAY=1",
+      "empty FIXOR_REPLAY_ROOT temp dir",
+      "no ANTHROPIC_API_KEY"
+    ],
+    "successfulCallClaudeCalls": 0,
+    "assert": "HARD: successful === 0 AND no_api_key === 0 (the latter proves replay engaged, not that the key was merely absent)"
+  },
+  "witnesses": {
+    "l006": {
+      "writeOnly": {
+        "findingCount": 0,
+        "reachedModel": false,
+        "preFilterReason": "no source/sink co-occurrence",
+        "triggerCount": 1
+      },
+      "readControl": {
+        "findingCount": 0,
+        "reachedModel": true,
+        "preFilterReason": null
+      },
+      "verdict": "WITNESSED: a genuine unguarded write-variant IDOR is dropped before the model. The read control, identical but for the ORM verb, reaches the model - so the verb is the cause."
+    },
+    "l009": {
+      "reachedModel": true,
+      "errorName": "ReplayFixtureMissing",
+      "pairs": [
+        {
+          "pairIndex": 0,
+          "sourceLine": 13,
+          "sourceText": "const documentId = req.params.id;",
+          "sinkLine": 28,
+          "sinkText": "const summary = await prisma.usageStats.findFirst({"
+        }
+      ],
+      "crossHandler": true,
+      "handlerA": {
+        "start": 8,
+        "end": 19
+      },
+      "handlerB": {
+        "start": 21,
+        "end": 33
+      },
+      "verdict": "WITNESSED: the detector built a source->sink pair spanning two unrelated route handlers and sent it to the model. The file contains no IDOR; the flow does not exist. EXPOSURE (wasted pair slot + model attention), not a miss."
+    }
+  },
+  "trpcSpecificity": {
+    "corpus": {
+      "repos": [
+        "caddy",
+        "discourse",
+        "documenso",
+        "full-stack-fastapi-template",
+        "gitea",
+        "grafana",
+        "hoppscotch",
+        "langchain",
+        "lemmy",
+        "mastodon",
+        "plane",
+        "strapi",
+        "twenty"
+      ],
+      "filesScanned": 46632,
+      "skipped": {
+        "unsupportedLang": 27759,
+        "pathFilter": 12283,
+        "serverOnly": 0,
+        "unreadable": 0
+      }
+    },
+    "fires": {
+      "files": 390,
+      "hits": 1367,
+      "byLang": {
+        "go": 241,
+        "js": 24,
+        "rb": 36,
+        "ts": 850,
+        "tsx": 197,
+        "py": 13,
+        "jsx": 6
+      },
+      "byRepo": {
+        "caddy": 19,
+        "discourse": 58,
+        "documenso": 19,
+        "gitea": 136,
+        "grafana": 247,
+        "hoppscotch": 80,
+        "langchain": 9,
+        "mastodon": 26,
+        "plane": 9,
+        "strapi": 74,
+        "twenty": 690
+      }
+    },
+    "spurious": {
+      "nonTsFiles": 73,
+      "nonTsHits": 320,
+      "tsWithoutTrpcMarkerFiles": 310,
+      "tsWithoutTrpcMarkerHits": 1033,
+      "totalSpuriousFiles": 383,
+      "genuineCandidateFiles": 7,
+      "firstHitInsideQuotedStringFiles": 103
+    },
+    "amplification": {
+      "pairsWithTrpcSource": 103,
+      "pairsCreatedByTrpc": 101,
+      "pairsHijackedByTrpc": 2,
+      "filesReachingModelOnlyBecauseOfTrpc": 40
+    },
+    "examples": [
+      {
+        "repo": "caddy",
+        "path": "listeners_test.go",
+        "lang": "go",
+        "line": 612,
+        "text": "actual := tc.input.Expand()",
+        "kind": "non-typescript-language"
+      },
+      {
+        "repo": "caddy",
+        "path": "modules/caddyhttp/matchers_test.go",
+        "lang": "go",
+        "line": 1037,
+        "text": "tc.input.ServeHTTP(httptest.NewRecorder(), req, emptyHandler)",
+        "kind": "non-typescript-language"
+      },
+      {
+        "repo": "caddy",
+        "path": "modules/caddyhttp/rewrite/rewrite_test.go",
+        "lang": "go",
+        "line": 356,
+        "text": "urlCopy := *tc.input.URL",
+        "kind": "non-typescript-language"
+      },
+      {
+        "repo": "caddy",
+        "path": "modules_test.go",
+        "lang": "go",
+        "line": 109,
+        "text": "actualNamespace := tc.input.Namespace()",
+        "kind": "non-typescript-language"
+      },
+      {
+        "repo": "discourse",
+        "path": "frontend/asset-processor/postcss-variable-prefixer.js",
+        "lang": "js",
+        "line": 28,
+        "text": "hash = hashString(root.source.input.css);",
+        "kind": "non-typescript-language"
+      },
+      {
+        "repo": "discourse",
+        "path": "frontend/asset-processor/postcss.js",
+        "lang": "js",
+        "line": 24,
+        "text": "from: \"input.css\",",
+        "kind": "non-typescript-language"
+      },
+      {
+        "repo": "documenso",
+        "path": "packages/app-tests/e2e/envelope-editor-v2/envelope-items.spec.ts",
+        "lang": "ts",
+        "line": 108,
+        "text": "await input.setInputFiles(files);",
+        "kind": "ts-without-trpc-marker"
+      },
+      {
+        "repo": "documenso",
+        "path": "packages/lib/constants/time-zones.ts",
+        "lang": "ts",
+        "line": 37,
+        "text": "const [timeZone] = input.split('(');",
+        "kind": "ts-without-trpc-marker"
+      },
+      {
+        "repo": "documenso",
+        "path": "packages/lib/utils/sanitize-branding-css.ts",
+        "lang": "ts",
+        "line": 274,
+        "text": "if (input.trim() === '') {",
+        "kind": "ts-without-trpc-marker"
+      },
+      {
+        "repo": "documenso",
+        "path": "packages/ui/primitives/multiselect.tsx",
+        "lang": "tsx",
+        "line": 205,
+        "text": "if (input.value === '' && selected.length > 0) {",
+        "kind": "ts-without-trpc-marker"
+      },
+      {
+        "repo": "gitea",
+        "path": "web_src/js/features/admin/common.ts",
+        "lang": "ts",
+        "line": 83,
+        "text": "input.removeAttribute('required');",
+        "kind": "ts-without-trpc-marker"
+      },
+      {
+        "repo": "gitea",
+        "path": "web_src/js/features/admin/users.ts",
+        "lang": "ts",
+        "line": 16,
+        "text": "input.checked = true;",
+        "kind": "ts-without-trpc-marker"
+      }
+    ]
+  },
+  "shadowValidation": {
+    "patternDrift": [],
+    "sampleSize": 15,
+    "matched": 15,
+    "mismatches": []
+  },
+  "failures": []
+}

@@ -52,6 +52,7 @@
     "test:h8-escalation": "npm run build && node --env-file=.env dist/test/test-h8-escalation-anchors.js",
     "validate:layout-guard-documenso": "npm run build && node dist/test/validate-documenso-layout-guard.js",
     "test:smoke": "npm run build && node dist/test/test-suppression-smoke.js",
+    "measure:idor-structure": "npm run build && node dist/test/measure-idor-structure.js",
     "test:real": "npm run build && node dist/real-tests/run-real-tests.js",
     "lint:no-console": "node scripts/lint-no-console.mjs",
     "test:ci": "npm run lint:no-console && npm run typecheck && npm run test:fixtures && npm run test:sarif && npm run test:auth-bypass-prefilter && npm run test:admin-check-prefilter && npm run test:finding-merge && npm run test:cost && npm run test:retry && npm run test:filter && npm run test:limiter && npm run test:limit-warning && npm run test:webhook-gate && npm run test:degraded-coverage && npm run test:diff-parser && npm run test:whole-file-input && npm run test:file-walker && npm run test:route-guard-resolver && npm run test:route-guard-webhook && npm run test:real-shape && npm run test:replay-guard && npm run test:replay-env-exposure && npm run test:replay-webhook-unverified && npm run test:replay-auth-bypass && npm run test:replay-admin-check && npm run test:replay-idor",
