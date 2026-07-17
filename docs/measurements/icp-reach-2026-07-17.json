@@ -1,0 +1,114 @@
+{
+  "measurement": "E' step two - ICP reach (real execution, zero spend)",
+  "date": "2026-07-17",
+  "scope": {
+    "isA": "EXPOSURE/REACH: how many ICP repos invoke the idor model at all, confirmed under real execution.",
+    "population": "43 TS/JS ICP repos - a SAMPLE, not a census. Biases carried from the corpus manifest (sourcing sample cap, churn, TS/JS-only, star ceiling).",
+    "isNot": "Establishes NO loss and NO ICP rate for L-006 or L-009. Does not change any gating status.",
+    "l010": "L-010 wording untouched."
+  },
+  "zeroSpend": {
+    "successfulCallClaudeCalls": 0,
+    "noApiKeyCalls": 0,
+    "mechanism": "#102 rig: locked subprocess, ReplayFixtureMissing on model-reach, assertProbeSpentNothing."
+  },
+  "reach": {
+    "reposReached": 2,
+    "reposTotal": 43,
+    "reposReachedList": [
+      "azirbel__npoint",
+      "jasonkneen__tiny-world-builder"
+    ],
+    "filesReached": 8,
+    "wilson95": {
+      "lo": 0.012849260094380229,
+      "hi": 0.15455498004063967
+    },
+    "wilsonNote": "Interval over REPOS (the independent unit; within-repo file clustering handled by construction). The 43 are NOT a random sample - churn and language bias carried from sourcing - so this interval is DESCRIPTIVE of this sample, not an inference to all ICP repos."
+  },
+  "shadowVsReal": {
+    "disagreements": 0,
+    "detail": [],
+    "note": "Zero disagreements => the real detector confirms the shadow's reach classification. Any disagreement outranks the reach number and is surfaced here."
+  },
+  "l011ShareOfReach": {
+    "trpcSourcedReachingFiles": 7,
+    "totalReachingFiles": 8,
+    "detail": [
+      {
+        "path": "azirbel__npoint/app/controllers/api/documents_controller.rb",
+        "winningSource": "rails_params_sym",
+        "trpcMarkerPresent": false
+      },
+      {
+        "path": "jasonkneen__tiny-world-builder/netlify/functions/admin-users.mjs",
+        "winningSource": "trpc_input_access",
+        "trpcMarkerPresent": false
+      },
+      {
+        "path": "jasonkneen__tiny-world-builder/netlify/functions/assets.mjs",
+        "winningSource": "trpc_input_access",
+        "trpcMarkerPresent": false
+      },
+      {
+        "path": "jasonkneen__tiny-world-builder/netlify/functions/avatar.mjs",
+        "winningSource": "trpc_input_access",
+        "trpcMarkerPresent": false
+      },
+      {
+        "path": "jasonkneen__tiny-world-builder/netlify/functions/builds.mjs",
+        "winningSource": "trpc_input_access",
+        "trpcMarkerPresent": false
+      },
+      {
+        "path": "jasonkneen__tiny-world-builder/netlify/functions/collectibles.mjs",
+        "winningSource": "trpc_input_access",
+        "trpcMarkerPresent": false
+      },
+      {
+        "path": "jasonkneen__tiny-world-builder/netlify/functions/preferences.mjs",
+        "winningSource": "trpc_input_access",
+        "trpcMarkerPresent": false
+      },
+      {
+        "path": "jasonkneen__tiny-world-builder/netlify/functions/share.mjs",
+        "winningSource": "trpc_input_access",
+        "trpcMarkerPresent": false
+      }
+    ],
+    "inversion": "On ICP code the spurious trpc_input_access pattern DOMINATES the tiny reach surface. A reader would assume '98.2% spurious, near-zero on ICP' means L-011 matters LESS on ICP; the opposite holds - it is the majority of what reaches the model at all, so the L-011 fix matters MORE here."
+  },
+  "predictedNulls": {
+    "note": "Predicted from planning probes BEFORE this run, recorded as predictions not post-hoc conclusions.",
+    "q3_l009_crossHandlerRate": {
+      "verdict": "UNANSWERABLE AT THIS n",
+      "reason": "Denominator is the model-reaching set (few files, ~2 repos). Effective n tracks repos. Any interval is [0,1]. A cross-handler rate needs multi-handler files that reach the model; the corpus supplies almost none."
+    },
+    "q2_l006_writeOnlyPrevalence": {
+      "verdict": "UNANSWERABLE AS A RATE AT THIS n",
+      "reason": "The structural candidate pool (source + write-verb + no-sink) is contaminated by the same trpc_input_access FP it must be independent of (mostly DOM input.x in editor/frontend files). De-contaminating needs per-file hand-labeling - the L-001 trap. Report a hand-verified count with contamination disclosed, or nothing. Never a rate."
+    },
+    "q5_reachAsLabeledRecall": {
+      "verdict": "UNANSWERABLE - REFRAMED",
+      "reason": "Fraction of request-id READ SITES that SOURCE_PATTERNS matches needs a hand-labeled denominator of all read sites (subjective; L-001 trap). Replaced by prefilter reach = reposReached / reposTotal, which is objective and needs no labeling."
+    }
+  },
+  "q4_marketType": {
+    "method": "per-repo manual typing from package.json shape, deps, dir layout, description. NOT a computed fraction: the automated server-detector false-negatived on npoint Rails, so server-code has no clean regex boundary.",
+    "approxCounts": {
+      "library/SDK": 18,
+      "frontend/static": 9,
+      "browser-extension/clientside": 5,
+      "CLI": 4,
+      "web-app-with-route-handlers": 7
+    },
+    "finding": "Majority of ICP repos are libraries, components, extensions, CLIs with no HTTP route handler. Of ~7 web apps, only 2 produced an id-based DB-lookup flow the detector reaches. IDOR detection applies to a small minority of what the ICP ships. See ICP-REACH.md section 4 for the boundary-case judgment calls."
+  },
+  "failureAccounting": {
+    "filesWalked": 14566,
+    "filesAnalyzable": 3987,
+    "readFailures": 0,
+    "failuresByName": [],
+    "standingRule": "A null-and-continue error path is a latent fabricator: a file that fails and is silently skipped looks identical to 'analyzed, found nothing'. Failures are listed by name, never a count. Step three and all future measurement inherit this."
+  }
+}
