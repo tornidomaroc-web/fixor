@@ -25,6 +25,15 @@ An open PR is "in review," never "done."
 
 ### Reasoning guardrails (learned in practice; each carries the case that produced it, because the rule without its case is a slogan)
 
+Entry bar for this list: a new bullet earns its place only if it carries a general
+lesson that a real error cost us to extract, and is neither merely good practice nor a
+restatement of a bullet already here. The heading's rule (no case, no bullet) is
+necessary but not sufficient; the five below set the full standard a sixth must clear,
+each having been paid for by a specific, named mistake. This bar sits above the list,
+not within it: a rule about how rules enter the ledger is not a detector lesson the way
+the five are, and gating the list from inside the list would be the first violation of
+its own spirit.
+
 - **Twin-matching before namespace or classification.** Before assigning an item to a
   namespace or category, find the existing item of the same SHAPE and match where its twin
   already lives. Reason from where the twin sits, not from what the item means. Two same-shaped
