@@ -53,6 +53,18 @@ An open PR is "in review," never "done."
   L-001 retraction (see L-001), where the shape of a where clause was treated as a verdict and
   the preceding scoped read that guarded the write was never checked.
 
+- **Scope a convention before enforcing it; the file's own behavior outranks its literal
+  reading.** Before applying a rule to a target, quote the rule as written and confirm its scope
+  reaches that target. When the words are ambiguous, how the rule's own home and its author
+  behave is evidence that settles the reading, and it outranks the literal text. CASE: this
+  session nearly ran a wide em-dash cleanup across three internal docs to "fix" the `No em dash
+  in human-facing text we author` guardrail, which is in fact scoped to public copy by its
+  operationalizing reference (outreach, README, FAQ, launch posts). The proof was mechanical:
+  this file, the rule's own home, uses em dashes freely, authored two weeks after the same
+  author wrote the rule, which no literal reading survives. A floated `settings.local.json`
+  dash-check on this file was an unadopted idea, not the convention. Caught only by quoting the
+  rule and checking its home against it, before the wide diff.
+
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
 Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
