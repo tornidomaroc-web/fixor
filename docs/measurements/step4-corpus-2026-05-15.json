@@ -1,0 +1,54 @@
+{
+  "measurement": "Step-4 13-repo corpus SHA manifest (retroactive commit pinning for IDOR-STRUCTURE-EXPOSURE.md section 4)",
+  "date": "2026-05-15",
+  "recordedAt": "2026-07-18",
+  "isA": "IDENTITY manifest. The exact commit of each of the 13 step-4 corpus repositories, so the tRPC-specificity numbers in IDOR-STRUCTURE-EXPOSURE.md section 4 stay reconstructable after the gitignored working clones are gone.",
+  "isNot": "NOT a re-measurement and NOT a census. No rate, precision, or file count is emitted or changed here. The numbers live in idor-structure-2026-07-17.json and IDOR-STRUCTURE-EXPOSURE.md; this manifest only pins the commits they ran against.",
+  "why": "The 13 clones live under test-output/step4-scans/repos, which .gitignore excludes (line 50). Nothing committed recorded which commit each repo was at when scanned, so the moment that scratch directory is deleted the numbers become permanently unreproducible with no recovery path. This manifest captures the commits while the clones still exist. Recording now is the last moment it is capturable at all.",
+  "zeroSpend": {
+    "network": "NONE. Every SHA was read from the local shallow clone's object store (git rev-parse HEAD, verified with cat-file). No fetch, no clone, no GitHub call.",
+    "anthropicCalls": 0
+  },
+  "provenance": {
+    "recovery": "POST-HOC. The SHAs were not recorded at scan time. They were recovered after the fact from the on-disk shallow clones.",
+    "corroboration": [
+      "Each clone is shallow (depth 1) with HEAD a valid commit object.",
+      "No clone has a .git/FETCH_HEAD, so none was re-fetched after the initial clone and HEAD is the as-cloned, as-scanned commit.",
+      "Clone .git/shallow and .git/HEAD mtimes are 2026-05-15, contemporaneous with the step-4 scan artifacts (test-output/step4-scans/*.json, scanStartIso 2026-05-15T07:xx) and predating the 2026-07-17 tRPC-specificity pass, which ran against these same undisturbed clones.",
+      "The commit is therefore the one both the 2026-05-15 step-4 scan and the 2026-07-17 tRPC analysis observed."
+    ],
+    "limit": "This is the commit on disk in the shallow clone, corroborated by clone mtime and the absence of any re-fetch. That is strong, but it is NOT a SHA independently recorded at scan time. It is asserted from the clone, because no committed scan log records the commit.",
+    "reconstructionDependsOnUpstream": "Reconstruction (clone, then checkout the sha) requires the commit to remain reachable upstream. A force-push or repository deletion breaks it. Upstream reachability was deliberately NOT checked at recording time; that is network and a separate concern, and a since-force-pushed sha remains a truthful record of what was measured."
+  },
+  "repos": [
+    { "repo": "caddyserver/caddy", "sha": "6c675e29f87cbe7326983ddb6d739175119d394c", "dir": "test-output/step4-scans/repos/caddy" },
+    { "repo": "discourse/discourse", "sha": "22dfc1b5a8f427ad81f90ec8c370707d466fb6e6", "dir": "test-output/step4-scans/repos/discourse" },
+    { "repo": "documenso/documenso", "sha": "8f6be474a9ce44f88a5d175fb3130ca7fe3bbf5f", "dir": "test-output/step4-scans/repos/documenso" },
+    { "repo": "fastapi/full-stack-fastapi-template", "sha": "13652b51ea0acca7dfe243ac25e2bbdc066f3c4f", "dir": "test-output/step4-scans/repos/full-stack-fastapi-template" },
+    { "repo": "go-gitea/gitea", "sha": "5c887d68cae631aeb95f07df0de4a3b3ec1c24cf", "dir": "test-output/step4-scans/repos/gitea" },
+    { "repo": "grafana/grafana", "sha": "2e66ad0a62927e446d6c9f0daf4882e56df4a88e", "dir": "test-output/step4-scans/repos/grafana" },
+    { "repo": "hoppscotch/hoppscotch", "sha": "e3853bb76411f1fb8aed96ab78560eb869ee6567", "dir": "test-output/step4-scans/repos/hoppscotch" },
+    { "repo": "langchain-ai/langchain", "sha": "0831e445cf7c2a91d498292ea63a76dae7060e55", "dir": "test-output/step4-scans/repos/langchain" },
+    { "repo": "LemmyNet/lemmy", "sha": "6dcb353a3ee2d01e30765473a11181861c7e24d2", "dir": "test-output/step4-scans/repos/lemmy" },
+    { "repo": "mastodon/mastodon", "sha": "8bbde181db0d6d79018fb1754a8296e753d47415", "dir": "test-output/step4-scans/repos/mastodon" },
+    { "repo": "makeplane/plane", "sha": "50a7b47b31d46b8525a680bc778b420802c14bce", "dir": "test-output/step4-scans/repos/plane" },
+    { "repo": "strapi/strapi", "sha": "1a0cb0750909ab1541140fe1dda8b55c7f272505", "dir": "test-output/step4-scans/repos/strapi" },
+    {
+      "repo": "twentyhq/twenty",
+      "sha": "dd9027680e773c4ca8a76b4b57370f2e63b70ef1",
+      "dir": "test-output/step4-scans/repos/twenty",
+      "provenanceNote": {
+        "anomaly": "This clone's .git/index was deleted, so git status reports all 21,841 HEAD files as staged deletions plus the on-disk directories as untracked. This is an index-only disturbance.",
+        "verifiedIntact": [
+          "The commit object dd9027680e773c4ca8a76b4b57370f2e63b70ef1 is complete: git ls-tree -r HEAD enumerates all 21,841 files from the object store.",
+          "The physical working tree still matches HEAD. Sampled files (top-level and nested .ts) hash-match HEAD's recorded blobs exactly; 21,815 files are on disk versus 21,841 in the tree, a 26-file gap that is a Windows-checkout limitation (un-materializable long or invalid paths and gitlinks) equally in force at scan time.",
+          "HEAD was never changed: no .git/FETCH_HEAD, shallow and HEAD mtime 2026-05-15."
+        ],
+        "conclusion": "The deleted index makes the clone messier, not the sha less truthful. dd9027680e773c4ca8a76b4b57370f2e63b70ef1 is the as-scanned commit and was read from the object store, not from the disturbed index. Do NOT re-clone or rebuild the index of this clone: re-cloning fetches today's upstream HEAD (a different commit and tree), which would swap the measured commit for another and is the precise false-reproducibility failure this manifest exists to prevent.",
+        "twentyShareOfSection4": "twenty is the largest tRPC contributor in the section-4 numbers (690 of 1,367 hits per idor-structure-2026-07-17.json), so excluding it would unpin the biggest slice of exactly the numbers this manifest secures."
+      }
+    }
+  ],
+  "consumedBy": "docs/IDOR-STRUCTURE-EXPOSURE.md section 4 (the tRPC-specificity numbers) and docs/measurements/idor-structure-2026-07-17.json (trpcSpecificity.corpus.repos, which lists these 13 by bare name with no sha). Per-repo scan counts are intentionally NOT copied here: they live in their own measurement artifacts (the 2026-05-15 step-4 scan JSONs and the 2026-07-17 idor-structure manifest), and duplicating them would create a second, divergable home for the same number. This manifest carries corpus identity only.",
+  "schemaNote": "Reduced relative to icp-corpus-2026-07-17.json. Only locally-derivable fields are carried (repo, sha, dir). The census fields that manifest holds (stars, pushedAt, totalCommits, language) are omitted, not fabricated, because they require a network call this zero-network fix does not make."
+}

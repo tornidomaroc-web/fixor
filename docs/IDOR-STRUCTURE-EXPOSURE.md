@@ -336,6 +336,15 @@ for lack of a corpus, not for a regression. Sections 2 and 3 (the witnesses) hav
 dependency and the rig skips section 4 cleanly when the corpus is absent, so wiring the witnesses
 alone into CI is possible later; it is out of scope here.
 
+**Corpus commits are pinned.** The exact commit of each of the 13 corpus repositories is recorded
+in `docs/measurements/step4-corpus-2026-05-15.json`. Because the working clones under
+`test-output/step4-scans/repos` are gitignored (so absent on runners, and lost whenever that
+scratch directory is cleared), that manifest is what makes section 4 reconstructable: re-clone
+each repo and check out its recorded sha. The manifest states its own provenance plainly (the shas
+were recovered post-hoc from the on-disk shallow clones, corroborated by clone mtime and the
+absence of any re-fetch, not recorded at scan time) and flags the one disturbed clone (`twenty`,
+whose deleted index does not affect the recorded commit).
+
 **Built for reuse by E'.** `spawnLockedProbe` in `src/test/lib/idor-structure-rig.ts` takes an
 arbitrary file list; only the inputs differ for the ICP corpus. The per-file `try/catch` is
 load-bearing for that reuse: under the lock, a file reaching the model throws
