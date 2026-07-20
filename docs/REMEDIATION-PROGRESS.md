@@ -275,8 +275,9 @@ credit is for what it judged, not for the file as a whole.
 **What Run 1 therefore did and did not establish.** It did NOT establish a recall failure. It
 did NOT establish a detection defect of any kind. It established that the harness works, that
 the cost model was wrong (see the correction above), and that a scan of correct code correctly
-produces nothing. **Fixor has still never been measured against a real vulnerability.** That is
-now the honest READY blocker; see L-010.
+produces nothing. As of Run 1, Fixor had never been measured against a real vulnerability; that
+gate was later DISCHARGED by the langflow C run (2026-07-19), on which idor returned
+`isVulnerable: true` at HIGH (see L-010).
 
 The structural gaps the void demonstration accidentally surfaced (L-006, L-007, L-009) are
 verified from Fixor's SOURCE and remain true. L-007 and L-009 are UNWITNESSED, not
@@ -297,11 +298,14 @@ measurement).
 
 ## Current readiness verdict
 
-**NOT-READY (F-004 is scoped work; detection quality is unproven on a real vulnerability).**
+**NOT-READY (F-004 is scoped work; detection is now demonstrated once on a real vulnerability but
+not yet shown stable or cross-framework, so L-010 is a non-gating caveat and F-004 is the sole
+substantive gate).**
 
 The audit (`READINESS-AUDIT.md`) states that items 1 and 2 of its ordered work gate a
-clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED. There are TWO remaining
-READY-gating blockers: F-004, and L-010.
+clean READY: item 1 was F-001, item 2 is F-004. F-001 is now RESOLVED. L-010, formerly the second
+READY-gating blocker, is LIFTED PARTIAL and demoted to a non-gating caveat (see its body below),
+so the sole substantive READY-gating blocker is now F-004.
 
 **CORRECTION of the gate merged on `e394a09`.** That revision gated READY on L-006 + L-007 as
 "confirmed recall defects", hardened from a provisional L-001 gate. **That gate was VOID.** It
@@ -324,9 +328,11 @@ miss costs nothing. The gate question for L-006 is now explicitly "does this sha
 repos?", and E' answers it. Witnessing exposure does not gate READY; only a demonstrated miss
 on REAL code would, and this is not one.
 
-The gate is REPLACED, not lifted. See L-010: detection quality is unproven on a real
-vulnerability. READY stays blocked because Fixor has never been measured against a genuine
-vulnerability, NOT because a detector failed. Untested, not failed.
+The void L-006 + L-007 gate was REPLACED by L-010 (detection unproven on a real vulnerability),
+not lifted. L-010 has since itself been LIFTED PARTIAL: the langflow C run demonstrated detection
+once (see L-010's body). READY no longer stays blocked on "never measured"; it stays NOT-READY on
+F-004 alone, with L-010 carrying a caveat that detection is not yet shown stable or
+cross-framework. Untested became tested-once, not failed.
 
 **Deliberate divergence from the audit's gate list.** The audit's formal gate is items 1 and
 2 only. L-010 is not an audit item: it was surfaced by live detection-quality measurement
@@ -336,6 +342,12 @@ the extra gate here was L-001; L-001 is now retracted, so it is carried by L-010
 divergence is recorded on purpose and is not an inconsistency to be reconciled away by
 narrowing this list back to the audit's. `READINESS-AUDIT.md` is left unedited; it remains an
 accurate record of what the audit itself gated.
+
+**UPDATE 2026-07-19: the divergence has since COLLAPSED.** L-010, the one extra gate that made
+this tracker's list broader than the audit's, is now LIFTED PARTIAL and non-gating (the langflow
+C run demonstrated detection once). With L-010 no longer gating, this tracker's substantive
+READY gate is once again F-004 alone, the same as the audit's item 2. The block above is retained
+as the record of why the lists diverged while they did.
 
 - **F-004 - the live-LLM detection brain is only partially guarded by an automated gate.**
   Five detectors (env-exposure, webhook-unverified, auth-bypass, admin-check, and idor) are
@@ -364,28 +376,48 @@ accurate record of what the audit itself gated.
   covered by the *replay* gate specifically, while admin-check needs both a replay gate and a
   free deterministic gate.
 
-- **L-010 (READY gate) - detection quality is UNPROVEN on a real vulnerability.**
-  Not a defect. A measurement gap, and the honest replacement for the void L-006 + L-007 gate.
+- **L-010 (READY gate - LIFTED PARTIAL, with caveat; NOT a defect) - detection DEMONSTRATED
+  once on a real vulnerability; stability and cross-framework reach NOT established.**
+  The existence gate this item held (Fixor had never been measured against a real vulnerability)
+  is DISCHARGED. What one HIGH true positive does NOT prove is kept open below as a caveat, not
+  closed. It is a non-gating caveat: F-004 is now the sole substantive READY gate.
 
-  MEASURED: the one live detection-quality run (Run 1) scanned four files of correct code. The
-  IDOR target contained no IDOR. No detector was tested against a true positive. The single
-  finding the run emitted (secrets-exposure, L-002) is a likely FALSE positive. admin-check's
-  verdict was never captured. auth-bypass produced a would-be false positive that a blanket
-  MEDIUM suppression happened to hide (L-003).
+  LIFTED ON INSPECTABLE EVIDENCE (2026-07-19; capture `test-output/cve-repro/realcall.out`,
+  driver `test-output/cve-repro/real-call-driver.js`). The L-005 harness ran live (key present,
+  no replay lock, exactly one `callClaude`) over a GENUINE, unguarded, ground-truthed IDOR:
+  `langflow` `src/backend/base/langflow/api/v1/monitor.py`, pinned parent
+  `4a9866696ce7576f499f925f734284dbcced025f`, candidate pair source L111 (`update_message`) to
+  sink L117 (`session.get(MessageTable, message_id)`). idor returned, verbatim from the captured
+  `toolInput`:
+  - `isVulnerable: true`
+  - `confidence: "high"`
+  - `operationClass: "user_resource"`
+  - `callerAuth: "authenticated"`
+  - `ruleId: idor-fastapi_typed_path_param-sqlalchemy_session_get`
+  - `systemPromptFingerprint: 5f5129f12b11` (the committed idor prompt)
 
-  So: **no detector in this engine has yet been shown to catch a real vulnerability.** That is
-  not a failure and must not be recorded as one. It is an absence of evidence, and it is
-  exactly what a READY gate is for.
+  Ground truth, by reading the guard: the parent fetches by raw `message_id` under generic
+  `Depends(get_current_active_user)` with no ownership filter and no post-fetch check, while
+  sibling handlers scope by `Flow.user_id == current_user.id`; the fix adds
+  `get_message_for_user(session, current_user.id, message_id)`. The finding is correct.
 
-  **Conditions to lift.** Run the L-005 harness (verdict capture on, L-008 fixed) against a
-  target containing at least one GENUINE, unguarded IDOR, and observe idor return
-  `isVulnerable: true` at HIGH on it. That single observation is the smallest thing that would
-  convert "unproven" into "proven". Until then READY stays blocked.
+  COST: `$0.02712525`, real usage, cold call (`cacheReadInputTokens` 0; model
+  `claude-sonnet-4-6`; input 4423 / output 256 / cacheCreation 2671). One observation.
 
-  Cost estimate for that measurement: the cold-call unit measured in Run 1 is $0.0268 (mean;
-  range $0.0226 to $0.0315), and a focused single-file idor run is 1 call. So roughly $0.03,
-  gated on approval. This is cheap, and it is the single highest-value dollar available to
-  spend on this project.
+  RETIRED: the sentence "no detector in this engine has yet been shown to catch a real
+  vulnerability" is now FALSE and is removed. idor has been shown to catch one real
+  vulnerability.
+
+  **What this does NOT prove (why L-010 carries a caveat rather than closing clean):**
+  - n=1, a SINGLE sample. The tracker guardrail (repeated sampling before a HIGH is entered as
+    stable; the F-008 lesson) means one HIGH is not a stable verdict.
+  - STABILITY under resampling is UNESTABLISHED. F-012 records real temperature-0
+    non-determinism on an IDOR verdict; this HIGH has not been repeat-sampled.
+  - CROSS-FRAMEWORK detection is UNESTABLISHED. The success is on the FastAPI path-param to
+    `session.get` idiom (the `ruleId` says so). L-013 measures that the prefilter reaches ONLY
+    that idiom cleanly and is structurally blind to service-layer sinks and cross-file flows. So
+    this proves detection on the one idiom the detector reaches, and nothing about the idioms
+    L-013 shows it misses.
 
 **CORRECTION of a claim merged on `e394a09`.** That revision stated "Recall is NO LONGER clean,
 and this is now CONFIRMED rather than suspected", on the basis that a file with two unscoped
@@ -396,8 +428,10 @@ was nothing to miss.
 Recall is therefore NEITHER proven clean NOR proven broken. The earlier claim that "no missed
 exploit survives re-measurement" is still withdrawn, but for a different and weaker reason than
 that revision gave: not because a miss was found, but because the only live measurement so far
-ran against correct code and so could not have found one. Recall is UNMEASURED against a real
-vulnerability (L-010). The remaining non-gating items are precision, signal-hygiene,
+ran against correct code and so could not have found one. Recall has since been MEASURED ONCE, on
+one FastAPI-idiom target (the langflow C run, a true positive idor caught; see L-010); broader
+recall across other idioms and under repeated sampling remains unmeasured. The remaining
+non-gating items are precision, signal-hygiene,
 coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
 
 ---
@@ -1030,9 +1064,10 @@ make that header FALSE, which is the defect class this tracker keeps correcting.
   The measured effects are a JOINT property of the two — fixing either reduces them — which is
   why the extraction is a split of ownership, not a transfer of blame.
 
-- **L-010 (READY gate; NOT a defect) - detection quality is UNPROVEN on a real vulnerability.**
-  See the readiness verdict for the full statement and the lift condition. Recorded here so it
-  is trackable alongside the items it replaced.
+- **L-010 (READY gate - LIFTED PARTIAL; NOT a defect) - detection demonstrated once on a real
+  vulnerability; stability and cross-framework reach not established.**
+  See the readiness verdict for the capture path, the raw verdict fields, the cost, and the
+  caveat. Recorded here so it is trackable alongside the items it replaced.
 
 - **L-008 (LOW; harness hygiene; zero spend) - the scratch capture harness mis-derives the pair
   count.** `attributeIdor` in the scratch harness used `diag.triggerCount` as the pair count.
@@ -1175,7 +1210,8 @@ pattern-axis facts and DEFER their ICP rates to E'.
   spurious pair is judged by the model, and a `false` verdict emits nothing; **zero emitted
   findings from this pattern have been observed.** Every effect above was measured on a corpus
   that is disqualified for rates, so the FP rate and the cost on ICP code are UNKNOWN and
-  DEFERRED to E'. READY gates remain F-004 and L-010; this is neither. (A rationale of the form
+  DEFERRED to E'. The READY gate is now F-004 alone (L-010 is a lifted-partial, non-gating
+  caveat); this is neither. (A rationale of the form
   "it injects noise into every customer scan today" was CONSIDERED and REJECTED as unsupported:
   it conflates a fabricated pair with an emitted finding, and "every customer scan" is a rate
   claim on ICP code that this corpus cannot carry. Recorded because the rejected version is the
@@ -1242,8 +1278,9 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
   detection applies to a small minority of what the ICP actually ships.
 
   **Why NON-gating, live rationale.** Reach says nothing about detection quality on a real
-  vulnerability — that is C's job (the CVE target that lifts L-010). It neither lifts nor
-  pressures F-004 or L-010; the READY gates stand exactly where they are. It is filed as a
+  vulnerability — that is C's job (the CVE target that lifted L-010; now demonstrated, see the
+  readiness verdict). It neither lifts nor pressures F-004 or L-010; the READY gate stands where
+  it is (F-004), and L-010 was lifted by the C run, not by this reach finding. It is filed as a
   first-order market-fit finding the product owner must weigh, not as a gate.
 
   CAVEAT, in its own words: n=43, a SAMPLE not a census (GitHub search caps at 1000/query),
@@ -1329,7 +1366,10 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
   CROSS-REFERENCE: L-012 owns the ICP market figure (2/43) and L-013 owns the idiom shape on the
   patched-fix probe; they interlock but share no number. L-006 owns the ORM-write sink gap;
   L-013's service-layer idiom is its read-side companion. `ICP-REACH.md` and
-  `IDOR-STRUCTURE-EXPOSURE.md` carry the reciprocal pointers.
+  `IDOR-STRUCTURE-EXPOSURE.md` carry the reciprocal pointers. L-010's cross-framework caveat
+  rests here: the one demonstrated HIGH is the FastAPI path-param to `session.get` idiom, and
+  L-013 is the evidence that the prefilter does not cleanly reach the non-FastAPI idioms, so that
+  single success does not generalize across frameworks.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
