@@ -292,7 +292,8 @@ now settle this on any future run.
 The one Run 1 call whose reasoning we DID capture is auth-bypass (see L-003).
 
 See Priority 1d (L-001 through L-010, surfaced by Run 1), Priority 1e (L-011, surfaced by the
-zero-spend structural rig), and Priority 1f (L-012, reach / market-fit, structural measurement).
+zero-spend structural rig), and Priority 1f (L-012 and L-013, reach / market-fit, structural
+measurement).
 
 ## Current readiness verdict
 
@@ -891,9 +892,9 @@ that would split the taxonomy on SPEND, which says nothing about what an item is
 
 Provenance within the namespace is recorded per sub-section, not per item: **Priority 1d** holds
 L-001 through L-010, surfaced by Run 1 (live). **Priority 1e** holds L-011, surfaced by the
-zero-spend structural rig. **Priority 1f** holds L-012, also surfaced by structural measurement
-but kept separate from 1e because 1e's header says "defects" and L-012 is not one (it is a
-reach / market-fit finding, framed like L-010). The recurring alternative — filing an item under
+zero-spend structural rig. **Priority 1f** holds L-012 and L-013, both surfaced by structural
+measurement but kept separate from 1e because 1e's header says "defects" and neither is one (both
+are reach findings, framed like L-010). The recurring alternative — filing an item under
 a sub-section whose header its content contradicts (L-011 under 1d, or L-012 under 1e) — would
 make that header FALSE, which is the defect class this tracker keeps correcting.
 
@@ -1208,7 +1209,7 @@ pattern-axis facts and DEFER their ICP rates to E'.
 ### Priority 1f - OPEN: reach / market-fit findings surfaced by structural measurement
 
 Same `L-` namespace as Priority 1d and 1e (found by RUNNING the detector), and a DELIBERATELY
-separate subsection from 1e because 1e's header says "defects" and the item here is NOT one. Its
+separate subsection from 1e because 1e's header says "defects" and the items here (L-012, L-013) are NOT defects. Its
 provenance is L- by the tracker's own axis (`F-` is what the readiness diagnostic found by
 READING; `L-` is what we found by RUNNING the detector). Reach was found by running the real
 `analyzeFile` over the corpus, so it is L- by that axis, not F-, regardless of the fact that it
@@ -1253,7 +1254,82 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
 
   CROSS-REFERENCE: L-011 owns the reason 7 of the 8 reaching files are what they are (the
   `trpc_input_access` pattern dominates the reach surface). L-012 owns the reach fact; L-011
-  owns the pattern. Neither restates the other's figures.
+  owns the pattern. Neither restates the other's figures. L-013 is the framework-idiom companion
+  to this ICP-market figure: L-012 owns market applicability (2/43), L-013 owns which code idioms
+  the prefilter reaches on a patched-fix probe. They interlock and share no number.
+
+- **L-013 (OPEN; MEASURED; reach / framework-idiom coverage; NOT a defect; NON-gating) - the
+  detector's clean reach is FastAPI-shaped, and two request-id ownership idioms are structurally
+  invisible to it.** Confirmed under real execution (the reach probe over recently-patched
+  ownership/authorization fixes, logged as the "CVE-surface probe"; that log name overpromises,
+  see Scope below).
+
+  Twin of L-012, filed beside it in Priority 1f: same provenance (found by RUNNING the real
+  detector, not by reading), same axis (reach, not recall or precision), NOT a defect,
+  NON-gating. It carries no witnessed/unwitnessed adjective, for the reason L-012 does not: that
+  word is a recall-axis word, and this is a fact about WHERE the detector applies. DISTINCT from
+  L-012, not folded into it: L-012 owns ICP MARKET APPLICABILITY (how much of the ICP is the kind
+  of app IDOR detection applies to, 2/43); L-013 owns FRAMEWORK-IDIOM COVERAGE (given a request-id
+  ownership flow, which code idioms the prefilter reaches at all). Neither restates the other's
+  figures.
+
+  **Scope, stated before the finding so it is not overread.** This is a STRUCTURAL-INVISIBILITY
+  finding, NOT a witnessed missed vulnerability, and NOT advisory-grounded. The exemplars below
+  are OWNERSHIP-SCOPED, guarded code, not IDORs: reading their guards (the L-001 discipline),
+  paperclip's routes carry `assertCompanyAccess` and membership / `companyId` scoping, and
+  payload's `findOne` scopes its `where` by `user.value`, its patched flow having lived in
+  `preferenceAccess`, not the sink cited here. So L-013 claims only that the prefilter never
+  builds a candidate pair on these idioms; it makes NO claim that a real vulnerability was missed.
+  No GHSA or CVE covers either exemplar. The one advisory in the captured probe (CVE-2025-61687,
+  Flowise) is a MIME-type-spoofing issue, not an IDOR, and is not used here. The corpus is
+  therefore described as what the evidence supports: recently-patched real-world
+  ownership/authorization fixes, pinned by SHA.
+
+  MEASURED (2026-07-19; recently-patched ownership/authorization fixes, pinned by SHA). The idiom
+  the prefilter reaches cleanly is the FastAPI shape: a request-id path parameter into
+  `session.get(Model, id)`, where the ORM read-by-id matches `SINK_PATTERNS` and the path param
+  matches a source. Two request-id ownership idioms are structurally invisible:
+  - Service-layer sinks do not match `SINK_PATTERNS` (mechanism from source; read-side companion
+    to L-006). Every `SINK_PATTERNS` entry is an ORM read literal or a raw-SQL shape; a request-id
+    that flows into a bare service-layer method (for example `access.getMembership(...)`) matches
+    none, so no pair is built. This is the READ-side counterpart to L-006's WRITE-side gap: L-006
+    owns the missing write sinks, L-013 owns the read that hides one indirection behind the ORM
+    call the pattern keys on. EXEMPLAR, WEAK and CONTAMINATED: the paperclip router
+    (`paperclipai/paperclip`, authz-hardened in `ac664df8e48326135a913e97ee7ed937d913586b`, PR
+    #3315) mixes service-layer calls with direct drizzle reads that are themselves ownership-scoped
+    (`.where(and(eq(id), eq(companyId)))`); those drizzle reads WOULD match `SINK_PATTERNS`, so
+    paperclip is suggestive, not a clean witness. It is cited un-pinned (fix commit only, no
+    vulnerable-parent SHA; see the SHA note). The mechanism stands on the source read, not on this
+    exemplar.
+  - Cross-file flows cannot pair under single-file analysis (CLEAN, pinned exemplar). In
+    `payloadcms/payload` (vulnerable state `99d61db85bacf0d1386da55747de6266ae70781a`, the sole
+    parent of fix `2dc2e7c07f24529a28326bd7f5a3fc3597245ebf`, PR #15425), the request handler
+    (`findByIDHandler`) and the ORM sink (`payload.db.find({ ... where })` inside `findOne`) live
+    in different files. `analyzeFile` is single-file, so the request-derived source and the sink
+    never co-occur in one analysis unit and no pair forms. The structural point holds independent
+    of that commit's own fix, which isolated auth collections in `preferenceAccess`.
+
+  **SHA note (the #110 pin-from-evidence discipline).** payload is pinned to a vulnerable-parent
+  SHA with certainty: the fix has a single parent. paperclip is NOT: its captured router source
+  reads as already guarded, three separate authz-hardening commits touch that surface, and the
+  file is sink-contaminated, so no single "vulnerable parent" can be stood behind as ground truth.
+  It is anchored to the FIX commit `ac664df8` (a real, verifiable object) and cited un-pinned.
+  payload is the load-bearing exemplar; paperclip corroborates the source-level mechanism only.
+
+  **Why NON-gating, live rationale.** Reach says nothing about detection quality on a real
+  vulnerability (that is L-010's axis). L-013 neither lifts nor pressures F-004 or L-010; the
+  READY gates stand where they are. It is a first-order coverage-idiom finding the owner must
+  weigh, in the same class as L-012.
+
+  CAVEAT, in its own words: this is a small-n probe over patched fixes, NOT a market census. It
+  characterizes which idioms the prefilter reaches; it does not measure how frequent each idiom is
+  in ICP code. The exemplars are worked cases (one pinned, one un-pinned and contaminated), not a
+  rate. A rate needs a larger sample or explicit acceptance of the limit.
+
+  CROSS-REFERENCE: L-012 owns the ICP market figure (2/43) and L-013 owns the idiom shape on the
+  patched-fix probe; they interlock but share no number. L-006 owns the ORM-write sink gap;
+  L-013's service-layer idiom is its read-side companion. `ICP-REACH.md` and
+  `IDOR-STRUCTURE-EXPOSURE.md` carry the reciprocal pointers.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 

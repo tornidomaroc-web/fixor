@@ -103,6 +103,8 @@ consistent with some unrelated flaw in how the file was built.
 appears in `SINK_PATTERNS`, so *every* file whose only sink is an ORM write hits that same early
 return. The construction supplies the vulnerability; the source supplies the generality.
 
+**Read-side companion (L-013).** L-006 is the WRITE side of this sink gap: no write verb is a sink. `L-013` (`REMEDIATION-PROGRESS.md`, Priority 1f) records the READ-side counterpart, found on a reach probe over recently-patched ownership fixes: a genuine read routed through a bare service-layer method (not an ORM read literal) also matches no `SINK_PATTERNS` entry, so the pair is never built. Same gap, opposite verb. L-013 is a reach finding on guarded exemplars, not a witnessed miss, and it changes no gate.
+
 > **This is a demonstrated missed vulnerability — conditional on the shape existing.** It proves
 > the conditional: *if* write-only-no-read code exists, Fixor misses it, 100% of the time, before
 > the model. Whether that shape exists in ICP code is **L-006 PREVALENCE, deferred to E'**.
