@@ -28,8 +28,9 @@ measured once with the rig built here:
 | **L-006 write-only PREVALENCE** | How often does real ICP code contain a write-with-no-read handler? | **This is the load-bearing unknown.** It decides whether the witnessed L-006 miss costs anything, and it is the reason L-006 stays non-gating. |
 
 **This does NOT make L-006 or L-009 READY-gating.** See [§5](#5-what-this-changes-in-the-tracker).
-Witnessing exposure does not gate READY. The READY gate is L-010 (detection quality unproven on
-a real vulnerability) and F-004, and this measurement moves neither.
+Witnessing exposure does not gate READY. The READY gate is now F-004; L-010 (formerly "detection
+unproven on a real vulnerability") has since been LIFTED PARTIAL by the langflow C run and demoted
+to a non-gating caveat. This measurement moves neither.
 
 ---
 
@@ -318,9 +319,11 @@ exists to fix. The rationale is therefore rewritten, not just the word, and
 every collective sentence that swept L-006 into "we have ZERO demonstrated missed
 vulnerabilities" is corrected in the same PR.
 
-**L-010 and F-004 are untouched.** L-010 is that detection quality is unproven on a **real**
-vulnerability. This measurement demonstrates no *catch*, so it neither lifts nor weakens that
-gate. READY remains blocked on F-004 and L-010.
+**This measurement moves neither L-010 nor F-004.** L-010 was that detection quality is unproven
+on a **real** vulnerability. This measurement demonstrates no *catch*, so it did not lift L-010.
+L-010 was later LIFTED PARTIAL by the langflow C run, a separate live measurement
+(`REMEDIATION-PROGRESS.md`), and READY now stands NOT-READY on F-004 alone, with L-010 a
+non-gating caveat.
 
 ---
 
