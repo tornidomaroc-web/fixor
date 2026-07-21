@@ -399,27 +399,61 @@ export function assertEscalationUnset(): void {
 }
 
 /**
- * admin-check resolves `llmValidation` as: env FIXOR_ADMIN_CHECK_LLM_OPT_IN wins
- * when defined (`=== "true"`), else the constructor option, else false. The
- * shipped registry constructs `new AdminCheckDetector()`, so the default is
- * false: literal-tier first-triggers take the Option G bypass and never reach
- * callClaude.
+ * Detector opt-in flags that route an otherwise-deterministic path through the
+ * model. Each entry is `[envVarName, why]`.
  *
- * With the flag set to "true" that bypass disappears and EVERY trigger goes to
- * the model. Any manifest that partitions this corpus into "deterministic" and
- * "model-reaching" is therefore only valid while the flag is unset - the
- * partition is silently wrong otherwise, not loudly wrong. Assert it.
+ * A detector whose shipped default emits findings WITHOUT calling the model has
+ * a deterministic path that a keyless gate can assert. Setting that detector's
+ * opt-in flag to "true" removes the path: every trigger goes to the model
+ * instead. Any manifest that partitions such a corpus into "deterministic" and
+ * "model-reaching" is therefore valid ONLY while the flag is unset. The failure
+ * is silent otherwise, not loud, which is exactly why it is asserted.
  *
- * Only the exact string "true" enables the opt-in (mirroring the detector's own
- * comparison), so "false"/"1"/unset all resolve to the shipped default and pass.
+ * WHY THIS CONSTANT EXISTS, and why it is not decoration. The generalized
+ * `assertEnvFlagUnset` takes the flag name as a string, so a typo in that string
+ * compiles cleanly and the guard then NEVER fires: the partition it protects
+ * becomes silently wrong, the precise failure mode the guard was written to
+ * prevent. Naming every flag here restores compile-time checking at the call
+ * sites, which the detector-specific function it replaced got for free.
+ *
+ * ADMIN_CHECK: admin-check resolves `llmValidation` as env
+ * FIXOR_ADMIN_CHECK_LLM_OPT_IN when defined (`=== "true"`), else the constructor
+ * option, else false. The shipped registry constructs `new AdminCheckDetector()`,
+ * so the default is false and literal-tier first-triggers take the Option G
+ * bypass without reaching callClaude.
+ *
+ * SECRETS: secrets-exposure resolves `llmValidation` the same way from
+ * FIXOR_SECRETS_LLM_OPT_IN. The shipped registry constructs
+ * `new SecretsExposureDetector()`, so the default is false and every prefilter
+ * hit is emitted regex-only from a hand-authored explanation. This entry is
+ * declared here with the rest; its caller arrives with the 2b.5 gate.
  */
-export function assertAdminCheckOptInUnset(): void {
-  if (process.env.FIXOR_ADMIN_CHECK_LLM_OPT_IN === "true") {
+export const OPT_IN_GUARD = {
+  ADMIN_CHECK: [
+    "FIXOR_ADMIN_CHECK_LLM_OPT_IN",
+    "it routes every trigger through callClaude, so the Option G bypass fixtures " +
+      "would reach the model and the bucket partition no longer holds.",
+  ],
+  SECRETS: [
+    "FIXOR_SECRETS_LLM_OPT_IN",
+    "it routes every prefilter hit through callClaude, so the regex-only bypass " +
+      "that the shipped path takes would not execute.",
+  ],
+} as const satisfies Record<string, readonly [string, string]>;
+
+/**
+ * Refuse when a detector opt-in flag is set to "true".
+ *
+ * Only the exact string "true" enables an opt-in (mirroring each detector's own
+ * comparison), so "false"/"1"/unset all resolve to the shipped default and pass.
+ *
+ * Call as `assertEnvFlagUnset(...OPT_IN_GUARD.ADMIN_CHECK)` so the flag name is
+ * checked by the compiler rather than retyped as a bare string.
+ */
+export function assertEnvFlagUnset(name: string, why: string): void {
+  if (process.env[name] === "true") {
     throw new Error(
-      "FIXOR_ADMIN_CHECK_LLM_OPT_IN=true is unsupported for the admin-check " +
-        "deterministic gate: it routes every trigger through callClaude, so the " +
-        "Option G bypass fixtures would reach the model and the bucket partition " +
-        "no longer holds. Unset FIXOR_ADMIN_CHECK_LLM_OPT_IN and re-run.",
+      `${name}=true is unsupported here: ${why} Unset ${name} and re-run.`,
     );
   }
 }

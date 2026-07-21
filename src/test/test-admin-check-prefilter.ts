@@ -60,10 +60,11 @@ import { getAnthropicClient } from "../analysis-engine/anthropic-client";
 import { AdminCheckDetector } from "../analysis-engine/detectors/admin-check.detector";
 import { snapshotLlmCoverage } from "../lib/llm-coverage";
 import {
-  assertAdminCheckOptInUnset,
+  assertEnvFlagUnset,
   assertEscalationUnset,
   buildSyntheticDiff,
   loadFixture,
+  OPT_IN_GUARD,
 } from "./replay-harness";
 
 const FIXTURES_DIR = "fixtures/admin-check";
@@ -149,7 +150,7 @@ async function main(): Promise<void> {
   // Preconditions. Both flags would silently invalidate the bucket partition:
   // the opt-in flag routes bucket (b) through the model; the escalation flag
   // adds a second callClaude on any MEDIUM verdict.
-  assertAdminCheckOptInUnset();
+  assertEnvFlagUnset(...OPT_IN_GUARD.ADMIN_CHECK);
   assertEscalationUnset();
 
   // Zero-model-call proof, layer 1: strip the key from OUR process, then assert
