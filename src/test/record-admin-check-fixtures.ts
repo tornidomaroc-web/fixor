@@ -64,7 +64,8 @@ process.env.FIXOR_RECORD = "1";
 
 // Imported after the guards so the record mode is active for the whole chain.
 import {
-  assertAdminCheckOptInUnset,
+  assertEnvFlagUnset,
+  OPT_IN_GUARD,
   recordFixtures,
 } from "./replay-harness";
 import { adminCheckReplaySpec } from "./specs/admin-check.replay-spec";
@@ -73,7 +74,7 @@ import { adminCheckReplaySpec } from "./specs/admin-check.replay-spec";
 // recordFixtures(); the opt-in flag is admin-check's own and the shared engine
 // knows nothing about it, so it is asserted here, before any detector is built.
 try {
-  assertAdminCheckOptInUnset();
+  assertEnvFlagUnset(...OPT_IN_GUARD.ADMIN_CHECK);
 } catch (err) {
   out.write(`REFUSING: ${(err as Error).message}\n`);
   process.exit(1);

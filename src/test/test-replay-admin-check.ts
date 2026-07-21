@@ -39,7 +39,8 @@ process.env.FIXOR_REPLAY = "1";
 delete process.env.FIXOR_RECORD;
 
 import {
-  assertAdminCheckOptInUnset,
+  assertEnvFlagUnset,
+  OPT_IN_GUARD,
   runReplayGate,
 } from "./replay-harness";
 import { adminCheckReplaySpec } from "./specs/admin-check.replay-spec";
@@ -50,7 +51,7 @@ import { adminCheckReplaySpec } from "./specs/admin-check.replay-spec";
 // With the flag on, the 9 bucket-(b) bypass fixtures would take the model path,
 // silently invalidating this 30-id manifest instead of failing it.
 try {
-  assertAdminCheckOptInUnset();
+  assertEnvFlagUnset(...OPT_IN_GUARD.ADMIN_CHECK);
 } catch (err) {
   process.stderr.write(`${(err as Error).message}\n`);
   process.exit(1);
