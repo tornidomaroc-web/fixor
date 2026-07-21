@@ -1,5 +1,21 @@
 # secrets-exposure fixtures
 
+## F-004 sub-step 2b.5 - this corpus is now a CI gate (2026-07-21)
+
+**All 20 fixtures here are pinned by `src/test/test-secrets-exposure-prefilter.ts`, wired into `test:ci`.** Read this before editing, renaming, or deleting any of them: the gate asserts exact manifest coverage, so a rename fails loud rather than silently shrinking coverage. That is deliberate.
+
+**What the pins are, and what they are NOT.** Each positive pins the `ruleId` (`secrets-exposure-<patternId>`) the Option G regex bypass must emit, plus `critical`/`high` and exactly one finding. Each negative pins the exact `preFilterReason` of its pre-model drop. These are **wiring samples, not verdict endorsements**. The gate proves the bypass emits the finding it claims to emit; it says nothing about whether that finding is correct. Detection quality is stage 3.
+
+**Measured split (by executing the detector keylessly, not by reading these descriptions):** 10 bypass positives, 10 pre-model drops (4 `server-only marker`, 5 `no regex match`, 1 `path filter`). Zero fixtures reach the model, because `registry.ts` constructs the detector with `llmValidation` false. Recording cost: $0, since there is no `callClaude` request to record.
+
+**Pattern coverage is partial: 10 of the 15 `PREFILTER_PATTERNS` are exercised.** Five are guarded by nothing, in two measured ways:
+- **SHADOWED** (matched, but never the earliest surviving trigger, so an added assertion cannot reach them; they need NEW fixtures whose earliest match is the intended pattern): `aws_secret_literal` (loses to `aws_access_key` in `positive/06-aws-keys-hardcoded.js`), `postgres_url_password` (loses to `password_literal` in `positive/08-postgres-password-client.ts`). Note both are shadowed inside the very fixture named for them.
+- **ABSENT** (matched by no fixture at all): `google_api_key`, `stripe_live_publishable`, `private_key_literal`.
+
+**No fixture here is redaction-shaped.** The Day 13 exemption below was validated against 21 ad-hoc cases that were never committed as fixtures, so neither the full-exemption drop nor the partial `redactionSkipCount` path is exercised by anything in this directory. The gate pins that ABSENCE as an invariant rather than asserting over an empty manifest. If you add a redaction-shaped fixture, that invariant fails on purpose: give it a manifest entry and update the gate header.
+
+**F-010 note.** F-010 (secrets-exposure false-positives on an obvious self-identifying placeholder) is OPEN. As measured, no fixture in this corpus exhibits that shape; the values here are realistic high-entropy strings. If a future F-010 fix flips a pinned expectation, update the pin and record why. Never conclude the gate was wrong. There is nothing to re-record: this sub-step has no requests, no responses, and no recordings.
+
 ## Day 13 — redaction-shape exemption (2026-05-15, post Step 4)
 
 **Pre-filter matches where the matched value is a redaction artifact are now exempt from finding emission.** See `docs/detector-test-rules.md` D8a for the full shape inventory and rationale. First-instance trigger: Step 4 §7 Twenty `url.password = '********'` FP — detector was flagging the very utility that redacts passwords. Implementation: `REDACTION_VALUE_PATTERNS` in `secrets-exposure.detector.ts`, applied before LLM call (so exemption holds in both regex-only and LLM modes). Verified against 21 cases (11 real Step 4 source-path snippets + 5 synthetic redactions + 3 ambiguous defaults + 2 theoretical TPs): only the one true redaction line flips to skip; all other source-path FPs and theoretical TPs unchanged.
