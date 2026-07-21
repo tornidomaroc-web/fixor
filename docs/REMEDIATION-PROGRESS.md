@@ -161,10 +161,15 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    repo can check them), while the PROMPT-LENGTH figures in item 2 are repo-verifiable and
    were verified. Do not let the caveat on the former leak onto the latter.
 
-6. **2b.5 (secrets-exposure) is expected to cost $0.** `detectors/registry.ts:51` constructs
-   `new SecretsExposureDetector()` with no options, so `llmValidation` is false and the
-   shipped path is regex-only. Guard it deterministically, exactly as admin-check bucket (b)
-   was guarded. There is no `callClaude` request to record, so there is nothing to pay for.
+6. **2b.5 (secrets-exposure) cost $0. MEASURED, not estimated.** `detectors/registry.ts`
+   constructs `new SecretsExposureDetector()` with no options, so `llmValidation` is false and
+   the shipped path is regex-only. It was guarded deterministically, exactly as admin-check
+   bucket (b) was. Measured on the merged gate: **zero `callClaude` calls, zero recordings,
+   $0.00**, over a 20-fixture corpus that is 100 percent pre-model. This is the ONE prediction
+   in this section that execution confirmed rather than refuted; note the contrast with the
+   "29 recordable" and "~39" counts below, both of which came from reading and were wrong. The
+   difference is that this one was derived from the detector's control flow, not from counting
+   files.
 
 7. **Recordings must be keyed to LF content; sidecar readers now normalize (learned on 2b.4).**
    The replay key hashes `messages` with no EOL normalization. `loadFixture` LF-normalizes the
@@ -361,17 +366,17 @@ C run demonstrated detection once). With L-010 no longer gating, this tracker's 
 READY gate is once again F-004 alone, the same as the audit's item 2. The block above is retained
 as the record of why the lists diverged while they did.
 
-- **F-004 - the live-LLM detection brain is only partially guarded by an automated gate.**
-  Five detectors (env-exposure, webhook-unverified, auth-bypass, admin-check, and idor) are
-  now covered by a deterministic CI gate; until the one remaining stage-2 detector is covered,
-  a recall or precision regression in it past the regex prefilters would not be caught by
-  CI. Stage 1 is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0
+- **F-004 - the live-LLM detection brain is guarded by a deterministic gate on every
+  detector, and by nothing that tests model judgment.**
+  All six detectors (env-exposure, webhook-unverified, auth-bypass, admin-check, idor, and
+  secrets-exposure) are now covered by a deterministic CI gate, so **stage 2 is COMPLETE**.
+  Stage 1 is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0
   (shared harness, PR #81/#82), 2b.1 (webhook-unverified, PR #83/#84/#85), 2b.2 (auth-bypass,
-  PR #87/#88/#89), 2b.3 (admin-check, PR #90/#91/#92), and 2b.4 (idor, PR #95/#96/#97) are
-  merged, but F-004 is NOT closed: stage 2 sub-step 2b.5 (the one remaining detector) and
-  stage 3 (the opt-in live model-judgment workflow) both remain in the deferred worklist.
+  PR #87/#88/#89), 2b.3 (admin-check, PR #90/#91/#92), 2b.4 (idor, PR #95/#96/#97), and 2b.5
+  (secrets-exposure, PR #115) are all merged. **F-004 is still NOT closed: stage 3 (the opt-in
+  live model-judgment workflow) remains, and it is the only remaining item.**
 
-  Five of six detectors gated is progress, not readiness. Every gate landed so far is a
+  Six of six detectors gated is progress, not readiness. Every gate landed so far is a
   wiring-and-parsing gate: none of them verifies detection quality. Stage 3 (live) has now
   produced its first datapoint (see "Live detection-quality measurements"). CORRECTION of a
   claim merged on `346ed45`: an earlier revision read this as "3 model calls emitted zero
@@ -382,11 +387,20 @@ as the record of why the lists diverged while they did.
   correct code produces nothing; detection quality remains unproven (L-010). F-004 stays
   NOT-READY.
 
-  Note on wording: admin-check needed TWO gates, not one. A replay gate alone cannot cover it
-  (see the 2b.3 entry). "Covered by a deterministic CI gate" is therefore the accurate phrase
-  for the set of five; four of them (env-exposure, webhook-unverified, auth-bypass, idor) are
-  covered by the *replay* gate specifically, while admin-check needs both a replay gate and a
-  free deterministic gate.
+  Note on wording: "covered by a deterministic CI gate" is a single phrase covering THREE
+  different instruments, and the distinction is structural, not cosmetic. It is decided by how
+  much of a detector's shipped path reaches the model:
+  - **Replay gate only** (4): env-exposure, webhook-unverified, auth-bypass, idor. Every
+    fixture reaches `callClaude`, so a recorded response covers the whole corpus.
+  - **Both gates** (1): admin-check. It is MIXED: 30 fixtures reach the model and are covered
+    by replay, while 12 terminate before it (3 pre-model drops, 9 Option G bypass) and are
+    covered by a free deterministic gate. A replay gate alone cannot cover it (see the 2b.3
+    entry).
+  - **Free deterministic gate ALONE** (1): secrets-exposure. `registry.ts` constructs it with
+    `llmValidation` false, so NO fixture reaches the model and a replay gate is not merely
+    unnecessary but structurally impossible: no request means no key to record under, and
+    `runReplayGate` asserts exact manifest coverage. This is a third shape, not a variant of
+    the other two, and it is why 2b.5 cost $0 and shipped as one PR rather than two.
 
 - **L-010 (READY gate - LIFTED PARTIAL, with caveat; NOT a defect) - detection DEMONSTRATED
   once on a real vulnerability; stability and cross-framework reach NOT established.**
@@ -698,6 +712,10 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
   principle: adding them would fail the completeness assertion, not extend coverage. A replay
   gate is structurally blind to them. Any detector with a deterministic no-model path needs a
   free deterministic gate alongside (or instead of) replay. 2b.5 is the same shape.
+  **CONFIRMED by 2b.5 (PR #115): the prediction held, and in its strongest form.**
+  secrets-exposure turned out to be "instead of" rather than "alongside": measured keylessly,
+  0 of its 20 fixtures reach the model, so it needed no replay gate at all and shipped as one
+  PR rather than two.
 
   **Honesty constraints on 2b.3 (carried forward).**
   - A green replay check verifies wiring, tool-input parsing, and the verdict path ONLY. It
@@ -751,6 +769,43 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
   wiring-and-parsing gate only, not detection quality. `EXPECTED_LANE` is empty and deferred
   (see Priority 1c). It did NOT by itself close F-004: sub-step 2b.5 and stage 3 remain.
 
+- **F-004 stage 2 sub-step 2b.5 (secrets-exposure) MERGED - PR #115.** The sixth and final
+  detector gated, which COMPLETES STAGE 2. One PR, not the two 2b.3 needed and not the three
+  2b.4 needed, because this detector has no model-reaching bucket to record.
+
+  Exact scope: a free deterministic gate (`src/test/test-secrets-exposure-prefilter.ts`) over
+  the existing 20-fixture `fixtures/secrets-exposure/` corpus, wired into `test:ci` right after
+  `test:admin-check-prefilter`; a dated note appended to `fixtures/secrets-exposure/META.md`;
+  and this sweep. No detector change, no new fixture, no recording.
+
+  **Durable measured facts (execution, not reading).** Every number here came from running the
+  detector keylessly over the corpus, per the 2b.3 lesson that a split regenerated by reading
+  WILL be wrong:
+  - **20 fixtures, 10 bypass and 10 pre-model drops, 0 model-reaching.** The drops split 4
+    `server-only marker`, 5 `no regex match`, 1 `path filter`.
+  - **Cost $0.00 over zero calls and zero recordings.** `llmValidation` is false from
+    `registry.ts`, so the single `callClaude` site is unreachable on the shipped path.
+  - **10 of the 15 `PREFILTER_PATTERNS` are exercised.** The 5 that are not split into two
+    kinds, and the distinction is actionable: `aws_secret_literal` and `postgres_url_password`
+    are SHADOWED (they match, but a different pattern matches earlier and wins, so adding an
+    assertion cannot reach them; they need NEW fixtures whose earliest match is the intended
+    pattern), while `google_api_key`, `stripe_live_publishable` and `private_key_literal` are
+    ABSENT (no fixture matches them at all). Both shadowed patterns lose inside the very
+    fixture named for them, the same failure mode 2b.3 measured on admin-check.
+  - **No fixture in the corpus is redaction-shaped.** The Day 13 exemption was validated
+    against 21 ad-hoc cases that were never committed, so neither the full-exemption drop nor
+    the partial `redactionSkipCount` path is exercised by anything. The gate pins that ABSENCE
+    as an invariant rather than asserting over an empty manifest, which would look like
+    coverage while providing none. Same treatment for the `bypass: unknown patternId`
+    fail-safe, whose silent-drop behavior would otherwise lose a finding unnoticed.
+
+  **Honesty constraints.** A green run here is a wiring-and-parsing gate: it proves the Option
+  G regex bypass emits the finding it claims to emit, and verifies nothing about whether that
+  finding is correct. Detection quality is stage 3. The 5 unguarded patterns and the
+  unexercised redaction paths are real coverage gaps, stated in the test header and in
+  `META.md` so a green check is not misread as completeness. It did NOT close F-004: **stage 3
+  remains, and completing stage 2 does not lift the READY gate.**
+
 - **F-004 2b.3-merged tracker update MERGED - PR #93, squash `ba80fe0`.** Documentation only:
   recorded F-004 stage 2 sub-step 2b.3 (admin-check, two gates) as merged. No code, test, or
   CI change.
@@ -771,11 +826,13 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
-F-004 is NOT closed until stage 2 covers the detectors; sub-step 2a (env-exposure), sub-step
-2b.0 (the shared harness), sub-step 2b.1 (webhook-unverified), sub-step 2b.2 (auth-bypass),
-sub-step 2b.3 (admin-check), and sub-step 2b.4 (idor) are merged, while sub-step 2b.5
-(secrets-exposure, the one remaining detector) is pending. The model-judgment gate (stage 3)
-is only ever exercised by opt-in live runs, never free-in-CI.
+**Stage 2 is COMPLETE**: sub-step 2a (env-exposure), sub-step 2b.0 (the shared harness),
+sub-step 2b.1 (webhook-unverified), sub-step 2b.2 (auth-bypass), sub-step 2b.3 (admin-check),
+sub-step 2b.4 (idor), and sub-step 2b.5 (secrets-exposure) are all merged, so every shipping
+detector now has a deterministic keyless gate in CI. **F-004 is still NOT closed: stage 3
+remains, and it is the only remaining item.** The model-judgment gate (stage 3) is only ever
+exercised by opt-in live runs, never free-in-CI, so completing stage 2 does not lift F-004 and
+the READY verdict is unchanged.
 
 - **Stage 2 - deterministic replay gate (required, free, in CI).** The replay shim
   (`src/analysis-engine/llm-replay.ts`, wired at the single `callClaude` choke point in
@@ -815,26 +872,25 @@ is only ever exercised by opt-in live runs, never free-in-CI.
     37). The three sidecar readers now LF-normalize, so the recording keys are OS-stable (see
     the recording-cost lessons and the DONE entry). `EXPECTED_LANE` is empty and deferred
     (Priority 1c). Now an enforced keyless CI guard; previously idor was ungated in CI entirely.
-  - **Sub-step 2b.5 (secrets-exposure): PENDING.** The one remaining detector. The replay
-    mechanism is proven end to end on the five gated detectors and generalizes (the shim, the
-    key derivation, the record harness shape, and the keyless round-trip test are all
-    detector-agnostic since 2b.0), but 2b.5 is NOT a plain repeat, for the reason 2b.3 already
-    proved. A detector that reaches findings on the shipped path WITHOUT calling the model has
-    no request to key a recording on, and `runReplayGate` asserts exact manifest coverage, so a
-    replay gate is structurally the wrong instrument for that part of its behavior. `registry.ts`
-    constructs `SecretsExposureDetector()` with no options, so `llmValidation` defaults to false
-    and every prefilter hit is flagged regex-only from a hand-authored explanation
-    (`preFilterReason: "llm-bypass"`). An LLM path does exist in the class but is opt-in
-    (`FIXOR_SECRETS_LLM_OPT_IN=true` or `{ llmValidation: true }`) and is off in CI. So guard
-    the shipped behavior with a FREE deterministic regex test, not a replay gate; there is no
-    `callClaude` request to record. **Expected recording cost: $0.** Guard it deterministically,
-    exactly as admin-check bucket (b) was guarded in PR #90; that PR is the working template for
-    this shape.
+  - **Sub-step 2b.5 (secrets-exposure): DONE, merged (PR #115).** See DONE above. The sixth
+    and last detector gated, and the only one needing NO replay gate at all: `registry.ts`
+    constructs `SecretsExposureDetector()` with no options, so `llmValidation` is false and
+    the single `callClaude` site is structurally unreachable on the shipped path. Measured
+    keylessly over the 20-fixture corpus: 10 Option G bypass positives and 10 pre-model drops,
+    zero model-reaching, so **measured recording cost $0 over zero calls and zero recordings**,
+    matching the estimate. `assertEnvFlagUnset(...OPT_IN_GUARD.SECRETS)` is its opt-in guard
+    (PR #114). Now an enforced keyless CI guard; previously secrets-exposure was ungated in CI
+    entirely.
     Separately, secrets-exposure carries F-010 (a known false positive on an obvious
-    placeholder). Any fixture written for it FREEZES the current behavior as a wiring
+    placeholder). Every expectation pinned by the gate FREEZES current behavior as a wiring
     sample only; it does NOT endorse that verdict as correct. Fixing F-010 is separate
-    precision work (see Priority 3) and is new work, and when it lands it will move the
-    request or the response, so that fixture must then be re-recorded.
+    precision work (see Priority 3) and is new work. **CORRECTION of the re-recording clause
+    written before 2b.5 landed:** that clause said a fixture "must then be re-recorded", which
+    is a category error for this sub-step. 2b.5 has no requests, no responses and no
+    recordings, so an F-010 fix cannot invalidate a recording here; what it could invalidate is
+    a pinned expectation in the gate, which is a code edit at $0. Measured further: no fixture
+    in the corpus exhibits F-010's self-identifying-placeholder shape, so no pin is currently
+    believed to encode that bug.
 
 - **Stage 3 - opt-in live workflow (manual, spends only when run).** A GitHub Actions
   workflow on `workflow_dispatch` only (NO fork-PR trigger, NO nightly schedule), reading
@@ -921,10 +977,14 @@ remains OPEN as above.
   findings, but any path-anchored `EXPECTED_LANE` gate on idor is incomplete across the 14
   multi-pair files until both are widened to per-pair arrays. `EXPECTED_LANE` on idor is
   therefore deferred (kept `{}`). No API spend.
-- **Generalize `assertEnvFlagUnset(name, why)` (opened by 2b.4).** `assertAdminCheckOptInUnset`
-  is detector-specific in a shared harness; 2b.5 will need the same guard for
-  `FIXOR_SECRETS_LLM_OPT_IN`. Generalize when the second caller exists, not preemptively. No
-  API spend.
+- **Generalize `assertEnvFlagUnset(name, why)` (opened by 2b.4): DONE, merged (PR #114).**
+  `assertAdminCheckOptInUnset` was detector-specific in a shared harness. It is removed
+  outright (no dead alias) and replaced by `assertEnvFlagUnset(name, why)` plus the
+  `OPT_IN_GUARD` constant carrying `ADMIN_CHECK` and `SECRETS` entries. The constant is not
+  decoration: a bare-string flag name would compile with a typo and the guard would then never
+  fire, silently invalidating the very manifest partition it protects, so naming every flag in
+  one checked constant restores the compile-time check the detector-specific function got for
+  free. 2b.5 is its second caller (`OPT_IN_GUARD.SECRETS`). No API spend.
 
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
