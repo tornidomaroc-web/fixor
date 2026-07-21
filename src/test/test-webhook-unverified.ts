@@ -1,215 +1,45 @@
 /**
- * Webhook-unverified detector accuracy harness.
+ * Webhook-unverified detector stability harness.
  *
- * Mirrors the Phase 3/4 test structure.
- * Run via: npm run test:webhook-unverified (~ $0.04 per run — all 20
- * fixtures reach the LLM because verification absence cannot be regex'd).
+ * Run via: npm run test:webhook-unverified  (opt-in live LLM; spends only when run)
+ *
+ * Uses the shared stability-harness lib. See docs/detector-test-rules.md.
+ *
+ * F-004 stage 3 step 1: this test previously called detect() ONCE per fixture
+ * and gated on absolute thresholds. Two problems, both fixed here.
+ *
+ * 1. NO REPEATED SAMPLING. A single LLM sample is not a verdict (the F-008
+ *    lesson, and a standing convention in the tracker's `How we work`). Under
+ *    workflow_dispatch a single-shot live run would look green while proving
+ *    nothing about stability. It now samples n=5 per fixture.
+ * 2. DECAYED THRESHOLDS. The old gate was POSITIVES_MIN 7, NEGATIVES_MIN 9,
+ *    COMBINED_MIN 16, calibrated when this corpus was 10 and 10. It is now 17
+ *    positives and 18 negatives, so "7 positives" had decayed to a 41 percent
+ *    bar. The old header still described "all 20 fixtures". Aggregates are now
+ *    corpus-relative and all-passing.
+ *
+ * Thresholds: positives flagged >= 4/5 runs, negatives correctly skipped 5/5
+ * (zero false-positive tolerance; false positives are what made F-001
+ * ship-blocking). Aggregate: every fixture must clear its per-fixture bar.
+ *
+ * KNOWN TENSION worth watching on the first live run: this detector owns the
+ * MEDIUM/review-queue lane anchors (negatives 14 and 15), which the replay
+ * spec pins via a verdict-lane assertion. The stability harness classifies on
+ * `flagged` alone and has no lane concept, so a negative that lands MEDIUM and
+ * is routed to review-queue counts here as correctly-skipped. This gate
+ * therefore does NOT protect the lane contract; `test:replay-webhook-unverified`
+ * does. Do not read a green run here as lane coverage.
+ *
+ * SCOPE: this is a detection-quality gate, the only kind in this repo. It is
+ * the opposite of the deterministic replay and prefilter gates, which verify
+ * wiring and parsing and explicitly do NOT verify model judgment.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join, basename } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
-
-import { WebhookUnverifiedDetector } from "../analysis-engine/detectors/webhook-unverified.detector";
-
-const FIXTURES_DIR = "fixtures/webhook-unverified";
-const POSITIVES_MIN = 7;
-const NEGATIVES_MIN = 9;
-const COMBINED_MIN = 16;
-const SLEEP_MS_BETWEEN = 800;
-
-interface MetaEntry {
-  description: string;
-  category: string;
-}
-
-interface FixtureResult {
-  file: string;
-  isPositive: boolean;
-  flagged: boolean;
-  preFilterReason?: string;
-  verdict?: {
-    isVulnerable: boolean;
-    confidence: string;
-    reasoning: string;
-  } | null;
-  triggerCount: number;
-  meta: MetaEntry;
-}
-
-function loadFixture(filepath: string): {
-  assumedPath: string;
-  content: string;
-} {
-  const raw = readFileSync(filepath, "utf8");
-  const lines = raw.split(/\r?\n/);
-  const isShebang = (lines[0] ?? "").startsWith("#!");
-  const headerIdx = isShebang ? 1 : 0;
-  const headerLine = lines[headerIdx] ?? "";
-  const m = headerLine.match(/(?:\/\/|#)\s*ASSUMED-PATH:\s*(.+?)\s*$/);
-  const assumedPath = m
-    ? m[1]!
-    : `src/app/handlers/unknown/${basename(filepath)}`;
-  if (m) lines.splice(headerIdx, 1);
-  return { assumedPath, content: lines.join("\n") };
-}
-
-function buildSyntheticDiff(filePath: string, content: string): string {
-  const lines = content.split(/\r?\n/);
-  while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
-  const N = lines.length;
-  const header =
-    `diff --git a/${filePath} b/${filePath}\n` +
-    `new file mode 100644\n` +
-    `--- /dev/null\n` +
-    `+++ b/${filePath}\n` +
-    `@@ -0,0 +1,${N} @@\n`;
-  const body = lines.map((l) => "+" + l).join("\n");
-  return header + body + "\n";
-}
-
-function parseMeta(
-  metaContent: string,
-  isPositive: boolean,
-): Map<string, MetaEntry> {
-  const out = new Map<string, MetaEntry>();
-  const sectionMarker = isPositive ? "## Positive" : "## Negative";
-  let inSection = false;
-  for (const line of metaContent.split(/\r?\n/)) {
-    if (line.startsWith("## ")) {
-      inSection = line.startsWith(sectionMarker);
-      continue;
-    }
-    if (!inSection) continue;
-    const m = line.match(
-      /^- (\S+):\s*(.+?)(?:\s*\((Category [AB])[^)]*\))?\s*$/,
-    );
-    if (m) {
-      out.set(m[1]!, {
-        description: m[2]!.trim(),
-        category: m[3] ?? "-",
-      });
-    }
-  }
-  return out;
-}
-
-async function scanDir(
-  dir: string,
-  isPositive: boolean,
-  metaMap: Map<string, MetaEntry>,
-  detector: WebhookUnverifiedDetector,
-): Promise<FixtureResult[]> {
-  const files = readdirSync(dir)
-    .filter((f) => !f.endsWith(".md") && !f.startsWith("."))
-    .sort();
-  const out: FixtureResult[] = [];
-  let i = 0;
-  for (const file of files) {
-    i++;
-    const filepath = join(dir, file);
-    const { assumedPath, content } = loadFixture(filepath);
-    const diff = buildSyntheticDiff(assumedPath, content);
-
-    let flagged = false;
-    let preFilterReason: string | undefined;
-    let verdict: FixtureResult["verdict"];
-    let triggerCount = 0;
-    try {
-      const findings = await detector.detect({ diff });
-      flagged = findings.length > 0;
-      const diag = detector.lastDiagnostics[0];
-      if (diag) {
-        preFilterReason = diag.preFilterReason;
-        verdict = diag.verdict ?? undefined;
-        triggerCount = diag.triggerCount;
-      }
-    } catch (err) {
-      preFilterReason = `error: ${(err as Error).message}`;
-    }
-
-    const meta = metaMap.get(file) ?? {
-      description: "(no meta)",
-      category: "-",
-    };
-    out.push({
-      file,
-      isPositive,
-      flagged,
-      preFilterReason,
-      verdict,
-      triggerCount,
-      meta,
-    });
-    process.stdout.write(
-      `  [${i}/${files.length}] ${flagged ? "FLAG" : "skip"}  ${file}` +
-        (preFilterReason ? `  (${preFilterReason})` : "") +
-        "\n",
-    );
-    if (i < files.length) await sleep(SLEEP_MS_BETWEEN);
-  }
-  return out;
-}
-
-function printDiagnostic(
-  caught: number,
-  positiveCount: number,
-  flaggedNegativeCount: number,
-  negativeCount: number,
-  missedPositives: FixtureResult[],
-  flaggedNegatives: FixtureResult[],
-): void {
-  const out = process.stdout;
-  out.write(
-    "================================================================\n",
-  );
-  out.write("TEST FAILED — diagnostic\n");
-  out.write(
-    "================================================================\n\n",
-  );
-
-  if (missedPositives.length > 0) {
-    out.write(`POSITIVES MISSED (${positiveCount - caught}/${positiveCount} should be 0):\n`);
-    for (const m of missedPositives) {
-      out.write(`  ${m.file} (Category: ${m.meta.category})\n`);
-      out.write(`    META: ${m.meta.description}\n`);
-      if (m.preFilterReason) {
-        out.write(`    Verdict: filtered out by ${m.preFilterReason}\n`);
-      } else if (m.verdict) {
-        out.write(`    Verdict: ${JSON.stringify(m.verdict)}\n`);
-      } else {
-        out.write(
-          `    Verdict: detector returned no finding (triggers=${m.triggerCount}, no LLM verdict captured)\n`,
-        );
-      }
-      out.write("\n");
-    }
-  }
-
-  if (flaggedNegatives.length > 0) {
-    out.write(
-      `NEGATIVES INCORRECTLY FLAGGED (${flaggedNegativeCount}/${negativeCount} should be ≤1):\n`,
-    );
-    for (const n of flaggedNegatives) {
-      out.write(`  ${n.file} (${n.meta.category})\n`);
-      out.write(`    META: ${n.meta.description}\n`);
-      out.write(
-        `    Verdict: ${n.verdict ? JSON.stringify(n.verdict) : "(verdict missing)"}\n\n`,
-      );
-    }
-  }
-
-  out.write(
-    "================================================================\n",
-  );
-  out.write(
-    "ACTION: Review failures. If a fixture is genuinely ambiguous (humans\n",
-  );
-  out.write(
-    "would also disagree), consider revising or removing it. Otherwise,\n",
-  );
-  out.write("prompt engineering needs improvement.\n");
-}
+import {
+  WebhookUnverifiedDetector,
+  SYSTEM_PROMPT_FINGERPRINT,
+} from "../analysis-engine/detectors/webhook-unverified.detector";
+import { runStabilityHarness } from "./lib/stability-harness";
 
 async function main(): Promise<void> {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -220,163 +50,22 @@ async function main(): Promise<void> {
   }
 
   const detector = new WebhookUnverifiedDetector();
-  const metaContent = readFileSync(join(FIXTURES_DIR, "META.md"), "utf8");
-  const positiveMeta = parseMeta(metaContent, true);
-  const negativeMeta = parseMeta(metaContent, false);
+  const report = await runStabilityHarness({
+    detectorName: "webhook-unverified",
+    fixturesDir: "fixtures/webhook-unverified",
+    detector: detector as Parameters<typeof runStabilityHarness>[0]["detector"],
+    nRuns: 5,
+    perPositiveThreshold: 4,
+    perNegativeThreshold: 5,
+    positivesMinPassing: 17,
+    negativesMinPassing: 18,
+    combinedMinPassing: 35,
+    costPerLlmCallUsd: 0.00828,
+    systemPromptFingerprint: SYSTEM_PROMPT_FINGERPRINT,
+  });
 
-  process.stdout.write("Positives (should be flagged):\n");
-  const positives = await scanDir(
-    join(FIXTURES_DIR, "positive"),
-    true,
-    positiveMeta,
-    detector,
-  );
-
-  process.stdout.write("\nNegatives (should NOT be flagged):\n");
-  const negatives = await scanDir(
-    join(FIXTURES_DIR, "negative"),
-    false,
-    negativeMeta,
-    detector,
-  );
-
-  const caught = positives.filter((r) => r.flagged).length;
-  const correctlySkipped = negatives.filter((r) => !r.flagged).length;
-  const flaggedNegatives = negatives.filter((r) => r.flagged);
-  const missedPositives = positives.filter((r) => !r.flagged);
-  const combined = caught + correctlySkipped;
-  const totalCount = positives.length + negatives.length;
-  const accuracyPct = Math.round((combined / totalCount) * 100);
-
-  process.stdout.write("\n");
-  process.stdout.write(`Positives caught:           ${caught}/${positives.length} (need >= ${POSITIVES_MIN})\n`);
-  process.stdout.write(`Negatives correctly skipped: ${correctlySkipped}/${negatives.length} (need >= ${NEGATIVES_MIN})\n`);
-  process.stdout.write(`Combined accuracy:          ${combined}/${totalCount} (${accuracyPct}%, need >= ${COMBINED_MIN})\n\n`);
-
-  const passedNegativesGate = correctlySkipped >= NEGATIVES_MIN;
-  const passedPositivesGate = caught >= POSITIVES_MIN;
-  const passedCombined = combined >= COMBINED_MIN;
-  const passed = passedNegativesGate && passedPositivesGate && passedCombined;
-
-  if (!passedNegativesGate) {
-    process.stdout.write(
-      `HARD GATE FAILED: negatives ${correctlySkipped}/${negatives.length} < ${NEGATIVES_MIN}; false positives matter most.\n\n`,
-    );
-  }
-
-  if (!passed) {
-    printDiagnostic(
-      caught,
-      positives.length,
-      flaggedNegatives.length,
-      negatives.length,
-      missedPositives,
-      flaggedNegatives,
-    );
-    process.exit(1);
-  }
-
-  // Phase F locked merge gate (operator-locked 2026-05-23). Three checks
-  // beyond the standard pass/fail above:
-  //   1. Combined accuracy must stay at the pre-Phase-F floor (24) or
-  //      better. The pre-tune baseline was 24/26 (11/13 positives flag,
-  //      13/13 negatives skip). Post-Phase-F the suite has 15/15 so the
-  //      same absolute floor still applies; perturbing the existing pass
-  //      set below 24 means the tune broke something.
-  //   2. The two Phase F positive anchors (POS-14 cross-file-no-call,
-  //      POS-15 clientstate-no-compare) must FLAG (HIGH-emit path). The
-  //      new MEDIUM-routing clauses must not over-generalize to silence
-  //      the no-verification-at-all shape.
-  //   3. The two Phase F negative anchors (NEG-14 cross-file-verifier-
-  //      helper, NEG-15 clientstate-challenge) must route to MEDIUM/
-  //      review-queue, defined as verdict.confidence === "medium" AND
-  //      verdict.isVulnerable === true. The harness records "skip"
-  //      whenever the detector emits no finding, but MEDIUM and LOW both
-  //      appear as "skip" — only the captured verdict can distinguish
-  //      "routed to review queue" from "silenced". The gate enforces the
-  //      former.
-  // If any gate fails, exit 1. The pre-merge discipline requires green.
-  const PHASE_F_COMBINED_FLOOR = 24;
-  const PHASE_F_POSITIVE_ANCHORS = [
-    "14-app-router-apple-cross-file-no-call.ts",
-    "15-app-router-graph-clientstate-no-compare.ts",
-  ];
-  const PHASE_F_NEGATIVE_ANCHORS = [
-    "14-app-router-apple-cross-file-verifier-helper.ts",
-    "15-app-router-graph-clientstate-challenge.ts",
-  ];
-
-  const gateFailures: string[] = [];
-
-  if (combined < PHASE_F_COMBINED_FLOOR) {
-    gateFailures.push(
-      `combined ${combined}/${totalCount} < pre-Phase-F floor ${PHASE_F_COMBINED_FLOOR} ` +
-        `(tune perturbed the existing pass set; check missed positives and flagged negatives above).`,
-    );
-  }
-
-  for (const fname of PHASE_F_POSITIVE_ANCHORS) {
-    const r = positives.find((p) => p.file === fname);
-    if (!r) {
-      gateFailures.push(`positive anchor fixture ${fname} not found in positives/`);
-      continue;
-    }
-    if (!r.flagged) {
-      gateFailures.push(
-        `positive anchor ${fname} expected to FLAG HIGH but did not; verdict=${JSON.stringify(r.verdict ?? null)}`,
-      );
-    }
-  }
-
-  for (const fname of PHASE_F_NEGATIVE_ANCHORS) {
-    const r = negatives.find((n) => n.file === fname);
-    if (!r) {
-      gateFailures.push(`negative anchor fixture ${fname} not found in negatives/`);
-      continue;
-    }
-    if (r.flagged) {
-      gateFailures.push(
-        `negative anchor ${fname} flagged HIGH (tune did not lower the FP class to MEDIUM); ` +
-          `verdict=${JSON.stringify(r.verdict ?? null)}`,
-      );
-      continue;
-    }
-    const conf = r.verdict?.confidence;
-    const isVuln = r.verdict?.isVulnerable;
-    if (conf !== "medium" || isVuln !== true) {
-      gateFailures.push(
-        `negative anchor ${fname} did not route to MEDIUM/review-queue; ` +
-          `expected confidence="medium" AND isVulnerable=true (the review-queue routing); ` +
-          `got verdict=${JSON.stringify(r.verdict ?? null)}`,
-      );
-    }
-  }
-
-  if (gateFailures.length > 0) {
-    process.stdout.write(
-      "\n================================================================\n",
-    );
-    process.stdout.write(
-      "PHASE F LOCKED MERGE GATE FAILED\n",
-    );
-    process.stdout.write(
-      "================================================================\n",
-    );
-    for (const f of gateFailures) {
-      process.stdout.write(`  - ${f}\n`);
-    }
-    process.stdout.write(
-      "\nThe Phase F merge gate is locked: existing 24/26 floor preserved, " +
-        "two new positives must FLAG HIGH, two new negatives must route to " +
-        "MEDIUM/review-queue (NOT skip, NOT HIGH). See " +
-        "fixtures/webhook-unverified/META.md '## Phase F locked merge gate' " +
-        "and memory project_fixor_phase_f_webhook_fp_tuning for the locked discipline.\n",
-    );
-    process.exit(1);
-  }
-
-  process.stdout.write("PASS.\n");
-  process.stdout.write("PHASE F GATES PASS.\n");
+  process.stdout.write(`\n${report.passed ? "PASS" : "FAIL"}.\n`);
+  if (!report.passed) process.exit(1);
 }
 
 main().catch((err) => {
