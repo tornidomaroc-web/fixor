@@ -74,6 +74,18 @@ its own spirit.
   dash-check on this file was an unadopted idea, not the convention. Caught only by quoting the
   rule and checking its home against it, before the wide diff.
 
+- **Cite a resolved item's STATUS, never its TITLE.** A ledger row's name is the HYPOTHESIS that
+  opened it; its status column is what the evidence SETTLED. Read the status before leaning on
+  the item, because a struck-through row still reads as a live assertion at a glance, and the
+  title is the part that gets quoted. CASE: `c1f0204` (#112) justified L-010's stability caveat
+  with "F-012 records real temperature-0 non-determinism on an IDOR verdict". That is F-012's
+  TITLE, near enough; its status column says REFUTED, and the row's own body says the verdict is
+  stable at `temperature: 0`. The citation inverted the finding and landed a contradiction
+  against the F-012 entry that had been sitting in this same file since `a37c766` (#78). The
+  guardrail on identifiers (see `Coordinates rot; cross-reference by identifier`) is necessary
+  but not sufficient: the reference was by identifier and was still wrong, because an identifier
+  names an item, not its outcome.
+
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
 Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
@@ -409,10 +421,21 @@ as the record of why the lists diverged while they did.
   vulnerability.
 
   **What this does NOT prove (why L-010 carries a caveat rather than closing clean):**
-  - n=1, a SINGLE sample. The tracker guardrail (repeated sampling before a HIGH is entered as
-    stable; the F-008 lesson) means one HIGH is not a stable verdict.
-  - STABILITY under resampling is UNESTABLISHED. F-012 records real temperature-0
-    non-determinism on an IDOR verdict; this HIGH has not been repeat-sampled.
+  - n=1, a SINGLE sample, so STABILITY under resampling is UNESTABLISHED. The standing
+    convention in `How we work` (repeated sampling before a HIGH is entered as stable; the
+    F-008 lesson) means one HIGH is not a stable verdict, and this one has not been
+    repeat-sampled. The caveat rests on the ABSENCE of resampling, NOT on any observed
+    instability. **CORRECTION of a claim merged on `c1f0204` (#112).** That revision justified
+    this bullet with "F-012 records real temperature-0 non-determinism on an IDOR verdict".
+    **That is false.** F-012 was REFUTED in Phase 3C: the anon-IDOR verdict was re-measured
+    12/12 HIGH across both engines on byte-identical input and is stable at `temperature: 0`
+    (the F-012 row and the Phase 3C section of `READINESS-FINDINGS.md`). No detector-verdict
+    instability at `temperature: 0` has been observed anywhere in this project; both
+    repeated-sampling measurements on record went the other way, on two different detectors
+    (F-012/F-008: idor, 12/12 HIGH across both engines; Phase 3D: auth-bypass, 6/6 per engine,
+    CONFIRMED STABLE). The caveat SURVIVES unchanged on the n=1 ground alone; only its
+    stated reason was wrong. L-010's status is untouched by this correction: still LIFTED
+    PARTIAL and non-gating, with F-004 the sole substantive READY gate.
   - CROSS-FRAMEWORK detection is UNESTABLISHED. The success is on the FastAPI path-param to
     `session.get` idiom (the `ruleId` says so). L-013 measures that the prefilter reaches ONLY
     that idiom cleanly and is structurally blind to service-layer sinks and cross-file flows. So
