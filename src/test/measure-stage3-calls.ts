@@ -103,6 +103,7 @@ const IDOR_TOOL_NAME = "report_idor_findings";
 // ===========================================================================
 
 interface CallRecord {
+  pass: string;
   callerId: string;
   fixtureDir: string;
   fixtureFile: string;
@@ -115,6 +116,14 @@ interface CallRecord {
 
 const records: CallRecord[] = [];
 
+let currentPass = "A";
+/**
+ * Canned verdict shape. Pass A returns LOW, the minimal downstream path.
+ * Pass B returns isVulnerable TRUE at MEDIUM, which is the ONLY shape that
+ * reaches the escalation branch: all six detectors evaluate isVulnerable and
+ * return early before the confidence ladder is consulted.
+ */
+let cannedConfidence: "low" | "medium" = "low";
 let currentCallerId = "";
 let currentDir = "";
 let currentFile = "";
@@ -152,6 +161,18 @@ function cannedToolInput(toolName: string): Record<string, unknown> {
     // IDOR parses `input.verdicts`. An empty array is a valid "call happened,
     // nothing to emit" and is explicitly NOT counted as an LLM error by the
     // detector, which is exactly the neutral shape we want.
+    if (cannedConfidence === "medium") {
+      // IDOR judges per pair, so a MEDIUM verdict per pair is what fans out
+      // into one escalation call per pair. MAX_PAIRS_PER_FILE bounds it at 12.
+      return {
+        verdicts: Array.from({ length: 12 }, (_v, i) => ({
+          pairIndex: i,
+          isVulnerable: true,
+          confidence: "medium",
+          reasoning: CANNED_REASONING,
+        })),
+      };
+    }
     return { verdicts: [] };
   }
   if (toolName.startsWith("report_") && toolName.endsWith("_verdict")) {
@@ -160,8 +181,8 @@ function cannedToolInput(toolName: string): Record<string, unknown> {
     // (string). Optional extras default safely. LOW is the minimal downstream
     // path: the detector returns no findings and no escalation is considered.
     return {
-      isVulnerable: false,
-      confidence: "low",
+      isVulnerable: cannedConfidence === "medium",
+      confidence: cannedConfidence,
       reasoning: CANNED_REASONING,
     };
   }
@@ -225,6 +246,7 @@ function installSpy(): void {
     const toolName = body.tools?.[0]?.name ?? "";
     const isEscalation = toolName === ADJUDICATE_TOOL_NAME;
     records.push({
+      pass: currentPass,
       callerId: isEscalation ? `escalation:${currentCallerId}` : currentCallerId,
       fixtureDir: currentDir,
       fixtureFile: currentFile,
@@ -290,6 +312,9 @@ interface Measurement {
   coverageFailed: number;
   harnessLlmCalls: number | null;
   harnessLlmErrors: number | null;
+  harnessPricedCalls: number | null;
+  /** key -> { spy, harness, oldInferred } per fixture. */
+  perFixture: Map<string, { spy: number; harness: number; oldInferred: number }>;
 }
 
 interface HarnessStanza {
@@ -412,6 +437,25 @@ async function measureHarnessStanza(
   const fixturesWithCalls = new Set(mine.map((r) => r.fixtureFile));
   const all = [...report.positives, ...report.negatives];
 
+  // Per-fixture join: harness FixtureStability carries a basename plus an
+  // isPositive flag; the spy keys on "<class>/<basename>". Same corpus, same
+  // filter, so the two key spaces coincide exactly.
+  const perFixture = new Map<
+    string,
+    { spy: number; harness: number; oldInferred: number }
+  >();
+  for (const f of all) {
+    const key = `${f.isPositive ? "positive" : "negative"}/${f.file}`;
+    perFixture.set(key, {
+      spy: mine.filter((r) => r.fixtureFile === key).length,
+      harness: f.llmCalls,
+      // What the OLD inferred counter would have said: one per run whose
+      // diagnostic carried no pre-filter reason. Reconstructed from the run
+      // records so the comparison survives the counter being replaced.
+      oldInferred: f.runs.filter((r) => !r.preFilterReason).length,
+    });
+  }
+
   return {
     label: stanza.label,
     fixturesDir: stanza.fixturesDir,
@@ -422,6 +466,8 @@ async function measureHarnessStanza(
     coverageFailed: cov.failed,
     harnessLlmCalls: all.reduce((s, r) => s + r.llmCalls, 0),
     harnessLlmErrors: all.reduce((s, r) => s + r.llmErrors, 0),
+    harnessPricedCalls: all.reduce((s, r) => s + r.pricedCalls, 0),
+    perFixture,
   };
 }
 
@@ -466,6 +512,8 @@ async function measureIdorMulti(): Promise<Measurement> {
     coverageFailed: cov.failed,
     harnessLlmCalls: null,
     harnessLlmErrors: null,
+    harnessPricedCalls: null,
+    perFixture: new Map(),
   };
 }
 
@@ -586,9 +634,10 @@ async function main(): Promise<void> {
     fail("getAnthropicClient() returned a client with no API key set");
   }
 
-  // (c) Escalation must be off. A constant canned verdict would fabricate the
-  // MEDIUM rate, so an escalation-on run would yield a CEILING, not a
-  // measurement. It is deliberately not measured here.
+  // (c) Escalation must be off FOR THE MEASUREMENT PASS. A constant canned
+  // verdict would fabricate the MEDIUM rate, so an escalation-on run yields a
+  // CEILING, not a measurement. Pass B below deliberately turns it on and is
+  // labelled a counting ceiling for exactly that reason.
   try {
     assertEscalationUnset();
     pass("FIXOR_ESCALATE_MEDIUM unset (escalation second call cannot fire)");
@@ -609,11 +658,16 @@ async function main(): Promise<void> {
       "unused; the run holds a dummy key only.\n",
   );
 
-  const rows: Measurement[] = [];
-  for (const stanza of HARNESS_STANZAS) {
-    rows.push(await measureHarnessStanza(stanza));
-  }
-  rows.push(await measureIdorMulti());
+  const runAllStanzas = async (): Promise<Measurement[]> => {
+    const acc: Measurement[] = [];
+    for (const stanza of HARNESS_STANZAS) {
+      acc.push(await measureHarnessStanza(stanza));
+    }
+    acc.push(await measureIdorMulti());
+    return acc;
+  };
+
+  const rows = await runAllStanzas();
 
   writeTable(rows);
   writePerFixture();
@@ -700,6 +754,105 @@ async function main(): Promise<void> {
       "  lastDiagnostics[0]; it never observes callClaude. A follow-up that\n" +
       "  makes the counter observational must reproduce the measured column.\n",
   );
+
+  // =========================================================================
+  // ACCEPTANCE TEST A - per-fixture equality against the spy.
+  //
+  // The harness counter is now OBSERVED at the callClaude chokepoint, so this
+  // is observation versus observation. It must hold fixture by fixture, not
+  // merely in aggregate: an aggregate match can hide two errors that cancel.
+  // =========================================================================
+  out.write("\n=== acceptance test A: per-fixture harness == spy ===\n");
+  let compared = 0;
+  const mismatches: string[] = [];
+  for (const r of rows) {
+    if (r.harnessLlmCalls === null) continue;
+    for (const [key, v] of r.perFixture) {
+      compared++;
+      if (v.harness !== v.spy) {
+        mismatches.push(
+          `${r.fixturesDir}/${key}: harness=${v.harness} spy=${v.spy}`,
+        );
+      }
+    }
+  }
+  if (mismatches.length === 0) {
+    pass(`harness == spy on all ${compared} harness-routed fixtures`);
+  } else {
+    fail(`${mismatches.length} of ${compared} fixtures disagree`);
+    for (const m of mismatches.slice(0, 20)) out.write(`        ${m}\n`);
+  }
+
+  // =========================================================================
+  // LEDGER MODE CHECK - priced versus unpriced.
+  //
+  // The canned response carries zeroed usage, so it IS a priced call whose
+  // price happens to be zero. That distinguishes it from a replayed call,
+  // which returns before any usage exists and must stay unpriced.
+  // =========================================================================
+  out.write("\n=== ledger mode check ===\n");
+  const pricedTotal = rows.reduce((s, r) => s + (r.harnessPricedCalls ?? 0), 0);
+  const harnessCallTotal = rows.reduce((s, r) => s + (r.harnessLlmCalls ?? 0), 0);
+  if (pricedTotal === harnessCallTotal) {
+    pass(
+      `pricedCalls (${pricedTotal}) == calls (${harnessCallTotal}) under the canned response`,
+    );
+  } else {
+    fail(`pricedCalls ${pricedTotal} != calls ${harnessCallTotal}`);
+  }
+
+  // =========================================================================
+  // ACCEPTANCE TEST B - the falsification test, and the real gate.
+  //
+  // With escalation OFF every fixture makes exactly one call, so test A only
+  // ever confirms 1 == 1. The multi-call case does not occur naturally in this
+  // corpus, so manufacture it: a canned MEDIUM verdict with the escalation
+  // flag ON makes every model-reaching fixture issue a detection call PLUS an
+  // escalation call. The OLD inferred counter cannot see the second one.
+  //
+  // These numbers are a COUNTING CEILING, never a cost figure: a constant
+  // canned verdict fabricates the MEDIUM rate.
+  // =========================================================================
+  out.write("\n=== acceptance test B: escalation visibility (counting ceiling) ===\n");
+  currentPass = "B";
+  cannedConfidence = "medium";
+  process.env.FIXOR_ESCALATE_MEDIUM = "true";
+  // assertEscalationUnset() is deliberately NOT called here: it throws when the
+  // flag is on, which is the state this pass exists to exercise.
+  const rowsB = await runAllStanzas();
+  delete process.env.FIXOR_ESCALATE_MEDIUM;
+  cannedConfidence = "low";
+
+  const escalationCallsB = records.filter(
+    (r) => r.pass === "B" && r.isEscalation,
+  ).length;
+  let oldTotal = 0;
+  let newTotal = 0;
+  let sawStrictIncrease = false;
+  for (const r of rowsB) {
+    if (r.harnessLlmCalls === null) continue;
+    for (const [, v] of r.perFixture) {
+      oldTotal += v.oldInferred;
+      newTotal += v.harness;
+      if (v.harness > v.oldInferred) sawStrictIncrease = true;
+    }
+  }
+  out.write(
+    `  old inferred counter would report: ${oldTotal}\n` +
+      `  new observed counter reports:     ${newTotal}\n` +
+      `  escalation calls observed:        ${escalationCallsB}\n`,
+  );
+  if (escalationCallsB > 0 && sawStrictIncrease && newTotal > oldTotal) {
+    pass(
+      `escalation second call is VISIBLE to the ledger and INVISIBLE to the ` +
+        `old inference (${newTotal} vs ${oldTotal})`,
+    );
+  } else {
+    fail(
+      `test B did not demonstrate the divergence: escalationCalls=${escalationCallsB} ` +
+        `old=${oldTotal} new=${newTotal}`,
+    );
+  }
 
   out.write("\n=== what this does NOT establish ===\n");
   out.write(

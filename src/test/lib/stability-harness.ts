@@ -43,6 +43,14 @@ import {
   SIDECAR_EXTS,
   SIDECAR_KINDS,
 } from "../../analysis-engine/sidecar-kinds";
+import {
+  llmCallsSince,
+  snapshotLlmCalls,
+} from "../../lib/llm-call-ledger";
+import {
+  llmCoverageSince,
+  snapshotLlmCoverage,
+} from "../../lib/llm-coverage";
 import { lfNormalize } from "../replay-harness";
 
 /** Diagnostic shape every Phase 3-5 detector exposes via lastDiagnostics. */
@@ -70,8 +78,25 @@ export interface FixtureStability {
   isPositive: boolean;
   runs: RunResult[];
   flaggedCount: number;
+  /**
+   * OBSERVED at the callClaude chokepoint via the call ledger, not inferred.
+   * Counts EVERY call the fixture caused, including the H8 escalation second
+   * call that the previous inference could not see.
+   */
   llmCalls: number;
+  /**
+   * Calls that produced no usable verdict. Union of two distinct failures:
+   * a transport failure (callClaude returned not-ok) and a parse failure (the
+   * call succeeded but the tool input was malformed, which every detector
+   * turns into a null verdict). Kept as a union deliberately: dropping the
+   * parse half would LOOSEN the gate, because a negative that "passes" with no
+   * verdict behind it is exactly the hollow pass this harness guards against.
+   */
   llmErrors: number;
+  /** Transport-level failures only, observed via the coverage tally. */
+  observedFailedCalls: number;
+  /** Calls that returned real usage. Unpriced ones are replayed or failed. */
+  pricedCalls: number;
 }
 
 export interface StabilityReport {
@@ -81,6 +106,10 @@ export interface StabilityReport {
   negativesPassed: number;
   totalLlmCalls: number;
   totalLlmErrors: number;
+  /** Transport-level failures only, observed via the coverage tally. */
+  totalObservedFailedCalls: number;
+  /** Calls that returned real usage, observed via the call ledger. */
+  totalPricedCalls: number;
   estimatedCostUsd: number;
   passed: boolean;
 }
@@ -223,9 +252,15 @@ async function stabilityRunDir(
     const runs: RunResult[] = [];
     let llmCalls = 0;
     let llmErrors = 0;
+    let observedFailedCalls = 0;
+    let pricedCalls = 0;
 
     for (let i = 0; i < opts.nRuns; i++) {
       let result: RunResult = { flagged: false };
+      // Snapshot BOTH instruments around the call so the counts are observed
+      // rather than reconstructed from diagnostics afterwards.
+      const ledgerBefore = snapshotLlmCalls();
+      const coverageBefore = snapshotLlmCoverage();
       try {
         const findings: NormalizedFinding[] = opts.detector.detect
           ? await opts.detector.detect(ctx)
@@ -236,10 +271,14 @@ async function stabilityRunDir(
           preFilterReason: diag?.preFilterReason,
           verdict: diag?.verdict ?? null,
         };
-        if (!diag?.preFilterReason) {
-          llmCalls++;
-          if (!diag?.verdict) llmErrors++;
-        }
+        const ledger = llmCallsSince(ledgerBefore);
+        const coverage = llmCoverageSince(coverageBefore);
+        llmCalls += ledger.calls;
+        pricedCalls += ledger.pricedCalls;
+        observedFailedCalls += coverage.failed;
+        // A call happened but yielded no verdict: transport failure OR parse
+        // failure. Both make any pass on this fixture hollow.
+        if (ledger.calls > 0 && !diag?.verdict) llmErrors++;
       } catch (err) {
         result = {
           flagged: false,
@@ -276,6 +315,8 @@ async function stabilityRunDir(
       flaggedCount,
       llmCalls,
       llmErrors,
+      observedFailedCalls,
+      pricedCalls,
     });
 
     process.stdout.write(
@@ -360,6 +401,14 @@ export async function runStabilityHarness(
     (s, r) => s + r.llmErrors,
     0,
   );
+  const totalObservedFailedCalls = [...positives, ...negatives].reduce(
+    (s, r) => s + r.observedFailedCalls,
+    0,
+  );
+  const totalPricedCalls = [...positives, ...negatives].reduce(
+    (s, r) => s + r.pricedCalls,
+    0,
+  );
   const estimatedCostUsd = totalLlmCalls * costPerLlmCallUsd;
 
   process.stdout.write(
@@ -375,7 +424,8 @@ export async function runStabilityHarness(
       `(aggregate need >= ${combinedMinPassing})\n`,
   );
   process.stdout.write(
-    `LLM calls: ${totalLlmCalls}, errors: ${totalLlmErrors}, ` +
+    `LLM calls: ${totalLlmCalls} (OBSERVED at callClaude; ${totalPricedCalls} priced), ` +
+      `no-verdict: ${totalLlmErrors}, transport failures: ${totalObservedFailedCalls}, ` +
       `estimated cost ~$${estimatedCostUsd.toFixed(2)}\n`,
   );
   if (opts.systemPromptFingerprint) {
@@ -394,15 +444,19 @@ export async function runStabilityHarness(
   const hardGateNegatives = negativesPassed >= negativesMinPassing;
   const hardGateCombined =
     positivesPassed + negativesPassed >= combinedMinPassing;
+  // Strictly tighter than before: the previous gate was totalLlmErrors === 0
+  // alone. Adding the observed transport-failure count can only ADD failures,
+  // never remove one, so no run that failed before can start passing.
   const passed =
     totalLlmErrors === 0 &&
+    totalObservedFailedCalls === 0 &&
     hardGatePositives &&
     hardGateNegatives &&
     hardGateCombined;
 
-  if (totalLlmErrors > 0) {
+  if (totalLlmErrors > 0 || totalObservedFailedCalls > 0) {
     process.stdout.write(
-      `\nFAIL: ${totalLlmErrors} LLM call(s) errored. Any pass on a negative may be hollow.\n`,
+      `\nFAIL: ${totalLlmErrors} call(s) yielded no usable verdict, ${totalObservedFailedCalls} failed at transport. Any pass on a negative may be hollow.\n`,
     );
   }
 
@@ -413,6 +467,8 @@ export async function runStabilityHarness(
     negativesPassed,
     totalLlmCalls,
     totalLlmErrors,
+    totalObservedFailedCalls,
+    totalPricedCalls,
     estimatedCostUsd,
     passed,
   };
