@@ -150,6 +150,15 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    itself recorded as an approximation ("~$0.133"), so the trailing digits of that sum are
    false precision; treat it as ~$0.98.
 
+   **OMISSION, named 2026-07-22.** That list runs 2a, 2b.1, 2b.2 and 2b.3 and stops. **2b.4
+   (idor) is missing from it**, and its record-time spend was never captured at all: 26
+   recordings were made and no cost figure was read off the recorder. 2b.5 is absent for a
+   different and legitimate reason (it was $0, measured, over zero calls). So this "cumulative"
+   total is not cumulative; it omits one paid recording session of unknown size. The per-call
+   measurement in item 9 does NOT recover it, because the recorder persists no cost or token
+   data and the session cannot be re-costed after the fact without re-running it. Recorded here
+   so the sum is not read as complete.
+
    **Provenance caveat (important).** These four numbers are owner-reported record-time
    observations read off recorder stdout. They are NOT reproducible from this repo: the
    recorder persists no cost or token data (a recording's `meta` carries only `detectorId`,
@@ -191,6 +200,48 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    three calls, three separate cache writes, zero reuse. The worst-case formula in item 4 must
    therefore read `(n x highest observed warm call) + one cache-write premium PER DISTINCT
    DETECTOR`. See "Live detection-quality measurements" below for the numbers.
+
+9. **The COLD and WARM per-call units are different numbers, and a multi-fixture run is almost
+   all WARM (measured 2026-07-22, idor).** Every cost figure in items 1 through 8 is a COLD
+   unit: `cache_read` was 0 on all of them. That is the wrong unit for a stage-3 style run.
+   `test:idor` alone is 18 fixtures at N=5 in one process, so it is ONE cold call and 89 warm
+   ones. Costing it with a cold figure overstates it by roughly 2x.
+
+   Measured on `fixtures/idor/positive/02-express.ts`, two real calls back to back in one
+   process (artifact `docs/measurements/idor-percall-2026-07-22.json`, spend $0.03199755):
+
+   | unit | USD | input | output | cacheCreation | cacheRead |
+   |---|---:|---:|---:|---:|---:|
+   | cold | 0.02047125 | 1,235 | 450 | 2,671 | 0 |
+   | warm | 0.0115263 | 1,235 | 468 | 0 | 2,671 |
+
+   **The cache term is a CONSTANT.** `cacheCreationInputTokens` was 2,671 on this call and on
+   both prior idor captures, because it is the idor system prompt and nothing else. So the
+   cold-minus-warm surcharge is exactly `2671 * 3 * (1.25 - 0.10) / 1e6` = **$0.00921495**, and
+   the observed $0.00894495 is that constant minus the 18 extra output tokens on call 2. This
+   supersedes the worst-case formula in items 4 and 8 with an exact one:
+
+   ```
+   cost_d(N) = (F_d x N) x W_d  +  P_d x 0.00921495
+   ```
+
+   one cold surcharge per PROCESS per DETECTOR, everything else warm. Item 8 was right that the
+   premium is per distinct detector; what it could not say, because the warm unit did not exist
+   yet, is that the premium is a surcharge over a warm baseline rather than the price of a call.
+
+   **Method, and the trap it avoided.** The figures come from the raw `message.usage` via
+   `lastCallCost`, never from the harness `estimatedCostUsd`. A free `FIXOR_REPLAY=1` rehearsal
+   was run BEFORE spending and FAILED, catching that a direct `analyzeFile` call builds a
+   different user message than `detect()` plus `buildSyntheticDiff` (which strips trailing blank
+   lines), so the two produce different request keys. The paid run would otherwise have measured
+   a request stage 3 never sends. Rule for the next paid measurement: enter by the same door as
+   the thing you are costing, and prove it with a keyless replay rehearsal, which costs nothing
+   and fails loudly when the door is wrong.
+
+   **Do not turn this into a new flat constant.** $0.0115263 is one fixture's warm unit, chosen
+   slightly above median with two pairs, where output tokens are about 61 percent of the unit.
+   One-verdict fixtures and negatives will be lower. The lesson of item 4 applies to this number
+   too: report the measured unit with its scope, not a single figure multiplied across a corpus.
 
 ## Live detection-quality measurements
 
@@ -256,7 +307,15 @@ prompts. They are three separate cache entries with zero reuse.
 
 **This run measured a COLD-call unit, not a warm-call unit.** Mean $0.0268, range $0.0226 to
 $0.0315, all three calls cold. Zero cache reuse was structurally guaranteed here because each
-detector fired at most once. **The warm-call unit remains UNMEASURED.** Measuring it requires a
+detector fired at most once. **UPDATE 2026-07-22: the warm-call unit is now MEASURED for idor.**
+The sentence that stood here, "The warm-call unit remains UNMEASURED", was true when written and
+is now false; it is replaced rather than deleted, per this file's convention. Measured warm unit
+for idor is **$0.0115263** against a cold **$0.02047125** on the same fixture in one process
+(recording-cost lessons item 9; artifact `docs/measurements/idor-percall-2026-07-22.json`). The
+warm unit is about 56 percent of the cold one, and the difference is the fixed cache surcharge
+$0.00921495. This is measured for idor ONLY; the other five detectors' warm units remain
+unmeasured, and the 0.00828 constant used for four of them has not been decomposed into cold and
+warm. The original requirement below is what the idor measurement satisfied. Measuring it requires a
 scope where one detector fires on two or more files inside the 5-minute cache TTL.
 
 ### Detection-quality result: 3 calls, $0.080323, zero model-emitted findings
@@ -312,6 +371,32 @@ The one Run 1 call whose reasoning we DID capture is auth-bypass (see L-003).
 See Priority 1d (L-001 through L-010, surfaced by Run 1), Priority 1e (L-011, surfaced by the
 zero-spend structural rig), and Priority 1f (L-012 and L-013, reach / market-fit, structural
 measurement).
+
+### Temperature-0 is stable on the STRUCTURED verdict and variable in PROSE (n=1, 2026-07-22)
+
+Incidental to the idor per-call cost measurement, at no extra call. Not a detector finding and
+carries no `L-` id; recorded here because it sharpens a distinction the stability claims in this
+file do not currently draw.
+
+The live call reproduced the frozen recording for the same fixture, made twelve days earlier
+(`fixtures/replay/idor-multi/`, recorded 2026-07-10), on EVERY structured field: both verdicts
+`isVulnerable: true`, `confidence: "high"`, `callerAuth: "unclear"`, `operationClass:
+"user_resource"`. The free-text `reasoning` and `suggestedFix` differ, so the tool input is not
+byte-identical.
+
+Sharper, from within the run itself: the two paid calls were seconds apart, same process,
+`temperature: 0`, byte-identical request, and returned **450 versus 468 output tokens**. So
+run-to-run prose variation at temperature 0 is directly observed, while the decision the
+pipeline actually consumes did not move.
+
+**What this does and does not say.** It does NOT disturb L-010's n=1 caveat, which rests on the
+absence of repeated sampling of a real-world verdict and is untouched by one fixture
+observation. It does NOT contradict the existing stability measurements (F-012 refuted, 12/12
+HIGH; Phase 3D auth-bypass 6/6): those measured structured verdicts, which is the thing that
+held here too. What it adds is that "deterministic at temperature 0" should be stated about the
+STRUCTURED decision only. Anything that diffs raw model text, including a future recording
+comparison, should expect prose drift and compare parsed fields instead. The replay gate already
+does the right thing here, since it keys on the request rather than the response text.
 
 ## Current readiness verdict
 
@@ -963,12 +1048,63 @@ the READY verdict is unchanged.
 
   **This measures CALLS, not DOLLARS.** The canned response carries zero token usage, so no
   price follows from it. A spend figure still multiplies this count by an ESTIMATED per-call
-  constant. The shakier half of that product is IDOR: it is whole-file and batched, and
-  `test:idor` and `test:idor-tenant` pass no `costPerLlmCallUsd`, so they inherit the harness
-  flat default, which has no measured basis for that shape. Step 2 converts "estimated calls
-  times estimated price" into "measured calls times estimated price". That halves the
-  uncertainty; it does not remove it. Closing the IDOR price needs a live sample and is NOT
-  in step 2's scope.
+  constant. Step 2 converts "estimated calls times estimated price" into "measured calls times
+  estimated price". That halves the uncertainty; it does not remove it. Closing the IDOR price
+  needed a live sample and was NOT in step 2's scope. **It has since been measured; see the
+  next block.**
+
+  **IDOR per-call cost, MEASURED (2026-07-22, artifact
+  `docs/measurements/idor-percall-2026-07-22.json`, spend $0.03199755 against an approved
+  ~$0.035 cap).** Two real calls on `fixtures/idor/positive/02-express.ts`, one process, back
+  to back, taken from the raw `message.usage` via `lastCallCost` and NOT from the harness
+  `estimatedCostUsd`. All seven pre-agreed guardrails held; the transport was invoked exactly
+  twice under a hard ceiling.
+
+  | unit | USD | input | output | cacheCreation | cacheRead |
+  |---|---:|---:|---:|---:|---:|
+  | `C_idor` cold | **0.02047125** | 1,235 | 450 | 2,671 | 0 |
+  | `W_idor` warm | **0.0115263** | 1,235 | 468 | 0 | 2,671 |
+
+  The cache term is a CONSTANT, not an estimate: `cacheCreationInputTokens` was 2,671 here and
+  on both prior idor captures, because it is the idor system prompt and nothing else. Cold
+  minus warm is therefore a fixed `2671 * 3 * (1.25 - 0.10) / 1e6` = **$0.00921495**; the
+  observed $0.00894495 is that constant minus the 18 extra output tokens on call 2.
+
+  **Cost model.** A stage-3 run is not `calls x constant`, because only the FIRST call of each
+  process is cold:
+
+  ```
+  cost_d(N) = (F_d x N) x W_d  +  P_d x 0.00921495
+  ```
+
+  where `F_d` is the measured model-reaching fixture count, `W_d` the warm unit, and `P_d` the
+  number of separate PROCESSES. **idor is three processes, not one**: `test:idor`,
+  `test:idor-tenant` and `test:idor-multi` are three npm scripts. So at N=5, idor is
+  `130 x 0.0115263 + 3 x 0.00921495` = **$1.526**, non-idor is `590 x 0.00828` = **$4.885**,
+  and **`stage3_total(5)` is approximately $6.41** against roughly $6.19 under the old flat
+  default. The flat 0.01 UNDERSTATED the idor share by about 17 percent and the run total by
+  about 3.5 percent.
+
+  **CONSERVATIVE UPPER, not a point value.** $0.0115263 is THIS fixture's warm unit. The
+  fixture was deliberately chosen as a slightly-above-median two-pair POSITIVE, and output
+  tokens dominate the warm unit at about 61 percent of it. One-verdict fixtures and negatives
+  will come in lower, plausibly $0.008 to $0.010, so the $1.526 idor share is a conservative
+  upper estimate. **Treating $0.0115263 as an exact per-call constant would repeat the
+  flat-constant mistake at a different number.** The honest fix is a cost model that separates
+  the cold and warm units and the per-process cache term, which is why `test-idor.ts` and
+  `test-idor-tenant.ts` were deliberately NOT given the measured figure here; see Priority 1c.
+  Note also that the 0.00828 constant used for the other four detectors carries the SAME
+  cold-versus-warm ambiguity and has not been decomposed.
+
+  **Measure through `detect()`, not `analyzeFile()`.** A free `FIXOR_REPLAY=1` rehearsal run
+  BEFORE spending failed with `ReplayFixtureMissing`: a direct `analyzeFile` call produced a
+  different request key than the frozen recording, because `buildSyntheticDiff` strips trailing
+  blank lines and the two paths therefore build different user messages. Switching to
+  `detect({ diff: buildSyntheticDiff(...) })` made the key match. Without the rehearsal the run
+  would have spent real money measuring a request stage 3 never sends. `test:idor` and
+  `test:idor-tenant` go through the harness and therefore `detect()`; only `test:idor-multi`
+  calls `analyzeFile`. Any future paid measurement must enter by the same door as the thing it
+  claims to be costing, and a keyless replay rehearsal is the cheap way to prove it does.
 
   **Hand-counting these corpora requires the sidecar filter.** A raw `ls` of
   `fixtures/idor/negative` reads 12, not 9: three entries are `.policy.sql` and companion
@@ -1117,6 +1253,26 @@ remains OPEN as above.
   CALL side of the product (144, measured) but cannot fix the PRICE side: its canned response
   carries zero token usage by construction. Closing this needs a small live sample of IDOR
   calls, which spends and is therefore a separate decision. No API spend to record.
+
+  **UPDATE 2026-07-22: the PRICE side is now measured for idor, and the defect is WORSE than
+  this bullet stated.** Measured `W_idor` (warm) $0.0115263, `C_idor` (cold) $0.02047125
+  (artifact `docs/measurements/idor-percall-2026-07-22.json`). Two consequences.
+
+  First, the flat default UNDERSTATED idor by about 17 percent, so the direction of the error
+  is now known, not just its existence.
+
+  Second, and more important, **the harness cost model is missing a whole term, not just a
+  better constant.** `totalLlmCalls * costPerLlmCallUsd` has no way to express that the first
+  call of each process is COLD and every later call to the same detector is WARM. The correct
+  shape is `(F_d x N) x W_d + P_d x 0.00921495`, where the surcharge is a measured constant and
+  `P_d` is the process count. No single value of `costPerLlmCallUsd` can represent that, because
+  the cold and warm units differ by roughly 1.8x and the mix depends on how many processes the
+  run uses. **This is why `test-idor.ts` and `test-idor-tenant.ts` were deliberately NOT given
+  the measured figure when it was taken.** Writing $0.0115263 into `costPerLlmCallUsd` would
+  multiply a WARM unit across the cold call too, which is the same flat-constant defect wearing
+  a more accurate number, and it would fix two of the three idor entry points anyway since
+  `test-idor-multi.ts` does not use the harness. The code change belongs AFTER the cost model is
+  fixed here, not before it.
 
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 

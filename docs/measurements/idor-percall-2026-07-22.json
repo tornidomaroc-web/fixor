@@ -1,0 +1,186 @@
+{
+  "measurement": "idor per-call cost, COLD and WARM units (F-004 stage 3 step 2 follow-up)",
+  "date": "2026-07-22",
+  "zeroSpend": false,
+  "totalSpentUsd": 0.03199755,
+  "approvedCapUsd": 0.035,
+  "scope": {
+    "isA": "MEASURED per-call USD for the idor detector, taken from the raw message.usage on two real API calls, one cold and one warm, in one process back to back.",
+    "isNot": "NOT a corpus mean. One fixture, deliberately chosen slightly above median with two candidate pairs, so the warm unit here sits toward the UPPER end of the corpus range. See conservativeUpperCaveat.",
+    "why": "Step 2 measured 144 model-reaching calls per sample by execution, but pricing still multiplied that count by an ESTIMATED per-call constant. Four detectors used a measured 0.00828; idor inherited the harness flat 0.01 default with no measured basis. idor is whole-file and batches its candidate pairs into one call, so its per-call cost was the residual uncertainty in the stage-3 estimate.",
+    "supersedesAssumption": "The harness flat 0.01 default for idor. Measured warm unit is 0.0115263, so the default UNDERSTATED idor by about 17 percent."
+  },
+  "target": {
+    "fixture": "fixtures/idor/positive/02-express.ts",
+    "assumedPath": "src/routes/orders.ts",
+    "rawFileBytesOnDisk": 1245,
+    "normalizedContentBytes": 1160,
+    "byteNote": "The two byte counts differ by the stripped ASSUMED-PATH header line plus CRLF to LF normalization performed by loadFixture. A hand count with ls or wc reads the raw number and will not match what reaches the model.",
+    "lines": 47,
+    "candidatePairs": 2,
+    "systemPromptFingerprint": "5f5129f12b11",
+    "model": "claude-sonnet-4-6",
+    "representativeness": "Slightly above the corpus median. All 26 model-reaching idor fixtures run 643 to 1595 bytes through the isFixtureFile filter; median is about 1050. Express is the dominant framework shape, and fixtures/idor is 18 of the 26. A positive was chosen deliberately: negatives return thinner output because the tool instructs the model to report only high or medium findings, so a positive yields the conservative (higher) figure."
+  },
+  "invocationPath": {
+    "used": "detect({ diff: buildSyntheticDiff(assumedPath, content) })",
+    "rejected": "analyzeFile(assumedPath, content, lang)",
+    "why": "A free FIXOR_REPLAY=1 rehearsal, run before spending, FAILED with ReplayFixtureMissing: the direct analyzeFile call produced request key dbef3cd053490612d3dc08d486c386a66d5ffe243dd7d79f57ec53f65feb2e73 against the recorded 23cfc6fd0f88905f3dab5bc107a6fe4e38fb86870ceb0b9411d2e0b504e8d479. buildSyntheticDiff strips trailing blank lines, so the two paths build DIFFERENT user messages and therefore different request keys. Switching to detect() made the key match. Without the rehearsal this run would have spent real money measuring a request stage 3 never sends.",
+    "whichEntryPointsUseWhich": "test:idor and test:idor-tenant go through runStabilityHarness and therefore detect(). Only test:idor-multi calls analyzeFile directly."
+  },
+  "calls": [
+    {
+      "call": 1,
+      "cacheState": "cold",
+      "lastCallCost": {
+        "model": "claude-sonnet-4-6",
+        "inputTokens": 1235,
+        "outputTokens": 450,
+        "cacheCreationInputTokens": 2671,
+        "cacheReadInputTokens": 0,
+        "costUsd": 0.02047125
+      },
+      "breakdownUsd": {
+        "input": 0.003705,
+        "cacheWrite": 0.01001625,
+        "cacheRead": 0,
+        "output": 0.00675
+      },
+      "findings": [
+        { "ruleId": "idor-express_params-orm_find_one", "startLine": 13 },
+        { "ruleId": "idor-express_params-orm_find_one", "startLine": 27 }
+      ],
+      "groundTruthMatch": true
+    },
+    {
+      "call": 2,
+      "cacheState": "warm",
+      "lastCallCost": {
+        "model": "claude-sonnet-4-6",
+        "inputTokens": 1235,
+        "outputTokens": 468,
+        "cacheCreationInputTokens": 0,
+        "cacheReadInputTokens": 2671,
+        "costUsd": 0.0115263
+      },
+      "breakdownUsd": {
+        "input": 0.003705,
+        "cacheWrite": 0,
+        "cacheRead": 0.0008013,
+        "output": 0.00702
+      },
+      "findings": [
+        { "ruleId": "idor-express_params-orm_find_one", "startLine": 13 },
+        { "ruleId": "idor-express_params-orm_find_one", "startLine": 27 }
+      ],
+      "groundTruthMatch": true
+    }
+  ],
+  "derived": {
+    "C_idor_cold": 0.02047125,
+    "W_idor_warm": 0.0115263,
+    "observedDelta": 0.00894495,
+    "pureCacheDelta": 0.00921495,
+    "pureCacheDeltaFormula": "2671 * 3 * (1.25 - 0.10) / 1e6",
+    "deltaReconciliation": "The observed delta is the pure cache delta minus the 18 extra output tokens on call 2 (18 * 15 / 1e6 = 0.00027). The cache term is therefore a CONSTANT, not an estimate: cacheCreationInputTokens was 2671 on this call and on both prior idor captures (langflow monitor.py and scan-and-action documentController.ts), because it is the idor system prompt and nothing else.",
+    "outputShareOfWarmUnit": 0.609,
+    "arithmeticCheck": "Recomputed independently from MODEL_PRICING in services/cost-tracking.service.ts at 3 and 15 USD per Mtok with a 1.25x cache-write and 0.10x cache-read multiplier. Both figures match calculateCost to the last digit."
+  },
+  "conservativeUpperCaveat": {
+    "statement": "0.0115263 is THIS fixture's warm unit, not the corpus mean. The fixture was deliberately chosen as a slightly-above-median two-pair POSITIVE, and output tokens dominate the warm unit at about 61 percent of it. One-verdict fixtures and negatives will come in lower, plausibly 0.008 to 0.010.",
+    "consequence": "The idor share of the stage-3 estimate, 1.526 USD at N=5, is a CONSERVATIVE UPPER estimate, not a point value.",
+    "warning": "Treating 0.0115263 as an exact per-call constant would repeat the flat-constant mistake at a different number. The honest fix is a cost model that separates the cold and warm units and the per-process cache term, not a better single constant."
+  },
+  "stageThreeRecompute": {
+    "costModel": "cost_d(N) = (F_d * N) * W_d + P_d * 0.00921495",
+    "terms": {
+      "F_d": "model-reaching fixtures for detector d, measured by execution in step 2",
+      "N": "samples per fixture (stage 3 uses 5)",
+      "W_d": "warm per-call unit for detector d",
+      "P_d": "number of separate PROCESSES for detector d; each pays one cold cache surcharge on its first call"
+    },
+    "idor": {
+      "F": 26,
+      "P": 3,
+      "processes": ["test:idor", "test:idor-tenant", "test:idor-multi"],
+      "atN5": "130 * 0.0115263 + 3 * 0.00921495 = 1.526"
+    },
+    "nonIdor": {
+      "F": 118,
+      "perCallUsd": 0.00828,
+      "atN5": "590 * 0.00828 = 4.885",
+      "note": "The 0.00828 constant carries the SAME cold-versus-warm ambiguity this measurement just resolved for idor. It has not been decomposed and is left as-is here."
+    },
+    "totalAtN5": "approximately 6.41",
+    "priorEstimateAtN5": "approximately 6.19 using the flat 0.01 for idor",
+    "correction": "The flat 0.01 default understated the idor share by about 17 percent (1.30 versus 1.526) and the run total by about 3.5 percent."
+  },
+  "replayStability": {
+    "recordingFile": "fixtures/replay/idor-multi/23cfc6fd0f88905f3dab5bc107a6fe4e38fb86870ceb0b9411d2e0b504e8d479.json",
+    "recordedAtIso": "2026-07-10T19:30:23.160Z",
+    "liveAtIso": "2026-07-22",
+    "recordedVerdictCount": 2,
+    "liveVerdictCount": 2,
+    "identicalToolInput": false,
+    "structuredFieldsIdentical": true,
+    "perVerdict": [
+      {
+        "pairIndex": 0,
+        "recorded": { "isVulnerable": true, "confidence": "high", "callerAuth": "unclear", "operationClass": "user_resource" },
+        "live": { "isVulnerable": true, "confidence": "high", "callerAuth": "unclear", "operationClass": "user_resource" },
+        "coreMatch": true
+      },
+      {
+        "pairIndex": 1,
+        "recorded": { "isVulnerable": true, "confidence": "high", "callerAuth": "unclear", "operationClass": "user_resource" },
+        "live": { "isVulnerable": true, "confidence": "high", "callerAuth": "unclear", "operationClass": "user_resource" },
+        "coreMatch": true
+      }
+    ],
+    "finding": "Every structured field matched the recording frozen twelve days earlier. The free-text reasoning and suggestedFix differ, which is why identicalToolInput is false. Sharper evidence from within this run: the two calls were seconds apart, same process, temperature 0, byte-identical request, and returned 450 versus 468 output tokens. Temperature 0 is stable on the STRUCTURED decision and is not byte-identical on PROSE.",
+    "captureGap": "The live free-text reasoning and suggestedFix were compared programmatically in memory but were NOT persisted verbatim by the driver, so they are absent here. Recovering them would require another paid call, which was not made. Only the structured fields below are verbatim on the live side. The recorded side is reproducible from the recording file named above.",
+    "recordedToolInputVerbatim": {
+      "verdicts": [
+        {
+          "pairIndex": 0,
+          "isVulnerable": true,
+          "confidence": "high",
+          "reasoning": "The request-derived `req.params.id` flows directly into the `findOne` query with no ownership filter (e.g., `userId`) and no post-fetch ownership check comparing the order's owner to the authenticated session user. The `requireAuth` middleware only validates session authenticity, not object-level access.",
+          "suggestedFix": "Add an ownership filter to the query, e.g. `where: { id: req.params.id, userId: req.user.id }`, or after fetching the order, explicitly check `if (order.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });`.",
+          "callerAuth": "unclear",
+          "operationClass": "user_resource"
+        },
+        {
+          "pairIndex": 1,
+          "isVulnerable": true,
+          "confidence": "high",
+          "reasoning": "The request-derived `req.params.id` flows directly into the `findOne` query for the cancel operation with no ownership filter and no post-fetch ownership check; any authenticated user can cancel any other user's order by supplying its ID. The `requireAuth` middleware only enforces session validity, not object-level authorization.",
+          "suggestedFix": "Add an ownership filter to the query, e.g. `where: { id: req.params.id, userId: req.user.id }`, or after fetching the order, explicitly check `if (order.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });`.",
+          "callerAuth": "unclear",
+          "operationClass": "user_resource"
+        }
+      ]
+    }
+  },
+  "guardrails": {
+    "allHeld": true,
+    "transportCalls": 2,
+    "maxCalls": 2,
+    "checks": [
+      { "id": "G1", "check": "ANTHROPIC_API_KEY present and getAnthropicClient() !== null", "held": true },
+      { "id": "G2", "check": "FIXOR_REPLAY unset (a replay diversion would fake a zero-spend measurement)", "held": true },
+      { "id": "G3", "check": "FIXOR_RECORD unset (saveReplayFixture would write into fixtures/replay/idor-multi/ and either overwrite a frozen recording or break test:replay-idor)", "held": true },
+      { "id": "G4", "check": "assertEscalationUnset(); FIXOR_ESCALATE_MEDIUM empty, so no second Opus call per verdict", "held": true },
+      { "id": "G5", "check": "hard ceiling MAX_CALLS=2 wrapped around messages.create ABOVE the transport; call 3 throws before delegating", "held": true },
+      { "id": "G6", "check": "returned finding set equals EXPECTED_SET for idor/positive/02-express.ts on BOTH calls", "held": true },
+      { "id": "G7", "check": "call 1 cold (cacheCreation 2671, cacheRead 0) and call 2 warm (cacheRead 2671, cacheCreation 0); a cold call 2 would mean the warm unit was never measured", "held": true }
+    ],
+    "postRun": "git status confirmed no tracked file was modified and fixtures/replay was untouched."
+  },
+  "provenance": {
+    "source": "Raw message.usage on each API response, read via the exported lastCallCost (CallCostDiag) from analysis-engine/anthropic-client.ts, reset with resetLastCallCost() before each call.",
+    "notFrom": "NOT the harness estimatedCostUsd, which is the flat-constant defect this measurement exists to correct.",
+    "reproducible": "The cost arithmetic is reproducible from the token counts recorded here against MODEL_PRICING. The API calls themselves are not reproducible without spending again.",
+    "driver": "Throwaway, not wired into any npm script and not in test:ci. Raw stdout was written under the gitignored test-output/idor-percall/ and is deliberately NOT cited as reviewable evidence; the langflow precedent cited test-output/cve-repro/realcall.out as though it were reviewable, and that path is gitignored and was never committed."
+  }
+}
