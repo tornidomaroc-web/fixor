@@ -926,6 +926,56 @@ the READY verdict is unchanged.
   - **Not yet sampled, and inconsistent with its siblings:** `test:idor-lane` is single-shot
     while the other two lane tests are at N=5. See Priority 1c.
 
+  **CORRECTION of the entry-point count, by MEASUREMENT (stage-3 step 2).** The inventory
+  above says the model-reaching set is reached through the SIX harness-routed entry points.
+  It is not. Those six enumerate **142**, not 144. The missing two are `fixtures/idor-multi`,
+  reached only by `test:idor-multi`, which the very next bullet correctly places OUTSIDE the
+  harness because it asserts exact sink-line sets that the harness's boolean `flagged` cannot
+  express. **Reaching the full model-reaching set therefore requires SEVEN entry points, one
+  of which does not use `runStabilityHarness`.** Anyone driving "all of stage 3" from the
+  six-item list will silently measure 142 and read the 2-call gap as a discrepancy that does
+  not exist. The IDOR replay spec already spanned all three corpora (`fixtures/idor` 18,
+  `fixtures/idor-tenant` 6, `fixtures/idor-multi` 2 = 26); this list did not.
+
+  **MEASURED, not estimated: 144 model-reaching calls per sample.** `measure:stage3-calls`
+  (`src/test/measure-stage3-calls.ts`, zero spend, not in `test:ci`) counts at the SDK
+  boundary with a canned response, driving all seven entry points at n=1. Result:
+
+  | detector | calls | enumerated | pre-filtered | coverage attempted | harness llmCalls | divergence |
+  |---|---:|---:|---:|---:|---:|---:|
+  | env-exposure | 17 | 20 | 3 | 17 | 17 | 0 |
+  | webhook-unverified | 34 | 35 | 1 | 34 | 34 | 0 |
+  | auth-bypass | 37 | 45 | 8 | 37 | 37 | 0 |
+  | admin-check | 30 | 42 | 12 | 30 | 30 | 0 |
+  | idor | 18 | 18 | 0 | 18 | 18 | 0 |
+  | idor-tenant | 6 | 6 | 0 | 6 | 6 | 0 |
+  | idor-multi | 2 | 2 | 0 | 2 | n/a | n/a |
+  | **total** | **144** | **168** | **24** | **144** | 142 | 0 |
+
+  Identity: 168 enumerated minus 24 pre-filtered equals 144 model-reaching. Zero real network
+  calls (the real transport was invoked 0 times). This CONFIRMS the inherited 144 by
+  execution. It did not have to: the previous 144 was the size of the replay recording set,
+  and the replay gate asserts recordings cover EXACTLY the manifest, so a replay run can only
+  ever return 144 or fail loud. Replay restates the manifest; it cannot verify it. The
+  manifests are also hand-curated and self-documented as error-prone (the admin-check spec
+  warns that regenerating it by searching for pattern names WILL get it wrong), so an
+  independent count was worth taking.
+
+  **This measures CALLS, not DOLLARS.** The canned response carries zero token usage, so no
+  price follows from it. A spend figure still multiplies this count by an ESTIMATED per-call
+  constant. The shakier half of that product is IDOR: it is whole-file and batched, and
+  `test:idor` and `test:idor-tenant` pass no `costPerLlmCallUsd`, so they inherit the harness
+  flat default, which has no measured basis for that shape. Step 2 converts "estimated calls
+  times estimated price" into "measured calls times estimated price". That halves the
+  uncertainty; it does not remove it. Closing the IDOR price needs a live sample and is NOT
+  in step 2's scope.
+
+  **Hand-counting these corpora requires the sidecar filter.** A raw `ls` of
+  `fixtures/idor/negative` reads 12, not 9: three entries are `.policy.sql` and companion
+  sidecars that `isFixtureFile` excludes. The same trap produced the inherited "29 recordable"
+  figure for idor. Every number in the table above is enumerated through `isFixtureFile`, and
+  any hand re-derivation must be too.
+
 ### Priority 1b - OPEN: the H7 double-silence risk (unresolved potential RECALL hole)
 
 This is a cross-detector gap, not part of 2b.3, and it is deliberately recorded on its own so
@@ -1040,6 +1090,33 @@ remains OPEN as above.
   cannot establish. It needs the lane-shaped K-of-N treatment its siblings already have, NOT
   `runStabilityHarness` (it has no positive/negative corpus; it runs over
   `fixtures/real-shape/fastapi-saas`). Zero spend to write; spends only when run live.
+
+- **`runStabilityHarness` INFERS `llmCalls` instead of observing the call (opened by stage-3
+  step 2).** The harness increments its call counter when `lastDiagnostics[0]` carries no
+  `preFilterReason`. That is an inference from a diagnostic, not an observation at
+  `callClaude`, and it has two structural blind spots: it reads only the FIRST diagnostic
+  entry, so a fixture whose diff carried more than one file would collapse to one count; and
+  it can never see the escalation second call, which produces no diagnostic entry of its own
+  and is tagged `coverage: "auxiliary"` so it is skipped by the coverage tally too. **Not a
+  wrong number today, and that is worth stating plainly:** `measure:stage3-calls` compared the
+  inferred counter against the observed count fixture by fixture and found **divergence 0
+  across all six harness-routed stanzas (142 vs 142)**. The inference is currently correct
+  because every fixture is a single-file diff issuing exactly one call. The defect is that
+  nothing holds that invariant in place. **Deliberately NOT fixed in step 2**, so that the
+  measured column exists as an independent oracle to validate the fix against; fixing the
+  counter in the same change would leave the new counter checked only by itself. No API spend.
+
+- **`estimatedCostUsd` is a flat per-call constant (opened by stage-3 step 2).** The harness
+  computes `totalLlmCalls * costPerLlmCallUsd`, defaulting to a single flat figure. The four
+  detectors wrapped by step 1 pass an explicit per-call constant; `test:idor` and
+  `test:idor-tenant` pass none and inherit the default. IDOR is whole-file and batches its
+  candidate pairs into ONE call, so there is no reason its per-call cost matches a
+  single-trigger detector's, and the inherited default has no measured basis for that shape.
+  Consequence: a stage-3 paid run would self-report a cost line built on a constant that is
+  least trustworthy exactly where the call is most expensive. `measure:stage3-calls` fixes the
+  CALL side of the product (144, measured) but cannot fix the PRICE side: its canned response
+  carries zero token usage by construction. Closing this needs a small live sample of IDOR
+  calls, which spends and is therefore a separate decision. No API spend to record.
 
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
