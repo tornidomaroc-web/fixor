@@ -1,245 +1,38 @@
 /**
- * Auth-bypass detector accuracy harness.
+ * Auth-bypass detector stability harness.
  *
- * For each of the 20 fixtures in fixtures/auth-bypass/{positive,negative}:
- *   1. Read the file, parse the // ASSUMED-PATH header, strip it from content.
- *   2. Build a synthetic unified diff at the assumed path.
- *   3. Call detector.detect({ diff }) — the real production entry point.
- *   4. Record whether the detector emitted any findings.
+ * Run via: npm run test:auth-bypass  (opt-in live LLM; spends only when run)
  *
- * Pass criteria (asymmetric):
- *   - Positives caught:        >= 7/10
- *   - Negatives correctly skipped: >= 9/10  (HARD GATE — false positives matter most)
- *   - Combined:                >= 16/20
+ * Uses the shared stability-harness lib. See docs/detector-test-rules.md.
  *
- * Failure path prints a diagnostic block with each missed positive / wrongly
- * flagged negative + meta description + verdict so prompt-engineering iterations
- * stay actionable.
+ * F-004 stage 3 step 1: this test previously called detect() ONCE per fixture
+ * and gated on absolute thresholds. Two problems, both fixed here.
  *
- * Run via: npm run test:auth-bypass (≈ $0.03 in Anthropic spend per run).
+ * 1. NO REPEATED SAMPLING. A single LLM sample is not a verdict (the F-008
+ *    lesson, and a standing convention in the tracker's `How we work`). Under
+ *    workflow_dispatch a single-shot live run would look green while proving
+ *    nothing about stability. It now samples n=5 per fixture.
+ * 2. DECAYED THRESHOLDS. The old gate was POSITIVES_MIN 7, NEGATIVES_MIN 9,
+ *    COMBINED_MIN 16, calibrated when this corpus was 10 positives and 10
+ *    negatives. The corpus has since grown to 22 and 23, so "7 positives" had
+ *    silently decayed to a 32 percent bar: the test could pass while 15 of 22
+ *    positives went missed. The old header still described "the 20 fixtures".
+ *    Aggregates are now corpus-relative and all-passing.
+ *
+ * Thresholds: positives flagged >= 4/5 runs, negatives correctly skipped 5/5
+ * (zero false-positive tolerance; false positives are what made F-001
+ * ship-blocking). Aggregate: every fixture must clear its per-fixture bar.
+ *
+ * SCOPE: this is a detection-quality gate, the only kind in this repo. It is
+ * the opposite of the deterministic replay and prefilter gates, which verify
+ * wiring and parsing and explicitly do NOT verify model judgment.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join, basename, extname } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
-
-import { AuthBypassDetector } from "../analysis-engine/detectors/auth-bypass.detector";
-
-const FIXTURES_DIR = "fixtures/auth-bypass";
-const POSITIVES_MIN = 7;
-const NEGATIVES_MIN = 9;
-const COMBINED_MIN = 16;
-const SLEEP_MS_BETWEEN = 800;
-
-interface MetaEntry {
-  description: string;
-  category: string;
-}
-
-interface FixtureResult {
-  file: string;
-  isPositive: boolean;
-  flagged: boolean;
-  preFilterReason?: string;
-  verdict?: {
-    isVulnerable: boolean;
-    confidence: string;
-    reasoning: string;
-  } | null;
-  triggerCount: number;
-  meta: MetaEntry;
-}
-
-function languageDisplayFor(file: string): string {
-  const ext = extname(file).slice(1).toLowerCase();
-  const map: Record<string, string> = {
-    ts: "typescript",
-    tsx: "typescript",
-    js: "javascript",
-    jsx: "javascript",
-    py: "python",
-    go: "go",
-    rb: "ruby",
-    java: "java",
-    kt: "kotlin",
-  };
-  return map[ext] ?? ext;
-}
-
-function loadFixture(filepath: string): {
-  assumedPath: string;
-  content: string;
-} {
-  const raw = readFileSync(filepath, "utf8");
-  const lines = raw.split(/\r?\n/);
-  const isShebang = (lines[0] ?? "").startsWith("#!");
-  const headerIdx = isShebang ? 1 : 0;
-  const headerLine = lines[headerIdx] ?? "";
-  const m = headerLine.match(/(?:\/\/|#)\s*ASSUMED-PATH:\s*(.+?)\s*$/);
-  const assumedPath = m
-    ? m[1]!
-    : `src/app/handlers/unknown/${basename(filepath)}`;
-  if (m) lines.splice(headerIdx, 1);
-  return { assumedPath, content: lines.join("\n") };
-}
-
-function buildSyntheticDiff(filePath: string, content: string): string {
-  const lines = content.split(/\r?\n/);
-  while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
-  const N = lines.length;
-  const header =
-    `diff --git a/${filePath} b/${filePath}\n` +
-    `new file mode 100644\n` +
-    `--- /dev/null\n` +
-    `+++ b/${filePath}\n` +
-    `@@ -0,0 +1,${N} @@\n`;
-  const body = lines.map((l) => "+" + l).join("\n");
-  return header + body + "\n";
-}
-
-function parseMeta(
-  metaContent: string,
-  isPositive: boolean,
-): Map<string, MetaEntry> {
-  const out = new Map<string, MetaEntry>();
-  const sectionMarker = isPositive ? "## Positive" : "## Negative";
-  let inSection = false;
-  for (const line of metaContent.split(/\r?\n/)) {
-    if (line.startsWith("## ")) {
-      inSection = line.startsWith(sectionMarker);
-      continue;
-    }
-    if (!inSection) continue;
-    // - <filename>: <description> (Category X — reason)?
-    const m = line.match(
-      /^- (\S+):\s*(.+?)(?:\s*\((Category [AB])[^)]*\))?\s*$/,
-    );
-    if (m) {
-      out.set(m[1]!, {
-        description: m[2]!.trim(),
-        category: m[3] ?? "-",
-      });
-    }
-  }
-  return out;
-}
-
-async function scanDir(
-  dir: string,
-  isPositive: boolean,
-  metaMap: Map<string, MetaEntry>,
-  detector: AuthBypassDetector,
-): Promise<FixtureResult[]> {
-  const files = readdirSync(dir)
-    .filter((f) => !f.endsWith(".md") && !f.startsWith("."))
-    .sort();
-  const out: FixtureResult[] = [];
-  let i = 0;
-  for (const file of files) {
-    i++;
-    const filepath = join(dir, file);
-    const { assumedPath, content } = loadFixture(filepath);
-    const diff = buildSyntheticDiff(assumedPath, content);
-
-    let flagged = false;
-    let preFilterReason: string | undefined;
-    let verdict: FixtureResult["verdict"];
-    let triggerCount = 0;
-    try {
-      const findings = await detector.detect({ diff });
-      flagged = findings.length > 0;
-      const diag = detector.lastDiagnostics[0];
-      if (diag) {
-        preFilterReason = diag.preFilterReason;
-        verdict = diag.verdict ?? undefined;
-        triggerCount = diag.triggerCount;
-      }
-    } catch (err) {
-      preFilterReason = `error: ${(err as Error).message}`;
-    }
-
-    const meta = metaMap.get(file) ?? {
-      description: "(no meta)",
-      category: "-",
-    };
-    out.push({
-      file,
-      isPositive,
-      flagged,
-      preFilterReason,
-      verdict,
-      triggerCount,
-      meta,
-    });
-    process.stdout.write(
-      `  [${i}/${files.length}] ${flagged ? "FLAG" : "skip"}  ${file}` +
-        (preFilterReason ? `  (${preFilterReason})` : "") +
-        "\n",
-    );
-    if (i < files.length) await sleep(SLEEP_MS_BETWEEN);
-  }
-  return out;
-}
-
-function printDiagnostic(
-  caught: number,
-  positiveCount: number,
-  flaggedNegativeCount: number,
-  negativeCount: number,
-  missedPositives: FixtureResult[],
-  flaggedNegatives: FixtureResult[],
-): void {
-  const out = process.stdout;
-  out.write(
-    "================================================================\n",
-  );
-  out.write("TEST FAILED — diagnostic\n");
-  out.write(
-    "================================================================\n\n",
-  );
-
-  if (missedPositives.length > 0) {
-    out.write(`POSITIVES MISSED (${positiveCount - caught}/${positiveCount} should be 0):\n`);
-    for (const m of missedPositives) {
-      out.write(`  ${m.file} (Category: ${m.meta.category})\n`);
-      out.write(`    META: ${m.meta.description}\n`);
-      if (m.preFilterReason) {
-        out.write(`    Verdict: filtered out by ${m.preFilterReason}\n`);
-      } else if (m.verdict) {
-        out.write(`    Verdict: ${JSON.stringify(m.verdict)}\n`);
-      } else {
-        out.write(
-          `    Verdict: detector returned no finding (triggers=${m.triggerCount}, no LLM verdict captured)\n`,
-        );
-      }
-      out.write("\n");
-    }
-  }
-
-  if (flaggedNegatives.length > 0) {
-    out.write(
-      `NEGATIVES INCORRECTLY FLAGGED (${flaggedNegativeCount}/${negativeCount} should be ≤1):\n`,
-    );
-    for (const n of flaggedNegatives) {
-      out.write(`  ${n.file} (${n.meta.category})\n`);
-      out.write(`    META: ${n.meta.description}\n`);
-      out.write(
-        `    Verdict: ${n.verdict ? JSON.stringify(n.verdict) : "(verdict missing)"}\n\n`,
-      );
-    }
-  }
-
-  out.write(
-    "================================================================\n",
-  );
-  out.write(
-    "ACTION: Review failures. If a fixture is genuinely ambiguous (humans\n",
-  );
-  out.write(
-    "would also disagree), consider revising or removing it. Otherwise,\n",
-  );
-  out.write("prompt engineering needs improvement.\n");
-}
+import {
+  AuthBypassDetector,
+  SYSTEM_PROMPT_FINGERPRINT,
+} from "../analysis-engine/detectors/auth-bypass.detector";
+import { runStabilityHarness } from "./lib/stability-harness";
 
 async function main(): Promise<void> {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -250,63 +43,22 @@ async function main(): Promise<void> {
   }
 
   const detector = new AuthBypassDetector();
-  const metaContent = readFileSync(join(FIXTURES_DIR, "META.md"), "utf8");
-  const positiveMeta = parseMeta(metaContent, true);
-  const negativeMeta = parseMeta(metaContent, false);
+  const report = await runStabilityHarness({
+    detectorName: "auth-bypass",
+    fixturesDir: "fixtures/auth-bypass",
+    detector: detector as Parameters<typeof runStabilityHarness>[0]["detector"],
+    nRuns: 5,
+    perPositiveThreshold: 4,
+    perNegativeThreshold: 5,
+    positivesMinPassing: 22,
+    negativesMinPassing: 23,
+    combinedMinPassing: 45,
+    costPerLlmCallUsd: 0.00828,
+    systemPromptFingerprint: SYSTEM_PROMPT_FINGERPRINT,
+  });
 
-  process.stdout.write("Positives (should be flagged):\n");
-  const positives = await scanDir(
-    join(FIXTURES_DIR, "positive"),
-    true,
-    positiveMeta,
-    detector,
-  );
-
-  process.stdout.write("\nNegatives (should NOT be flagged):\n");
-  const negatives = await scanDir(
-    join(FIXTURES_DIR, "negative"),
-    false,
-    negativeMeta,
-    detector,
-  );
-
-  const caught = positives.filter((r) => r.flagged).length;
-  const correctlySkipped = negatives.filter((r) => !r.flagged).length;
-  const flaggedNegatives = negatives.filter((r) => r.flagged);
-  const missedPositives = positives.filter((r) => !r.flagged);
-  const combined = caught + correctlySkipped;
-  const totalCount = positives.length + negatives.length;
-  const accuracyPct = Math.round((combined / totalCount) * 100);
-
-  process.stdout.write("\n");
-  process.stdout.write(`Positives caught:           ${caught}/${positives.length} (need >= ${POSITIVES_MIN})\n`);
-  process.stdout.write(`Negatives correctly skipped: ${correctlySkipped}/${negatives.length} (need >= ${NEGATIVES_MIN})\n`);
-  process.stdout.write(`Combined accuracy:          ${combined}/${totalCount} (${accuracyPct}%, need >= ${COMBINED_MIN})\n\n`);
-
-  const passedNegativesGate = correctlySkipped >= NEGATIVES_MIN;
-  const passedPositivesGate = caught >= POSITIVES_MIN;
-  const passedCombined = combined >= COMBINED_MIN;
-  const passed = passedNegativesGate && passedPositivesGate && passedCombined;
-
-  if (!passedNegativesGate) {
-    process.stdout.write(
-      `HARD GATE FAILED: negatives ${correctlySkipped}/${negatives.length} < ${NEGATIVES_MIN}; false positives matter most.\n\n`,
-    );
-  }
-
-  if (!passed) {
-    printDiagnostic(
-      caught,
-      positives.length,
-      flaggedNegatives.length,
-      negatives.length,
-      missedPositives,
-      flaggedNegatives,
-    );
-    process.exit(1);
-  }
-
-  process.stdout.write("PASS.\n");
+  process.stdout.write(`\n${report.passed ? "PASS" : "FAIL"}.\n`);
+  if (!report.passed) process.exit(1);
 }
 
 main().catch((err) => {

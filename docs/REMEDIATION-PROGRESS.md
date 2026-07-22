@@ -895,9 +895,36 @@ the READY verdict is unchanged.
 - **Stage 3 - opt-in live workflow (manual, spends only when run).** A GitHub Actions
   workflow on `workflow_dispatch` only (NO fork-PR trigger, NO nightly schedule), reading
   `ANTHROPIC_API_KEY` from a repo secret the owner sets, running the live detector tests
-  through the existing `stability-harness` with repeated sampling (N>=3 and pass
-  thresholds) so a single flaky verdict cannot pass as stable. This is the only gate that
-  exercises the model's judgment.
+  with repeated sampling so a single flaky verdict cannot pass as stable. This is the only
+  gate that exercises the model's judgment.
+
+  **CORRECTION of the sampling claim written before step 1 landed.** The sentence above
+  previously said the workflow runs "the live detector tests through the existing
+  `stability-harness`", which presumed they already plug into it. **They did not.**
+  `runStabilityHarness` had exactly TWO callers (`test-idor`, `test-idor-tenant`); the rest
+  called `detect()` once per fixture, so a live run would have produced NO repeated sampling
+  while looking green, defeating the point of the stage. The related "N>=3" phrasing also
+  understated the repo's own practice: the established convention is the **nRuns rule at
+  N=5** with a >=4/5 per-fixture threshold, implemented independently in several places.
+  The real inventory, as of step 1 (PR #116):
+  - **Routed through `stability-harness` (6):** `test:idor` and `test:idor-tenant` (already
+    were), plus `test:auth-bypass`, `test:admin-check`, `test:env-exposure` and
+    `test:webhook-unverified` (wrapped by step 1). All at n=5, positives >=4/5, negatives
+    5/5, aggregates corpus-relative and all-passing.
+  - **Self-replay at N=5 OUTSIDE the harness, correctly (4):** `test:idor-multi` (exact
+    expected/forbidden sink-line SET, which the harness's boolean `flagged` cannot express),
+    `test:auth-bypass-lane` and `test:express-lane` (lane fires/silent classification, no
+    positive/negative corpus), and `test:h8-escalation` (Opus 4.8 escalation anchors, K=5,
+    binary all-must-hold). Wrapping any of these would LOSE assertions, so they stay out by
+    design, not by omission.
+  - **EXCLUDED from stage 3 (1): secrets-exposure.** `registry.ts` constructs it with
+    `llmValidation` false, so its shipped path never calls the model and is already fully
+    gated for $0 by 2b.5. Sampling it live would either make zero calls (a duplicate of the
+    free gate) or exercise the opt-in LLM path the product never runs and that Day 7
+    deliberately disabled for leaking secret values into PR output. **Consequence to state
+    at F-004 lift time: one of six detectors will have NO live model-judgment coverage.**
+  - **Not yet sampled, and inconsistent with its siblings:** `test:idor-lane` is single-shot
+    while the other two lane tests are at N=5. See Priority 1c.
 
 ### Priority 1b - OPEN: the H7 double-silence risk (unresolved potential RECALL hole)
 
@@ -985,6 +1012,34 @@ remains OPEN as above.
   fire, silently invalidating the very manifest partition it protects, so naming every flag in
   one checked constant restores the compile-time check the detector-specific function got for
   free. 2b.5 is its second caller (`OPT_IN_GUARD.SECRETS`). No API spend.
+
+- **Decayed absolute thresholds in the live accuracy tests (opened by stage-3 step 1).**
+  Every live detector-accuracy test gated on ABSOLUTE constants (`POSITIVES_MIN`,
+  `NEGATIVES_MIN`, `COMBINED_MIN`) calibrated when the corpora were about 10 positives and 10
+  negatives. The corpora grew; the constants did not. Measured decay at the time step 1
+  landed: auth-bypass 7 of 22 positives (a **32 percent** bar), webhook-unverified 7 of 17
+  (41 percent), admin-check 11 of 21 (52 percent), env-exposure 7 of 11 (64 percent),
+  secrets-exposure 7 of 10 (70 percent). A test could pass while most positives were missed.
+  **FIXED for the four wrapped by step 1** (PR #116) by moving to corpus-relative
+  all-passing aggregates. **STILL OPEN for `test-secrets-exposure.ts`**, which is excluded
+  from stage 3 and so was not touched: its constants remain 7/9/16 against a 10/10 corpus.
+  Either retire that test or make its thresholds corpus-relative. No API spend to fix.
+
+- **Hardcoded `/10` and `/20` denominators (opened by stage-3 step 1).** The same family of
+  tests printed literal `${caught}/10` and `${combined}/20` in their summaries while
+  `scanDir` iterated the real directory, so the reported denominator was simply wrong once a
+  corpus grew. env-exposure has 11 positives and could print "Positives caught: 11/10".
+  **FIXED for env-exposure and webhook-unverified by step 1** (the harness prints real
+  denominators). **STILL OPEN in `test-secrets-exposure.ts`**, same reason as above. This is
+  a reporting defect, not a gate defect, but it makes a green line unreadable. No API spend.
+
+- **`test-idor-lane.ts` is single-shot while its two siblings sample at N=5 (opened by
+  stage-3 step 1).** `test-auth-bypass-lane.ts` and `test-express-lane.ts` both implement the
+  nRuns rule (`N_RUNS = 5`, fires >=4/5, silent <=1/5); `test-idor-lane.ts` calls the detector
+  once. Lane routing is exactly the kind of verdict-dependent behavior that a single sample
+  cannot establish. It needs the lane-shaped K-of-N treatment its siblings already have, NOT
+  `runStabilityHarness` (it has no positive/negative corpus; it runs over
+  `fixtures/real-shape/fastapi-saas`). Zero spend to write; spends only when run live.
 
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
