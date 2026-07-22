@@ -1038,7 +1038,10 @@ the READY verdict is unchanged.
   | **total** | **144** | **168** | **24** | **144** | 142 | 0 |
 
   Identity: 168 enumerated minus 24 pre-filtered equals 144 model-reaching. Zero real network
-  calls (the real transport was invoked 0 times). This CONFIRMS the inherited 144 by
+  calls (the real transport was invoked 0 times). **Since PR #119 the `divergence` column means
+  observation against observation**, not inference against observation: the harness counter is
+  now read from the call ledger at the `callClaude` chokepoint. A 0 there is therefore a
+  stronger statement than it was when this table was first written. This CONFIRMS the inherited 144 by
   execution. It did not have to: the previous 144 was the size of the replay recording set,
   and the replay gate asserts recordings cover EXACTLY the manifest, so a replay run can only
   ever return 144 or fail loud. Replay restates the manifest; it cannot verify it. The
@@ -1227,8 +1230,8 @@ remains OPEN as above.
   `runStabilityHarness` (it has no positive/negative corpus; it runs over
   `fixtures/real-shape/fastapi-saas`). Zero spend to write; spends only when run live.
 
-- **`runStabilityHarness` INFERS `llmCalls` instead of observing the call (opened by stage-3
-  step 2).** The harness increments its call counter when `lastDiagnostics[0]` carries no
+- **RESOLVED (PR #119): `runStabilityHarness` INFERRED `llmCalls` instead of observing the
+  call (opened by stage-3 step 2).** The harness increments its call counter when `lastDiagnostics[0]` carries no
   `preFilterReason`. That is an inference from a diagnostic, not an observation at
   `callClaude`, and it has two structural blind spots: it reads only the FIRST diagnostic
   entry, so a fixture whose diff carried more than one file would collapse to one count; and
@@ -1241,6 +1244,38 @@ remains OPEN as above.
   nothing holds that invariant in place. **Deliberately NOT fixed in step 2**, so that the
   measured column exists as an independent oracle to validate the fix against; fixing the
   counter in the same change would leave the new counter checked only by itself. No API spend.
+
+  **FIXED 2026-07-22 (PR #119), validated against the step-2 oracle at zero spend.** The count
+  is now OBSERVED at the chokepoint. A new `src/lib/llm-call-ledger.ts` keeps three O(1)
+  accumulators (`calls`, `pricedCalls`, `costUsd`) with snapshot and delta reads, mirroring
+  `src/lib/llm-coverage.ts`, and `callClaude` records into it at each of its five terminal
+  returns WITHOUT the auxiliary skip that the coverage tally applies. That is what catches the
+  escalation call: escalation goes through `callClaude` like everything else, and only the
+  tally filters it out, not the function. No array is kept, because `server/webhook-server.ts`
+  is long-lived and a per-call array would leak.
+
+  Two acceptance tests, both zero spend, live in `measure:stage3-calls`:
+  - **Test A, per fixture:** the observed counter equals the spy count on all **166**
+    harness-routed fixtures, not merely in aggregate. This is now observation against
+    observation.
+  - **Test B, the falsification test, and the real gate:** with escalation OFF every fixture
+    makes exactly one call, so test A only ever confirms 1 equals 1. Test B manufactures the
+    multi-call case that does not occur naturally: a canned `isVulnerable: true` verdict at
+    MEDIUM with `FIXOR_ESCALATE_MEDIUM=true`. Measured result, **old inferred counter 142,
+    new observed counter 304, with 166 escalation calls observed**. The escalation second call
+    is visible to the ledger and invisible to the inference. A fix for "blind to the escalation
+    call" that was never run against a corpus containing one would be asserted, not verified.
+    Test B's numbers are a COUNTING CEILING, never a cost figure: a constant canned verdict
+    fabricates the MEDIUM rate.
+
+  **The `llmErrors` counter was deliberately NOT switched to the coverage tally**, contrary to
+  the obvious reading of "observe instead of infer". All six detectors return a null verdict on
+  a MALFORMED tool input from a SUCCESSFUL call, so the old `llmErrors` is the union of
+  transport failures and parse failures while `llmCoverageSince().failed` counts transport
+  failures only. Switching would have DROPPED parse-failure detection, loosening a gate whose
+  entire purpose is to stop a hollow pass on a negative. Instead the observed transport-failure
+  count was ADDED as a separate term, so the gate is strictly tighter and no run that failed
+  before can start passing. Cost reporting is untouched here and remains open below.
 
 - **`estimatedCostUsd` is a flat per-call constant (opened by stage-3 step 2).** The harness
   computes `totalLlmCalls * costPerLlmCallUsd`, defaulting to a single flat figure. The four

@@ -38,6 +38,7 @@ import {
   sleep,
 } from "../lib/anthropic-retry";
 import { recordLlmDetectionCall } from "../lib/llm-coverage";
+import { recordLlmCall } from "../lib/llm-call-ledger";
 import {
   resolveReplayMode,
   loadReplayFixture,
@@ -184,6 +185,9 @@ export async function callClaude(
     // a real call and never returns the no_api_key empty-verdict path.
     const replayed = loadReplayFixture(opts);
     tally();
+    // Unpriced: a replayed response carries no usage, so it counts toward
+    // `calls` but not `pricedCalls`.
+    recordLlmCall(null);
     return {
       ok: true,
       message: replayed.message,
@@ -196,6 +200,7 @@ export async function callClaude(
   if (!client) {
     logger.error("callClaude failed: no_api_key (ANTHROPIC_API_KEY missing)");
     tally("no_api_key");
+    recordLlmCall(null);
     return { ok: false, reason: "no_api_key" };
   }
 
@@ -311,6 +316,8 @@ export async function callClaude(
         saveReplayFixture(opts, { toolInput: toolBlock?.input, text });
       }
       tally();
+      // The only priced path: lastCallCost was just computed from real usage.
+      recordLlmCall(lastCallCost);
       return {
         ok: true,
         message,
@@ -335,6 +342,7 @@ export async function callClaude(
           "callClaude timeout",
         );
         tally("timeout");
+        recordLlmCall(null);
         return { ok: false, reason: "timeout", error: err };
       }
 
@@ -390,5 +398,6 @@ export async function callClaude(
     attempts > 1 ? "callClaude http_error after retries" : "callClaude http_error",
   );
   tally("http_error");
+  recordLlmCall(null);
   return { ok: false, reason: "http_error", error: lastErr };
 }
