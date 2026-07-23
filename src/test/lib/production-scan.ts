@@ -10,10 +10,10 @@
  * Run via:
  *   npx tsx src/test/lib/production-scan.ts <repo-dir> <output.json>
  *
- * Cost model (assumes default detector behavior):
- *   - secrets-exposure regex-only: $0 per file (no LLM calls)
- *   - admin-check per-pattern tier: judgment-tier matches only
- *     (~$0.001-0.005 per file containing role_string_compare match)
+ * Cost: reported MEASURED from the call ledger (real message.usage summed),
+ * not from a flat per-call constant. secrets-exposure is regex-only so it
+ * makes no LLM calls; admin-check only reaches the model on judgment-tier
+ * matches. A run with no priced calls reports its actual $0.00 spend.
  *
  * Output JSON shape: see ScanResult below. Snippets are redacted —
  * any portion of the source line that matches the detector's
@@ -29,6 +29,10 @@ import { join, relative, basename, extname } from "node:path";
 import { SecretsExposureDetector } from "../../analysis-engine/detectors/secrets-exposure.detector";
 import { AdminCheckDetector } from "../../analysis-engine/detectors/admin-check.detector";
 import type { NormalizedFinding } from "../../analysis-engine/detector.types";
+import {
+  llmCallsSince,
+  snapshotLlmCalls,
+} from "../../lib/llm-call-ledger";
 
 const SOURCE_EXTENSIONS = new Set([
   ".ts",
@@ -65,7 +69,6 @@ const SKIP_DIRS = new Set([
 
 const MAX_FILE_BYTES = 200_000;
 const SNIPPET_MAX_CHARS = 80;
-const COST_PER_LLM_CALL_USD = 0.004;
 const SLEEP_MS_BETWEEN_LLM_CALLS = 200;
 
 interface ScanFinding {
@@ -97,9 +100,17 @@ interface ScanResult {
   filesSkipped: number;
   bytesScanned: number;
   detectorCounts: Record<string, number>;
+  /** OBSERVED at the callClaude chokepoint via the ledger, not inferred. */
   llmCalls: number;
   llmErrors: number;
-  estimatedCostUsd: number;
+  /** Calls that returned real usage. Unpriced ones are replayed or failed. */
+  pricedCalls: number;
+  /**
+   * Sum of REAL per-call USD from the ledger. MEASURED when calls are priced,
+   * 0 on an unpriced run. Replaces the previous flat-constant estimate, which
+   * used a documented-wrong Haiku-class figure.
+   */
+  measuredCostUsd: number;
   findings: ScanFinding[];
 }
 
@@ -222,6 +233,8 @@ async function scanRepo(repoDir: string): Promise<ScanResult> {
   let bytesScanned = 0;
   let totalLlmCalls = 0;
   let totalLlmErrors = 0;
+  let totalPricedCalls = 0;
+  let totalMeasuredCostUsd = 0;
 
   const secretsDetector = new SecretsExposureDetector();
   const adminDetector = new AdminCheckDetector();
@@ -242,18 +255,20 @@ async function scanRepo(repoDir: string): Promise<ScanResult> {
 
     for (const detector of [secretsDetector, adminDetector] as const) {
       let detectorFindings: NormalizedFinding[];
+      // OBSERVE the call at the chokepoint rather than inferring it from the
+      // diagnostic. Mirrors the stability harness after PR1 (the call ledger).
+      const ledgerBefore = snapshotLlmCalls();
       try {
         detectorFindings = await detector.detect({ diff });
       } catch (err) {
         totalLlmErrors++;
         continue;
       }
+      const ledger = llmCallsSince(ledgerBefore);
+      totalLlmCalls += ledger.calls;
+      totalPricedCalls += ledger.pricedCalls;
+      totalMeasuredCostUsd += ledger.costUsd;
       const diag = detector.lastDiagnostics[0];
-      if (diag && !diag.preFilterReason) {
-        totalLlmCalls++;
-      } else if (diag && diag.preFilterReason === "llm-bypass") {
-        // No LLM call; bypass path
-      }
       for (const f of detectorFindings) {
         const patternId = f.ruleId.split("-").slice(2).join("-");
         const bypassed = diag?.preFilterReason === "llm-bypass";
@@ -289,7 +304,8 @@ async function scanRepo(repoDir: string): Promise<ScanResult> {
     detectorCounts,
     llmCalls: totalLlmCalls,
     llmErrors: totalLlmErrors,
-    estimatedCostUsd: totalLlmCalls * COST_PER_LLM_CALL_USD,
+    pricedCalls: totalPricedCalls,
+    measuredCostUsd: totalMeasuredCostUsd,
     findings,
   };
 }
@@ -311,13 +327,23 @@ async function main(): Promise<void> {
   const result = await scanRepo(repoDir);
   writeFileSync(outputPath, JSON.stringify(result, null, 2), "utf8");
 
+  // Same mode discipline as the stability harness: MEASURED real cost when
+  // calls are priced, otherwise state the actual $0.00. No flat constant.
+  const costLine =
+    result.llmCalls === 0
+      ? "cost: no calls made"
+      : result.pricedCalls === result.llmCalls
+        ? `cost: MEASURED $${result.measuredCostUsd.toFixed(4)} over ${result.pricedCalls} priced call(s)`
+        : result.pricedCalls === 0
+          ? `cost: NOT MEASURED, actual $0.00 over ${result.llmCalls} call(s), 0 returned usage`
+          : `cost: MIXED, MEASURED $${result.measuredCostUsd.toFixed(4)} over ${result.pricedCalls} of ${result.llmCalls} call(s)`;
   process.stdout.write(
     `Done. Files scanned: ${result.filesScanned}, ` +
       `findings: ${result.findings.length} (` +
       `secrets-exposure: ${result.detectorCounts["secrets-exposure"] ?? 0}, ` +
       `admin-check: ${result.detectorCounts["admin-check"] ?? 0}), ` +
       `LLM calls: ${result.llmCalls}, ` +
-      `cost: ~$${result.estimatedCostUsd.toFixed(3)}, ` +
+      `${costLine}, ` +
       `duration: ${(result.scanDurationMs / 1000).toFixed(1)}s\n`,
   );
   process.stdout.write(`Output: ${outputPath}\n`);

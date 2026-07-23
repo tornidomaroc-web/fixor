@@ -243,6 +243,16 @@ Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
    One-verdict fixtures and negatives will be lower. The lesson of item 4 applies to this number
    too: report the measured unit with its scope, not a single figure multiplied across a corpus.
 
+   **UPDATE 2026-07-23 (PR #120): the harness now SELF-REPORTS measured cost.** Items 1 through 8
+   above are hand-arithmetic and owner testimony because, at the time, the harness could only
+   multiply a count by a constant. That is fixed. `runStabilityHarness` now sums the real
+   per-call USD from the PR1 ledger and reports it in three labelled modes (MEASURED, NOT
+   MEASURED with a `$0.00` actual, MIXED), so a live stage-3 run emits its own measured cost with
+   no constant. The hand-arithmetic in this section is no longer the only way to get the number;
+   it stands as the record of how the figure was derived before the harness could. Item 4's
+   warning against the harness's PROJECTED-manifest figure still stands, but for a different
+   projection: that one lives in `replay-harness`, not the stability harness.
+
 ## Live detection-quality measurements
 
 The first live measurement of detection QUALITY (not wiring) on real third-party code.
@@ -315,7 +325,10 @@ for idor is **$0.0115263** against a cold **$0.02047125** on the same fixture in
 warm unit is about 56 percent of the cold one, and the difference is the fixed cache surcharge
 $0.00921495. This is measured for idor ONLY; the other five detectors' warm units remain
 unmeasured, and the 0.00828 constant used for four of them has not been decomposed into cold and
-warm. The original requirement below is what the idor measurement satisfied. Measuring it requires a
+warm. **As of PR #120 the C/W model here is the harness's PROJECTION fallback, not its cost
+path**: a live run reports real summed cost from the ledger, and this model is used only to
+project a would-cost-live figure when no real usage exists. The original requirement below is
+what the idor measurement satisfied. Measuring it requires a
 scope where one detector fires on two or more files inside the 5-minute cache TTL.
 
 ### Detection-quality result: 3 calls, $0.080323, zero model-emitted findings
@@ -1099,6 +1112,13 @@ the READY verdict is unchanged.
   Note also that the 0.00828 constant used for the other four detectors carries the SAME
   cold-versus-warm ambiguity and has not been decomposed.
 
+  **This projection is now the PRE-RUN estimate, not the figure of record (PR #120).** The
+  `~$6.41` table above lives in `measure:stage3-calls` and is a projection built from the
+  measured idor warm unit and the supplied 0.00828 non-idor rate. A real stage-3 run no longer
+  needs it: `runStabilityHarness` self-reports its own MEASURED cost from the ledger, in labelled
+  modes, with no constant. So this cost line means "measured when live, projected before". The
+  projection stays a conservative upper bound for the reasons in the next paragraph.
+
   **Measure through `detect()`, not `analyzeFile()`.** A free `FIXOR_REPLAY=1` rehearsal run
   BEFORE spending failed with `ReplayFixtureMissing`: a direct `analyzeFile` call produced a
   different request key than the frozen recording, because `buildSyntheticDiff` strips trailing
@@ -1277,7 +1297,8 @@ remains OPEN as above.
   count was ADDED as a separate term, so the gate is strictly tighter and no run that failed
   before can start passing. Cost reporting is untouched here and remains open below.
 
-- **`estimatedCostUsd` is a flat per-call constant (opened by stage-3 step 2).** The harness
+- **RESOLVED (PR #120): `estimatedCostUsd` was a flat per-call constant (opened by stage-3
+  step 2).** The harness
   computes `totalLlmCalls * costPerLlmCallUsd`, defaulting to a single flat figure. The four
   detectors wrapped by step 1 pass an explicit per-call constant; `test:idor` and
   `test:idor-tenant` pass none and inherit the default. IDOR is whole-file and batches its
@@ -1308,6 +1329,45 @@ remains OPEN as above.
   a more accurate number, and it would fix two of the three idor entry points anyway since
   `test-idor-multi.ts` does not use the harness. The code change belongs AFTER the cost model is
   fixed here, not before it.
+
+  **FIXED 2026-07-23 (PR #120), zero spend, validated offline against the step-2 oracle.** The
+  harness no longer multiplies a count by a constant. It sums the REAL per-call USD from the
+  PR1 ledger (`llmCallsSince(before).costUsd`, computed from real `message.usage` and including
+  any escalation call) and reports in three labelled modes keyed on `pricedCalls` versus
+  `calls`, never the environment: MEASURED (all priced, real sum, no constant), NOT MEASURED
+  (none priced, so the run's actual spend is `$0.00` because no API call was made), and MIXED
+  (the measured subset reported and the unpriced remainder named and excluded, never blended
+  into one total). The would-cost-live line on an unpriced run is a PROJECTION labelled as an
+  estimate, printed on its own line and never called a cost. `costPerLlmCallUsd` is retained
+  and demoted to that projection rate; its numeric default is REMOVED, so absent rate prints no
+  projection rather than a fabricated constant. That deliberately surfaces the two idor entry
+  points as lacking a measured rate until `0.0115263` is supplied on purpose. `passed` and every
+  assertion are untouched: nothing reads a cost field, and `passed` has no cost term. Three
+  offline assertions in `measure:stage3-calls` cover all three modes (canned MEASURED `$0.00`,
+  replay NOT MEASURED, a manufactured MIXED case). The cost MODEL `(F_d x N) x W_d + P_d x
+  0.00921495` survives only as the projection fallback and as the pre-run table in the spy, not
+  as the live cost path, since a live run now self-reports its measured cost.
+
+- **`src/test/lib/production-scan.ts` carried a stale `0.004` per-call constant and the same
+  inferred counter (found and FIXED in PR #120).** This Step 4 production-shape scanner is dead
+  code (no importer anywhere in `src`), which is why the stale figure survived unnoticed. Its
+  `COST_PER_LLM_CALL_USD = 0.004` is the exact Haiku-class figure `detector-test-rules.md`
+  records as wrong for Sonnet detection, and it also inferred its call count from
+  `lastDiagnostics[0].preFilterReason`. PR #120 routed both through the ledger (observed count,
+  real summed cost, mode-aware reporting) and removed the constant. Fixed in place, not deleted:
+  deletion is a destructive op and was deliberately not taken. Naming it here so the RESOLVED
+  bullet above is true across the whole tree, not just the stability harness.
+
+- **OPEN: `recordLlmCall` treats "the success path ran" as priced, not "usage was present"
+  (found in PR #120, NOT fixed there).** In `anthropic-client.ts`, `lastCallCost` is assigned
+  unconditionally on a successful call; when `message.usage` is undefined every token field
+  defaults to 0 and `costUsd` is 0, yet `recordLlmCall(lastCallCost)` still marks the call
+  priced. The sibling `recordCost` guards with `if (installationId !== undefined && usage)`, so
+  the repo is internally inconsistent about what counts as priced. In practice the Messages API
+  always returns `usage` and the `| undefined` is defensive, so this has never produced a wrong
+  figure. The one-line fix is `recordLlmCall(usage ? lastCallCost : null)`, a production change
+  deliberately deferred out of PR #120 (which was test-lib plus the already-landed ledger). Low
+  priority: theoretical until the API omits `usage`. No API spend to record.
 
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
