@@ -331,6 +331,16 @@ project a would-cost-live figure when no real usage exists. The original require
 what the idor measurement satisfied. Measuring it requires a
 scope where one detector fires on two or more files inside the 5-minute cache TTL.
 
+**UPDATE 2026-07-24 (PR A): `pricedCalls` now means "usage was present", not "the success path
+ran".** The MEASURED versus NOT-MEASURED versus MIXED mode is selected purely by comparing
+`pricedCalls` to `calls`, so a MEASURED reading is only as trustworthy as the priced count. Before
+PR A, a successful call with no `message.usage` block still incremented `pricedCalls` at a
+fabricated $0.00, which the mode logic would read as a real MEASURED figure. PR A guards the ledger
+write on `usage` at the `callClaude` chokepoint, so an absent-usage success now counts toward
+`calls` but not `pricedCalls`, and the harness reports NOT MEASURED or MIXED instead of a fabricated
+MEASURED. See the RESOLVED bullet in Priority 1c for the measured proof. This changes no observed
+count in `measure:stage3-calls`, whose canned response carries a zeroed-but-present usage block.
+
 ### Detection-quality result: 3 calls, $0.080323, zero model-emitted findings
 
 Every one of the three model calls returned `ok=true` and emitted zero findings. The only
@@ -1438,16 +1448,30 @@ remains OPEN as above.
   deletion is a destructive op and was deliberately not taken. Naming it here so the RESOLVED
   bullet above is true across the whole tree, not just the stability harness.
 
-- **OPEN: `recordLlmCall` treats "the success path ran" as priced, not "usage was present"
-  (found in PR #120, NOT fixed there).** In `anthropic-client.ts`, `lastCallCost` is assigned
-  unconditionally on a successful call; when `message.usage` is undefined every token field
-  defaults to 0 and `costUsd` is 0, yet `recordLlmCall(lastCallCost)` still marks the call
+- **RESOLVED (PR A): `recordLlmCall` treated "the success path ran" as priced, not "usage was
+  present" (found in PR #120, fixed in PR A).** In `anthropic-client.ts`, `lastCallCost` is
+  assigned unconditionally on a successful call; when `message.usage` is undefined every token
+  field defaults to 0 and `costUsd` is 0, yet `recordLlmCall(lastCallCost)` still marked the call
   priced. The sibling `recordCost` guards with `if (installationId !== undefined && usage)`, so
-  the repo is internally inconsistent about what counts as priced. In practice the Messages API
-  always returns `usage` and the `| undefined` is defensive, so this has never produced a wrong
-  figure. The one-line fix is `recordLlmCall(usage ? lastCallCost : null)`, a production change
-  deliberately deferred out of PR #120 (which was test-lib plus the already-landed ledger). Low
-  priority: theoretical until the API omits `usage`. No API spend to record.
+  the repo was internally inconsistent about what counts as priced. In practice the Messages API
+  always returns `usage` and the `| undefined` is defensive, so this never produced a wrong figure
+  in production, which is why it was ranked low and shipped isolated rather than urgently.
+
+  **FIXED 2026-07-24 (PR A, branch `recordllmcall-usage-guard`), zero spend.** The success path
+  now calls `recordLlmCall(usage ? lastCallCost : null)`, matching the sibling `recordCost` guard,
+  so `pricedCalls` means "usage was present", not "the success path ran". Directly asserted at the
+  chokepoint by a usage-absent spy variant (deleted after use, zero spend): a success whose canned
+  response OMITS the usage block is counted in `calls` but NOT in `pricedCalls` (`calls=1,
+  pricedCalls=0, costUsd=0`), while a success WITH a zeroed usage block stays priced (`calls=1,
+  pricedCalls=1, costUsd=0`). End to end, `runStabilityHarness` over `fixtures/env-exposure` under
+  the usage-absent spy reported `cost: NOT MEASURED, actual $0.00 over 17 call(s), 0 returned
+  usage`, not the fabricated `MEASURED $0.00` the old code would have printed (17 priced == 17
+  calls). The `measure:stage3-calls` acceptance proofs are UNCHANGED by the guard, because their
+  canned response carries a zeroed-but-present usage block, so every canned call stays priced:
+  test A per-fixture equality (166 fixtures), the ledger mode check (`pricedCalls 142 == calls
+  142`), MEASURED `$0.00 over 142 priced`, NOT-MEASURED replay `counted 1 / priced 0`, MIXED `2
+  calls / 1 priced / $0.0100`, and test B falsification (old inferred 142, new observed 304, 166
+  escalation calls) all still pass, and the model-reaching total is still 144. No API spend.
 
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 

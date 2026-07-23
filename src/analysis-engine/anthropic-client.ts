@@ -316,8 +316,13 @@ export async function callClaude(
         saveReplayFixture(opts, { toolInput: toolBlock?.input, text });
       }
       tally();
-      // The only priced path: lastCallCost was just computed from real usage.
-      recordLlmCall(lastCallCost);
+      // Priced ONLY when usage was present. `lastCallCost` is non-null on every
+      // success (its token fields default to 0 when `usage` is absent), so a
+      // success with no usage block would otherwise be counted as a priced call
+      // at a fabricated $0.00, which reads downstream as a real MEASURED figure.
+      // Guard on `usage` to match the sibling recordCost above, so pricedCalls
+      // means "usage was present", not "the success path ran".
+      recordLlmCall(usage ? lastCallCost : null);
       return {
         ok: true,
         message,
