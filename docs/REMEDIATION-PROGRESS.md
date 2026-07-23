@@ -472,9 +472,9 @@ as the record of why the lists diverged while they did.
   (shared harness, PR #81/#82), 2b.1 (webhook-unverified, PR #83/#84/#85), 2b.2 (auth-bypass,
   PR #87/#88/#89), 2b.3 (admin-check, PR #90/#91/#92), 2b.4 (idor, PR #95/#96/#97), and 2b.5
   (secrets-exposure, PR #115) are all merged. **F-004 is still NOT closed. Stage 3 step 3 (the
-  opt-in live model-judgment workflow file) is now WRITTEN and in review; merging that workflow
-  will still NOT lift F-004, because a merged workflow that has never executed closes nothing.
-  F-004 stays OPEN pending a green RUN.**
+  opt-in live model-judgment workflow file) is now MERGED (PR #121, squash `419c6824`) but has
+  NEVER executed; merging that workflow did NOT lift F-004, because a merged workflow that has
+  never run closes nothing. F-004 stays OPEN pending a green RUN.**
 
   Six of six detectors gated is progress, not readiness. Every gate landed so far is a
   wiring-and-parsing gate: none of them verifies detection quality. Stage 3 (live) has now
@@ -915,14 +915,26 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
   inverted admin-check-vs-auth-bypass claim) and recorded the 2b.4 idor scoping facts. No
   code, test, or CI change.
 
+- **F-004 stage 3 step 3 MERGED, NOT YET RUN - PR #121, squash `419c6824`.** Adds
+  `.github/workflows/stage3-live-detection.yml`, the `workflow_dispatch`-only live
+  detection-quality gate (the six `runStabilityHarness` callers at n=5: env-exposure,
+  webhook-unverified, auth-bypass, admin-check, idor, idor-tenant; secrets-exposure excluded),
+  plus the tracker update recording it. Docs and workflow only, no entry-point change (N stays 5,
+  thresholds stay 4/5 and 5/5). **The workflow file now exists on `main` but has NEVER executed,
+  so it closes nothing.** F-004 stays OPEN pending a green RUN, which spends and is a separate
+  owner decision. Guardrails baked into the file: single node 20.x with no matrix, `contents:
+  read`, a `stage3-live-detection` concurrency group with `cancel-in-progress: false`, a 60-minute
+  timeout, fail-loud guards that reject a keyless or replay-diverted run before any npm call, a
+  `SKIPPED:`-marker belt-and-suspenders check, and a MEASURED-cost line summed into the job
+  summary. Verified at merge: the three required checks (build+typecheck+tests on 20.x and 22.x,
+  gitleaks+pattern scan) passed bound to the head SHA, and the `stage3-live-detection` workflow
+  registered on `main` with ZERO runs, confirming the `workflow_dispatch`-only trigger did not
+  fire on the merge (no spend).
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- **Stage-3 step 3 (the workflow_dispatch file)** is the open PR, prepared and awaiting the
-  merge command; it is not yet merged and is not listed under DONE until it lands. It adds
-  `.github/workflows/stage3-live-detection.yml` plus this tracker update, and changes no code
-  and no entry point (N stays 5, thresholds stay 4/5 and 5/5). On landing it becomes a DONE entry
-  worded "stage-3 step 3 MERGED, NOT YET RUN": the workflow file will exist but will never have
-  executed, so it closes nothing and F-004 stays OPEN pending a green RUN.
+- None. No open tracker PR is awaiting the merge command. (Stage-3 step 3 merged as PR #121;
+  see the DONE entry "F-004 stage 3 step 3 MERGED, NOT YET RUN".)
 
 ---
 
@@ -934,9 +946,9 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
 sub-step 2b.1 (webhook-unverified), sub-step 2b.2 (auth-bypass), sub-step 2b.3 (admin-check),
 sub-step 2b.4 (idor), and sub-step 2b.5 (secrets-exposure) are all merged, so every shipping
 detector now has a deterministic keyless gate in CI. **F-004 is still NOT closed. Stage 3 step 3,
-the workflow_dispatch file, is written and in review (see the Stage 3 bullet below); merging it
-will NOT lift F-004, because a workflow that has never executed closes nothing. F-004 stays OPEN
-pending a green RUN.** The model-judgment gate (stage 3) is only ever
+the workflow_dispatch file, is MERGED (PR #121, squash `419c6824`) but has never run (see the
+Stage 3 bullet below); merging it did NOT lift F-004, because a workflow that has never executed
+closes nothing. F-004 stays OPEN pending a green RUN.** The model-judgment gate (stage 3) is only ever
 exercised by opt-in live runs, never free-in-CI, so completing stage 2 does not lift F-004 and
 the READY verdict is unchanged.
 
@@ -1004,8 +1016,9 @@ the READY verdict is unchanged.
   with repeated sampling so a single flaky verdict cannot pass as stable. This is the only
   gate that exercises the model's judgment.
 
-  **STEP 3 STATUS (workflow file WRITTEN, in review, NOT merged, NOT run).** The file is
-  `.github/workflows/stage3-live-detection.yml`. It triggers on `workflow_dispatch` only, runs
+  **STEP 3 STATUS (workflow file MERGED, NOT YET RUN; PR #121, squash `419c6824`).** The file is
+  `.github/workflows/stage3-live-detection.yml`, now on `main` and never executed. It triggers on
+  `workflow_dispatch` only, runs
   one job on a single node 20.x (no matrix, which would double the spend), holds a
   `stage3-live-detection` concurrency group with `cancel-in-progress: false`, and times out at
   60 minutes. Its one input is a detector selector (`all` or one of env-exposure,
