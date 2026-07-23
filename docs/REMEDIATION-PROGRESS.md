@@ -892,6 +892,20 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
     pattern), while `google_api_key`, `stripe_live_publishable` and `private_key_literal` are
     ABSENT (no fixture matches them at all). Both shadowed patterns lose inside the very
     fixture named for them, the same failure mode 2b.3 measured on admin-check.
+    **COVERAGE GAP CLOSED by PR B (branch `secrets-exposure-prefilter-coverage-15of15`),
+    measured 2026-07-23.** The 2b.5 count and split above are preserved as the historical
+    measurement; the state is now 15 of 15 exercised, re-measured keylessly (0 `callClaude`
+    attempts). Five positives were added and pinned in `test-secrets-exposure-prefilter.ts`:
+    the three ABSENT patterns get `positive/11-google-api-key-hardcoded.ts`,
+    `positive/12-stripe-publishable-live.ts` and `positive/13-private-key-hardcoded.ts`; the
+    two SHADOWED patterns get `positive/14-aws-secret-literal.ts` (no AKIA id present, so
+    `aws_access_key` never precedes `aws_secret_literal`) and `positive/15-postgres-url-password.ts`
+    (no `password: "..."` field before the URL, so `password_literal` never precedes
+    `postgres_url_password`). Fixtures `positive/06` and `positive/08` are unchanged and still
+    win under their earlier-line patterns; the new fixtures reach the shadowed patterns by
+    removing the shadowing pattern from the file, not by reordering. This is the deterministic
+    prefilter axis only; it does NOT touch the separate live-model-coverage gap (secrets-exposure
+    remains excluded from stage 3), and it does NOT lift F-004.
   - **No fixture in the corpus is redaction-shaped.** The Day 13 exemption was validated
     against 21 ad-hoc cases that were never committed, so neither the full-exemption drop nor
     the partial `redactionSkipCount` path is exercised by anything. The gate pins that ABSENCE
@@ -1263,6 +1277,16 @@ remains OPEN as above.
   "currently only role_string_compare"; there are six judgment-tier patterns
   (`role_string_compare` plus the five route-def patterns). Comment-only fix. Left untouched
   by the 2b.3 PRs on purpose.
+- **Stale comment in `secrets-exposure.detector.ts` (twin of the admin-check one above; filed
+  here by twin-matching): FIXED by PR B.** The `PrefilterPattern.explanation` doc comment named
+  a nonexistent env var `FIXOR_SECRETS_LLM_VALIDATION=false` as the toggle for the regex-only
+  bypass path. The real flag is `FIXOR_SECRETS_LLM_OPT_IN` (read in the `SecretsExposureDetector`
+  constructor; default false, so the bypass is the shipped path). Verified by search: the old
+  name appeared in that one comment and nowhere else in `src`. Comment-only fix, rode along with
+  PR B (branch `secrets-exposure-prefilter-coverage-15of15`). This item was found this session
+  and was NOT previously in the tracker; it is filed beside its already-filed admin-check twin
+  per the twin-matching guardrail. Its twin (`admin-check.detector.ts`, above) stays OPEN and
+  rides along with PR C, not this PR. No API spend.
 - **idor diagnostic is lossy for lane anchoring (opened by 2b.4).** `idor.detector.ts:862`
   exposes only pair 0's verdict on `diag.verdict`; `idor.detector.ts:957` assigns
   `diag.laneDeferral` inside the per-pair loop (last-writer-wins). Neither affects shipped

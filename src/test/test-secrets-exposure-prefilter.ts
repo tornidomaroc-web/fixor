@@ -35,19 +35,27 @@
  *   - positive/08-postgres-password-client.ts is named for the Postgres URL, but
  *     `password_literal` matches earlier and `postgres_url_password` never fires.
  * Asserting only "a finding was emitted" would pass while the wrong pattern
- * produced it. Pinning the ruleId is what catches that shadowing.
+ * produced it. Pinning the ruleId is what catches that shadowing. Those two
+ * shadowed patterns are now covered independently by positive/14 and positive/15,
+ * which reproduce the pattern with the shadowing pattern removed from the file.
  *
  * HONEST SCOPE - WHAT A GREEN RUN HERE DOES *NOT* MEAN:
  *
- * 1. This gate exercises 10 of the 15 PREFILTER_PATTERNS. Five are guarded by
- *    NOTHING, in two distinct ways, both measured:
- *      SHADOWED (matched by a fixture, never the winner, so an added assertion
- *      alone cannot reach them; they need NEW fixtures whose earliest surviving
- *      match is the intended pattern):
- *        aws_secret_literal, postgres_url_password
- *      ABSENT (matched by no fixture at all):
- *        google_api_key, stripe_live_publishable, private_key_literal
- *    Do not read a green check as "all 15 patterns are guarded".
+ * 1. This gate now exercises all 15 of the 15 PREFILTER_PATTERNS, re-measured
+ *    keylessly (not read) after adding the five fixtures below. The five that
+ *    2b.5 measured as guarded by NOTHING are now each covered by a fixture whose
+ *    EARLIEST surviving trigger is the intended pattern:
+ *      formerly SHADOWED (had matched a fixture but were never the winner, so an
+ *      added assertion alone could not reach them; each needed a NEW fixture with
+ *      the shadowing pattern removed so the intended one wins):
+ *        aws_secret_literal        -> positive/14-aws-secret-literal.ts
+ *        postgres_url_password     -> positive/15-postgres-url-password.ts
+ *      formerly ABSENT (matched by no fixture at all):
+ *        google_api_key            -> positive/11-google-api-key-hardcoded.ts
+ *        stripe_live_publishable   -> positive/12-stripe-publishable-live.ts
+ *        private_key_literal       -> positive/13-private-key-hardcoded.ts
+ *    A green check now does mean all 15 prefilter patterns emit under their own
+ *    ruleId. It still says nothing about detection QUALITY; that is stage 3.
  *
  * 2. NO fixture in this corpus is redaction-shaped. The Day 13 redaction-shape
  *    exemption (`REDACTION_VALUE_PATTERNS`, see META.md and D8a in
@@ -108,6 +116,18 @@ const BYPASS_EXPECTED: ReadonlyArray<readonly [string, string]> = [
   ["positive/08-postgres-password-client.ts", "password_literal"],
   ["positive/09-slack-webhook-hardcoded.py", "slack_webhook_hardcoded"],
   ["positive/10-jwt-secret-const.go", "jwt_secret_literal"],
+  // The five patterns 2b.5 measured as unguarded, each now covered by a
+  // fixture whose EARLIEST surviving trigger is the intended pattern (measured
+  // keylessly, not read). The two formerly SHADOWED patterns are isolated by
+  // omitting the shadowing pattern entirely: 14 carries no AKIA access-key id
+  // (so aws_access_key cannot precede aws_secret_literal), 15 carries no
+  // `password: "..."` field (so password_literal cannot precede
+  // postgres_url_password).
+  ["positive/11-google-api-key-hardcoded.ts", "google_api_key"],
+  ["positive/12-stripe-publishable-live.ts", "stripe_live_publishable"],
+  ["positive/13-private-key-hardcoded.ts", "private_key_literal"],
+  ["positive/14-aws-secret-literal.ts", "aws_secret_literal"],
+  ["positive/15-postgres-url-password.ts", "postgres_url_password"],
 ];
 
 /** Bucket (a): fixture -> the exact preFilterReason detect()/analyzeFile records. */
@@ -360,9 +380,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   process.stdout.write(
-    `\nRESULT: PASS (${total}/${total} fixtures: 10 Option G bypass, 10 pre-model drops)\n` +
+    `\nRESULT: PASS (${total}/${total} fixtures: ${BYPASS_EXPECTED.length} Option G bypass, ` +
+      `${PREMODEL_DROP_EXPECTED.length} pre-model drops)\n` +
       "NOTE: deterministic wiring gate only. Detection quality is not verified here.\n" +
-      "NOTE: guards 10 of 15 prefilter patterns; see the header for the 5 unguarded.\n" +
+      "NOTE: guards all 15 prefilter patterns (was 10 of 15 before PR B).\n" +
       "NOTE: no redaction-shaped fixture exists; that path is pinned absent, not covered.\n",
   );
 }
