@@ -97,6 +97,13 @@ export interface FixtureStability {
   observedFailedCalls: number;
   /** Calls that returned real usage. Unpriced ones are replayed or failed. */
   pricedCalls: number;
+  /**
+   * Sum of the REAL per-call USD for this fixture, from the ledger, computed
+   * from real message.usage. Includes any escalation call. Zero when every
+   * call was unpriced (replayed, failed, or a canned zero-token response).
+   * This is a MEASURED figure, never a constant times a count.
+   */
+  measuredCostUsd: number;
 }
 
 export interface StabilityReport {
@@ -110,6 +117,20 @@ export interface StabilityReport {
   totalObservedFailedCalls: number;
   /** Calls that returned real usage, observed via the call ledger. */
   totalPricedCalls: number;
+  /**
+   * Sum of the REAL per-call USD across all fixtures, from the ledger. This is
+   * the harness's primary cost figure whenever calls were priced: no constant
+   * participates. Zero on a fully unpriced run (replay or canned).
+   */
+  totalMeasuredCostUsd: number;
+  /**
+   * Legacy field, retained so downstream types do not break. It now holds ONLY
+   * the would-cost-live PROJECTION on a fully-unpriced run when a projection
+   * rate was supplied, and 0 otherwise. It is NOT a measured cost and is NOT
+   * the primary figure. When calls are priced, read totalMeasuredCostUsd. A
+   * projection is what a run WOULD cost live; an unpriced run's actual spend is
+   * always $0.00 because no API call was made.
+   */
   estimatedCostUsd: number;
   passed: boolean;
 }
@@ -135,11 +156,17 @@ export interface HarnessOptions {
   combinedMinPassing?: number;
   /** Sleep between iterations to space out API calls. Default 800ms. */
   sleepMsBetween?: number;
-  /** For cost estimate logging. Default 0.01 — Sonnet 4.6 detection-call
-   *  empirical (~$0.007–0.013/call measured, Phase D burn + 2026-06-12
-   *  estimation pass). The old 0.004 default was a Haiku-class figure and
-   *  understated real spend ~2.5×; detection runs CLAUDE_MODELS.DETECTION
-   *  (claude-sonnet-4-6), not Haiku. */
+  /**
+   * PROJECTION rate for the would-cost-live line on an UNPRICED run only. When
+   * calls are priced the harness reports the ledger's real summed cost and this
+   * value is not consulted. There is NO numeric default: absent rate means no
+   * projection line is printed. This is deliberate. A single default cannot be
+   * right for both idor (measured warm 0.0115263, see the idor per-call
+   * measurement) and the four detectors that pass 0.00828, so a made-up default
+   * would reintroduce exactly the flat-constant defect this reporting change
+   * removes. The two idor entry points that pass nothing therefore print no
+   * projection until 0.0115263 is supplied deliberately.
+   */
   costPerLlmCallUsd?: number;
   /** Optional fingerprint string to print in the run header. */
   systemPromptFingerprint?: string;
@@ -254,6 +281,7 @@ async function stabilityRunDir(
     let llmErrors = 0;
     let observedFailedCalls = 0;
     let pricedCalls = 0;
+    let measuredCostUsd = 0;
 
     for (let i = 0; i < opts.nRuns; i++) {
       let result: RunResult = { flagged: false };
@@ -275,6 +303,9 @@ async function stabilityRunDir(
         const coverage = llmCoverageSince(coverageBefore);
         llmCalls += ledger.calls;
         pricedCalls += ledger.pricedCalls;
+        // Real summed cost for this run, straight from the ledger. Includes the
+        // escalation call. Zero when the calls were unpriced.
+        measuredCostUsd += ledger.costUsd;
         observedFailedCalls += coverage.failed;
         // A call happened but yielded no verdict: transport failure OR parse
         // failure. Both make any pass on this fixture hollow.
@@ -317,6 +348,7 @@ async function stabilityRunDir(
       llmErrors,
       observedFailedCalls,
       pricedCalls,
+      measuredCostUsd,
     });
 
     process.stdout.write(
@@ -342,7 +374,9 @@ export async function runStabilityHarness(
   const perPositiveThreshold = opts.perPositiveThreshold ?? nRuns - 1;
   const perNegativeThreshold = opts.perNegativeThreshold ?? nRuns;
   const sleepMsBetween = opts.sleepMsBetween ?? 800;
-  const costPerLlmCallUsd = opts.costPerLlmCallUsd ?? 0.01;
+  // No numeric default: absent rate means no would-cost-live projection is
+  // printed, rather than a fabricated constant. See HarnessOptions.
+  const costPerLlmCallUsd = opts.costPerLlmCallUsd;
 
   process.stdout.write(
     `${opts.detectorName} stability run (n=${nRuns} per fixture)\n` +
@@ -409,7 +443,54 @@ export async function runStabilityHarness(
     (s, r) => s + r.pricedCalls,
     0,
   );
-  const estimatedCostUsd = totalLlmCalls * costPerLlmCallUsd;
+  const totalMeasuredCostUsd = [...positives, ...negatives].reduce(
+    (s, r) => s + r.measuredCostUsd,
+    0,
+  );
+
+  // Mode is derived from what the ledger OBSERVED (priced vs total calls), not
+  // from the environment: a nominally-live run that hit no_api_key on every
+  // call reports honestly as unpriced. The would-cost-live projection is only
+  // printed when a rate was supplied, and it is never called a cost.
+  const unpricedCalls = totalLlmCalls - totalPricedCalls;
+  const projectionUsd =
+    costPerLlmCallUsd !== undefined
+      ? totalLlmCalls * costPerLlmCallUsd
+      : undefined;
+  // estimatedCostUsd is the legacy field: the projection on a fully-unpriced
+  // run, else 0. It is never the measured cost.
+  const estimatedCostUsd =
+    totalPricedCalls === 0 && projectionUsd !== undefined ? projectionUsd : 0;
+
+  let costLine: string;
+  if (totalLlmCalls === 0) {
+    costLine = "cost: no calls made";
+  } else if (totalPricedCalls === totalLlmCalls) {
+    // MEASURED: real summed cost, no constant.
+    costLine =
+      `cost: MEASURED $${totalMeasuredCostUsd.toFixed(4)} over ` +
+      `${totalPricedCalls} priced call(s)` +
+      (totalMeasuredCostUsd === 0
+        ? " (NOTE $0.00 over a nonzero priced count means synthetic " +
+          "zero-token responses; a real run cannot produce this)"
+        : "");
+  } else if (totalPricedCalls === 0) {
+    // NOT MEASURED: no usage came back, so actual spend is $0.00.
+    costLine =
+      `cost: NOT MEASURED, actual $0.00 over ${totalLlmCalls} call(s), ` +
+      "0 returned usage" +
+      (projectionUsd !== undefined
+        ? ` | would-cost-live PROJECTION ~$${projectionUsd.toFixed(2)} ` +
+          `at $${costPerLlmCallUsd!.toFixed(5)}/call (ESTIMATE, not a cost)`
+        : " | no projection (no rate supplied)");
+  } else {
+    // MIXED: report the measured subset and name the excluded remainder.
+    // Never blend into one total.
+    costLine =
+      `cost: MIXED. MEASURED $${totalMeasuredCostUsd.toFixed(4)} over ` +
+      `${totalPricedCalls} priced call(s); ${unpricedCalls} call(s) unpriced ` +
+      "and NOT included in that figure";
+  }
 
   process.stdout.write(
     `\nPositives: ${positivesPassed}/${positives.length} ` +
@@ -425,9 +506,9 @@ export async function runStabilityHarness(
   );
   process.stdout.write(
     `LLM calls: ${totalLlmCalls} (OBSERVED at callClaude; ${totalPricedCalls} priced), ` +
-      `no-verdict: ${totalLlmErrors}, transport failures: ${totalObservedFailedCalls}, ` +
-      `estimated cost ~$${estimatedCostUsd.toFixed(2)}\n`,
+      `no-verdict: ${totalLlmErrors}, transport failures: ${totalObservedFailedCalls}\n`,
   );
+  process.stdout.write(`${costLine}\n`);
   if (opts.systemPromptFingerprint) {
     process.stdout.write(
       `SYSTEM_PROMPT fingerprint: ${opts.systemPromptFingerprint}\n`,
@@ -469,6 +550,7 @@ export async function runStabilityHarness(
     totalLlmErrors,
     totalObservedFailedCalls,
     totalPricedCalls,
+    totalMeasuredCostUsd,
     estimatedCostUsd,
     passed,
   };
