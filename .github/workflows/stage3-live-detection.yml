@@ -1,0 +1,191 @@
+# stage-3 live detection-quality workflow (F-004 stage 3, step 3).
+#
+# WHAT THIS IS. The only gate in this repo that exercises the model's JUDGMENT.
+# Every other CI gate is a wiring-and-parsing gate that freezes behavior and
+# verifies nothing about whether a verdict is correct. This one runs the six
+# runStabilityHarness callers live, at n=5 per fixture, and fails if a detector
+# stops clearing its per-fixture thresholds (positives >= 4/5, negatives 5/5).
+#
+# WHY IT SPENDS, AND WHEN. It calls the real model, so it costs real money and
+# runs ONLY when a human presses "Run workflow". There is no push trigger, no
+# pull_request trigger, and no schedule, by design.
+#
+# DIVERGENCE FROM THE AUDIT, STATED PLAINLY. The audit asked for a gated CI lane
+# or a nightly required check. This ships neither. RESIDUAL RISK: a detection-
+# quality regression is caught ONLY when someone presses Run, never automatically
+# on a PR and never on a schedule, so a commit that degrades model judgment can
+# merge and ship without this gate ever firing. MITIGATION IS BY CONVENTION, NOT
+# AUTOMATION: this workflow is a REQUIRED manual check before flipping READY and
+# before any tagged release. It is a required check on a rare event (a release),
+# deliberately traded against paying it on every PR. The audit's stronger posture
+# is a known, accepted gap, not an oversight.
+#
+# COVERAGE GAP TO REAFFIRM AT F-004-LIFT TIME. This gate covers six detectors.
+# secrets-exposure has NO live coverage at all (its shipped path never calls the
+# model). idor-multi, the two lane tests (auth-bypass-lane, express-lane), and the
+# h8 escalation test DO exercise live model judgment but assert sink-line sets,
+# lane classification, or escalation anchors that cannot route through the
+# pass/negative harness, so they are outside this gate too.
+#
+# N IS FIXED AT 5. The six entry points pass nRuns: 5 as a literal and hardcode
+# perPositiveThreshold 4 and perNegativeThreshold 5. Any N below 5 makes 4-of-N
+# and 5-of-N unsatisfiable and every fixture FAILs, so this workflow exposes NO N
+# input. The only input is a detector selector, which lets a single-detector
+# canary run without editing code.
+
+name: stage-3 live detection-quality
+
+on:
+  workflow_dispatch:
+    inputs:
+      detector:
+        description: "Detector(s) to run live. 'all' runs the six harness-routed gates; a single name runs just that one (the canary path, no code edit needed)."
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - env-exposure
+          - webhook-unverified
+          - auth-bypass
+          - admin-check
+          - idor
+          - idor-tenant
+
+permissions:
+  contents: read
+
+# Prevents two dispatches running at the same time. NOTE the honest limit:
+# concurrency guarantees non-simultaneity, it does NOT refuse a second run.
+# cancel-in-progress is false so a second dispatch never kills a paid run
+# mid-flight; it queues behind it. Single-spend still rests on not dispatching
+# twice, plus the timeout below.
+concurrency:
+  group: stage3-live-detection
+  cancel-in-progress: false
+
+jobs:
+  live-detection:
+    name: live detection-quality (opt-in, spends)
+    runs-on: ubuntu-latest
+    # Single node on purpose. The deterministic CI runs a [20.x, 22.x] matrix
+    # because it is free; a matrix here would double the spend.
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Fail-loud guard 1: the key. The entry points return exit 0 when keyless
+      # (they print "SKIPPED:"), so a keyless dispatch would read as a passing
+      # run that tested nothing. Secrets are not expanded in job-level if:
+      # expressions, so this must be a run: step reading the secret via env:.
+      - name: Assert ANTHROPIC_API_KEY present (fail loud; never skip-green)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "::error::ANTHROPIC_API_KEY is empty or unset. A keyless stage-3 run prints SKIPPED and exits 0, which reads as a passing run that tested nothing. Failing loudly instead." >&2
+            exit 1
+          fi
+          echo "ANTHROPIC_API_KEY present (${#ANTHROPIC_API_KEY} chars)."
+
+      # Fail-loud guard 2: the diverting flags. FIXOR_REPLAY would return
+      # recorded responses, spend nothing, and measure nothing (a false-green
+      # live run). FIXOR_RECORD is the wrong mode entirely. FIXOR_ESCALATE_MEDIUM
+      # fires a second model call per medium verdict and inflates cost. These can
+      # leak from repo-level Variables, so they are asserted unset here. They are
+      # never mapped into the run step's env below, so even a set Variable cannot
+      # reach the test process; this assertion is defense in depth on top of that.
+      - name: Assert replay/record/escalation flags unset
+        env:
+          FIXOR_REPLAY: ${{ vars.FIXOR_REPLAY }}
+          FIXOR_RECORD: ${{ vars.FIXOR_RECORD }}
+          FIXOR_ESCALATE_MEDIUM: ${{ vars.FIXOR_ESCALATE_MEDIUM }}
+        run: |
+          set -euo pipefail
+          fail=0
+          if [ -n "${FIXOR_REPLAY:-}" ]; then
+            echo "::error::FIXOR_REPLAY is set. A replay-diverted run returns recorded responses, spends nothing, and measures nothing: a false-green live run. Unset it." >&2
+            fail=1
+          fi
+          if [ -n "${FIXOR_RECORD:-}" ]; then
+            echo "::error::FIXOR_RECORD is set. This is a live model-judgment run, not a recording run. Unset it." >&2
+            fail=1
+          fi
+          if [ -n "${FIXOR_ESCALATE_MEDIUM:-}" ]; then
+            echo "::error::FIXOR_ESCALATE_MEDIUM is set. It fires a second model call per medium verdict and silently inflates the run cost. Unset it." >&2
+            fail=1
+          fi
+          [ "$fail" -eq 0 ] || exit 1
+          echo "FIXOR_REPLAY, FIXOR_RECORD, FIXOR_ESCALATE_MEDIUM all unset."
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install deps (ci)
+        run: npm ci
+
+      # Run the selected detector(s). Each npm script is one process and prints
+      # one harness cost line. Belt-and-suspenders: tee each script's stdout and
+      # fail if a '^SKIPPED:' marker appears, catching a whitespace-only key or a
+      # future guard-logic change that slips past guard 1. Cost visibility: grep
+      # the harness "cost:" line into the job summary and sum the MEASURED figures
+      # into a run total, shown next to the pre-run projection.
+      - name: Run selected live detector(s)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SELECTION: ${{ inputs.detector }}
+        run: |
+          set -euo pipefail
+          case "$SELECTION" in
+            all) DETECTORS="env-exposure webhook-unverified auth-bypass admin-check idor idor-tenant" ;;
+            env-exposure|webhook-unverified|auth-bypass|admin-check|idor|idor-tenant) DETECTORS="$SELECTION" ;;
+            *) echo "::error::unknown detector selection '$SELECTION'." >&2; exit 1 ;;
+          esac
+
+          {
+            echo "## Stage-3 live detection-quality run"
+            echo ""
+            echo "Selection: \`$SELECTION\`"
+            echo ""
+            echo "| detector | harness cost line (MEASURED is the figure of record) |"
+            echo "| --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          total="0"
+          for d in $DETECTORS; do
+            log="stage3-$d.log"
+            echo "===== running test:$d ====="
+            set +e
+            npm run "test:$d" 2>&1 | tee "$log"
+            status="${PIPESTATUS[0]}"
+            set -e
+            if [ "$status" -ne 0 ]; then
+              echo "::error::test:$d exited $status (a FAIL verdict or a hard error). See the log above." >&2
+              exit "$status"
+            fi
+            if grep -q '^SKIPPED:' "$log"; then
+              echo "::error::test:$d printed a SKIPPED marker: the key guard was bypassed and this detector tested nothing. Failing." >&2
+              exit 1
+            fi
+            cost_line="$(grep -m1 '^cost:' "$log" || true)"
+            echo "| $d | ${cost_line:-(no cost line found)} |" >> "$GITHUB_STEP_SUMMARY"
+            amt="$(printf '%s\n' "$cost_line" | sed -n 's/^cost: MEASURED \$\([0-9.][0-9.]*\).*/\1/p')"
+            if [ -n "$amt" ]; then
+              total="$(awk -v a="$total" -v b="$amt" 'BEGIN { printf "%.4f", a + b }')"
+            fi
+          done
+
+          {
+            echo ""
+            echo "**Measured total across the invoked detector(s): \$$total** (sum of the MEASURED lines above)."
+            echo ""
+            echo "Pre-run projection for the full six at N=5 is about \$6.41 (a conservative upper bound, from measure:stage3-calls). On a live priced run the harness reports MEASURED from the ledger, which is the figure of record; the projection is shown only for comparison."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "All selected detectors passed. Measured total: \$$total"

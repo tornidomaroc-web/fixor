@@ -471,8 +471,10 @@ as the record of why the lists diverged while they did.
   Stage 1 is merged (PR #77) and stage 2 sub-steps 2a (env-exposure, PR #79), 2b.0
   (shared harness, PR #81/#82), 2b.1 (webhook-unverified, PR #83/#84/#85), 2b.2 (auth-bypass,
   PR #87/#88/#89), 2b.3 (admin-check, PR #90/#91/#92), 2b.4 (idor, PR #95/#96/#97), and 2b.5
-  (secrets-exposure, PR #115) are all merged. **F-004 is still NOT closed: stage 3 (the opt-in
-  live model-judgment workflow) remains, and it is the only remaining item.**
+  (secrets-exposure, PR #115) are all merged. **F-004 is still NOT closed. Stage 3 step 3 (the
+  opt-in live model-judgment workflow file) is now WRITTEN and in review; merging that workflow
+  will still NOT lift F-004, because a merged workflow that has never executed closes nothing.
+  F-004 stays OPEN pending a green RUN.**
 
   Six of six detectors gated is progress, not readiness. Every gate landed so far is a
   wiring-and-parsing gate: none of them verifies detection quality. Stage 3 (live) has now
@@ -915,8 +917,12 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
 
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
-- **This 2b.4-merged tracker update** is the open docs PR, prepared and awaiting the merge
-  command; it is not yet merged and is not listed under DONE until it lands.
+- **Stage-3 step 3 (the workflow_dispatch file)** is the open PR, prepared and awaiting the
+  merge command; it is not yet merged and is not listed under DONE until it lands. It adds
+  `.github/workflows/stage3-live-detection.yml` plus this tracker update, and changes no code
+  and no entry point (N stays 5, thresholds stay 4/5 and 5/5). On landing it becomes a DONE entry
+  worded "stage-3 step 3 MERGED, NOT YET RUN": the workflow file will exist but will never have
+  executed, so it closes nothing and F-004 stays OPEN pending a green RUN.
 
 ---
 
@@ -927,8 +933,10 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
 **Stage 2 is COMPLETE**: sub-step 2a (env-exposure), sub-step 2b.0 (the shared harness),
 sub-step 2b.1 (webhook-unverified), sub-step 2b.2 (auth-bypass), sub-step 2b.3 (admin-check),
 sub-step 2b.4 (idor), and sub-step 2b.5 (secrets-exposure) are all merged, so every shipping
-detector now has a deterministic keyless gate in CI. **F-004 is still NOT closed: stage 3
-remains, and it is the only remaining item.** The model-judgment gate (stage 3) is only ever
+detector now has a deterministic keyless gate in CI. **F-004 is still NOT closed. Stage 3 step 3,
+the workflow_dispatch file, is written and in review (see the Stage 3 bullet below); merging it
+will NOT lift F-004, because a workflow that has never executed closes nothing. F-004 stays OPEN
+pending a green RUN.** The model-judgment gate (stage 3) is only ever
 exercised by opt-in live runs, never free-in-CI, so completing stage 2 does not lift F-004 and
 the READY verdict is unchanged.
 
@@ -995,6 +1003,41 @@ the READY verdict is unchanged.
   `ANTHROPIC_API_KEY` from a repo secret the owner sets, running the live detector tests
   with repeated sampling so a single flaky verdict cannot pass as stable. This is the only
   gate that exercises the model's judgment.
+
+  **STEP 3 STATUS (workflow file WRITTEN, in review, NOT merged, NOT run).** The file is
+  `.github/workflows/stage3-live-detection.yml`. It triggers on `workflow_dispatch` only, runs
+  one job on a single node 20.x (no matrix, which would double the spend), holds a
+  `stage3-live-detection` concurrency group with `cancel-in-progress: false`, and times out at
+  60 minutes. Its one input is a detector selector (`all` or one of env-exposure,
+  webhook-unverified, auth-bypass, admin-check, idor, idor-tenant), so a single-detector canary
+  can run without editing code. There is deliberately NO N input: the six entry points pass
+  `nRuns: 5` as a literal and hardcode `perPositiveThreshold` 4 and `perNegativeThreshold` 5, so
+  any N below 5 makes the thresholds unsatisfiable and every fixture FAILs. Two fail-loud guards
+  run before any npm invocation: one asserts `ANTHROPIC_API_KEY` is present and non-empty (the
+  entry points exit 0 when keyless, so without this a keyless run would print SKIPPED and read as
+  a pass that tested nothing), the other asserts `FIXOR_REPLAY`, `FIXOR_RECORD` and
+  `FIXOR_ESCALATE_MEDIUM` are unset (a replay-diverted run spends nothing and measures nothing, a
+  false-green; escalation silently doubles cost on medium verdicts). A belt-and-suspenders check
+  fails if any script prints a `SKIPPED:` marker. The run tees each script's stdout, greps the
+  harness `cost: MEASURED` line into the job summary, and sums the invoked detectors into a run
+  total shown next to the pre-run projection; since PR #120 the MEASURED ledger figure takes
+  precedence over the 0.00828 projection on a live priced run.
+
+  **DIVERGENCE FROM THE AUDIT, recorded here as the primary location (the YAML header carries the
+  same text for the person pressing Run).** The audit asked for a gated CI lane or a nightly
+  required check. This ships neither. RESIDUAL RISK, stated plainly: a detection-quality
+  regression is caught ONLY when a human presses Run, never automatically on a PR and never on a
+  schedule, so a commit that degrades model judgment can merge and ship without this gate ever
+  firing. MITIGATION IS BY CONVENTION, NOT AUTOMATION: this workflow is a REQUIRED manual check
+  before flipping READY and before any tagged release, a required check on a rare event
+  deliberately traded against paying it on every PR. The audit's stronger posture is a known,
+  accepted gap, not an oversight. COVERAGE GAP to reaffirm at F-004-lift time: secrets-exposure
+  has NO live coverage at all, and idor-multi, the two lane tests (auth-bypass-lane,
+  express-lane), and h8 exercise live model judgment but cannot route through the
+  positive/negative harness, so they are outside this gate.
+
+  **This does NOT lift F-004.** A merged workflow that has never executed closes nothing. F-004
+  lifts only on a green RUN, which spends and is a separate owner decision.
 
   **CORRECTION of the sampling claim written before step 1 landed.** The sentence above
   previously said the workflow runs "the live detector tests through the existing
