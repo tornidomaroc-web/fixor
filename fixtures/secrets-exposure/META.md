@@ -8,7 +8,7 @@
 
 **Measured split (by executing the detector keylessly, not by reading these descriptions):** 10 bypass positives, 10 pre-model drops (4 `server-only marker`, 5 `no regex match`, 1 `path filter`). Zero fixtures reach the model, because `registry.ts` constructs the detector with `llmValidation` false. Recording cost: $0, since there is no `callClaude` request to record.
 
-**Pattern coverage is partial: 10 of the 15 `PREFILTER_PATTERNS` are exercised.** Five are guarded by nothing, in two measured ways:
+**Pattern coverage is partial: 10 of the 15 `PREFILTER_PATTERNS` are exercised.** (SUPERSEDED by the 2026-07-23 note below: all 15 are now exercised. The split recorded here is the measured 2b.5 state, kept as history.) Five are guarded by nothing, in two measured ways:
 - **SHADOWED** (matched, but never the earliest surviving trigger, so an added assertion cannot reach them; they need NEW fixtures whose earliest match is the intended pattern): `aws_secret_literal` (loses to `aws_access_key` in `positive/06-aws-keys-hardcoded.js`), `postgres_url_password` (loses to `password_literal` in `positive/08-postgres-password-client.ts`). Note both are shadowed inside the very fixture named for them.
 - **ABSENT** (matched by no fixture at all): `google_api_key`, `stripe_live_publishable`, `private_key_literal`.
 
@@ -39,6 +39,11 @@
 - 08-postgres-password-client.ts: production DB password in client-imported lib
 - 09-slack-webhook-hardcoded.py: full Slack incoming webhook URL in source
 - 10-jwt-secret-const.go: JWT signing key as a Go const
+- 11-google-api-key-hardcoded.ts: AIza... Google API key inline in a client Maps loader (guards `google_api_key`)
+- 12-stripe-publishable-live.ts: pk_live_ Stripe publishable key inline in a client-bundled module (guards `stripe_live_publishable`)
+- 13-private-key-hardcoded.ts: `privateKey = "..."` signing material inline (guards `private_key_literal`)
+- 14-aws-secret-literal.ts: `AWS_SECRET_ACCESS_KEY = "..."` with NO AKIA id present, so `aws_secret_literal` wins instead of being shadowed by `aws_access_key` (guards `aws_secret_literal`)
+- 15-postgres-url-password.ts: `postgres://user:pass@host` URL with NO `password: "..."` field before it, so `postgres_url_password` wins instead of being shadowed by `password_literal` (guards `postgres_url_password`)
 
 ## Negative (looks similar, actually safe)
 - 01-supabase-service-role-server-only.ts: SERVICE_ROLE_KEY behind "server-only" import (Category B — context)
@@ -51,3 +56,21 @@
 - 08-secrets-decrypted-from-kms.ts: secrets read encrypted at rest, decrypted via KMS at boot (Category B — context)
 - 09-slack-webhook-from-env.py: SLACK_OPS_WEBHOOK loaded from os.environ (Category B — context)
 - 10-jwt-secret-from-env.go: JWT signing key initialized from env in init() (Category B — context)
+
+## PR B - prefilter pattern coverage completed (2026-07-23)
+
+**All 15 `PREFILTER_PATTERNS` are now exercised by a fixture (was 10 of 15 at 2b.5).** Five positives were added (`positive/11-google-api-key-hardcoded.ts`, `positive/12-stripe-publishable-live.ts`, `positive/13-private-key-hardcoded.ts`, `positive/14-aws-secret-literal.ts`, `positive/15-postgres-url-password.ts`), each pinned in `src/test/test-secrets-exposure-prefilter.ts`. The corpus is now 25 fixtures: 15 Option G bypass positives, 10 pre-model drops.
+
+**Measured, not read.** Each new fixture was run through the shipped-default detector keylessly (no key, `FIXOR_REPLAY=1` against an empty root). Every one produced exactly one hit whose earliest surviving trigger is the intended pattern, emitting `secrets-exposure-<patternId>` at critical/high with zero `callClaude` attempts:
+
+| fixture | measured patternId | measured preFilterReason |
+|---|---|---|
+| positive/11-google-api-key-hardcoded.ts | `google_api_key` | `llm-bypass` |
+| positive/12-stripe-publishable-live.ts | `stripe_live_publishable` | `llm-bypass` |
+| positive/13-private-key-hardcoded.ts | `private_key_literal` | `llm-bypass` |
+| positive/14-aws-secret-literal.ts | `aws_secret_literal` | `llm-bypass` |
+| positive/15-postgres-url-password.ts | `postgres_url_password` | `llm-bypass` |
+
+**How the two formerly SHADOWED patterns were reached.** `aws_secret_literal` and `postgres_url_password` each lost to an earlier-line pattern inside the very fixture named for them (`positive/06`, `positive/08`), which still stand. The new fixtures isolate them by removing the shadowing pattern from the file entirely, not by reordering: `positive/14` carries no AKIA access-key id, so `aws_access_key` never fires; `positive/15` carries no `password: "..."` field before the connection string, so `password_literal` never fires. Fixtures `06` and `08` are unchanged and still emit under their earlier-winning patterns.
+
+**Unchanged invariants.** No new fixture is redaction-shaped, none sets `redactionSkipCount`, and none carries an unknown `patternId`; the three corpus-absence invariants still pass. Detection quality is still out of scope here (stage 3). Values are synthetic and live under `fixtures/`, which both the gitleaks allowlist and `scripts/secrets_scan.py` skip.

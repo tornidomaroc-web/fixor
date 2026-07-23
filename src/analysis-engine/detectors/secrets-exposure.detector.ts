@@ -71,10 +71,11 @@ interface PrefilterPattern {
   id: string;
   re: RegExp;
   /**
-   * Hand-authored finding explanation used when LLM validation is bypassed
-   * (FIXOR_SECRETS_LLM_VALIDATION=false). Format: identify the secret class
-   * + attack surface + remediation steps. Used as both `message` and
-   * `explanation` on the emitted NormalizedFinding.
+   * Hand-authored finding explanation used on the default regex-only path,
+   * where LLM validation is disabled and the Option G bypass emits directly
+   * (opt in to the LLM path with FIXOR_SECRETS_LLM_OPT_IN=true). Format:
+   * identify the secret class + attack surface + remediation steps. Used as
+   * both `message` and `explanation` on the emitted NormalizedFinding.
    *
    * See docs/detector-test-rules.md "Reasoning quality for literal-pattern
    * detectors" for the design rationale (Option 4 from the Day 6+ pilot
