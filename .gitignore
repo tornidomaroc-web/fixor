@@ -10,6 +10,23 @@ dist/
 .env.*.local
 **/.env
 **/.env.local
+# Any other .env suffix (.env.production, .env.staging, .env.bak, .env.txt ...).
+# The list above enumerated three suffixes and missed every other one.
+.env.*
+**/.env.*
+# Files that merely END in .env (production.env, local.env). A file with this
+# ending is an env file in every case we can think of, so excluding it is safe.
+*.env
+# Shell-mangled env copies. A miskeyed PowerShell `Rename-Item .env .env.txt`
+# once produced a file literally named "Rename-Item .env.txt" holding a live
+# ANTHROPIC_API_KEY; none of the rules above matched it. This catches that shape.
+# It does NOT make .gitignore a defence against arbitrary mangled names — only
+# never having a real key on disk in this tree does that.
+*.env.txt
+# .env.example files are the tracked, placeholder-only templates. Re-included
+# last so the broadened rules above cannot start hiding them.
+!.env.example
+!**/.env.example
 
 # Fixor pilot JSON store
 data/
@@ -68,3 +85,26 @@ docs/WHAT-FIXOR-IS.md
 # Temporary PR body files (created when piping rich markdown to gh pr create
 # via --body-file; safe to delete after the PR opens).
 .pr-body-tmp.md
+
+# Corpus-measurement scratch dumps written to the REPO ROOT by the zero-spend
+# structural measurement work (measure:idor-structure, measure:icp-reach,
+# scripts/source-icp-corpus.mjs). Two shapes, both named
+# <two-letter-repo-tag>_<what>: GitHub API payloads (commit, compare, history)
+# and third-party source files pulled out of the corpus repos for inspection.
+# Neither is ours to publish, and this is a public repo.
+#
+# Both patterns are ROOT-ANCHORED (leading /) and key on an underscore in the
+# filename, which is what keeps them narrow. This repo names files kebab-case
+# everywhere (lint-no-console.mjs, source-icp-corpus.mjs, drizzle.config.ts), so
+# an underscore in a ROOT filename is itself the anomaly signal:
+#   - no first-party TypeScript lives at the repo root (it lives in src/, apps/,
+#     scripts/); the only tracked root .ts is drizzle.config.ts;
+#   - the tracked root JSON is package.json, package-lock.json, railway.json,
+#     tsconfig.json;
+#   none contain an underscore, and nothing outside the root is touched — an
+#   underscored .json or .ts in src/, docs/ or fixtures/ stays fully visible.
+# Residual breadth, stated rather than hidden: a future ROOT file named with an
+# underscore would be silently ignored. Move the exception into the tree, or
+# negate it here, rather than widening these two lines.
+/*_*.json
+/*_*.ts
