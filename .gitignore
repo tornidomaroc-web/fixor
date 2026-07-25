@@ -108,3 +108,28 @@ docs/WHAT-FIXOR-IS.md
 # negate it here, rather than widening these two lines.
 /*_*.json
 /*_*.ts
+
+# The ROOT CLAUDE.md is deliberately kept out of git. This is a PUBLIC repo, and
+# that file indexes the operational shape of the product in one place: which spend
+# guards exist and how they are bypassed, the budget-cap defaults, the rate
+# limiter's behaviour, which detectors do not call the model on their shipped
+# path, and the distance between the README's claims and the tracker's NOT-READY
+# verdict. Each of those facts is individually readable in the tracked source
+# already; the objection to collecting them into a single map is that a map is
+# cheaper to read than a codebase.
+#
+# ROOT-ANCHORED (leading /) on purpose. apps/dashboard/CLAUDE.md is tracked and
+# must stay tracked: it is a one-line "@AGENTS.md" pointer carrying Next.js
+# version-drift notes and no safety content. An unanchored CLAUDE.md rule would
+# silently stop that file from reaching a fresh clone.
+#
+# KNOWN COST, recorded so it is a decision and not an accident: an ignored
+# CLAUDE.md never reaches a fresh clone or a .claude/worktrees/ checkout, so the
+# guards it carries (above all: never re-record replay fixtures to make a failing
+# gate pass) do not load there. If that starts to bite, the fix is to commit the
+# public-facts half and keep only machine-state notes local, not to unanchor this.
+/CLAUDE.md
+# Timestamped local backups (CLAUDE.md.bak, CLAUDE.md.bak.20260725-1530, ...).
+# Note there is NO general *.bak rule in this file, so this covers CLAUDE.md
+# backups only; other .bak files anywhere in the tree remain visible to git.
+/CLAUDE.md.bak*
