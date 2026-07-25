@@ -42,6 +42,20 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Editor / tooling backup copies, at any depth. A .bak file is almost always a
+# copy of something that was mid-edit, so it inherits whatever that file held —
+# on a public repo that is the whole risk. No tracked file matches this rule and
+# none ever has (verified across all refs), so nothing is hidden by adding it.
+#
+# Two limits, stated so nobody assumes more cover than this gives:
+#   - it matches the .bak SUFFIX only. Timestamped variants (foo.bak.20260725)
+#     end in the timestamp, not in .bak, and are NOT caught here; the root
+#     CLAUDE.md.bak* rule below covers that shape for that one file only.
+#   - if a secrets-exposure fixture ever needs a real .bak name (leftover-backup-
+#     in-webroot is a genuine vuln class this product could detect), negate it
+#     with !fixtures/**/*.bak rather than dropping this rule.
+*.bak
+
 # Local scan outputs
 scan-report-*.md
 
@@ -109,25 +123,36 @@ docs/WHAT-FIXOR-IS.md
 /*_*.json
 /*_*.ts
 
-# The ROOT CLAUDE.md is deliberately kept out of git. This is a PUBLIC repo, and
-# that file indexes the operational shape of the product in one place: which spend
-# guards exist and how they are bypassed, the budget-cap defaults, the rate
-# limiter's behaviour, which detectors do not call the model on their shipped
-# path, and the distance between the README's claims and the tracker's NOT-READY
-# verdict. Each of those facts is individually readable in the tracked source
-# already; the objection to collecting them into a single map is that a map is
-# cheaper to read than a codebase.
+# The ROOT CLAUDE.md is deliberately kept out of git. This is the DECISION and its
+# reasoning, recorded here so it is not re-litigated from scratch.
+#
+# This is a PUBLIC repository for a security product. That file collects the
+# operational shape of the product into one place: which spend guards exist and
+# how they are bypassed, the budget-cap defaults, the rate limiter's behaviour,
+# which detectors do not call the model on their shipped path, and the distance
+# between the README's claims and the tracker's NOT-READY verdict.
+#
+# The counter-argument was considered and is real: an ignored CLAUDE.md never
+# reaches a fresh clone or a .claude/worktrees/ checkout, so the guards it carries
+# (above all: never re-record replay fixtures to make a failing gate pass) do not
+# load there.
+#
+# It loses on ASYMMETRY, not on size. A file missing from a fresh clone is
+# repaired by copying it in. Operational detail published to a public
+# security-product repo cannot be unpublished: forks, clones, caches and scrapers
+# keep it after any deletion or history rewrite. Reversible cost beats
+# irreversible cost. That is why this rule stands, even though the gap it creates
+# is genuine.
+#
+# If the worktree gap starts to bite in practice, the remedy is to commit the
+# public-facts half — safety rules, conventions and traps, all of which are
+# already readable in tracked source — and keep only machine-state notes local.
+# Not to unanchor this rule.
 #
 # ROOT-ANCHORED (leading /) on purpose. apps/dashboard/CLAUDE.md is tracked and
 # must stay tracked: it is a one-line "@AGENTS.md" pointer carrying Next.js
 # version-drift notes and no safety content. An unanchored CLAUDE.md rule would
 # silently stop that file from reaching a fresh clone.
-#
-# KNOWN COST, recorded so it is a decision and not an accident: an ignored
-# CLAUDE.md never reaches a fresh clone or a .claude/worktrees/ checkout, so the
-# guards it carries (above all: never re-record replay fixtures to make a failing
-# gate pass) do not load there. If that starts to bite, the fix is to commit the
-# public-facts half and keep only machine-state notes local, not to unanchor this.
 /CLAUDE.md
 # Timestamped local backups (CLAUDE.md.bak, CLAUDE.md.bak.20260725-1530, ...).
 # Note there is NO general *.bak rule in this file, so this covers CLAUDE.md
