@@ -10,3 +10,21 @@ fixtures/replay/**/*.json text eol=lf
 fixtures/idor/** text eol=lf
 fixtures/idor-tenant/** text eol=lf
 fixtures/idor-multi/** text eol=lf
+
+# Pin the tracked git hooks to LF in the WORKING COPY, not just in the blob.
+# The blobs are already LF; this rule is about checkout. On a Windows clone
+# core.autocrlf defaults to true, which rewrites the working copy to CRLF and
+# turns the hook's `#!/bin/sh` into `#!/bin/sh\r`. A real POSIX sh rejects that
+# as a bad interpreter. `eol=lf` overrides autocrlf for these paths.
+#
+# Verified on a Windows clone: without this rule a fresh
+# `git clone -c core.autocrlf=true` checks the hook out with a CRLF shebang;
+# with it, the same clone checks out LF.
+#
+# Scope note: Git for Windows' bundled sh tolerates the CRLF shebang, so this
+# is not a live break on the Windows-only path. It matters where a real POSIX
+# sh reads a Windows-produced working copy (WSL over a Windows checkout) or on
+# any POSIX machine with core.autocrlf=true configured.
+#
+# `**` rather than the one file, so hooks added later are covered on arrival.
+.githooks/** text eol=lf
