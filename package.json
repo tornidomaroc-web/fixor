@@ -5,6 +5,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "prepare": "node .githooks/setup.mjs",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "node dist/server/webhook-server.js",

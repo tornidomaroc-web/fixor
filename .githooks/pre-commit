@@ -1,0 +1,58 @@
+#!/bin/sh
+# Fixor pre-commit hook: secret scan over STAGED files.
+# Defense in depth next to gitleaks, and the only control that fires BEFORE a
+# push. gitleaks runs in CI after the push has already landed.
+#
+# Installed automatically. `npm install` runs the prepare script, which points
+# core.hooksPath at this directory. There is no manual install step, and this
+# file is tracked, so updates propagate on pull.
+#
+# INTERPRETER PROBE. python3 and python are each tested by EXECUTING them, never
+# by name resolution. On Windows, `python3` commonly resolves to a Microsoft
+# Store alias stub that resolves successfully and then fails to run Python, so
+# `command -v python3` reports success on a machine where python3 does not work.
+# Verified on the maintainer's machine: the stub exits 49 under this probe while
+# `python` runs 3.12. macOS has no `python` since 12.3; Debian/Ubuntu frequently
+# have no `python`. No single name is portable, hence the probe.
+#
+# NO WORKING INTERPRETER FAILS THE COMMIT, deliberately. Warn-and-pass would
+# reproduce the silent-degradation failure this hook exists to remove.
+
+set -u
+
+PY=""
+for candidate in python3 python; do
+  if "$candidate" -c "import sys; sys.exit(0)" >/dev/null 2>&1; then
+    PY="$candidate"
+    break
+  fi
+done
+
+if [ -z "$PY" ]; then
+  echo ""
+  echo "Commit blocked: no working Python 3 interpreter found."
+  echo ""
+  echo "  The staged-file secret scan (scripts/secrets_scan.py) needs Python 3."
+  echo "  Tried, by execution rather than by name: python3, then python."
+  echo ""
+  echo "  Install one:"
+  echo "    macOS    brew install python"
+  echo "             (or: xcode-select --install)"
+  echo "    Debian   sudo apt install python3"
+  echo "    Windows  https://www.python.org/downloads/"
+  echo "             tick 'Add python.exe to PATH' during setup"
+  echo ""
+  echo "  Deliberate bypass, if you accept the risk: git commit --no-verify"
+  echo ""
+  exit 1
+fi
+
+if ! "$PY" scripts/secrets_scan.py --staged; then
+  echo ""
+  echo "Commit blocked: potential secret in staged files."
+  echo "Move it to .env or the host env store, then re-stage."
+  echo ""
+  echo "  Deliberate bypass, if you accept the risk: git commit --no-verify"
+  echo ""
+  exit 1
+fi
