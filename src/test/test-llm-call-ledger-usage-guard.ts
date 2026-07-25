@@ -28,10 +28,15 @@
  * `calculateCost`, the real `lastCallCost` assignment and the real ledger write
  * all execute. The only fabricated thing is the SDK response object.
  *
- * ZERO SPEND, FAIL CLOSED. A syntactically valid DUMMY key is set so
- * `getAnthropicClient()` returns a client to patch. If the patch ever failed to
- * apply, the fallthrough would be a 401 against a fake key - an auth rejection,
- * not a billable request. FIXOR_REPLAY and FIXOR_RECORD are asserted unset,
+ * ZERO SPEND, FAIL CLOSED. A DUMMY placeholder key is set so
+ * `getAnthropicClient()` returns a client to patch (it only checks the variable
+ * is non-empty, never the shape). The placeholder is deliberately NOT key-
+ * shaped: it must not trip `scripts/secrets_scan.py`, and a non-key-shaped
+ * value guarantees that if the patch ever failed to apply, the fallthrough is a
+ * 401 auth rejection rather than a billable request. Assigned via a named
+ * constant rather than a quoted literal on `ANTHROPIC_API_KEY`, matching
+ * `measure-stage3-calls.ts`, whose DUMMY_KEY has the same shape for the same
+ * reason. FIXOR_REPLAY and FIXOR_RECORD are asserted unset,
  * because either would divert `callClaude` before it reaches the success path
  * this test exists to exercise, turning a green run into a vacuous one.
  *
@@ -40,8 +45,11 @@
 
 import type { Message } from "@anthropic-ai/sdk/resources/messages";
 
+/** Non-key-shaped placeholder; see the header note on secrets_scan.py. */
+const DUMMY_KEY = "fixor-ledger-usage-guard-placeholder-no-network";
+
 // Must be set BEFORE getAnthropicClient() constructs and caches the singleton.
-process.env.ANTHROPIC_API_KEY = "sk-ant-api03-DUMMY-KEY-FOR-LEDGER-GUARD-TEST";
+process.env.ANTHROPIC_API_KEY = DUMMY_KEY;
 
 import {
   callClaude,
