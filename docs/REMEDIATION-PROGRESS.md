@@ -1115,6 +1115,23 @@ the READY verdict is unchanged.
   not exist. The IDOR replay spec already spanned all three corpora (`fixtures/idor` 18,
   `fixtures/idor-tenant` 6, `fixtures/idor-multi` 2 = 26); this list did not.
 
+  **CORRECTION of the "all-passing" claim in the six-item inventory above, entered by `f62921e`
+  (PR #116, 2026-07-22).** The bullet says all six harness-routed entry points are
+  "corpus-relative and all-passing". Five are. `test:idor` is not, and never was.
+  `src/test/test-idor.ts` has carried `positivesMinPassing: 6` / `negativesMinPassing: 6` /
+  `combinedMinPassing: 12` since `07fe2d3` (#52, 2026-05-15), when its corpus was 8 and 8;
+  `ff3c364` (2026-05-28) grew it to 9 and 9, leaving a 6-of-9 bar (67 percent) on BOTH sides.
+  PR #116 wrapped the four tests that were not yet harness-routed and correctly noted that
+  `test:idor` and `test:idor-tenant` "already were", then generalized to all six a property it
+  had just conferred on four, without inspecting the two it had not touched. `test:idor-tenant`
+  happens to be all-passing already (3/3/6 against 3 and 3), which is why only one of the two
+  carries the defect. Corrected to 9/9/18 on branch `fix/idor-aggregates-all-pass`.
+
+  **The corrected bar is UNVERIFIED at its new height.** Raising these aggregates is a POLICY
+  change, not a measurement: no live n=5 run of `fixtures/idor` has ever been taken at 9/9/18.
+  Stage 3 has never executed, so this is true of ALL SIX harness bars at their current heights,
+  not only idor's. The frozen replay recordings are n=1 and establish no stability.
+
   **MEASURED, not estimated: 144 model-reaching calls per sample.** `measure:stage3-calls`
   (`src/test/measure-stage3-calls.ts`, zero spend, not in `test:ci`) counts at the SDK
   boundary with a canned response, driving all seven entry points at n=1. Result:
@@ -1323,6 +1340,18 @@ remains OPEN as above.
   all-passing aggregates. **STILL OPEN for `test-secrets-exposure.ts`**, which is excluded
   from stage 3 and so was not touched: its constants remain 7/9/16 against a 10/10 corpus.
   Either retire that test or make its thresholds corpus-relative. No API spend to fix.
+
+  **CORRECTION of the "STILL OPEN" scope of this item, entered by `f62921e` (PR #116,
+  2026-07-22).** This item names `test-secrets-exposure.ts` as the sole remaining instance. It
+  is not the only one. `src/test/test-idor.ts` was a second still-open instance, at
+  `positivesMinPassing: 6` and `negativesMinPassing: 6` against a 9-and-9 corpus: a 6-of-9 bar
+  (67 percent) on BOTH sides, inside the band this item tabulates and a looser bar than the
+  env-exposure 64 percent it does list. It was omitted because it was ALREADY routed through
+  `runStabilityHarness` and so fell outside step 1's scope, not because it was clean. The decay
+  tabulation above is incomplete for the same reason: idor's bar decayed on `ff3c364`
+  (2026-05-28), which added a ninth positive and a ninth negative without touching the constants
+  set in `07fe2d3` (#52). Fixed to 9/9/18 on branch `fix/idor-aggregates-all-pass`, which leaves
+  `test-secrets-exposure.ts` as the last open instance, unchanged and still 7/9/16.
 
 - **Hardcoded `/10` and `/20` denominators (opened by stage-3 step 1).** The same family of
   tests printed literal `${caught}/10` and `${combined}/20` in their summaries while
