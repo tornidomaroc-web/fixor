@@ -14,6 +14,16 @@ If secrets-exposure errors out again (same 24× HTTP 400), billing top-up was in
 
 If secrets-exposure passes, proceed to Phase 4 of the Day 5 work order: Option G investigation analysis with full 5/5 data.
 
+> **OBSOLETE — do not follow the start instruction above. Annotated 2026-07-27 by PR C3; the Day 5 wording is left exactly as entered.**
+>
+> This is a frozen Day 5 handoff, so nothing above has been rewritten. But the instruction is no longer actionable and would send a reader after a file that does not exist:
+>
+> - `npm run test:secrets-exposure` **no longer exists.** The test was retired in PR C3 and its npm script removed. It was a strict duplicate of `src/test/test-secrets-exposure-prefilter.ts`, which asserts the same corpus per fixture and far more strictly, and it could not reach the model under shipped defaults, so it produced no live measurement at all.
+> - The **billing top-up this section waits on happened long ago**; the "same 24× HTTP 400" condition is Day 5 history, not a live state.
+> - The **Option G decision it gates was made and shipped on Day 8** (2026-05-15): per-pattern tier bypass, `llmValidation` defaulting to false. There is no pending Option G prioritization to unblock.
+>
+> Current state of record for this detector lives in `docs/REMEDIATION-PROGRESS.md`. If live secrets accuracy is ever wanted, build it on `runStabilityHarness`, not on the retired file.
+
 ---
 
 ## What shipped this session (durable artifacts)

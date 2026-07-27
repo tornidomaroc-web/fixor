@@ -23,7 +23,6 @@
     "test:file-walker": "npm run build && node dist/test/test-file-walker.js",
     "test:auth-bypass": "npm run build && node dist/test/test-auth-bypass.js",
     "test:auth-bypass-prefilter": "npm run build && node dist/test/test-auth-bypass-prefilter.js",
-    "test:secrets-exposure": "npm run build && node dist/test/test-secrets-exposure.js",
     "test:webhook-unverified": "npm run build && node dist/test/test-webhook-unverified.js",
     "test:env-exposure": "npm run build && node dist/test/test-env-exposure.js",
     "test:admin-check": "npm run build && node dist/test/test-admin-check.js",

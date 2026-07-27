@@ -11,7 +11,19 @@
  *       server-only marker) or by a zero-trigger prefilter  -> 10 fixtures
  *   (b) decided by the Option G per-pattern bypass: the earliest surviving regex
  *       trigger emits the finding from its hand-authored explanation, and
- *       callClaude is NEVER invoked                          -> 10 fixtures
+ *       callClaude is NEVER invoked                          -> 15 fixtures
+ *
+ * THIS GATE IS NOW THE SOLE AUTOMATED GUARD ON THIS DETECTOR. `test-secrets-
+ * exposure.ts` was retired (PR C3): it asserted only a per-fixture `flagged`
+ * boolean rolled up into three aggregate bars, which this gate already subsumes
+ * per fixture and far more strictly (exact finding count, preFilterReason,
+ * flagged, type, severity, confidence AND ruleId, plus 0 LLM calls). It also
+ * could not reach the model under shipped defaults, so it measured no live
+ * accuracy despite being key-gated. Nothing was lost; the duplicate went. If
+ * live secrets accuracy is ever wanted (i.e. FIXOR_SECRETS_LLM_OPT_IN=true),
+ * build it on `runStabilityHarness` like the other five detectors - do NOT
+ * resurrect the retired file, which was single-shot and hardcoded its
+ * denominators.
  *
  * There is no bucket (c). admin-check needed TWO gates because 30 of its fixtures
  * reach the model; secrets-exposure needs ONE, because none do. A replay gate is
@@ -256,7 +268,7 @@ async function main(): Promise<void> {
     }
   }
 
-  process.stdout.write("Bucket (b): Option G deterministic bypass, 10 positives\n");
+  process.stdout.write("Bucket (b): Option G deterministic bypass, 15 positives\n");
   for (const [id, expectedPatternId] of BYPASS_EXPECTED) {
     const r = await runFixture(id);
     recordInvariants(id, r);
