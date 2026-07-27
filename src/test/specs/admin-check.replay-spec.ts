@@ -47,8 +47,11 @@
  *   - positive/06-client-supplied-role.js is NAMED for the literal-tier
  *     `body_role_check`, yet it lands in bucket (c) because `express_route_def`
  *     matches earlier in the file. It is in this manifest, not the prefilter gate.
- *   - positive/08-flask-endswith-domain.py fires the generic `email_endswith_at`,
- *     not the Python-specific `py_email_endswith_at`.
+ *   - positive/08-flask-endswith-domain.py is Python (`email.endswith`) yet fires
+ *     `email_endswith_at`, whose regex body is camelCase; the `/i` flag bridges
+ *     the two spellings. A separate `py_email_endswith_at` pattern once sat
+ *     beside it, but held the same regex under `/i` and so was unreachable; it
+ *     was deleted in PR C2.
  * Anyone regenerating this manifest by searching for pattern names WILL get it
  * wrong. Re-derive it by executing the detector, as above.
  *
@@ -168,7 +171,10 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   //   positive/05-admin-emails-array.js        admin_emails_array
   //   positive/07-default-admin-id-helper.js   default_admin_id
   //   positive/08-flask-endswith-domain.py     email_endswith_at
-  //                                            (NOT py_email_endswith_at: shadowed)
+  //                                            (Python spelling, matched via the
+  //                                             load-bearing /i on that pattern;
+  //                                             py_email_endswith_at was deleted
+  //                                             as unreachable in PR C2)
   //   positive/09-flask-default-admin-email.py default_admin_email
   //   positive/10-go-admin-domain-suffix.go    strings_hassuffix_email
   //   positive/22-hardcoded-admin-email-equality.js  email_eq_literal

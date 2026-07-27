@@ -30,30 +30,40 @@
  *   - positive/06-client-supplied-role.js is named for the literal-tier
  *     `body_role_check`, but an `express_route_def` match occurs earlier, so it
  *     lands in bucket (c) and `body_role_check` never fires.
- *   - positive/08-flask-endswith-domain.py fires the generic `email_endswith_at`,
- *     not the Python-specific `py_email_endswith_at`.
+ *   - positive/08-flask-endswith-domain.py is Python, spelled `email.endswith`,
+ *     yet it fires `email_endswith_at`, whose regex body is camelCase. The `/i`
+ *     flag is what bridges the two spellings - see below.
  * Asserting only "a finding was emitted" would pass while the wrong pattern
  * produced it. Pinning the ruleId is what catches that shadowing.
  *
+ * THIS GATE IS THE STANDING GUARD ON A LOAD-BEARING REGEX FLAG:
+ * `email_endswith_at` is written camelCase (`email.endsWith`) but carries `/i`,
+ * and that flag is the ONLY reason admin-check detects the same bug in Python,
+ * where `email.endswith("@corp.com")` is the idiomatic spelling. positive/08 is
+ * Python and is pinned to that pattern id below, so if anyone "tidies up" the
+ * regex by dropping `/i`, positive/08 matches nothing at all, drops pre-model
+ * instead of bypassing, and THIS TEST FAILS. That is deliberate. Do not relax
+ * the pin, and do not delete positive/08.
+ *
  * HONEST SCOPE - WHAT A GREEN RUN HERE DOES *NOT* MEAN:
- * This gate exercises 10 of the 11 literal-tier patterns. Positives 22, 23 and 24
+ * This gate exercises 10 of the 10 literal-tier patterns. Positives 22, 23 and 24
  * were added specifically to reach `email_eq_literal`, `role_fallback_admin` and
  * `body_role_check`, each shaped so the intended pattern is the EARLIEST match
  * (an assertion alone would not have reached the latter two: they were shadowed
  * in the fixtures originally meant to exercise them).
  *
- * Exactly one literal-tier pattern remains unexercised, and it is NOT a fixture
- * gap: `py_email_endswith_at` is UNREACHABLE BY ANY INPUT. Its regex
- * `/\bemail\.endswith\s*\(\s*['"]\s*@/i` is case-insensitive, which makes it
- * character-for-character equivalent to `email_endswith_at`
- * `/\bemail\.endsWith\s*\(\s*['"]\s*@/i` - the two differ only in the case of one
- * literal letter, which `/i` erases. Both therefore match the same inputs at the
- * same index, `email_endswith_at` is earlier in PREFILTER_PATTERNS, and
- * prefilterRegex breaks ties with a STRICT `<` (`m.index < earliest.idx`), so the
- * earlier entry always keeps the slot. No fixture can make it fire; writing one
- * would only re-prove that `email_endswith_at` wins. It is dead code, and the fix
- * is to delete it or make it non-redundant - deliberately deferred, NOT done here.
- * Do not read a green check as "all literal-tier patterns are guarded".
+ * 10 of 10 is full literal-tier coverage, and it is NOT a rounding-up of the old
+ * "10 of 11". The eleventh, `py_email_endswith_at`, was DELETED in PR C2 rather
+ * than counted: it held the identical regex in Python casing, also `/i`, so it
+ * accepted exactly the same strings at exactly the same index as
+ * `email_endswith_at`, which sits earlier in PREFILTER_PATTERNS. Since
+ * prefilterRegex breaks ties with a STRICT `<` (`m.index < earliest.idx`), the
+ * earlier entry always kept the slot and the Python twin was unreachable by any
+ * input. Keeping it alive to report "11 of 11" would have been coverage theatre.
+ * Deletion was verified behaviour-preserving by simulating prefilterRegex with
+ * and without it over all 45 corpus fixtures plus 14 synthetic shapes built to
+ * fire it: zero inputs where it won, zero changes in winning patternId or index.
+ * Still do not read a green check as "detection quality is verified".
  *
  * Like every other deterministic gate in this repo, this is a wiring-and-parsing
  * gate. It verifies that the regex bypass emits the finding it claims to emit.
@@ -87,6 +97,10 @@ const BYPASS_EXPECTED: ReadonlyArray<readonly [string, string]> = [
   ["positive/04-default-admin-id-fallback.ts", "default_admin_id"],
   ["positive/05-admin-emails-array.js", "admin_emails_array"],
   ["positive/07-default-admin-id-helper.js", "default_admin_id"],
+  // LOAD-BEARING PIN. This fixture is Python (`email.endswith`) matched by a
+  // camelCase regex; only the `/i` on `email_endswith_at` bridges the spellings.
+  // If that flag is ever removed this line fails first. Do not "fix" it by
+  // relaxing the expected id - restore the flag.
   ["positive/08-flask-endswith-domain.py", "email_endswith_at"],
   ["positive/09-flask-default-admin-email.py", "default_admin_email"],
   ["positive/10-go-admin-domain-suffix.go", "strings_hassuffix_email"],
@@ -285,8 +299,9 @@ async function main(): Promise<void> {
   process.stdout.write(
     `\nRESULT: PASS (${total}/${total} fixtures: 12 Option G bypass, 3 pre-model drops)\n` +
       "NOTE: deterministic wiring gate only. Detection quality is not verified here.\n" +
-      "NOTE: guards 10 of 11 literal-tier patterns. The 11th, py_email_endswith_at,\n" +
-      "      is unreachable by any input (see the header); it is dead code, not a gap.\n",
+      "NOTE: guards 10 of 10 literal-tier patterns (full literal-tier coverage).\n" +
+      "      The old 11th, py_email_endswith_at, was deleted as unreachable dead\n" +
+      "      code rather than counted; see the header.\n",
   );
 }
 
