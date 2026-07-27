@@ -836,6 +836,16 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
     shadowed by an earlier match in the very fixtures meant to exercise them, so adding an
     assertion alone cannot reach them. They need NEW fixtures whose earliest match is the
     intended pattern. Follow-up, not done here.
+
+    **SUPERSEDED by PR C1 (branch `fix/admin-check-prefilter-coverage`), and PARTLY
+    CORRECTED.** The wording above is left as entered. Three of the four are now exercised
+    (`email_eq_literal`, `role_fallback_admin`, `body_role_check`), taking the gate from 7 of
+    11 to **10 of 11**. The fourth, `py_email_endswith_at`, does NOT need a new fixture and
+    never did: it is unreachable by any input, because its `/i` regex is equivalent to
+    `email_endswith_at`, which sits earlier in `PREFILTER_PATTERNS` and wins every tie under
+    `prefilterRegex`'s strict `<`. It is dead code, not a coverage gap. Full reasoning, and
+    the evidence that this was already true at `ba80fe0`, in the CORRECTION block under
+    Priority 1c.
   - **Sidecar freeze.** All 26 route-def bucket-(c) fixtures record `routeGuard === undefined`
     (`fixtures/admin-check/` contains no sidecar files, and the spec uses
     `positiveNegativeLayout` with no `loadSidecars` hook). This freezes ONLY the un-guarded
@@ -847,6 +857,11 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
     `role_string_compare`, `express_route_def`, `app_router_route_def`, `remix_handler_def`,
     `fastapi_route_def`, `flask_route_def`. Deliberately not fixed in the 2b.3 PRs (out of
     scope). Follow-up below.
+
+    **FIXED by PR C1 (branch `fix/admin-check-prefilter-coverage`).** Both occurrences, not
+    just the `:805` one logged here: the same sentence had a twin in the `llmValidation`
+    field doc comment. Both now name all six. The adjacent Day 4 "6 FPs" claim was left
+    alone; see the Priority 1c entry.
 
 - **F-004 stage 2 sub-step 2b.4 (idor) MERGED - THREE PRs landed in order, #95 then #96 then
   #97.** The fifth detector gated, and the FIRST to exercise sidecars end to end.
