@@ -836,6 +836,16 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
     shadowed by an earlier match in the very fixtures meant to exercise them, so adding an
     assertion alone cannot reach them. They need NEW fixtures whose earliest match is the
     intended pattern. Follow-up, not done here.
+
+    **SUPERSEDED by PR C1 (branch `fix/admin-check-prefilter-coverage`), and PARTLY
+    CORRECTED.** The wording above is left as entered. Three of the four are now exercised
+    (`email_eq_literal`, `role_fallback_admin`, `body_role_check`), taking the gate from 7 of
+    11 to **10 of 11**. The fourth, `py_email_endswith_at`, does NOT need a new fixture and
+    never did: it is unreachable by any input, because its `/i` regex is equivalent to
+    `email_endswith_at`, which sits earlier in `PREFILTER_PATTERNS` and wins every tie under
+    `prefilterRegex`'s strict `<`. It is dead code, not a coverage gap. Full reasoning, and
+    the evidence that this was already true at `ba80fe0`, in the CORRECTION block under
+    Priority 1c.
   - **Sidecar freeze.** All 26 route-def bucket-(c) fixtures record `routeGuard === undefined`
     (`fixtures/admin-check/` contains no sidecar files, and the spec uses
     `positiveNegativeLayout` with no `loadSidecars` hook). This freezes ONLY the un-guarded
@@ -847,6 +857,11 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
     `role_string_compare`, `express_route_def`, `app_router_route_def`, `remix_handler_def`,
     `fastapi_route_def`, `flask_route_def`. Deliberately not fixed in the 2b.3 PRs (out of
     scope). Follow-up below.
+
+    **FIXED by PR C1 (branch `fix/admin-check-prefilter-coverage`).** Both occurrences, not
+    just the `:805` one logged here: the same sentence had a twin in the `llmValidation`
+    field doc comment. Both now name all six. The adjacent Day 4 "6 FPs" claim was left
+    alone; see the Priority 1c entry.
 
 - **F-004 stage 2 sub-step 2b.4 (idor) MERGED - THREE PRs landed in order, #95 then #96 then
   #97.** The fifth detector gated, and the FIRST to exercise sidecars end to end.
@@ -1295,15 +1310,59 @@ remains OPEN as above.
 
 ### Priority 1c - follow-ups opened by 2b.3 (small, deterministic, no spend)
 
-- **Four literal-tier admin-check patterns are exercised by nothing.** `email_eq_literal`,
-  `py_email_endswith_at`, `role_fallback_admin`, `body_role_check`. The #90 gate covers 7 of
-  11. Two of the four are shadowed by an earlier match in the very fixtures meant to exercise
-  them, so this needs NEW fixtures whose earliest `m.index` is the intended pattern; adding
-  assertions alone cannot reach them. No API spend (all four are bypass-tier, no model call).
-- **Stale comment at `admin-check.detector.ts:805`.** It claims the judgment tier is
+- **Four literal-tier admin-check patterns are exercised by nothing: THREE OF FOUR FIXED on
+  branch `fix/admin-check-prefilter-coverage` (PR C1); the fourth is not fixable and is
+  reclassified below.** `email_eq_literal`, `py_email_endswith_at`, `role_fallback_admin`,
+  `body_role_check`. The #90 gate covers 7 of 11. Two of the four are shadowed by an earlier
+  match in the very fixtures meant to exercise them, so this needs NEW fixtures whose earliest
+  `m.index` is the intended pattern; adding assertions alone cannot reach them. No API spend
+  (all four are bypass-tier, no model call).
+
+  PR C1 adds `positive/22-hardcoded-admin-email-equality.js` (`email_eq_literal`),
+  `positive/23-role-nullish-fallback-admin.js` (`role_fallback_admin`) and
+  `positive/24-client-supplied-role-no-route-def.js` (`body_role_check`), each shaped so the
+  intended pattern is the earliest `m.index`, taking the #90 gate from 7 of 11 to 10 of 11.
+  The corpus moves 42 -> 45 (24 positives, 21 negatives) and `test-admin-check.ts` moves to
+  24/21/45 in the SAME commit, because landing three positives against a 21 bar would have
+  decayed it to 21-of-24 and reintroduced the exact defect closed by #131. All three new
+  fixtures are Option G bypasses, so the replay MANIFEST stays at 30 and no recording was
+  added, moved or re-recorded. Zero spend.
+
+  **CORRECTION of the "needs NEW fixtures" remedy as applied to `py_email_endswith_at`,
+  entered by `ba80fe0` (PR #93, F-004 2b.3).** That remedy is stated above for "two of the
+  four" shadowed patterns. It is correct for `body_role_check` (shadowed by
+  `express_route_def` in `positive/06`, and duly fixed by `positive/24`, which defines no
+  route). It is FALSE for `py_email_endswith_at`, and was false when written, not overtaken
+  by later events: NO fixture can make that pattern fire, so it is dead code rather than a
+  coverage gap. Its regex `/\bemail\.endswith\s*\(\s*['"]\s*@/i` is case-insensitive, which
+  makes it character-for-character equivalent to `email_endswith_at`
+  `/\bemail\.endsWith\s*\(\s*['"]\s*@/i` — the two differ only in the case of one literal
+  letter, which `/i` erases. The two therefore match exactly the same inputs at exactly the
+  same index; `email_endswith_at` sits earlier in `PREFILTER_PATTERNS`; and `prefilterRegex`
+  breaks ties with a STRICT `<` (`m.index < earliest.idx`), so the earlier entry always keeps
+  the slot. Verified against `ba80fe0` itself: that commit already carried both `/i` regexes
+  in this order and the same strict `<`, so nothing about the detector changed afterwards to
+  invalidate the claim — it did not hold on the day it was entered. `py_email_endswith_at` is
+  therefore deliberately OUT of scope for PR C1 (no fixture, no gating, no deletion) and is
+  deferred to PR C2 as a dead-code decision: delete it, or make it non-redundant by removing
+  the `/i` flag or narrowing it to a Python-only shape. Writing a fixture for it would only
+  re-prove that `email_endswith_at` wins. Still no API spend either way.
+- **Stale comment at `admin-check.detector.ts:805`: FIXED on branch
+  `fix/admin-check-prefilter-coverage` (PR C1).** It claims the judgment tier is
   "currently only role_string_compare"; there are six judgment-tier patterns
   (`role_string_compare` plus the five route-def patterns). Comment-only fix. Left untouched
   by the 2b.3 PRs on purpose.
+
+  PR C1 replaces BOTH occurrences, not just the one filed here. The stale sentence had a twin
+  inside the same file: the `llmValidation` field doc comment carried
+  "Judgment-tier patterns (currently only `role_string_compare`)" and the Option G bypass
+  comment carried "Judgment-tier patterns (currently only role_string_compare) stay on LLM
+  path". Both now name all six. Anchored by quoted text rather than by the `:805` line number
+  this item cites, which had already drifted. Deliberately NOT touched: the adjacent sentence
+  "Judgment-tier patterns keep LLM in the loop because the Day 4 cognitive negatives all match
+  `role_string_compare` — wholesale bypass would have produced 6 FPs." That claim is about a
+  Day 4 measurement, and correcting or confirming it needs the Day 4 evidence, which PR C1 did
+  not check. Fixing what can be verified and leaving what cannot is the point; it stays open.
 - **Stale comment in `secrets-exposure.detector.ts` (twin of the admin-check one above; filed
   here by twin-matching): FIXED by PR B.** The `PrefilterPattern.explanation` doc comment named
   a nonexistent env var `FIXOR_SECRETS_LLM_VALIDATION=false` as the toggle for the regex-only

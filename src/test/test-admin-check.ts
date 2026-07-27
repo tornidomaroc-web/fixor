@@ -14,17 +14,23 @@
  *    nothing about stability. It now samples n=5 per fixture.
  * 2. DECAYED THRESHOLDS. The old gate was POSITIVES_MIN 11, NEGATIVES_MIN 11,
  *    COMBINED_MIN 22, calibrated against a smaller corpus. The corpus is now
- *    21 positives and 21 negatives, so "11 positives" had decayed to a 52
+ *    24 positives and 21 negatives, so "11 positives" had decayed to a 52
  *    percent bar. Aggregates are now corpus-relative and all-passing.
+ *    Kept corpus-relative since: the three positives added for prefilter
+ *    coverage (22, 23, 24) moved the bar to 24/21/45 in the same commit,
+ *    because landing them without the bump would have re-decayed positives
+ *    to 21-of-24 and reintroduced exactly the defect this note describes.
  *
  * Thresholds: positives flagged >= 4/5 runs, negatives correctly skipped 5/5
  * (zero false-positive tolerance; false positives are what made F-001
  * ship-blocking). Aggregate: every fixture must clear its per-fixture bar.
  *
- * NOTE on cost shape: 12 of this corpus's 42 fixtures terminate BEFORE the
- * model (3 pre-model drops and 9 Option G literal-tier bypasses, measured in
+ * NOTE on cost shape: 15 of this corpus's 45 fixtures terminate BEFORE the
+ * model (3 pre-model drops and 12 Option G literal-tier bypasses, measured in
  * F-004 sub-step 2b.3). Those cost nothing here and are covered for free by
- * `test:admin-check-prefilter`. Only the 30 model-reaching fixtures spend.
+ * `test:admin-check-prefilter`. Only the 30 model-reaching fixtures spend —
+ * unchanged by positives 22-24, which are all Option G bypasses, so this
+ * corpus grew by three fixtures at no additional cost per run.
  *
  * SCOPE: this is a detection-quality gate, the only kind in this repo. It is
  * the opposite of the deterministic replay and prefilter gates, which verify
@@ -53,9 +59,9 @@ async function main(): Promise<void> {
     nRuns: 5,
     perPositiveThreshold: 4,
     perNegativeThreshold: 5,
-    positivesMinPassing: 21,
+    positivesMinPassing: 24,
     negativesMinPassing: 21,
-    combinedMinPassing: 42,
+    combinedMinPassing: 45,
     costPerLlmCallUsd: 0.00828,
     systemPromptFingerprint: SYSTEM_PROMPT_FINGERPRINT,
   });

@@ -676,9 +676,12 @@ export class AdminCheckDetector implements Detector {
   /**
    * When false (default), literal-tier pattern matches emit findings
    * directly using the pattern's hand-authored explanation. Judgment-tier
-   * patterns (currently only `role_string_compare`) stay on the LLM path
-   * regardless of this setting — they require context discrimination the
-   * regex cannot provide.
+   * patterns stay on the LLM path regardless of this setting — they require
+   * context discrimination the regex cannot provide. There are six of them:
+   * `role_string_compare` plus the five route-def sentinels
+   * (`express_route_def`, `app_router_route_def`, `remix_handler_def`,
+   * `fastapi_route_def`, `flask_route_def`). The route-def five were added
+   * after this comment first claimed `role_string_compare` was the only one.
    *
    * **Default flipped to false on Day 8** (2026-05-15): the LLM mode
    * quoted hardcoded internal emails, user IDs, and domain suffixes into
@@ -801,10 +804,12 @@ export class AdminCheckDetector implements Detector {
     );
 
     // Per-pattern Option G bypass (Day 8): literal-tier patterns with
-    // hand-authored explanations skip the LLM call. Judgment-tier patterns
-    // (currently only role_string_compare) stay on LLM path regardless of
-    // llmValidation setting because the regex cannot disambiguate bug vs
-    // safe usage. See D8 "Detector ≠ pattern set" in detector-test-rules.md.
+    // hand-authored explanations skip the LLM call. All six judgment-tier
+    // patterns (role_string_compare plus the five route-def sentinels) stay
+    // on the LLM path regardless of llmValidation, because the regex cannot
+    // disambiguate bug vs safe usage. The route-def five were added after
+    // this comment first claimed role_string_compare was the only one.
+    // See D8 "Detector ≠ pattern set" in detector-test-rules.md.
     if (
       !this.llmValidation &&
       matchedPattern?.tier === "literal" &&
