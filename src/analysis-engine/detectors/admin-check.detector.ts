@@ -122,19 +122,38 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
     explanation:
       "Admin grant via hardcoded email comparison. The code grants admin privileges when the authenticated user's email exactly matches a literal string in source. This trusts the email value (which may come from session, JWT payload, or request body — any of which can be spoofed if not server-signed and verified) instead of consulting an authoritative role store. Move admin role assignment to a database table (`user_roles`, `org_members`, or similar), look up the role from there using the authenticated user ID, and remove the hardcoded comparison.",
   },
+  // THE `/i` FLAG BELOW IS LOAD-BEARING. DO NOT REMOVE IT.
+  //
+  // This one pattern covers BOTH spellings of the call. The regex body is
+  // written camelCase for JS/TS (`email.endsWith`), and the `/i` is the only
+  // reason it also matches Python's `email.endswith` — plus any other casing
+  // (`ENDSWITH`, `EnDsWiTh`). Drop the `/i` and admin-check silently stops
+  // detecting the hardcoded-domain-suffix admin grant in EVERY Python file,
+  // which is the language where `email.endswith("@corp.com")` is the idiomatic
+  // spelling. Silently: there is no error, the finding simply never appears.
+  //
+  // What catches it: `fixtures/admin-check/positive/08-flask-endswith-domain.py`
+  // contains `email.endswith("@acme.app")` and is pinned in BYPASS_EXPECTED
+  // (src/test/test-admin-check-prefilter.ts) to THIS pattern id. Without `/i`
+  // that fixture matches no pattern at all, so it drops pre-model instead of
+  // bypassing, and `npm run test:admin-check-prefilter` fails loudly. That
+  // fixture is the standing guard on this invariant; do not delete it either.
+  //
+  // History: a separate `py_email_endswith_at` pattern used to sit directly
+  // below this one, holding the identical regex in Python casing — also `/i`,
+  // therefore accepting exactly the same strings at exactly the same index.
+  // Because `prefilterRegex` breaks ties with a strict `<`, the earlier entry
+  // always won and the Python twin was unreachable by any input. It was dead
+  // code, not coverage, and was deleted (PR C2) rather than lang-gated: its
+  // explanation was a strictly poorer paraphrase of this one, and gating would
+  // have changed the emitted ruleId on Python findings, breaking the
+  // ruleId-keyed SARIF fingerprint and re-opening already-triaged alerts.
   {
     id: "email_endswith_at",
     re: /\bemail\.endsWith\s*\(\s*['"]\s*@/i,
     tier: "literal",
     explanation:
       "Admin grant via hardcoded domain suffix check. The code grants admin or elevated privileges to any user whose email ends with a specific domain. This is trivially bypassable: an attacker who can register an email on that domain (any public provider with the matching suffix, or any subdomain the attacker controls) is granted admin, and the email value itself may be spoofable if not from a verified source. Replace with a database-backed role lookup keyed on the authenticated user ID, or with a verified JWT claim from a trusted issuer.",
-  },
-  {
-    id: "py_email_endswith_at",
-    re: /\bemail\.endswith\s*\(\s*['"]\s*@/i,
-    tier: "literal",
-    explanation:
-      "Admin grant via hardcoded domain suffix check (Python `email.endswith`). The code grants admin privileges to any user whose email ends with a specific domain. Bypassable by registering or spoofing an email on the matching domain. Replace with a database-backed role lookup keyed on authenticated user ID, or with a verified JWT claim from a trusted issuer.",
   },
   {
     id: "email_includes_admin",

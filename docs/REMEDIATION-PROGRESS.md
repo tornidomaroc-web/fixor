@@ -846,6 +846,17 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
     `prefilterRegex`'s strict `<`. It is dead code, not a coverage gap. Full reasoning, and
     the evidence that this was already true at `ba80fe0`, in the CORRECTION block under
     Priority 1c.
+
+    **CLOSED by PR C2 (branch `fix/admin-check-drop-dead-py-pattern`).** `py_email_endswith_at`
+    was DELETED rather than gated, so the denominator changed with it: the gate now reads
+    **10 of 10**, full literal-tier coverage, not a gamed "11 of 11" obtained by keeping an
+    unreachable pattern alive to be counted. Deletion was proven behaviour-preserving over all
+    45 fixtures plus 14 synthetic shapes (0 wins, 0 outcome changes). Gating was rejected for
+    four reasons — poorer Python explanation, SARIF ruleId-fingerprint churn re-opening triaged
+    alerts, no Python instance of the shape ever observed in any scanned corpus, and the fact
+    that deletion leaves the load-bearing `/i` guarded by `positive/08` while gating would have
+    left two paths unguarded. Recorded in full under Priority 1c. Zero spend; no recordings
+    moved.
   - **Sidecar freeze.** All 26 route-def bucket-(c) fixtures record `routeGuard === undefined`
     (`fixtures/admin-check/` contains no sidecar files, and the spec uses
     `positiveNegativeLayout` with no `loadSidecars` hook). This freezes ONLY the un-guarded
@@ -1347,6 +1358,62 @@ remains OPEN as above.
   deferred to PR C2 as a dead-code decision: delete it, or make it non-redundant by removing
   the `/i` flag or narrowing it to a Python-only shape. Writing a fixture for it would only
   re-prove that `email_endswith_at` wins. Still no API spend either way.
+
+  **RESOLVED by PR C2 (branch `fix/admin-check-drop-dead-py-pattern`): DELETED, not gated.**
+  The C1 diagnosis held up under a second look: `py_email_endswith_at` was unreachable by any
+  input. Its regex `/\bemail\.endswith\s*\(\s*['"]\s*@/i` differed from `email_endswith_at`
+  `/\bemail\.endsWith\s*\(\s*['"]\s*@/i` only in the case of one literal letter, and BOTH
+  carried `/i`, which erases that difference. The two accepted exactly the same strings at
+  exactly the same index; `email_endswith_at` sits earlier in `PREFILTER_PATTERNS`; and
+  `prefilterRegex` breaks ties by definition order via a strict `<` (`m.index <
+  earliest.idx`). The earlier entry therefore always kept the slot. Deletion was verified
+  behaviour-preserving before committing, by simulating `prefilterRegex` with and without the
+  pattern over the actual committed bytes of all 45 corpus fixtures plus 14 synthetic shapes
+  built specifically to fire it: **0 inputs where it won, 0 differences in winning patternId
+  or match index.** Literal tier goes 11 -> 10; total 17 -> 16; the gate now reads 10 of 10.
+  Zero spend, and no recording moved (it never produced a callClaude request, so it never had
+  one).
+
+  Gating the pair by language was the alternative and was REJECTED on four grounds, recorded
+  here because the reasoning is the durable part:
+  - **The Python explanation was strictly poorer, not merely redundant.** Set side by side, it
+    added only the parenthetical "(Python `email.endswith`)" — naming the syntax the reader is
+    already looking at — while DROPPING the two clauses that carry the security reasoning: the
+    attack surface ("any public provider with the matching suffix, or any subdomain the
+    attacker controls") and the provenance caveat ("the email value itself may be spoofable if
+    not from a verified source"). Gating would have shipped WORSE output to Python users, on
+    the language where `email.endswith("@corp.com")` is the idiomatic spelling, for a pattern
+    with a known FP class (see `docs/STEP4-PRODUCTION-VALIDATION.md`, 8 admin-check FPs).
+  - **Gating would have re-opened already-triaged alerts.** `sarif-output.service.ts` builds
+    finding identity as `` `${ruleId}:${file}:${line}` `` under the comment "Stable fingerprint
+    for a finding, so re-runs reuse the same SARIF id". Gating changes the emitted ruleId on
+    Python findings from `admin-check-email_endswith_at` to `admin-check-py_email_endswith_at`,
+    so every consumer keyed on that fingerprint — GitHub code scanning baselines above all —
+    would close the dismissed alert and open a new one. Deletion cannot do this: that ruleId
+    was never emitted, because the pattern never won.
+  - **No Python instance of the shape has ever been observed.** Across every corpus this repo
+    has scanned, the shape appears three times, all camelCase in `.ts`/`.md`
+    (`calcom/packages/lib/isSmsCalEmail.ts` — the Step 4 source-path FP — plus
+    `Cap/.../Loom/Http.ts` and one doc table). Gating would have been a production behaviour
+    change serving a file population never once seen in practice.
+  - **Deletion leaves the invariant guarded; gating would not.** After deletion there is ONE
+    regex, and its `/i` is what covers the Python spelling. `positive/08-flask-endswith-domain.py`
+    is Python and is pinned to `email_endswith_at` in `BYPASS_EXPECTED`, so dropping `/i` makes
+    that fixture match nothing, drop pre-model instead of bypassing, and fail
+    `test:admin-check-prefilter`. The guard is mechanical and already exists. Under gating,
+    NOTHING would have exercised camelCase-in-`.py` or snake_case-in-`.ts`; both would have
+    rested on a `/i` on each side that no fixture touches.
+
+  **CORRECTION of the remedy this very block proposed, entered by `f2010e2a` (PR #132,
+  2026-07-27) — i.e. by C1 itself.** The sentence above offers "make it non-redundant by
+  removing the `/i` flag" as an acceptable alternative to deletion. That was FALSE WHEN
+  WRITTEN, and it is the most dangerous line in the entry: `/i` is load-bearing on BOTH
+  patterns. Simulated, dropping it loses four detection classes outright — camelCase in `.py`
+  (transpiled or docstring code), snake_case in `.ts` (templates, typos), and any ALLCAPS
+  spelling in either language — every one of which admin-check flags today. A reader following
+  that suggestion would have silently narrowed detection while believing they were tidying a
+  redundancy. The `/i` on `email_endswith_at` is now documented in the detector as load-bearing
+  and named as such at its `BYPASS_EXPECTED` pin. Do not remove it.
 - **Stale comment at `admin-check.detector.ts:805`: FIXED on branch
   `fix/admin-check-prefilter-coverage` (PR C1).** It claims the judgment tier is
   "currently only role_string_compare"; there are six judgment-tier patterns

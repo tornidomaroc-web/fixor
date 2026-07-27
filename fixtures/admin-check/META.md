@@ -10,6 +10,12 @@ Background: the Day 7 cross-detector audit found admin-check LLM reasoning quote
 - LLM mode is preserved as opt-in via `FIXOR_ADMIN_CHECK_LLM_OPT_IN=true` env var or `{ llmValidation: true }` constructor option.
 - Day 8 stability run: 20/20 in both modes, zero verdict changes, LLM calls cut 80 → 30 (62% reduction). The 6 cognitive negatives matching judgment-tier all preserved SKIP under the new default.
 
+**STATUS AS OF PR C2 (2026-07-27) — the Day 8 counts above are left as entered and are no longer current.** They were accurate on 2026-05-15; the route-def sentinels landed afterwards (Phase 2 / Phase C / Phase E / the Python slices, 2026-05-23 to 2026-05-28) and changed the inventory. Current tier inventory is **10 literal-tier + 6 judgment-tier = 16 patterns**. The judgment tier is no longer "the single `role_string_compare`": it is `role_string_compare` plus `express_route_def`, `app_router_route_def`, `remix_handler_def`, `fastapi_route_def` and `flask_route_def`.
+
+The literal tier went 11 → 10 in PR C2, which **deleted `py_email_endswith_at`**. That pattern was unreachable by any input: it carried the identical regex to `email_endswith_at` in Python casing, and both carried `/i`, so the two accepted exactly the same strings at exactly the same index. `prefilterRegex` breaks ties with a strict `<`, so the earlier entry always won. Deleting it was verified behaviour-preserving over all 45 fixtures plus 14 synthetic shapes: zero inputs where it won, zero changes in winning pattern or match index.
+
+Consequence for this corpus: **`positive/08-flask-endswith-domain.py` is now a load-bearing fixture.** It is Python (`email.endswith`) matched by a camelCase regex, so it is the only thing standing between a future "tidy the regex" edit and the silent loss of admin-check detection across every Python file. It is pinned to `email_endswith_at` in `BYPASS_EXPECTED`. Do not delete it, and do not relax that pin.
+
 ## Positive (real vulnerabilities)
 - 01-hardcoded-admin-email.ts: requireAdmin compares against ADMIN_EMAIL constant
 - 02-endswith-company-domain.ts: isInternalUser via email.endsWith("@acme.app")
