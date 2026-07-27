@@ -8,17 +8,21 @@
  *
  * admin-check is the first MIXED detector: unlike the previous three, part of
  * its shipped behavior never reaches the model at all. Measured over the whole
- * 42-file corpus by driving the real detector keylessly (FIXOR_REPLAY=1 against
+ * 45-file corpus by driving the real detector keylessly (FIXOR_REPLAY=1 against
  * an empty fixture root, so any callClaude throws ReplayFixtureMissing before a
  * client is constructed), every fixture takes exactly one terminal path:
  *
  *   (a)  3 negatives dropped pre-model by a detect() gate or a zero-trigger
  *        prefilter                                     -> not recordable
- *   (b)  9 positives decided by the Option G per-pattern bypass: the first
+ *   (b) 12 positives decided by the Option G per-pattern bypass: the first
  *        trigger is a literal-tier pattern with a hand-authored explanation, so
  *        the finding is emitted from the regex match and callClaude is NEVER
  *        invoked                                       -> not recordable
  *   (c) 30 fixtures reach callClaude (judgment tier)   -> RECORDABLE, this spec
+ *
+ * The corpus grew from 42 to 45 when positives 22-24 were added for prefilter
+ * coverage. All three land in bucket (b), so bucket (c) and therefore this
+ * MANIFEST are UNCHANGED at 30. No recording was added, moved or re-recorded.
  *
  * MANIFEST = the 30 bucket-(c) ids: 12 positives + 18 negatives.
  *
@@ -106,7 +110,7 @@ const REPLAY_DIR = "fixtures/replay/admin-check-multi";
 /**
  * Expected END-TO-END flagged outcome per model-reaching fixture, per the
  * corpus's DESIGNED intent: the 12 recordable positives flag (real missing
- * admin gates), the 18 model-reaching negatives do not. The 12 pre-model
+ * admin gates), the 18 model-reaching negatives do not. The 15 pre-model
  * fixtures are absent (see the exclusion block below); they never reach the
  * model so they cannot record and are not part of the round-trip.
  */
@@ -150,7 +154,7 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
 
   // ======================================================================
   // EXCLUDED (pre-model; never reach callClaude, so never record).
-  // All 12 are guarded for free by `test:admin-check-prefilter` instead.
+  // All 15 are guarded for free by `test:admin-check-prefilter` instead.
   // ======================================================================
   //
   // Bucket (b) - Option G deterministic bypass. The first trigger is a
@@ -167,6 +171,13 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   //                                            (NOT py_email_endswith_at: shadowed)
   //   positive/09-flask-default-admin-email.py default_admin_email
   //   positive/10-go-admin-domain-suffix.go    strings_hassuffix_email
+  //   positive/22-hardcoded-admin-email-equality.js  email_eq_literal
+  //   positive/23-role-nullish-fallback-admin.js     role_fallback_admin
+  //   positive/24-client-supplied-role-no-route-def.js  body_role_check
+  //                                            (defines no route, so
+  //                                             express_route_def cannot
+  //                                             pre-empt it as it does in
+  //                                             positive/06)
   //
   // Bucket (a) - dropped pre-model, with the exact preFilterReason recorded:
   //   negative/03-email-match-invite-only.ts          "no regex match"

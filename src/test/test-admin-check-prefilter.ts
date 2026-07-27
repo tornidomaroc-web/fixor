@@ -1,7 +1,7 @@
 /**
  * F-004 stage 2b.3, PR 1 of 2 - the FREE deterministic gate for admin-check.
  *
- * admin-check is a MIXED detector. Over its 42-file corpus (21 positives + 21
+ * admin-check is a MIXED detector. Over its 45-file corpus (24 positives + 21
  * negatives), the shipped default configuration (`llmValidation = false`, from
  * `new AdminCheckDetector()` in registry.ts) resolves each fixture down exactly
  * one of three terminal paths, BEFORE any model call:
@@ -11,7 +11,7 @@
  *   (b) decided by the Option G per-pattern bypass: the first trigger is a
  *       literal-tier pattern with a hand-authored explanation, so the finding is
  *       emitted from the regex match alone and callClaude is NEVER invoked
- *                                                             ->  9 fixtures
+ *                                                             -> 12 fixtures
  *   (c) reaches callClaude (judgment-tier first trigger: role_string_compare or
  *       one of the five route-def patterns)                   -> 30 fixtures
  *
@@ -36,13 +36,23 @@
  * produced it. Pinning the ruleId is what catches that shadowing.
  *
  * HONEST SCOPE - WHAT A GREEN RUN HERE DOES *NOT* MEAN:
- * This gate exercises 7 of the 11 literal-tier patterns. Four are unexercised by
- * the current corpus and are guarded by NOTHING:
- *     email_eq_literal, py_email_endswith_at, role_fallback_admin, body_role_check
- * Two of those four (`py_email_endswith_at`, `body_role_check`) are shadowed by an
- * earlier match in the very fixtures intended to exercise them, so adding an
- * assertion alone would not reach them - they need new fixtures whose earliest
- * match is the intended pattern. That is deliberate follow-up work, NOT done here.
+ * This gate exercises 10 of the 11 literal-tier patterns. Positives 22, 23 and 24
+ * were added specifically to reach `email_eq_literal`, `role_fallback_admin` and
+ * `body_role_check`, each shaped so the intended pattern is the EARLIEST match
+ * (an assertion alone would not have reached the latter two: they were shadowed
+ * in the fixtures originally meant to exercise them).
+ *
+ * Exactly one literal-tier pattern remains unexercised, and it is NOT a fixture
+ * gap: `py_email_endswith_at` is UNREACHABLE BY ANY INPUT. Its regex
+ * `/\bemail\.endswith\s*\(\s*['"]\s*@/i` is case-insensitive, which makes it
+ * character-for-character equivalent to `email_endswith_at`
+ * `/\bemail\.endsWith\s*\(\s*['"]\s*@/i` - the two differ only in the case of one
+ * literal letter, which `/i` erases. Both therefore match the same inputs at the
+ * same index, `email_endswith_at` is earlier in PREFILTER_PATTERNS, and
+ * prefilterRegex breaks ties with a STRICT `<` (`m.index < earliest.idx`), so the
+ * earlier entry always keeps the slot. No fixture can make it fire; writing one
+ * would only re-prove that `email_endswith_at` wins. It is dead code, and the fix
+ * is to delete it or make it non-redundant - deliberately deferred, NOT done here.
  * Do not read a green check as "all literal-tier patterns are guarded".
  *
  * Like every other deterministic gate in this repo, this is a wiring-and-parsing
@@ -80,6 +90,14 @@ const BYPASS_EXPECTED: ReadonlyArray<readonly [string, string]> = [
   ["positive/08-flask-endswith-domain.py", "email_endswith_at"],
   ["positive/09-flask-default-admin-email.py", "default_admin_email"],
   ["positive/10-go-admin-domain-suffix.go", "strings_hassuffix_email"],
+  // Added by PR C1 to reach three literal-tier patterns the corpus had never
+  // exercised. Each fixture is SHAPED so the intended pattern is the earliest
+  // match: 22 carries no ADMIN_EMAIL constant before the comparison, 23 uses no
+  // `role ===` compare, and 24 defines no route so `express_route_def` cannot
+  // pre-empt `body_role_check` the way it does in positive/06.
+  ["positive/22-hardcoded-admin-email-equality.js", "email_eq_literal"],
+  ["positive/23-role-nullish-fallback-admin.js", "role_fallback_admin"],
+  ["positive/24-client-supplied-role-no-route-def.js", "body_role_check"],
 ];
 
 /** Bucket (a): fixture -> the exact preFilterReason detect()/analyzeFile records. */
@@ -182,7 +200,7 @@ async function main(): Promise<void> {
     }
   }
 
-  process.stdout.write("Bucket (b): Option G deterministic bypass, 9 positives\n");
+  process.stdout.write("Bucket (b): Option G deterministic bypass, 12 positives\n");
   for (const [id, expectedPatternId] of BYPASS_EXPECTED) {
     const r = await runFixture(id);
     const expectedRuleId = `admin-check-${expectedPatternId}`;
@@ -265,9 +283,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   process.stdout.write(
-    `\nRESULT: PASS (${total}/${total} fixtures: 9 Option G bypass, 3 pre-model drops)\n` +
+    `\nRESULT: PASS (${total}/${total} fixtures: 12 Option G bypass, 3 pre-model drops)\n` +
       "NOTE: deterministic wiring gate only. Detection quality is not verified here.\n" +
-      "NOTE: guards 7 of 11 literal-tier patterns; see the header for the 4 unguarded.\n",
+      "NOTE: guards 10 of 11 literal-tier patterns. The 11th, py_email_endswith_at,\n" +
+      "      is unreachable by any input (see the header); it is dead code, not a gap.\n",
   );
 }
 
