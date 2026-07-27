@@ -1479,6 +1479,59 @@ remains OPEN as above.
   set in `07fe2d3` (#52). Fixed to 9/9/18 on branch `fix/idor-aggregates-all-pass`, which leaves
   `test-secrets-exposure.ts` as the last open instance, unchanged and still 7/9/16.
 
+  **CLOSED by PR C3 (branch `chore/retire-test-secrets-exposure`): the last open instance was
+  RETIRED, not re-gated.** The either/or above ("Either retire that test or make its thresholds
+  corpus-relative") is resolved on evidence, and the deciding question was not which constants
+  were right but whether the file covered anything at all. It did not:
+  - **Strict duplicate.** `test-secrets-exposure.ts` asserted exactly one thing per fixture, a
+    `flagged` boolean (`findings.length > 0`), rolled into three aggregate bars.
+    `test-secrets-exposure-prefilter.ts` runs the SAME corpus through the SAME construction
+    (`new SecretsExposureDetector()`, shipped default) and asserts, per fixture, the exact
+    finding count, `preFilterReason`, `flagged`, `type`, `severity`, `confidence` AND `ruleId`,
+    plus zero LLM call attempts per fixture and globally, plus three corpus invariants. On the
+    only axis they shared it was also strictly stricter: 15-of-15 and 10-of-10 EXACT, against
+    the retired test's `>= 7` / `>= 9` / `>= 16`.
+  - **It could not reach the model.** `secrets-exposure.detector.ts` returns from the Option G
+    bypass under `if (!this.llmValidation)` UNCONDITIONALLY - there is no per-pattern gating as
+    in admin-check - so `callClaude` is unreachable for ANY input under the shipped default,
+    not merely for this corpus. The file nevertheless gated on `ANTHROPIC_API_KEY` and printed
+    `SKIPPED` without one: a key-gated test that needed no key and measured no live accuracy,
+    while its header advertised "~ $0.02 per run - only positives reach the LLM". Both halves
+    were false; the true cost was $0 and the true model-reaching count was 0.
+  - **It gated nothing.** Verified mechanically BEFORE removal: absent from the `test:ci` chain
+    (only the `-prefilter` variant appears), absent from the stage-3 selector list (which is the
+    six spending detectors), and invoked by no workflow - the sole `.github/` mention is the
+    comment stating secrets-exposure has no live coverage, which stays true. Nothing imported
+    the module (it had zero `export` statements) and its `parseMeta` / `printDiagnostic` /
+    local `loadFixture` / `buildSyntheticDiff` appeared nowhere else. Retirement therefore
+    could not loosen any gate.
+
+  **IF LIVE SECRETS ACCURACY IS EVER WANTED** (i.e. `FIXOR_SECRETS_LLM_OPT_IN=true` is
+  deliberately enabled), build it on `runStabilityHarness` as the other five detectors do. Do
+  NOT resurrect the retired file: it was single-shot (no `nRuns`, against the standing n=5
+  convention and the F-008 "a single sample is not a verdict" lesson) and hardcoded its
+  denominators. The right scaffold already exists; the retired one was the wrong shape.
+
+  **APPENDED STATUS on the tabulated figure "secrets-exposure 7 of 10 (70 percent)" above -
+  NOT a correction.** That figure was accurate when `f62921e` (PR #116, 2026-07-22) entered it:
+  the corpus held 10 positives at that commit, verified by reading the tree at `f62921e`. It was
+  overtaken afterwards, so the original wording stands as entered and this status is appended
+  beside it. The true bar at retirement was **7 of 15 (46.7 percent)** against a 15-positive,
+  10-negative corpus - looser than every figure this entry tabulates, including the
+  auth-bypass 32 percent it cites as the worst. The combined bar was 16 of 25 (64 percent), and
+  the printed denominators were wrong in the same direction: the summary would have rendered
+  `Positives caught: 15/10` and `Combined accuracy: 25/20 (125%)` while PASSING, and the
+  failure printer's `${10 - caught}/10` would have rendered a negative numerator.
+
+  **THE LESSON, recorded because the defect class recurred on the one test this item left
+  open.** This entry tabulates a decay pattern - a corpus grows, absolute constants do not, the
+  bar silently falls - and then left exactly one instance unfixed. That instance decayed AGAIN,
+  silently, after this entry was written: `5efa432` (PR #123) added positives 11-15 to complete
+  prefilter pattern coverage without touching `POSITIVES_MIN`, taking the bar from 7-of-10 to
+  7-of-15. Documenting a defect class does not arrest it; only a corpus-relative gate or
+  deletion does. The remaining live tests are corpus-relative, so the class is now closed by
+  construction rather than by vigilance.
+
 - **Hardcoded `/10` and `/20` denominators (opened by stage-3 step 1).** The same family of
   tests printed literal `${caught}/10` and `${combined}/20` in their summaries while
   `scanDir` iterated the real directory, so the reported denominator was simply wrong once a
@@ -1486,6 +1539,14 @@ remains OPEN as above.
   **FIXED for env-exposure and webhook-unverified by step 1** (the harness prints real
   denominators). **STILL OPEN in `test-secrets-exposure.ts`**, same reason as above. This is
   a reporting defect, not a gate defect, but it makes a green line unreadable. No API spend.
+
+  **CLOSED by PR C3 with the file itself.** `test-secrets-exposure.ts` was the last carrier of
+  this defect and was retired rather than repaired, so the hardcoded `/10` and `/20` went with
+  it. The prediction in this entry was right and, if anything, understated: it warns that
+  env-exposure "could print `Positives caught: 11/10`"; the retired file would have printed
+  `Positives caught: 15/10` and `Combined accuracy: 25/20 (125%)` and still exited PASS. No
+  remaining test hardcodes a denominator - `runStabilityHarness` prints real ones and
+  `test-secrets-exposure-prefilter.ts` iterates its manifests. Class closed.
 
 - **`test-idor-lane.ts` is single-shot while its two siblings sample at N=5 (opened by
   stage-3 step 1).** `test-auth-bypass-lane.ts` and `test-express-lane.ts` both implement the
