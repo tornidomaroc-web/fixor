@@ -70,7 +70,25 @@ jobs:
     runs-on: ubuntu-latest
     # Single node on purpose. The deterministic CI runs a [20.x, 22.x] matrix
     # because it is free; a matrix here would double the spend.
-    timeout-minutes: 60
+    #
+    # TIMEOUT ARITHMETIC, because 60 was marginal and marginal is the worst setting.
+    # The six detectors at N=5 issue about 710 model calls and sleep about 11.3
+    # minutes in aggregate. Allowing ~3 minutes for checkout + setup-node + npm ci,
+    # the per-call latency a ceiling tolerates is (ceiling - 11.3 - 3) / 710:
+    #   60 min  -> ~3.9 s/call
+    #   120 min -> ~8.9 s/call
+    # At 60 the job is KILLED at 4 s/call, an ordinary latency for these prompts,
+    # and it dies AFTER most of the money is spent and BEFORE the aggregate total is
+    # written. We would pay in full and learn nothing. 120 tolerates ~8.9 s/call;
+    # beyond that the run is not slow, it is broken, and killing it is correct.
+    #
+    # RAISING THIS DOES NOT RAISE THE MAXIMUM SPEND. Spend is bounded by the call
+    # count (710 at N=5), not by the clock; the timeout only decides whether we keep
+    # the evidence for money already committed. So the cost of a genuinely HUNG job
+    # is not dollars, and not runner minutes either (this repo is public, so Actions
+    # minutes bill at zero): it is that a human waits up to 2 h instead of 1 h to
+    # learn the run is stuck. That is the whole downside, and it is worth it.
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -80,16 +98,31 @@ jobs:
       # (they print "SKIPPED:"), so a keyless dispatch would read as a passing
       # run that tested nothing. Secrets are not expanded in job-level if:
       # expressions, so this must be a run: step reading the secret via env:.
+      #
+      # Tests EMPTY-AFTER-TRIMMING, not -z. A secret of " " is non-empty to -z, so it
+      # cleared the old form of this guard and proceeded to npm ci and to spend,
+      # while the entry points themselves treat a blank key as keyless and print
+      # SKIPPED. Guard passes, detectors test nothing: precisely the false-green this
+      # step exists to prevent, reached through the one input the old test missed.
+      #
+      # WHAT THIS GUARD DOES NOT DO, STATED PLAINLY. It checks PRESENCE, never
+      # VALIDITY. A well-formed but revoked, wrong-account, or rate-limited key
+      # passes here and fails at the API boundary instead, after the job has started
+      # spending. That gap is deliberate and must stay: proving a key WORKS costs a
+      # live call, and a guard that implied "this key is good" while only proving
+      # "this key is not blank" would buy false confidence at real cost. The honest
+      # gap is better than the dishonest check. Do not add one.
       - name: Assert ANTHROPIC_API_KEY present (fail loud; never skip-green)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-            echo "::error::ANTHROPIC_API_KEY is empty or unset. A keyless stage-3 run prints SKIPPED and exits 0, which reads as a passing run that tested nothing. Failing loudly instead." >&2
+          stripped="$(printf '%s' "${ANTHROPIC_API_KEY:-}" | tr -d '[:space:]')"
+          if [ -z "$stripped" ]; then
+            echo "::error::ANTHROPIC_API_KEY is unset, empty, or whitespace-only. A keyless stage-3 run prints SKIPPED and exits 0, which reads as a passing run that tested nothing. Failing loudly instead." >&2
             exit 1
           fi
-          echo "ANTHROPIC_API_KEY present (${#ANTHROPIC_API_KEY} chars)."
+          echo "ANTHROPIC_API_KEY present (${#ANTHROPIC_API_KEY} chars raw, ${#stripped} non-whitespace)."
 
       # Fail-loud guard 2: the diverting flags. FIXOR_REPLAY would return
       # recorded responses, spend nothing, and measure nothing (a false-green
@@ -189,3 +222,26 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           echo "All selected detectors passed. Measured total: \$$total"
+
+      # Evidence survival. The stage3-*.log files are written into the workspace and
+      # die with the runner, so before this step a PAID run discarded the only
+      # per-fixture record of what the money bought. The step summary keeps one
+      # grepped cost line per detector; the logs keep the verdicts behind it.
+      #
+      # if: always() is the entire point. A RED run is exactly when these logs matter
+      # most, and the failing step exits non-zero, which would skip every later step
+      # by default. Without always() this would upload on precisely the runs whose
+      # evidence we least need.
+      #
+      # if-no-files-found: warn, deliberately NOT error. A guard-1 or guard-2 abort
+      # legitimately produces no logs at all; failing the upload there would stack a
+      # second, misleading failure on top of the real one and obscure which guard
+      # actually fired.
+      - name: Upload detector logs (survives failure)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: stage3-detector-logs
+          path: stage3-*.log
+          if-no-files-found: warn
+          retention-days: 90

@@ -2157,6 +2157,84 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
   L-013 is the evidence that the prefilter does not cleanly reach the non-FastAPI idioms, so that
   single success does not generalize across frameworks.
 
+### Priority 1g - IN REVIEW: pre-spend defects in the stage-3 workflow, found by zero-spend dry inventory
+
+Provenance, and it is the point of the entry: these three were found by READING
+`.github/workflows/stage3-live-detection.yml` and the code it calls, before any dispatch and
+before any key existed. No model call, no dispatch, no spend produced them. Distinct from
+Priority 1d (surfaced by Run 1, which was paid) and from Priority 1e (surfaced by the structural
+rig, which runs the real detector under a replay lock). This provenance is cheaper than either:
+the cost of finding all three was zero, and each would have been paid for in full on first
+dispatch. Fixes are on `fix/stage3-pre-spend-defects`; an open PR is IN REVIEW, never done.
+
+A keyless rehearsal dispatch (run `30372496279`, 2026-07-28, conclusion `failure` in 13 s) proved
+guard 1 fires on a genuinely absent secret and that steps 4-7 skip. It cost $0 and validated only
+the guard-1 path; everything downstream of it remains unexercised. It did NOT surface these three
+— the dry read did, before it.
+
+- **W-001 (IN REVIEW; availability of evidence) - `timeout-minutes: 60` was marginal, and
+  marginal is the worst setting.**
+
+  The six detectors at N=5 issue about 710 model calls plus about 11.3 minutes of aggregate
+  sleeps. Allowing ~3 min for checkout, setup-node and npm ci, a ceiling tolerates
+  `(ceiling - 11.3 - 3) / 710` per call: 60 min tolerates ~3.9 s/call, 120 min tolerates
+  ~8.9 s/call. 4 s/call is an ordinary latency for these prompts.
+
+  COST HAD WE DISPATCHED BLIND, at 4 s/call: the runner completes about 685 of 710 calls
+  (~96%) and is then SIGKILLed at the 60-minute wall. The aggregate-total footer is written
+  only after the detector loop, so it never runs. That is roughly **$6.16 of the ~$6.41
+  spent for an aggregate total of nothing**, compounded by W-002 below, which threw the
+  per-fixture logs away too. Raised to 120. Raising it does NOT raise maximum spend — spend is
+  bounded by the call count, not the clock — and Actions minutes bill at zero on this public
+  repo, so the only cost of a genuinely hung job is that a human waits up to 2 h instead of 1 h.
+
+- **W-002 (IN REVIEW; availability of evidence) - no `upload-artifact` step; a paid evidence run
+  discarded its own evidence.**
+
+  The run step writes `stage3-$d.log` per detector into the workspace and the workspace dies with
+  the runner. The step summary retained one grepped `cost:` line per detector; every verdict,
+  every per-fixture pass/fail behind that line was destroyed at job end.
+
+  COST HAD WE DISPATCHED BLIND: **the full ~$6.41 buys six summary lines.** Any FAIL verdict
+  would be undiagnosable, and re-obtaining the logs means paying ~$6.41 again. The loss is
+  strictly worse on a red run, which is exactly when the detail is needed, because the failing
+  step exits non-zero and later steps skip by default. Fixed with `if: always()` and
+  `if-no-files-found: warn` — `warn` rather than `error` so a guard abort, which legitimately
+  produces no logs, does not stack a second misleading failure over the real one.
+
+- **W-003 (IN REVIEW; guard integrity, NOT a dollar loss) - guard 1 tested `-z`, so a
+  whitespace-only key cleared it.**
+
+  `[ -z "${ANTHROPIC_API_KEY:-}" ]` is false for a secret of `" "`, so the guard passed and the
+  job proceeded through npm ci into the detector run. Verified locally at zero cost: the old form
+  exits 0 on `" "`, the new form exits 1.
+
+  COST HAD WE DISPATCHED BLIND — **stated precisely, because the obvious guess is wrong.** The
+  natural reading is "it proceeds to spend", and the dollar figure is in fact about **$0**: a
+  blank key cannot authenticate, so the API rejects the calls unbilled. Nor does it become a
+  silent green: `test-env-exposure.ts` guards with `!process.env.ANTHROPIC_API_KEY`, and `" "` is
+  truthy in JS, so the entry point does NOT print `SKIPPED:` and the belt-and-suspenders
+  `^SKIPPED:` net is never reached. The real cost is integrity and time, not money: the guard
+  advertises a promise it does not keep, and the failure arrives as an opaque 401 storm partway
+  through a job that has already run npm ci, instead of as a labelled 18-second guard failure.
+  Tightened to reject empty-after-trimming.
+
+  DELIBERATE NON-FIX, recorded so no later session "completes" it: this guard checks PRESENCE,
+  never VALIDITY. A well-formed but revoked, wrong-account or rate-limited key still passes and
+  still fails at the API boundary mid-spend. Proving a key WORKS costs a live call; a guard
+  implying "this key is good" while proving only "this key is not blank" would buy false
+  confidence at real cost. The honest gap stays.
+
+- **W-004 (OPEN; NOT FIXED IN THIS PR; silent under-reporting of measured spend.)** Named here
+  because it was found in the same dry read and must not be lost. The summary parser is
+  `sed -n 's/^cost: MEASURED \$\([0-9.][0-9.]*\).*/\1/p'`, which matches only the line beginning
+  `cost: MEASURED`. `stability-harness.ts` also emits `cost: MIXED. MEASURED $X over ...` when
+  only some calls returned usage. That line does not match, `amt` is empty, and its real measured
+  dollars are silently dropped from the run total — the summary would under-report a partially
+  priced run, and the failure mode is a quiet undercount, not an error. Needs an owner decision
+  on whether the aggregate should also be emitted on the failure path, so it is deliberately left
+  for a separate change rather than widened into this PR.
+
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
 - **F-002 (MEDIUM) - non-LLM detector throw not counted as degraded coverage.**
