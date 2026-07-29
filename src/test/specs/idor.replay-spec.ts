@@ -293,7 +293,9 @@ for (const f of readdirSync(DIR_MULTI).filter(isFixtureFile).sort()) {
 const SOURCE_MANIFEST: readonly string[] = Object.keys(EXPECTED_FLAGGED);
 
 // ===========================================================================
-// RECONCILIATION HOOK - expected finding sets. EMPTY until recorded.
+// RECONCILIATION HOOK - expected finding sets. PINNED by PR #96: all 26 ids
+// present; the 12 empty sets are recorded negative expectations, never
+// placeholders for something unrecorded.
 // ===========================================================================
 
 /**
