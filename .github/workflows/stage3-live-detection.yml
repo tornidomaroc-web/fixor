@@ -166,9 +166,29 @@ jobs:
       # Run the selected detector(s). Each npm script is one process and prints
       # one harness cost line. Belt-and-suspenders: tee each script's stdout and
       # fail if a '^SKIPPED:' marker appears, catching a whitespace-only key or a
-      # future guard-logic change that slips past guard 1. Cost visibility: grep
-      # the harness "cost:" line into the job summary and sum the MEASURED figures
-      # into a run total, shown next to the pre-run projection.
+      # future guard-logic change that slips past guard 1.
+      #
+      # COST ACCOUNTING (W-004). `stability-harness.ts` emits exactly FOUR cost-line
+      # shapes, and all six entry points route through it. The parser below is
+      # written against that enumerated set, not against the two shapes we happened
+      # to notice first:
+      #   1. "cost: no calls made"
+      #   2. "cost: MEASURED $X over N priced call(s)"   (+ a NOTE suffix when $0.00)
+      #   3. "cost: NOT MEASURED, actual $0.00 over N call(s), 0 returned usage
+      #       | would-cost-live PROJECTION ~$Y at $Z/call (ESTIMATE, not a cost)"
+      #   4. "cost: MIXED. MEASURED $X over N priced call(s); M call(s) unpriced
+      #       and NOT included in that figure"
+      # Shape 4 carries REAL measured dollars and the old parser dropped them
+      # silently, so a partially priced run under-reported its own spend.
+      #
+      # Shape 3 is the opposite trap and is why this must not be a naive "first
+      # dollar figure" grab: it contains a PROJECTION, an ESTIMATE, which must never
+      # be summed as money spent. Its actual figure is $0.00 and it is tagged
+      # UNMEASURED rather than folded in as a measured zero.
+      #
+      # An unknown shape is reported as UNRECOGNIZED and warned about, never
+      # silently treated as $0. A future harness format change must shout, not
+      # quietly undercount: silent undercounting is the whole defect being fixed.
       - name: Run selected live detector(s)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -186,11 +206,125 @@ jobs:
             echo ""
             echo "Selection: \`$SELECTION\`"
             echo ""
-            echo "| detector | harness cost line (MEASURED is the figure of record) |"
-            echo "| --- | --- |"
+            echo "| detector | mode | measured \$ | harness cost line (verbatim) |"
+            echo "| --- | --- | --- | --- |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          total="0"
+          measured_total="0"
+          n_measured=0
+          n_mixed=0
+          n_unmeasured=0
+          n_nocalls=0
+          n_noline=0
+          n_unrecognized=0
+          reported=0
+          expected=0
+          for d in $DETECTORS; do expected=$((expected + 1)); done
+
+          # Classify one harness cost line. Prints "MODE|AMOUNT"; AMOUNT is empty for
+          # every shape that carries no measured dollars, which is what keeps an
+          # unmeasured or absent line from being counted as a measured zero.
+          classify() {
+            printf '%s\n' "$1" | awk '
+              /^cost: no calls made/ { print "NOCALLS|"; exit }
+              /^cost: MEASURED \$[0-9]+\.[0-9]+/ {
+                match($0, /\$[0-9]+\.[0-9]+/)
+                print "MEASURED|" substr($0, RSTART + 1, RLENGTH - 1); exit }
+              /^cost: NOT MEASURED,/ { print "UNMEASURED|"; exit }
+              /^cost: MIXED[.,] MEASURED \$[0-9]+\.[0-9]+/ {
+                match($0, /\$[0-9]+\.[0-9]+/)
+                print "MIXED|" substr($0, RSTART + 1, RLENGTH - 1); exit }
+              { print "UNRECOGNIZED|"; exit }
+            '
+          }
+
+          # Record a detector's cost BEFORE any abort decision is taken, because a
+          # detector that FAILED may still have spent, and that spend is exactly the
+          # figure a red run must not lose.
+          record_cost() {
+            rc_d="$1"
+            rc_log="$2"
+            rc_line="$(grep -m1 '^cost:' "$rc_log" 2>/dev/null || true)"
+            reported=$((reported + 1))
+            if [ -z "$rc_line" ]; then
+              n_noline=$((n_noline + 1))
+              echo "| $rc_d | NO LINE | - | (no \`cost:\` line found; spend UNKNOWN, not zero) |" >> "$GITHUB_STEP_SUMMARY"
+              return 0
+            fi
+            rc_parsed="$(classify "$rc_line")"
+            rc_mode="${rc_parsed%%|*}"
+            rc_amt="${rc_parsed#*|}"
+            case "$rc_mode" in
+              MEASURED)     n_measured=$((n_measured + 1)) ;;
+              MIXED)        n_mixed=$((n_mixed + 1)) ;;
+              UNMEASURED)   n_unmeasured=$((n_unmeasured + 1)) ;;
+              NOCALLS)      n_nocalls=$((n_nocalls + 1)) ;;
+              *)            n_unrecognized=$((n_unrecognized + 1)) ;;
+            esac
+            if [ -n "$rc_amt" ]; then
+              measured_total="$(awk -v a="$measured_total" -v b="$rc_amt" 'BEGIN { printf "%.4f", a + b }')"
+            fi
+            # '|' appears inside shape 3, so escape it or it breaks the table cell.
+            rc_safe="$(printf '%s' "$rc_line" | sed 's/|/\\|/g')"
+            echo "| $rc_d | $rc_mode | ${rc_amt:--} | $rc_safe |" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          # The footer is emitted from an EXIT trap so it is written on the FAILURE
+          # path as well as the success path. A red run is precisely when we need to
+          # know what was already spent before the abort; losing both the money and
+          # the record of the money is the worst available outcome.
+          #
+          # It cannot swallow the failure: rc is captured as the trap's first act and
+          # re-raised by the final `exit "$rc"`, so the step's exit status is exactly
+          # what it would have been without the trap. `set +e` inside guarantees a
+          # hiccup while writing the summary cannot turn a red run green either.
+          #
+          # HONEST LIMIT: an EXIT trap runs on exits and signals, NOT on SIGKILL. A
+          # hard timeout kill still loses the footer; W-001's 60 -> 120 raise is what
+          # addresses that case, not this trap.
+          emit_footer() {
+            rc=$?
+            set +e
+            {
+              echo ""
+              if [ "$rc" -ne 0 ]; then
+                echo "> **RUN ABORTED (exit $rc).** Figures below cover only the $reported of $expected selected detector(s) that reported before the abort. Spend for the remainder is UNKNOWN."
+                echo ""
+              fi
+              echo "**MEASURED total across reporting detector(s): \$$measured_total**"
+              echo ""
+              echo "Mode census. These are deliberately NOT blended into one number; conflating them is the exact failure the harness's three tagged modes exist to prevent."
+              echo ""
+              echo "| mode | detectors | contributes to the total? |"
+              echo "| --- | --- | --- |"
+              echo "| MEASURED | $n_measured | yes, real summed dollars over fully priced calls |"
+              echo "| MIXED | $n_mixed | yes, but only its priced subset, so the total is a LOWER BOUND |"
+              echo "| NOT MEASURED | $n_unmeasured | no. Calls ran and returned no usage; harness reports actual \$0.00. NOT a measured zero |"
+              echo "| no calls made | $n_nocalls | no. Nothing ran |"
+              echo "| NO LINE | $n_noline | no. Produced no \`cost:\` line at all; spend UNKNOWN, not zero |"
+              echo "| UNRECOGNIZED | $n_unrecognized | no. Emitted a \`cost:\` shape this parser does not know |"
+              echo ""
+              if [ "$n_mixed" -gt 0 ]; then
+                echo "> The total is a **LOWER BOUND**: $n_mixed detector(s) reported MIXED, whose unpriced calls are excluded from their own measured figure."
+                echo ""
+              fi
+              if [ "$n_noline" -gt 0 ] || [ "$n_unrecognized" -gt 0 ]; then
+                echo "> Spend is **NOT fully accounted**: $n_noline detector(s) produced no cost line and $n_unrecognized emitted an unrecognized shape. Treat the total as incomplete, not as the bill."
+                echo ""
+              fi
+              echo "Pre-run projection for the full six at N=5 is about \$6.41 (a conservative upper bound, from measure:stage3-calls). On a live priced run the harness reports MEASURED from the ledger, which is the figure of record; the projection is shown only for comparison."
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$n_unrecognized" -gt 0 ]; then
+              echo "::warning::$n_unrecognized detector(s) emitted an unrecognized cost-line shape. Any measured dollars they carry are NOT in the total. The harness output format has probably changed; update the classify() parser in this workflow."
+            fi
+            if [ "$n_noline" -gt 0 ]; then
+              echo "::warning::$n_noline detector(s) produced no cost: line. Their spend is unknown, not zero."
+            fi
+            exit "$rc"
+          }
+          trap emit_footer EXIT
+
           for d in $DETECTORS; do
             log="stage3-$d.log"
             echo "===== running test:$d ====="
@@ -198,6 +332,7 @@ jobs:
             npm run "test:$d" 2>&1 | tee "$log"
             status="${PIPESTATUS[0]}"
             set -e
+            record_cost "$d" "$log"
             if [ "$status" -ne 0 ]; then
               echo "::error::test:$d exited $status (a FAIL verdict or a hard error). See the log above." >&2
               exit "$status"
@@ -206,22 +341,9 @@ jobs:
               echo "::error::test:$d printed a SKIPPED marker: the key guard was bypassed and this detector tested nothing. Failing." >&2
               exit 1
             fi
-            cost_line="$(grep -m1 '^cost:' "$log" || true)"
-            echo "| $d | ${cost_line:-(no cost line found)} |" >> "$GITHUB_STEP_SUMMARY"
-            amt="$(printf '%s\n' "$cost_line" | sed -n 's/^cost: MEASURED \$\([0-9.][0-9.]*\).*/\1/p')"
-            if [ -n "$amt" ]; then
-              total="$(awk -v a="$total" -v b="$amt" 'BEGIN { printf "%.4f", a + b }')"
-            fi
           done
 
-          {
-            echo ""
-            echo "**Measured total across the invoked detector(s): \$$total** (sum of the MEASURED lines above)."
-            echo ""
-            echo "Pre-run projection for the full six at N=5 is about \$6.41 (a conservative upper bound, from measure:stage3-calls). On a live priced run the harness reports MEASURED from the ledger, which is the figure of record; the projection is shown only for comparison."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          echo "All selected detectors passed. Measured total: \$$total"
+          echo "All selected detectors passed. Measured total: \$$measured_total"
 
       # Evidence survival. The stage3-*.log files are written into the workspace and
       # die with the runner, so before this step a PAID run discarded the only

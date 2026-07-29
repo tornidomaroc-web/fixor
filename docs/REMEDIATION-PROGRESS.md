@@ -2159,7 +2159,7 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
 
 ### Priority 1g - IN REVIEW: pre-spend defects in the stage-3 workflow, found by zero-spend dry inventory
 
-Provenance, and it is the point of the entry: these three were found by READING
+Provenance, and it is the point of the entry: these four were found by READING
 `.github/workflows/stage3-live-detection.yml` and the code it calls, before any dispatch and
 before any key existed. No model call, no dispatch, no spend produced them. Distinct from
 Priority 1d (surfaced by Run 1, which was paid) and from Priority 1e (surfaced by the structural
@@ -2225,15 +2225,57 @@ the guard-1 path; everything downstream of it remains unexercised. It did NOT su
   implying "this key is good" while proving only "this key is not blank" would buy false
   confidence at real cost. The honest gap stays.
 
-- **W-004 (OPEN; NOT FIXED IN THIS PR; silent under-reporting of measured spend.)** Named here
-  because it was found in the same dry read and must not be lost. The summary parser is
-  `sed -n 's/^cost: MEASURED \$\([0-9.][0-9.]*\).*/\1/p'`, which matches only the line beginning
-  `cost: MEASURED`. `stability-harness.ts` also emits `cost: MIXED. MEASURED $X over ...` when
-  only some calls returned usage. That line does not match, `amt` is empty, and its real measured
-  dollars are silently dropped from the run total — the summary would under-report a partially
-  priced run, and the failure mode is a quiet undercount, not an error. Needs an owner decision
-  on whether the aggregate should also be emitted on the failure path, so it is deliberately left
-  for a separate change rather than widened into this PR.
+- **W-004 (IN REVIEW; silent under-reporting of measured spend, plus loss of the aggregate on the
+  failure path) - the summary parser knew two cost-line shapes; the harness emits four.**
+
+  The old parser was `sed -n 's/^cost: MEASURED \$\([0-9.][0-9.]*\).*/\1/p'`, which matches only
+  a line beginning `cost: MEASURED`. Enumerated from `stability-harness.ts`, which is the sole
+  lib all six entry points route through, the real set is FOUR shapes:
+
+  1. `cost: no calls made`
+  2. `cost: MEASURED $X over N priced call(s)` (plus a NOTE suffix when the figure is `$0.00`)
+  3. `cost: NOT MEASURED, actual $0.00 over N call(s), 0 returned usage | would-cost-live
+     PROJECTION ~$Y at $Z/call (ESTIMATE, not a cost)`, or the same with
+     `| no projection (no rate supplied)`
+  4. `cost: MIXED. MEASURED $X over N priced call(s); M call(s) unpriced and NOT included in
+     that figure`
+
+  Shape 4 carries REAL measured dollars and was dropped silently, so a partially priced run
+  under-reported its own spend. Shape 3 is the opposite trap and is why the fix is not simply a
+  looser regex: it contains a PROJECTION, an ESTIMATE, and a naive "first dollar figure on the
+  line" parser would book an estimate as money spent. The new `classify()` tags each line
+  MEASURED / MIXED / UNMEASURED / NOCALLS and sums ONLY the measured subtotals of shapes 2 and 4;
+  it never reads a figure out of shape 3.
+
+  HOW THE SUMMARY KEEPS THE MODES APART, which is the whole point of the harness having three
+  tagged modes: the footer prints a single measured total and beside it a mode census counting
+  detectors per mode. MIXED contributes its priced subset and flags the total as a **LOWER
+  BOUND**. NOT MEASURED contributes nothing and is labelled explicitly as NOT a measured zero.
+  `no calls made` contributes nothing. A detector that produced NO `cost:` line is counted
+  separately, with its spend called UNKNOWN rather than zero. An unknown shape is tagged
+  UNRECOGNIZED, excluded from the total, and raises a `::warning::` — a future harness format
+  change must SHOUT, because silently undercounting is the defect being closed here, and a fix
+  that could fail the same silent way would not be a fix.
+
+  DECISION TAKEN BY THE OWNER (2026-07-28), recorded because it is a judgment call and not an
+  obvious default: **the aggregate footer is now emitted on the failure path as well as the
+  success path.** A red run is exactly when we need to know what was already spent before the
+  abort; losing both the money and the record of the money is the worst available outcome. The
+  old code took `exit "$status"` mid-loop, which skipped the footer entirely, AND parsed the cost
+  line only AFTER the abort decision, so the failing detector's own spend was never recorded even
+  though it had already been incurred. Both are fixed: the cost line is now recorded BEFORE the
+  abort check, and the footer is emitted from an `EXIT` trap.
+
+  THE FOOTER DOES NOT SWALLOW THE FAILURE, which was the standing objection to doing this. The
+  trap captures `rc=$?` as its first act and ends with `exit "$rc"`, so the step's status is
+  exactly what it would have been untrapped, and `set +e` inside guarantees a hiccup writing the
+  summary cannot turn a red run green. Proven locally at zero cost: the shipped `run:` block was
+  extracted from the YAML and executed against a fake `npm`, and the abort case exits 1 while
+  still recording the failing detector's $2.5000 in a $3.7345 total over "2 of 6 reported".
+
+  HONEST LIMIT, so nobody reads more into the trap than it does: an `EXIT` trap does not run on
+  SIGKILL. A hard timeout kill still loses the footer. W-001's 60 -> 120 raise is what addresses
+  that case; this trap addresses the abort case only.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
