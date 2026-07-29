@@ -981,6 +981,194 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
   registered on `main` with ZERO runs, confirming the `workflow_dispatch`-only trigger did not
   fire on the merge (no spend).
 
+- **F-004 stage-3 pre-spend defects W-001 through W-004 MERGED - PR #135, squash
+  `9fa1b0046408c0044ac29b390c236f804e5e5bcb`.** Moved here from "Priority 1g - IN REVIEW" under
+  NOT-DONE / DEFERRED when #135 merged, per this file's rule that an open PR is "in review,"
+  never done. The entry's claims below are preserved as written; only the status tags changed
+  (IN REVIEW to MERGED), and the one claim that turned out to be wrong is amended by the
+  CORRECTION block at the end rather than by editing what an earlier revision asserted.
+
+  Provenance, and it is the point of the entry: these four were found by READING
+  `.github/workflows/stage3-live-detection.yml` and the code it calls, before any dispatch and
+  before any key existed. No model call, no dispatch, no spend produced them. Distinct from
+  Priority 1d (surfaced by Run 1, which was paid) and from Priority 1e (surfaced by the structural
+  rig, which runs the real detector under a replay lock). This provenance is cheaper than either:
+  the cost of finding all three was zero, and each would have been paid for in full on first
+  dispatch. Fixes landed on `fix/stage3-pre-spend-defects` and merged as PR #135.
+
+  A keyless rehearsal dispatch (run `30372496279`, 2026-07-28, conclusion `failure` in 13 s) proved
+  guard 1 fires on a genuinely absent secret and that steps 4-7 skip. It cost $0 and validated only
+  the guard-1 path; everything downstream of it remains unexercised. It did NOT surface these three
+  — the dry read did, before it.
+
+  - **W-001 (MERGED; availability of evidence) - `timeout-minutes: 60` was marginal, and
+    marginal is the worst setting.**
+
+    The six detectors at N=5 issue about 710 model calls plus about 11.3 minutes of aggregate
+    sleeps. Allowing ~3 min for checkout, setup-node and npm ci, a ceiling tolerates
+    `(ceiling - 11.3 - 3) / 710` per call: 60 min tolerates ~3.9 s/call, 120 min tolerates
+    ~8.9 s/call. 4 s/call is an ordinary latency for these prompts.
+
+    COST HAD WE DISPATCHED BLIND, at 4 s/call: the runner completes about 685 of 710 calls
+    (~96%) and is then SIGKILLed at the 60-minute wall. The aggregate-total footer is written
+    only after the detector loop, so it never runs. That is roughly **$6.16 of the ~$6.41
+    spent for an aggregate total of nothing**, compounded by W-002 below, which threw the
+    per-fixture logs away too. Raised to 120. Raising it does NOT raise maximum spend — spend is
+    bounded by the call count, not the clock — and Actions minutes bill at zero on this public
+    repo, so the only cost of a genuinely hung job is that a human waits up to 2 h instead of 1 h.
+
+  - **W-002 (MERGED; availability of evidence) - no `upload-artifact` step; a paid evidence run
+    discarded its own evidence.**
+
+    The run step writes `stage3-$d.log` per detector into the workspace and the workspace dies with
+    the runner. The step summary retained one grepped `cost:` line per detector; every verdict,
+    every per-fixture pass/fail behind that line was destroyed at job end.
+
+    COST HAD WE DISPATCHED BLIND: **the full ~$6.41 buys six summary lines.** Any FAIL verdict
+    would be undiagnosable, and re-obtaining the logs means paying ~$6.41 again. The loss is
+    strictly worse on a red run, which is exactly when the detail is needed, because the failing
+    step exits non-zero and later steps skip by default. Fixed with `if: always()` and
+    `if-no-files-found: warn` — `warn` rather than `error` so a guard abort, which legitimately
+    produces no logs, does not stack a second misleading failure over the real one.
+
+  - **W-003 (MERGED; guard integrity, NOT a dollar loss) - guard 1 tested `-z`, so a
+    whitespace-only key cleared it.**
+
+    `[ -z "${ANTHROPIC_API_KEY:-}" ]` is false for a secret of `" "`, so the guard passed and the
+    job proceeded through npm ci into the detector run. Verified locally at zero cost: the old form
+    exits 0 on `" "`, the new form exits 1.
+
+    COST HAD WE DISPATCHED BLIND — **stated precisely, because the obvious guess is wrong.** The
+    natural reading is "it proceeds to spend", and the dollar figure is in fact about **$0**: a
+    blank key cannot authenticate, so the API rejects the calls unbilled. Nor does it become a
+    silent green: `test-env-exposure.ts` guards with `!process.env.ANTHROPIC_API_KEY`, and `" "` is
+    truthy in JS, so the entry point does NOT print `SKIPPED:` and the belt-and-suspenders
+    `^SKIPPED:` net is never reached. The real cost is integrity and time, not money: the guard
+    advertises a promise it does not keep, and the failure arrives as an opaque 401 storm partway
+    through a job that has already run npm ci, instead of as a labelled 18-second guard failure.
+    Tightened to reject empty-after-trimming.
+
+    DELIBERATE NON-FIX, recorded so no later session "completes" it: this guard checks PRESENCE,
+    never VALIDITY. A well-formed but revoked, wrong-account or rate-limited key still passes and
+    still fails at the API boundary mid-spend. Proving a key WORKS costs a live call; a guard
+    implying "this key is good" while proving only "this key is not blank" would buy false
+    confidence at real cost. The honest gap stays.
+
+  - **W-004 (MERGED; silent under-reporting of measured spend, plus loss of the aggregate on the
+    failure path) - the summary parser knew two cost-line shapes; the harness emits four.**
+
+    The old parser was `sed -n 's/^cost: MEASURED \$\([0-9.][0-9.]*\).*/\1/p'`, which matches only
+    a line beginning `cost: MEASURED`. Enumerated from `stability-harness.ts`, which is the sole
+    lib all six entry points route through, the real set is FOUR shapes:
+
+    1. `cost: no calls made`
+    2. `cost: MEASURED $X over N priced call(s)` (plus a NOTE suffix when the figure is `$0.00`)
+    3. `cost: NOT MEASURED, actual $0.00 over N call(s), 0 returned usage | would-cost-live
+       PROJECTION ~$Y at $Z/call (ESTIMATE, not a cost)`, or the same with
+       `| no projection (no rate supplied)`
+    4. `cost: MIXED. MEASURED $X over N priced call(s); M call(s) unpriced and NOT included in
+       that figure`
+
+    Shape 4 carries REAL measured dollars and was dropped silently, so a partially priced run
+    under-reported its own spend. Shape 3 is the opposite trap and is why the fix is not simply a
+    looser regex: it contains a PROJECTION, an ESTIMATE, and a naive "first dollar figure on the
+    line" parser would book an estimate as money spent. The new `classify()` tags each line
+    MEASURED / MIXED / UNMEASURED / NOCALLS and sums ONLY the measured subtotals of shapes 2 and 4;
+    it never reads a figure out of shape 3.
+
+    HOW THE SUMMARY KEEPS THE MODES APART, which is the whole point of the harness having three
+    tagged modes: the footer prints a single measured total and beside it a mode census counting
+    detectors per mode. MIXED contributes its priced subset and flags the total as a **LOWER
+    BOUND**. NOT MEASURED contributes nothing and is labelled explicitly as NOT a measured zero.
+    `no calls made` contributes nothing. A detector that produced NO `cost:` line is counted
+    separately, with its spend called UNKNOWN rather than zero. An unknown shape is tagged
+    UNRECOGNIZED, excluded from the total, and raises a `::warning::` — a future harness format
+    change must SHOUT, because silently undercounting is the defect being closed here, and a fix
+    that could fail the same silent way would not be a fix.
+
+    DECISION TAKEN BY THE OWNER (2026-07-28), recorded because it is a judgment call and not an
+    obvious default: **the aggregate footer is now emitted on the failure path as well as the
+    success path.** A red run is exactly when we need to know what was already spent before the
+    abort; losing both the money and the record of the money is the worst available outcome. The
+    old code took `exit "$status"` mid-loop, which skipped the footer entirely, AND parsed the cost
+    line only AFTER the abort decision, so the failing detector's own spend was never recorded even
+    though it had already been incurred. Both are fixed: the cost line is now recorded BEFORE the
+    abort check, and the footer is emitted from an `EXIT` trap.
+
+    THE FOOTER DOES NOT SWALLOW THE FAILURE, which was the standing objection to doing this. The
+    trap captures `rc=$?` as its first act and ends with `exit "$rc"`, so the step's status is
+    exactly what it would have been untrapped, and `set +e` inside guarantees a hiccup writing the
+    summary cannot turn a red run green. Proven locally at zero cost: the shipped `run:` block was
+    extracted from the YAML and executed against a fake `npm`, and the abort case exits 1 while
+    still recording the failing detector's $2.5000 in a $3.7345 total over "2 of 6 reported".
+
+    HONEST LIMIT, so nobody reads more into the trap than it does: an `EXIT` trap does not run on
+    SIGKILL. A hard timeout kill still loses the footer. W-001's 60 -> 120 raise is what addresses
+    that case; this trap addresses the abort case only.
+
+  **CORRECTION of the "before any dispatch" provenance claim, entered by `d174c746` and merged in
+  PR #135, squash `9fa1b004`.** The provenance sentence above reads "found by READING ... before
+  any dispatch and before any key existed." The second half is true, and the run itself
+  corroborates it: the dispatch below failed precisely because no key existed. The first half is
+  false, by about an hour. Rehearsal (a), run `30372496279`, was dispatched at 2026-07-28T15:15:52Z;
+  the first fix commit `c3a5820` was authored at 2026-07-28T16:12:10Z. A dispatch therefore
+  preceded the commit that recorded these findings, so "before any dispatch" is wrong as written.
+
+  What this CORRECTION does NOT touch, because it is independently true and separately evidenced:
+  that dispatch made no model call and spent nothing (it died at guard 1, before `npm ci`), and it
+  did not surface W-001 through W-004. The dry read did. The provenance argument is unaffected;
+  only the word "any" was wrong.
+
+  **REHEARSAL EVIDENCE.** Two zero-spend dispatches now exist. Neither is a detection-quality run
+  and neither may be read as one.
+
+  - **Rehearsal (a), run `30372496279`, 2026-07-28, conclusion `failure` in 13 s. Cost $0.**
+    No secret was set. PROVED: guard 1 fires on a genuinely absent key and steps 4 through 7 skip.
+    COVERAGE: the guard-1 path only. Everything downstream of guard 1 stayed unexercised.
+
+  - **Rehearsal (b), run `30467532167`, 2026-07-29, conclusion `failure` in 54 s. Cost $0.**
+    A dummy secret was set, `idor-tenant` alone was dispatched (the cheapest entry point, 6
+    fixtures), and the secret was deleted immediately after and verified gone by a 404 on the
+    secret endpoint. Every call was rejected at authentication: `401 authentication_error,
+    invalid x-api-key`, 30 distinct `request_id` values for 30 calls, with `attempts: 1` logged on
+    each, which confirms at runtime that a 401 is retried by neither the repo retry layer nor the
+    SDK. The harness reported `0 priced` and `actual $0.00`. Actions billing reports
+    `billable.UBUNTU.total_ms: 0`, so the rehearsal was free in minutes as well as in dollars.
+
+    PROVED, and every item here was unexercised before (b): the `case "$SELECTION"` mapping
+    resolves a single detector; guard 2, setup-node and `npm ci` all pass; `PIPESTATUS` propagates
+    the detector's exit 1 through the `tee` pipe, which is load-bearing, because had it not, the
+    pipeline would have taken `tee`'s 0 and the red run would have read GREEN; the emitted cost
+    line is recognized and classified (shape 3, tagged UNMEASURED, its projection correctly NOT
+    summed); W-004's pipe escaping keeps that shape-3 line inside its markdown cell; the `EXIT`
+    trap emits the footer on the FAILURE path and still exits 1, so it does not swallow the
+    failure; the cost row is written BEFORE the abort check; and W-002's artifact upload survives
+    the red run and yields a downloadable 17,289-byte log.
+
+    NOT exercised even by (b): the `^SKIPPED:` belt-and-suspenders net, because the abort exits on
+    the detector's status before that grep is reached.
+
+  **WHAT REMAINS PROVABLE ONLY BY A PAID RUN.** Recorded because a paid run is the next step, and
+  the record should state what that run is buying.
+
+  1. DETECTION QUALITY. Zero verdicts were produced by either rehearsal. In (b) every positive
+     scored `flagged 0/5 FAIL` and every negative `correctly-skipped 5/5 PASS`, and those negative
+     passes are HOLLOW: a negative passes when nothing is flagged, and nothing was flagged because
+     every call errored. The harness states this itself ("Any pass on a negative may be hollow")
+     and failed the run on `totalLlmErrors`, which is that gate working as designed.
+  2. COST SHAPES 2 (MEASURED) and 4 (MIXED). Both require calls that return usage, so neither has
+     ever been emitted live. The summing arithmetic and the MIXED LOWER BOUND flag remain
+     unexercised end to end. Only shape 3 has been observed live.
+  3. THE FOOTER ON A SUCCESSFUL RUN. Only the aborted path has rendered. The success path, without
+     the RUN ABORTED banner, has never been produced.
+  4. W-001's TIMEOUT ARITHMETIC. The 120-minute ceiling remains theory: run (b) finished in 54
+     seconds, so nothing has tested the wall.
+  5. KEY VALIDITY. Guard 1 proves presence and never validity, exactly as the DELIBERATE NON-FIX
+     note under W-003 states. Rehearsal (b) is the live demonstration of that gap: a well-formed
+     key cleared the guard and failed at the API boundary.
+  6. THE 4/5 AND 5/5 THRESHOLD LOGIC. `perPositiveThreshold: 4` and `perNegativeThreshold: 5` have
+     never been evaluated against real verdicts, only against the degenerate all-error case.
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
 - None. No open tracker PR is awaiting the merge command. (Stage-3 step 3 merged as PR #121;
@@ -2156,126 +2344,6 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
   rests here: the one demonstrated HIGH is the FastAPI path-param to `session.get` idiom, and
   L-013 is the evidence that the prefilter does not cleanly reach the non-FastAPI idioms, so that
   single success does not generalize across frameworks.
-
-### Priority 1g - IN REVIEW: pre-spend defects in the stage-3 workflow, found by zero-spend dry inventory
-
-Provenance, and it is the point of the entry: these four were found by READING
-`.github/workflows/stage3-live-detection.yml` and the code it calls, before any dispatch and
-before any key existed. No model call, no dispatch, no spend produced them. Distinct from
-Priority 1d (surfaced by Run 1, which was paid) and from Priority 1e (surfaced by the structural
-rig, which runs the real detector under a replay lock). This provenance is cheaper than either:
-the cost of finding all three was zero, and each would have been paid for in full on first
-dispatch. Fixes are on `fix/stage3-pre-spend-defects`; an open PR is IN REVIEW, never done.
-
-A keyless rehearsal dispatch (run `30372496279`, 2026-07-28, conclusion `failure` in 13 s) proved
-guard 1 fires on a genuinely absent secret and that steps 4-7 skip. It cost $0 and validated only
-the guard-1 path; everything downstream of it remains unexercised. It did NOT surface these three
-— the dry read did, before it.
-
-- **W-001 (IN REVIEW; availability of evidence) - `timeout-minutes: 60` was marginal, and
-  marginal is the worst setting.**
-
-  The six detectors at N=5 issue about 710 model calls plus about 11.3 minutes of aggregate
-  sleeps. Allowing ~3 min for checkout, setup-node and npm ci, a ceiling tolerates
-  `(ceiling - 11.3 - 3) / 710` per call: 60 min tolerates ~3.9 s/call, 120 min tolerates
-  ~8.9 s/call. 4 s/call is an ordinary latency for these prompts.
-
-  COST HAD WE DISPATCHED BLIND, at 4 s/call: the runner completes about 685 of 710 calls
-  (~96%) and is then SIGKILLed at the 60-minute wall. The aggregate-total footer is written
-  only after the detector loop, so it never runs. That is roughly **$6.16 of the ~$6.41
-  spent for an aggregate total of nothing**, compounded by W-002 below, which threw the
-  per-fixture logs away too. Raised to 120. Raising it does NOT raise maximum spend — spend is
-  bounded by the call count, not the clock — and Actions minutes bill at zero on this public
-  repo, so the only cost of a genuinely hung job is that a human waits up to 2 h instead of 1 h.
-
-- **W-002 (IN REVIEW; availability of evidence) - no `upload-artifact` step; a paid evidence run
-  discarded its own evidence.**
-
-  The run step writes `stage3-$d.log` per detector into the workspace and the workspace dies with
-  the runner. The step summary retained one grepped `cost:` line per detector; every verdict,
-  every per-fixture pass/fail behind that line was destroyed at job end.
-
-  COST HAD WE DISPATCHED BLIND: **the full ~$6.41 buys six summary lines.** Any FAIL verdict
-  would be undiagnosable, and re-obtaining the logs means paying ~$6.41 again. The loss is
-  strictly worse on a red run, which is exactly when the detail is needed, because the failing
-  step exits non-zero and later steps skip by default. Fixed with `if: always()` and
-  `if-no-files-found: warn` — `warn` rather than `error` so a guard abort, which legitimately
-  produces no logs, does not stack a second misleading failure over the real one.
-
-- **W-003 (IN REVIEW; guard integrity, NOT a dollar loss) - guard 1 tested `-z`, so a
-  whitespace-only key cleared it.**
-
-  `[ -z "${ANTHROPIC_API_KEY:-}" ]` is false for a secret of `" "`, so the guard passed and the
-  job proceeded through npm ci into the detector run. Verified locally at zero cost: the old form
-  exits 0 on `" "`, the new form exits 1.
-
-  COST HAD WE DISPATCHED BLIND — **stated precisely, because the obvious guess is wrong.** The
-  natural reading is "it proceeds to spend", and the dollar figure is in fact about **$0**: a
-  blank key cannot authenticate, so the API rejects the calls unbilled. Nor does it become a
-  silent green: `test-env-exposure.ts` guards with `!process.env.ANTHROPIC_API_KEY`, and `" "` is
-  truthy in JS, so the entry point does NOT print `SKIPPED:` and the belt-and-suspenders
-  `^SKIPPED:` net is never reached. The real cost is integrity and time, not money: the guard
-  advertises a promise it does not keep, and the failure arrives as an opaque 401 storm partway
-  through a job that has already run npm ci, instead of as a labelled 18-second guard failure.
-  Tightened to reject empty-after-trimming.
-
-  DELIBERATE NON-FIX, recorded so no later session "completes" it: this guard checks PRESENCE,
-  never VALIDITY. A well-formed but revoked, wrong-account or rate-limited key still passes and
-  still fails at the API boundary mid-spend. Proving a key WORKS costs a live call; a guard
-  implying "this key is good" while proving only "this key is not blank" would buy false
-  confidence at real cost. The honest gap stays.
-
-- **W-004 (IN REVIEW; silent under-reporting of measured spend, plus loss of the aggregate on the
-  failure path) - the summary parser knew two cost-line shapes; the harness emits four.**
-
-  The old parser was `sed -n 's/^cost: MEASURED \$\([0-9.][0-9.]*\).*/\1/p'`, which matches only
-  a line beginning `cost: MEASURED`. Enumerated from `stability-harness.ts`, which is the sole
-  lib all six entry points route through, the real set is FOUR shapes:
-
-  1. `cost: no calls made`
-  2. `cost: MEASURED $X over N priced call(s)` (plus a NOTE suffix when the figure is `$0.00`)
-  3. `cost: NOT MEASURED, actual $0.00 over N call(s), 0 returned usage | would-cost-live
-     PROJECTION ~$Y at $Z/call (ESTIMATE, not a cost)`, or the same with
-     `| no projection (no rate supplied)`
-  4. `cost: MIXED. MEASURED $X over N priced call(s); M call(s) unpriced and NOT included in
-     that figure`
-
-  Shape 4 carries REAL measured dollars and was dropped silently, so a partially priced run
-  under-reported its own spend. Shape 3 is the opposite trap and is why the fix is not simply a
-  looser regex: it contains a PROJECTION, an ESTIMATE, and a naive "first dollar figure on the
-  line" parser would book an estimate as money spent. The new `classify()` tags each line
-  MEASURED / MIXED / UNMEASURED / NOCALLS and sums ONLY the measured subtotals of shapes 2 and 4;
-  it never reads a figure out of shape 3.
-
-  HOW THE SUMMARY KEEPS THE MODES APART, which is the whole point of the harness having three
-  tagged modes: the footer prints a single measured total and beside it a mode census counting
-  detectors per mode. MIXED contributes its priced subset and flags the total as a **LOWER
-  BOUND**. NOT MEASURED contributes nothing and is labelled explicitly as NOT a measured zero.
-  `no calls made` contributes nothing. A detector that produced NO `cost:` line is counted
-  separately, with its spend called UNKNOWN rather than zero. An unknown shape is tagged
-  UNRECOGNIZED, excluded from the total, and raises a `::warning::` — a future harness format
-  change must SHOUT, because silently undercounting is the defect being closed here, and a fix
-  that could fail the same silent way would not be a fix.
-
-  DECISION TAKEN BY THE OWNER (2026-07-28), recorded because it is a judgment call and not an
-  obvious default: **the aggregate footer is now emitted on the failure path as well as the
-  success path.** A red run is exactly when we need to know what was already spent before the
-  abort; losing both the money and the record of the money is the worst available outcome. The
-  old code took `exit "$status"` mid-loop, which skipped the footer entirely, AND parsed the cost
-  line only AFTER the abort decision, so the failing detector's own spend was never recorded even
-  though it had already been incurred. Both are fixed: the cost line is now recorded BEFORE the
-  abort check, and the footer is emitted from an `EXIT` trap.
-
-  THE FOOTER DOES NOT SWALLOW THE FAILURE, which was the standing objection to doing this. The
-  trap captures `rc=$?` as its first act and ends with `exit "$rc"`, so the step's status is
-  exactly what it would have been untrapped, and `set +e` inside guarantees a hiccup writing the
-  summary cannot turn a red run green. Proven locally at zero cost: the shipped `run:` block was
-  extracted from the YAML and executed against a fake `npm`, and the abort case exits 1 while
-  still recording the failing detector's $2.5000 in a $3.7345 total over "2 of 6 reported".
-
-  HONEST LIMIT, so nobody reads more into the trap than it does: an `EXIT` trap does not run on
-  SIGKILL. A hard timeout kill still loses the footer. W-001's 60 -> 120 raise is what addresses
-  that case; this trap addresses the abort case only.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 

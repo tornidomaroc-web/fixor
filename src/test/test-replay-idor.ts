@@ -18,16 +18,17 @@
  * (42 fixtures split across a replay gate and a free deterministic gate) idor
  * needs no companion prefilter gate.
  *
- * THIS GATE CANNOT PASS YET, ON PURPOSE. Two independent reasons, both loud:
- *   1. `fixtures/replay/idor-multi/` does not exist until the recording step, so
- *      manifest completeness reports all 26 ids as missing.
- *   2. The spec's EXPECTED_SET is empty (the sets are a property of the model's
- *      response and are reconciled FROM the recordings). findingSetOutcome
- *      reports a loud config error per id rather than silently degrading to a
- *      boolean.
- * It never does anything live and never demands a key. It gets wired into
- * `test:ci` only once the fixtures are recorded AND the expected sets are
- * reconciled.
+ * THIS GATE IS LIVE AND ENFORCED. It was blocked on two conditions when this
+ * header was first written, and both are now met:
+ *   1. `fixtures/replay/idor-multi/` did not exist until the recording step.
+ *      PR #96 recorded all 26 fixtures there.
+ *   2. The spec's EXPECTED_SET was empty (the sets are a property of the model's
+ *      response and are reconciled FROM the recordings). PR #96 pinned it.
+ * PR #97 then wired `test:replay-idor` into `test:ci`, where it runs as the tail
+ * step. Both guards stay loud if either condition ever regresses: manifest
+ * completeness reports missing ids, and an absent expected set makes
+ * findingSetOutcome report a config error per id rather than silently degrading
+ * to a boolean. It never does anything live and never demands a key.
  *
  * SCOPE AND LIMITS (F-008 guardrail; enforced in the shared engine):
  *   Verifies detector WIRING, tool-input PARSING, and the verdict path against
