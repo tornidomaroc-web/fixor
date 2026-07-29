@@ -993,12 +993,12 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
   before any key existed. No model call, no dispatch, no spend produced them. Distinct from
   Priority 1d (surfaced by Run 1, which was paid) and from Priority 1e (surfaced by the structural
   rig, which runs the real detector under a replay lock). This provenance is cheaper than either:
-  the cost of finding all three was zero, and each would have been paid for in full on first
+  the cost of finding all four was zero, and each would have been paid for in full on first
   dispatch. Fixes landed on `fix/stage3-pre-spend-defects` and merged as PR #135.
 
   A keyless rehearsal dispatch (run `30372496279`, 2026-07-28, conclusion `failure` in 13 s) proved
   guard 1 fires on a genuinely absent secret and that steps 4-7 skip. It cost $0 and validated only
-  the guard-1 path; everything downstream of it remains unexercised. It did NOT surface these three
+  the guard-1 path; everything downstream of it remains unexercised. It did NOT surface these four
   — the dry read did, before it.
 
   - **W-001 (MERGED; availability of evidence) - `timeout-minutes: 60` was marginal, and
@@ -1118,6 +1118,22 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
   that dispatch made no model call and spent nothing (it died at guard 1, before `npm ci`), and it
   did not surface W-001 through W-004. The dry read did. The provenance argument is unaffected;
   only the word "any" was wrong.
+
+  **CORRECTION of the item count in the two sentences above, an inconsistency entered by
+  `d174c746` and merged in PR #135, squash `9fa1b004`.** Those two sentences previously read "the
+  cost of finding all three was zero" and "It did NOT surface these three." They now read "four."
+  The count was never wrong about the world, it was stale: this entry was drafted for three
+  defects (W-001 through W-003, the wording `c3a5820` merged), and W-004 was appended later in the
+  same PR by `d174c746`, which updated the opening "these four were found by READING" and left the
+  two trailing counts at three.
+
+  Recorded here rather than renumbered silently, for one substantive reason: nothing else in this
+  entry states that it grew from three items to four, and that growth is evidence for the entry's
+  own thesis. W-004 was found by reading the code WHILE the first three were being fixed, which
+  makes it the cheapest-provenance item of the four and the strongest case that a dry read keeps
+  paying. A silent renumber would have erased that, and would have put a word into the merged
+  revision's mouth that it did not use. Deliberately NOT changed: the "three" later in W-004, which
+  counts the harness's three tagged cost modes and is correct.
 
   **REHEARSAL EVIDENCE.** Two zero-spend dispatches now exist. Neither is a detection-quality run
   and neither may be read as one.
