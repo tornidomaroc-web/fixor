@@ -28,11 +28,21 @@ An open PR is "in review," never "done."
 Entry bar for this list: a new bullet earns its place only if it carries a general
 lesson that a real error cost us to extract, and is neither merely good practice nor a
 restatement of a bullet already here. The heading's rule (no case, no bullet) is
-necessary but not sufficient; the five below set the full standard a sixth must clear,
+necessary but not sufficient; the seven below set the full standard an eighth must clear,
 each having been paid for by a specific, named mistake. This bar sits above the list,
 not within it: a rule about how rules enter the ledger is not a detector lesson the way
-the five are, and gating the list from inside the list would be the first violation of
+the seven are, and gating the list from inside the list would be the first violation of
 its own spirit.
+
+**CORRECTION of this lead-in's own count, stale from `bf2dea9` (PR #109) until this
+entry.** It read "the five below ... a sixth must clear" and "the way the five are".
+`474aa57` (PR #113) added the sixth bullet, `Cite a resolved item's STATUS, never its
+TITLE`, without touching the lead-in that counts the bullets, so the count was wrong by
+one for four PRs. Corrected to seven here rather than silently, because this entry adds
+the seventh bullet and that bullet is about exactly this failure: a claim that outlived
+the change which falsified it, on a surface the change did not look at. A lead-in that
+counts a list it sits above is the same shape of defect as a printed string that
+describes code it sits beside.
 
 - **Twin-matching before namespace or classification.** Before assigning an item to a
   namespace or category, find the existing item of the same SHAPE and match where its twin
@@ -85,6 +95,24 @@ its own spirit.
   guardrail on identifiers (see `Coordinates rot; cross-reference by identifier`) is necessary
   but not sufficient: the reference was by identifier and was still wrong, because an identifier
   names an item, not its outcome.
+
+- **A claim lives on more than one SURFACE; a sweep certifies only the surface it swept.**
+  When a code change falsifies a claim, that claim is usually asserted in several places at
+  once: comments, PRINTED OUTPUT, docs, test names, workflow summaries. A sweep scoped to one
+  surface leaves the others asserting the old world, and it makes them look reviewed, because
+  the file now carries a freshly corrected statement next to the stale one. Sweep by CLAIM
+  across surfaces, not by file across comments; and when a surface is deliberately deferred,
+  name the deferral where the stale text is, not only in the PR that deferred it. CASE: PR
+  #119 moved the harness `llmCalls` counter to an OBSERVED ledger at the `callClaude`
+  chokepoint. `measure-stage3-calls.ts` asserted the opposite on two surfaces, a header
+  comment and an `out.write` paragraph reading "it never observes callClaude". PR #136 swept
+  that file's COMMENTS and corrected the header, correctly holding the printed strings back
+  because changing them changes program output and so is not a docs change. The consequence
+  was that the false printed paragraph then sat seven lines above a comment stating the exact
+  opposite, and it survived the sweep precisely because the sweep's scope was a surface rather
+  than the claim. Nothing found it until a later pass searched for the CLAIM. Distinct from
+  `Coordinates rot; cross-reference by identifier`, which is about references going stale:
+  here the reference was fine and the assertion was wrong, on a surface nobody had looked at.
 
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
