@@ -765,14 +765,16 @@ async function main(): Promise<void> {
     .filter((r) => r.harnessLlmCalls !== null)
     .reduce((s, r) => s + r.calls, 0);
   out.write(
-    `  harness-inferred llmCalls ${harnessTotal} vs measured ${harnessComparable} ` +
+    `  harness-observed llmCalls ${harnessTotal} vs measured ${harnessComparable} ` +
       `over the six harness-routed stanzas; divergence ${harnessTotal - harnessComparable}\n`,
   );
   out.write(
-    "  This is a MEASUREMENT of the defect, not a fix. The harness infers a\n" +
-      "  call from the absence of a pre-filter reason and reads only\n" +
-      "  lastDiagnostics[0]; it never observes callClaude. A follow-up that\n" +
-      "  makes the counter observational must reproduce the measured column.\n",
+    "  Defect 1 is FIXED (#119): the harness now counts by OBSERVING the\n" +
+      "  callClaude chokepoint through the call ledger, so both columns are\n" +
+      "  observations and this line is a standing regression check, not an\n" +
+      "  open defect. Until #119 it inferred a call from the absence of a\n" +
+      "  pre-filter reason on lastDiagnostics[0] alone. Still CALLS, not\n" +
+      "  dollars: nothing here derives a price.\n",
   );
 
   // =========================================================================
