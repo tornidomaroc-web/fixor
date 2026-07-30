@@ -22,6 +22,16 @@ An open PR is "in review," never "done."
 - Two gates are kept labeled distinctly: a green deterministic gate proves wiring and
   parsing, not detection quality. Only an opt-in live run verifies model judgment.
 - No em dash in human-facing text we author.
+- DATED PROSE IS ANNOTATED, NEVER REWRITTEN, and the annotation goes where the reader meets
+  it BEFORE the claim, not after. One annotation per CAUSE, not per stale sentence: when one
+  change falsified several passages, they get a single block naming all of them, because
+  splitting one cause into several corrections invites the reader to think each needs its own
+  remedy. An annotation is our own explanatory text, so a later pass may rewrite or merge it
+  freely; only the dated passage underneath is protected.
+- ANNOTATIONS CITE THE CAUSE, NOT THEMSELVES. Name the PR that falsified the claim, plus the
+  date of the annotation. Never cite the annotating PR: a PR cannot know its own number while
+  its text is being written, and that number tells a reader nothing they can act on. Sweep and
+  provenance details belong in this file, not in the annotated document.
 
 ### Reasoning guardrails (learned in practice; each carries the case that produced it, because the rule without its case is a slogan)
 
@@ -127,14 +137,20 @@ describes code it sits beside.
   `SESSION-CLOSE-DAY5.md` precedent. Closure is scoped to this ONE claim. It is not a statement
   that either file is otherwise clean, which is the failure mode the rule above exists to name.
 
-  STILL OPEN, found by that same sweep and deliberately NOT fixed with it, because it is a
-  different claim: `docs/detector-test-rules.md` D5 carries an earlier dated parenthetical,
-  "(Note 2026-06-12: ... The harness default has been corrected.)", which presupposes that a
-  harness default per-call rate still exists. PR #120 removed it rather than correcting it;
-  `stability-harness.ts` now prices only when an entry point supplies `costPerLlmCallUsd` and
-  has no fallback. This is the PRICING claim, not the call-counting claim, and it sits one
-  paragraph above the passage annotated here, so a reader who trusts the annotation nearby
-  could still act on it. It needs the same adjacent-annotation treatment and its own decision.
+  NOW CLOSED, and it was the item recorded here as STILL OPEN: `docs/detector-test-rules.md`
+  D5 carries an earlier dated parenthetical, "(Note 2026-06-12: ... The harness default has
+  been corrected.)", which presupposes that a harness default per-call rate still exists. PR
+  #120 removed it rather than correcting it; `stability-harness.ts` now prices only when an
+  entry point supplies `costPerLlmCallUsd` and has no fallback. This is the PRICING claim, not
+  the call-counting claim. Closed by annotation, not by rewrite, since the passage is dated.
+
+  Closing it exposed a defect in the first fix. The annotation added for the 2026-07-22 passage
+  sat BELOW it, which left the 2026-06-12 note, one paragraph EARLIER, still unannotated and
+  met first by anyone reading top to bottom. Two separate blocks would also have presented one
+  cause as two corrections, inviting the reader to think each needed its own remedy, when both
+  trace to #120 alone. Both notes are now covered by a SINGLE block placed ABOVE both passages.
+  That is the seventh guardrail firing on our own remediation: the first fix improved one line
+  and left its neighbour looking reviewed when it was not.
 
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
