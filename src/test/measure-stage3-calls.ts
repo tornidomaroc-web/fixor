@@ -493,7 +493,7 @@ async function measureHarnessStanza(
 /**
  * The seventh entry point. "fixtures/idor-multi" is a FLAT corpus reached via
  * `analyzeFile` directly, mirroring `test-idor-multi.ts`'s `runOnce`. It is
- * outside `runStabilityHarness` by design, so it has no harness-inferred
+ * outside `runStabilityHarness` by design, so it has no harness-observed
  * `llmCalls` to diverge from.
  */
 async function measureIdorMulti(): Promise<Measurement> {

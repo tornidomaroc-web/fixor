@@ -114,6 +114,28 @@ describes code it sits beside.
   `Coordinates rot; cross-reference by identifier`, which is about references going stale:
   here the reference was fine and the assertion was wrong, on a surface nobody had looked at.
 
+  **SWEEP CLOSED for the infer-versus-observe claim.** Recorded here, beside the rule, rather
+  than only in the PR that finished it, because that is what this rule asks for. Four surfaces
+  carried "the harness infers its call count" after PR #119 falsified it, and all four are now
+  reconciled: the file-header COMMENT and the `out.write` PRINTED PARAGRAPH in
+  `measure-stage3-calls.ts` (PR #136 and PR #137), the `measureIdorMulti` doc comment reading
+  "it has no harness-inferred `llmCalls` to diverge from", and the dated D5 passage in
+  `docs/detector-test-rules.md`. The last two closed together in the sweep PR. The two were
+  treated differently on purpose: the doc comment is a present-tense description of current
+  behaviour and was corrected outright, while the D5 passage is an explicitly dated 2026-07-22
+  account and was ANNOTATED ADJACENT instead, per the preservation convention and following the
+  `SESSION-CLOSE-DAY5.md` precedent. Closure is scoped to this ONE claim. It is not a statement
+  that either file is otherwise clean, which is the failure mode the rule above exists to name.
+
+  STILL OPEN, found by that same sweep and deliberately NOT fixed with it, because it is a
+  different claim: `docs/detector-test-rules.md` D5 carries an earlier dated parenthetical,
+  "(Note 2026-06-12: ... The harness default has been corrected.)", which presupposes that a
+  harness default per-call rate still exists. PR #120 removed it rather than correcting it;
+  `stability-harness.ts` now prices only when an entry point supplies `costPerLlmCallUsd` and
+  has no fallback. This is the PRICING claim, not the call-counting claim, and it sits one
+  paragraph above the passage annotated here, so a reader who trusts the annotation nearby
+  could still act on it. It needs the same adjacent-annotation treatment and its own decision.
+
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
 Learned the expensive way on 2b.3. These apply directly to 2b.4 (idor) and 2b.5.
