@@ -10,11 +10,15 @@
  * DIRECTORIES and counting at the SDK boundary, so it can disagree with 144.
  *
  * WHAT IT MEASURES: CALLS, NOT DOLLARS. The canned response carries zero
- * token usage, so no price can be derived from this run. Pricing still
- * multiplies the measured call count by an ESTIMATED per-call constant. The
- * residual uncertainty is IDOR's per-call price (whole-file, batched up to
- * MAX_PAIRS_PER_FILE pairs in one call, and its two stability entry points
- * pass no `costPerLlmCallUsd` so they inherit the harness flat default). This
+ * token usage, so no price can be derived from this run. Since PR #120 the
+ * harness no longer prices by multiplying a call count by a constant: it
+ * reports MEASURED cost from the call ledger, and a per-call rate is used only
+ * as an explicitly labelled would-cost-live PROJECTION, and only when an entry
+ * point supplies `costPerLlmCallUsd`. IDOR's two stability entry points supply
+ * none, so they emit no projection at all ("no projection (no rate supplied)")
+ * rather than inheriting any default; there is no longer a flat default to
+ * inherit. The residual uncertainty is still IDOR's real per-call price
+ * (whole-file, batched up to MAX_PAIRS_PER_FILE pairs in one call). This
  * script cannot close that; only a live sample can.
  *
  * ZERO SPEND, FAIL CLOSED. The spy patches `messages.create` on the cached
@@ -28,13 +32,16 @@
  * valid DUMMY key. If the patch ever failed to apply, the fallthrough would
  * be a 401, which is an auth rejection and not a billable request.
  *
- * MEASURE ONLY. The two known harness defects are deliberately NOT fixed
- * here: `stability-harness.ts` infers `llmCalls` from the absence of a
- * pre-filter reason rather than observing the call, and prices at a flat
- * constant. This script is the ORACLE that a later fix must be validated
- * against; fixing both in one change would leave the new counter with no
- * independent ground truth. The divergence column below is that oracle's
- * output.
+ * MEASURE ONLY, AND IT DID ITS JOB. When this script was written,
+ * `stability-harness.ts` carried two defects that were deliberately NOT fixed
+ * here: it inferred `llmCalls` from the absence of a pre-filter reason rather
+ * than observing the call, and it priced at a flat constant. This script was
+ * the ORACLE those fixes had to be validated against, because fixing them in
+ * the same change would have left the new counter with no independent ground
+ * truth. Both are now closed: PR #119 moved `llmCalls` to an observed call
+ * ledger at the `callClaude` chokepoint, and PR #120 replaced the flat constant
+ * with measured cost from that ledger. This script remains the independent
+ * oracle; the divergence column below is its output.
  *
  * SEVEN ENTRY POINTS, NOT SIX. The tracker's stage-3 inventory lists six
  * harness-routed entry points. Those six enumerate 142, not 144: the missing

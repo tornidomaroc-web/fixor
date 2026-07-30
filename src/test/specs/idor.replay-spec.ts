@@ -56,13 +56,15 @@
  * boolean `findings.length > 0` passes on a multi-pair positive when ANY single
  * pair flags, so a regression dropping five of six findings would read green.
  *
- * EXPECTED SETS ARE UNKNOWN UNTIL RECORDED. `EXPECTED_SET` below is EMPTY, on
- * purpose. The exact per-pair verdicts are a property of the model's response,
- * which does not exist yet - this step is free and records nothing. Until the
- * recording step fills it in (the RECONCILIATION HOOK), `test:replay-idor`
- * CANNOT PASS: findingSetOutcome reports a loud config error for every id rather
- * than silently degrading to a boolean. That is intentional. This spec is not
- * wired into `test:ci` for exactly this reason.
+ * EXPECTED SETS WERE UNKNOWN UNTIL RECORDED, AND ARE NOW PINNED. The exact
+ * per-pair verdicts are a property of the model's response, so `EXPECTED_SET`
+ * below was authored EMPTY on purpose: the step that wrote this spec was free
+ * and recorded nothing. PR #96 then ran the recording step (the RECONCILIATION
+ * HOOK) and pinned all 26 sets, and PR #97 wired `test:replay-idor` into
+ * `test:ci`, where it now runs as the tail step and passes. The empty-set guard
+ * is retained rather than removed, and still fires if a set ever goes missing:
+ * findingSetOutcome reports a loud config error for that id rather than
+ * silently degrading to a boolean.
  *
  * LANE ANCHORING IS DEFERRED, NOT IGNORED. idor has all three not-flagged-but-
  * vulnerable lanes (LOW silent; MEDIUM routed through `resolveMediumVerdict` to
@@ -291,7 +293,9 @@ for (const f of readdirSync(DIR_MULTI).filter(isFixtureFile).sort()) {
 const SOURCE_MANIFEST: readonly string[] = Object.keys(EXPECTED_FLAGGED);
 
 // ===========================================================================
-// RECONCILIATION HOOK - expected finding sets. EMPTY until recorded.
+// RECONCILIATION HOOK - expected finding sets. PINNED by PR #96: all 26 ids
+// present; the 12 empty sets are recorded negative expectations, never
+// placeholders for something unrecorded.
 // ===========================================================================
 
 /**
