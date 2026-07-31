@@ -38,11 +38,12 @@ An open PR is "in review," never "done."
 Entry bar for this list: a new bullet earns its place only if it carries a general
 lesson that a real error cost us to extract, and is neither merely good practice nor a
 restatement of a bullet already here. The heading's rule (no case, no bullet) is
-necessary but not sufficient; the seven below set the full standard an eighth must clear,
+necessary but not sufficient; the eight below set the full standard a ninth must clear,
 each having been paid for by a specific, named mistake. This bar sits above the list,
 not within it: a rule about how rules enter the ledger is not a detector lesson the way
-the seven are, and gating the list from inside the list would be the first violation of
-its own spirit.
+the eight are, and gating the list from inside the list would be the first violation of
+its own spirit. The count is maintained with every addition, which is the whole point of
+the CORRECTION below; seven to eight here is that maintenance, not a further error.
 
 **CORRECTION of this lead-in's own count, stale from `bf2dea9` (PR #109) until this
 entry.** It read "the five below ... a sixth must clear" and "the way the five are".
@@ -151,6 +152,31 @@ describes code it sits beside.
   trace to #120 alone. Both notes are now covered by a SINGLE block placed ABOVE both passages.
   That is the seventh guardrail firing on our own remediation: the first fix improved one line
   and left its neighbour looking reviewed when it was not.
+
+  WEIGHED AND ACCEPTED, so a later reader knows this was decided rather than missed: one block
+  above both passages costs the reader who arrives straight at the 2026-07-22 passage from a
+  search hit, who must now scroll UP to find the correction, where the previous layout put it
+  immediately below. Accepted, because the 2026-06-12 passage had no coverage from ANY reading
+  path before, and because the block names both passages by their opening words so an arriving
+  reader knows what to look for. The remedy if it ever bites is a one-line pointer under each
+  passage, which closes the gap without re-fragmenting the explanation. Deliberately NOT added
+  now: nobody reads this file but us, so the cost is theoretical and the pointers are not.
+
+- **A verification instrument decays as the thing it verifies grows; re-check the instrument
+  before believing a failure it reports.** Anchoring a check by quoted text was adopted to escape
+  line-number rot, and it holds only while the quoted text appears once. An annotation that quotes
+  the passage it corrects puts that text in the file TWICE, so the practice of annotating steadily
+  degrades the search used to verify annotations. Anchor content-located checks to line start,
+  and when a check reports a difference, confirm the instrument matched what you meant before
+  believing the finding. CASE: two consecutive verification runs produced their only false alarms
+  from the checking tooling rather than from the artifact. First, a `var:label` split broke on the
+  `C:` drive letter of a Windows path and printed "## DONE CHANGED" against a section that was
+  byte-identical. Second, a `grep -F` for "Second instance (F-004 stage-3 step 2, 2026-07-22)"
+  matched two lines instead of one, because the newly added annotation quoted the passage it
+  annotated, and printed "CHANGED <<< STOP" against a passage that was byte-identical. Both were
+  re-run anchored to line start and both artifacts were unchanged. Distinct from `Coordinates rot;
+  cross-reference by identifier`, which says WHAT to anchor to: this says the anchor itself has a
+  lifetime, and every annotation we add shortens it.
 
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
