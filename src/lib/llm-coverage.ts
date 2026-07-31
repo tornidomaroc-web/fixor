@@ -78,10 +78,25 @@ export function llmCoverageSince(
 }
 
 /**
- * CLI exit-code contract: 0 = scan completed with full detection
- * coverage; 2 = scan completed but coverage was degraded (≥1 detection
- * call failed) — CI must not treat the report as a clean result.
- * (1 remains "crashed / usage error", set elsewhere.)
+ * CLI exit-code contract: 0 = scan completed with full coverage; 2 = scan
+ * completed but coverage was degraded — CI must not treat the report as a
+ * clean result. (1 remains "crashed / usage error", set elsewhere.)
+ *
+ * BREAKING CHANGE to what reaches this gate. The count is no longer only
+ * failed detection calls. Three independent channels now degrade a scan, and
+ * any one of them exits 2:
+ *
+ *   1. a detection call failed          (this module's tally)
+ *   2. a file's analysis aborted        (unreadable file, etc.)
+ *   3. a detector threw
+ *
+ * Channels 2 and 3 previously exited 0 while the report asserted full
+ * coverage, so a run that read no files at all presented as a clean scan.
+ * Runs that exited 0 before may now exit 2; that is the point, those runs
+ * were never clean. See `countCoverageDegradations` in cli/report-builder.ts
+ * for the composition. The parameter stays a plain count so this function
+ * remains the one place that maps "something went wrong" to an exit code;
+ * what counts as wrong is decided by the caller.
  */
 export function coverageExitCode(failed: number): 0 | 2 {
   return failed > 0 ? 2 : 0;
