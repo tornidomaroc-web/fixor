@@ -30,7 +30,11 @@ import {
 } from "../lib/llm-coverage.js";
 import { walkFiles } from "./file-walker.js";
 import { buildSyntheticDiff } from "./diff-builder.js";
-import { buildMarkdownReport, type FileScanResult } from "./report-builder.js";
+import {
+  buildMarkdownReport,
+  countCoverageDegradations,
+  type FileScanResult,
+} from "./report-builder.js";
 import { collapseFindings } from "./finding-merge.js";
 
 const DEFAULT_EXTENSIONS = ["ts", "tsx", "js", "jsx", "py", "go"];
@@ -97,6 +101,17 @@ const PRECOUNT_SAMPLE_SIZE = 500;
 const newDetectors = DETECTORS.filter(
   (d) => SHIPPING_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
 );
+
+/** One-line, report-safe rendering of a thrown value. The full error (with
+ *  stack) still goes to the log; this is the operator-facing casualty note. */
+function errText(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const text =
+    err.name && err.name !== "Error"
+      ? `${err.name}: ${err.message}`
+      : err.message;
+  return text.length > 300 ? `${text.slice(0, 297)}...` : text;
+}
 
 function normalizedToFinding(n: NormalizedFinding): Finding {
   const severity: Finding["severity"] =
@@ -403,15 +418,24 @@ async function main(): Promise<void> {
     );
 
     const allFindings: Finding[] = [];
+    const detectorFailures: Array<{ detectorId: string; reason: string }> = [];
+    let notAnalyzed: { stage: string; reason: string } | undefined;
+    // Names the stage the outer catch caught, so a report can distinguish an
+    // unreadable file from a route-guard resolution that blew up. The catch
+    // has always spanned more than the read.
+    let stage = "read";
     try {
       const content = readFileSync(filePath, "utf8");
+      stage = "build-diff";
       const diff = buildSyntheticDiff(rel, content);
 
       // Phase G: resolve any cross-file parent-layout auth guard for
       // Remix/RR v7 routes (read above the scan root via the absolute
       // path), so auth-bypass/admin-check can recognize a route gated by
       // an ancestor `_layout.tsx` loader instead of false-positiving.
+      stage = "resolve-route-guard";
       const guardBody = resolveRemixRouteGuard(filePath);
+      stage = "detect";
       const detectorCtx: DetectorContext = guardBody
         ? {
             diff,
@@ -456,14 +480,29 @@ async function main(): Promise<void> {
             await sleep(SUB_DELAY_MS);
           }
         } catch (err) {
-          logger.warn(
+          // A detector that threw contributed zero findings for a reason
+          // that has nothing to do with the code under scan, so its silence
+          // carries no information. Recorded as a named casualty (file +
+          // detector id) and counted toward degraded coverage; logging it
+          // and continuing was a null-and-continue path.
+          detectorFailures.push({
+            detectorId: detector.id,
+            reason: errText(err),
+          });
+          logger.error(
             { err, detector: detector.id, file: rel },
-            "detector failed; continuing",
+            "detector FAILED; file not fully analyzed by this detector",
           );
         }
       }
     } catch (err) {
-      logger.error({ err, file: rel }, "scan failed for file");
+      // The file contributed nothing and was never analyzed. It must not be
+      // counted as scanned, and its zero findings must never read as clean.
+      notAnalyzed = { stage, reason: errText(err) };
+      logger.error(
+        { err, file: rel, stage },
+        "file NOT ANALYZED: scan aborted for this file",
+      );
     }
 
     const merged = collapseFindings(allFindings);
@@ -479,6 +518,8 @@ async function main(): Promise<void> {
       findings: merged,
       llmFailures: fileCov.failed,
       llmFailuresByReason: fileCov.byReason,
+      ...(notAnalyzed ? { notAnalyzed } : {}),
+      ...(detectorFailures.length > 0 ? { detectorFailures } : {}),
     });
 
     if (i < files.length - 1) {
@@ -506,14 +547,24 @@ async function main(): Promise<void> {
     0,
   );
 
+  const filesNotAnalyzed = results.filter((r) => r.notAnalyzed);
+  const failedDetectorRuns = results.reduce(
+    (n, r) => n + (r.detectorFailures?.length ?? 0),
+    0,
+  );
+  const degradations = countCoverageDegradations(results, coverage);
+
   logger.info(
     {
       reportPath,
       totalFindings,
-      filesScanned: results.length,
+      filesEnumerated: results.length,
+      filesAnalyzed: results.length - filesNotAnalyzed.length,
       byType: countsByType,
       llmCallsAttempted: coverage.attempted,
       llmCallsFailed: coverage.failed,
+      filesNotAnalyzed: filesNotAnalyzed.length,
+      failedDetectorRuns,
     },
     "scan complete",
   );
@@ -521,16 +572,25 @@ async function main(): Promise<void> {
   // Exit 2 on degraded coverage so CI/automation can never mistake a
   // partially-blind run for a clean one. The report is still written
   // (partial findings are real); only the "clean" claim is withheld.
-  if (coverage.failed > 0) {
+  //
+  // Three channels reach this gate, not one: a failed LLM detection call, a
+  // file whose analysis aborted, and a detector that threw. Previously only
+  // the first could, so a run that read no files at all exited 0 while the
+  // report asserted full coverage. Every casualty is named in the log and in
+  // the report; the count is only how the exit code is chosen.
+  if (degradations > 0) {
     logger.error(
       {
-        failed: coverage.failed,
-        attempted: coverage.attempted,
+        degradations,
+        llmCallsFailed: coverage.failed,
+        llmCallsAttempted: coverage.attempted,
         byReason: coverage.byReason,
+        filesNotAnalyzed: filesNotAnalyzed.map((r) => r.filePath),
+        failedDetectorRuns,
       },
       "scan coverage DEGRADED — report must not be read as a clean result (exit 2)",
     );
-    process.exitCode = coverageExitCode(coverage.failed);
+    process.exitCode = coverageExitCode(degradations);
   }
 }
 

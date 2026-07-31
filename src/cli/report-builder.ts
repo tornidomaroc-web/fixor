@@ -11,6 +11,16 @@ export interface FileScanResult {
   llmFailures?: number;
   /** Failure-reason breakdown for this file (e.g. { http_error: 2 }). */
   llmFailuresByReason?: Record<string, number>;
+  /** Set when the file's analysis aborted before any detector could run:
+   *  the read failed, the synthetic diff could not be built, or the route
+   *  guard could not be resolved. The file contributed NOTHING; it was not
+   *  analyzed and found clean. `stage` names where it died so an operator
+   *  can tell a permissions problem from a bug. */
+  notAnalyzed?: { stage: string; reason: string };
+  /** Detectors that threw while analyzing this file. Each entry is one
+   *  detector that contributed zero findings for a reason unrelated to the
+   *  code under scan, so its silence carries no information. */
+  detectorFailures?: Array<{ detectorId: string; reason: string }>;
 }
 
 /** Scan-wide detection-coverage summary, from the llm-coverage tally. */
@@ -34,6 +44,43 @@ export interface ReportOptions {
   coverage?: ScanCoverage;
 }
 
+/**
+ * Every way this scan's coverage can be degraded, as one count.
+ *
+ * Three independent channels, deliberately NOT merged into the llm-coverage
+ * tally: that tally means "detection calls attempted/failed" and is read by
+ * the SARIF invocation record and by spend measurement, so an unreadable file
+ * must never be laundered into it as a failed API call. They share a verdict,
+ * not a counter.
+ *
+ *   1. an LLM detection call failed          (llm-coverage.ts)
+ *   2. a file's analysis aborted             (FileScanResult.notAnalyzed)
+ *   3. a detector threw                      (FileScanResult.detectorFailures)
+ *
+ * Any non-zero total means "0 findings" is not a clean result. Used for both
+ * the report banner and the CLI exit code so the two can never disagree.
+ */
+export function countCoverageDegradations(
+  results: FileScanResult[],
+  coverage?: ScanCoverage,
+): number {
+  let n = coverage?.failed ?? 0;
+  for (const r of results) {
+    if (r.notAnalyzed) n++;
+    n += r.detectorFailures?.length ?? 0;
+  }
+  return n;
+}
+
+/** True when this file cannot be read as "analyzed and found clean". */
+function hasCoverageGap(r: FileScanResult): boolean {
+  return (
+    (r.llmFailures ?? 0) > 0 ||
+    r.notAnalyzed !== undefined ||
+    (r.detectorFailures?.length ?? 0) > 0
+  );
+}
+
 export function buildMarkdownReport(
   scannedPath: string,
   results: FileScanResult[],
@@ -47,17 +94,51 @@ export function buildMarkdownReport(
   lines.push(`# Fixor local scan report`);
   lines.push("");
   const cov = opts.coverage;
-  if (cov && cov.failed > 0) {
-    const reasons = formatReasons(cov.byReason);
-    if (cov.failed >= cov.attempted) {
+  const notAnalyzed = results.filter((r) => r.notAnalyzed);
+  const detectorFailures = results.flatMap((r) =>
+    (r.detectorFailures ?? []).map((d) => ({ filePath: r.filePath, ...d })),
+  );
+  const llmFailed = cov?.failed ?? 0;
+  // Any channel degrades the whole scan. Previously only channel 1 could,
+  // so a run that read no files at all still rendered the positive
+  // "full coverage" line — an affirmative false assurance, not a silence.
+  const degraded =
+    llmFailed > 0 || notAnalyzed.length > 0 || detectorFailures.length > 0;
+  // Nothing was analyzed at all: strictly worse than a partial gap.
+  const nothingAnalyzed =
+    results.length > 0 && notAnalyzed.length === results.length;
+
+  if (degraded) {
+    const parts: string[] = [];
+    if (llmFailed > 0 && cov) {
+      parts.push(
+        `${llmFailed} of ${cov.attempted} LLM detection calls failed (${formatReasons(cov.byReason)})`,
+      );
+    }
+    if (notAnalyzed.length > 0) {
+      parts.push(
+        `${notAnalyzed.length} of ${results.length} file(s) were never analyzed`,
+      );
+    }
+    if (detectorFailures.length > 0) {
+      parts.push(`${detectorFailures.length} detector run(s) failed`);
+    }
+    const summary = parts.join("; ");
+    if (nothingAnalyzed) {
       lines.push(
-        `> 🛑 **SCAN BLIND — ALL ${cov.attempted} LLM detection calls failed** (${reasons}).`,
+        `> 🛑 **SCAN BLIND — NO FILE WAS ANALYZED** (${summary}).`,
+        `> This report contains NO results and MUST NOT be used as evidence of a clean codebase.`,
+        `> Fix the cause (file permissions, deleted or locked files) and re-run.`,
+      );
+    } else if (cov && llmFailed > 0 && llmFailed >= cov.attempted) {
+      lines.push(
+        `> 🛑 **SCAN BLIND — ALL ${cov.attempted} LLM detection calls failed** (${formatReasons(cov.byReason)}).`,
         `> This report contains NO LLM-verified results and MUST NOT be used as evidence of a clean codebase.`,
         `> Fix the cause (API key, network, rate limits) and re-run.`,
       );
     } else {
       lines.push(
-        `> ⚠️ **DEGRADED COVERAGE — NOT A CLEAN SCAN.** ${cov.failed} of ${cov.attempted} LLM detection calls failed (${reasons}).`,
+        `> ⚠️ **DEGRADED COVERAGE — NOT A CLEAN SCAN.** ${summary}.`,
         `> Files under "Coverage gaps" below were NOT fully analyzed; absence of findings there is meaningless.`,
         `> Findings that ARE listed remain real. Fix the cause and re-run for full coverage.`,
       );
@@ -71,7 +152,13 @@ export function buildMarkdownReport(
     lines.push("");
   }
   lines.push(`- Scanned path: \`${displayPath(scannedPath)}\``);
-  lines.push(`- Total files scanned: ${results.length}`);
+  // "Total files scanned" counted files the scan never opened, because the
+  // per-file result is recorded whether or not the analysis got anywhere.
+  // Enumerated and analyzed are different facts and are now reported as two.
+  lines.push(`- Total files enumerated: ${results.length}`);
+  lines.push(
+    `- Files fully analyzed: ${results.length - notAnalyzed.length} of ${results.length}`,
+  );
   lines.push(`- Files with findings: ${filesWithFindings.length}`);
   lines.push(`- Total findings: ${allFindings.length}`);
   lines.push(
@@ -81,26 +168,50 @@ export function buildMarkdownReport(
     lines.push(
       cov.failed > 0
         ? `- LLM detection coverage: **DEGRADED** — ${cov.failed} of ${cov.attempted} calls failed (${formatReasons(cov.byReason)})`
-        : `- LLM detection coverage: full — ${cov.attempted}/${cov.attempted} calls succeeded`,
+        : degraded
+          ? `- LLM detection coverage: ${cov.attempted}/${cov.attempted} calls succeeded, but scan coverage is **DEGRADED** (see Coverage gaps)`
+          : `- LLM detection coverage: full — ${cov.attempted}/${cov.attempted} calls succeeded`,
     );
+  }
+  if (notAnalyzed.length > 0) {
+    lines.push(`- Files NOT analyzed: ${notAnalyzed.length}`);
+  }
+  if (detectorFailures.length > 0) {
+    lines.push(`- Detector runs that failed: ${detectorFailures.length}`);
   }
   lines.push("");
 
-  const gapFiles = results.filter((r) => (r.llmFailures ?? 0) > 0);
+  const gapFiles = results.filter(hasCoverageGap);
   if (gapFiles.length > 0) {
     lines.push(`## Coverage gaps (NOT fully analyzed)`);
     lines.push("");
     lines.push(
-      `The following files had failed LLM detection calls. "No findings" for these files is a coverage gap, not a clean result.`,
+      `The following files were not fully analyzed. "No findings" for these files is a coverage gap, not a clean result. Each casualty is listed by name.`,
     );
     lines.push("");
     for (const r of gapFiles) {
-      const reasons = r.llmFailuresByReason
-        ? ` (${formatReasons(r.llmFailuresByReason)})`
-        : "";
-      lines.push(
-        `- \`${fwdSlash(r.filePath)}\` — ${r.llmFailures} failed call(s)${reasons}`,
-      );
+      const name = fwdSlash(r.filePath);
+      if (r.notAnalyzed) {
+        lines.push(
+          `- \`${name}\` — NOT ANALYZED (aborted at ${r.notAnalyzed.stage}): ${r.notAnalyzed.reason}`,
+        );
+        // A file that never reached the detectors has no per-detector or
+        // per-call casualties to list; naming it once is the whole fact.
+        continue;
+      }
+      if ((r.llmFailures ?? 0) > 0) {
+        const reasons = r.llmFailuresByReason
+          ? ` (${formatReasons(r.llmFailuresByReason)})`
+          : "";
+        lines.push(
+          `- \`${name}\` — ${r.llmFailures} failed call(s)${reasons}`,
+        );
+      }
+      for (const d of r.detectorFailures ?? []) {
+        lines.push(
+          `- \`${name}\` — detector \`${d.detectorId}\` failed: ${d.reason}`,
+        );
+      }
     }
     lines.push("");
     lines.push("---");
