@@ -87,6 +87,26 @@ export interface WorkflowResult {
     byCaller: Record<string, number>;
   };
   /**
+   * Detectors that THREW during this run, BY NAME (F-002, Engine B).
+   *
+   * A detector that threw contributed zero findings for a reason that has
+   * nothing to do with the code under scan, so its silence carries no
+   * information and a 0-finding result is not a clean one. Like
+   * `llmCoverage.failed`, a non-empty array pushes a WorkflowError, so
+   * `status` can never be `no_action` or `success` while it is set.
+   *
+   * Deliberately NOT folded into `llmCoverage`: that tally means
+   * "detection CALLS attempted/failed" and is read by spend measurement,
+   * so a thrown detector must never be laundered into it as a failed API
+   * call. The two channels share a verdict, not a counter — the composed
+   * verdict is what SARIF's `executionSuccessful` reads.
+   *
+   * Same field name and shape as Engine A's `FileScanResult.detectorFailures`
+   * (`cli/report-builder.ts`), so the symmetry is visible rather than
+   * coincidental.
+   */
+  detectorFailures?: Array<{ detectorId: string; reason: string }>;
+  /**
    * Present only when status === "budget_exceeded": the live spend that
    * tripped the cap and the configured cap values. The handler renders
    * these into the PR comment.

@@ -7,6 +7,7 @@ import type { NormalizedFinding } from "../analysis-engine/detector.types.js";
 import { extractSqlInjectionFromSemgrep } from "../services/vulnerability.service.js";
 import type { NormalizedSqlInjectionFinding } from "../types/vulnerability.types.js";
 import type { WorkflowResult, ScanMetadata } from "../types/workflow.types.js";
+import { errText } from "../lib/err-text.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
 import { logger } from "../lib/logger.js";
 import * as Sentry from "@sentry/node";
@@ -125,13 +126,19 @@ function computeAutomationDecisionReason(
   lowQualityPatches: number,
   anyPatchWarnings: boolean,
   automationReady: boolean,
-  llmCallsFailed: number
+  llmCallsFailed: number,
+  detectorsFailed: number
 ): string {
   // Degraded detection coverage dominates every other reason: whatever
   // else happened, the scan was partially blind and must not be acted
-  // on as if it were complete.
-  if (llmCallsFailed > 0) {
-    return `Detection coverage degraded: ${llmCallsFailed} LLM call(s) failed — results are incomplete, do not treat as a clean scan`;
+  // on as if it were complete. BOTH coverage channels dominate, and the
+  // reason names which one fired — "LLM call(s) failed" was the whole
+  // sentence while only one channel could reach here (F-002).
+  if (llmCallsFailed > 0 || detectorsFailed > 0) {
+    const parts: string[] = [];
+    if (llmCallsFailed > 0) parts.push(`${llmCallsFailed} LLM call(s) failed`);
+    if (detectorsFailed > 0) parts.push(`${detectorsFailed} detector(s) threw`);
+    return `Detection coverage degraded: ${parts.join("; ")} — results are incomplete, do not treat as a clean scan`;
   }
   if (finalStatus === "failed") {
     return "Workflow failed";
@@ -357,6 +364,12 @@ async function executeWorkflow(
   /** SQL-shaped findings retained for the risk explainer (SQL-only today). */
   let sqlFindingsForExplainer: NormalizedSqlInjectionFinding[] = [];
   let legacyRoot: any = null;
+  /**
+   * F-002: detectors that threw, BY NAME. Function-scoped because the
+   * degradation verdict is composed after the detector loop, next to the
+   * llm-coverage verdict, so both reach the status machine the same way.
+   */
+  const detectorFailures: Array<{ detectorId: string; reason: string }> = [];
   /** Aggregated per-reason filter counts, populated when orgSettings is set. */
   const filterStats: FilterStats = {
     droppedBySeverity: 0,
@@ -407,9 +420,19 @@ async function executeWorkflow(
             "detector.id": detector.id,
           },
         });
-        logger.warn(
+        // F-002: this detector contributed zero findings for a reason
+        // unrelated to the code under scan, so its silence carries no
+        // information. Recorded as a named casualty and counted toward
+        // degraded coverage below; capturing it to Sentry and continuing
+        // was a null-and-continue path — better observed than Engine A's
+        // was, and just as invisible to the run's own verdict.
+        detectorFailures.push({
+          detectorId: detector.id,
+          reason: errText(r.reason),
+        });
+        logger.error(
           { err: r.reason, detector: detector.id },
-          "phase 5 detector failed; continuing",
+          "phase 5 detector FAILED; run not fully analyzed by this detector",
         );
         continue;
       }
@@ -683,6 +706,24 @@ async function executeWorkflow(
     });
   }
 
+  // F-002: the SECOND coverage channel. A thrown detector analyzed nothing,
+  // exactly like a failed call, and until now it degraded neither the status
+  // nor the SARIF invocation record. Same WorkflowError channel as the block
+  // above and the route-guard loop, so the status machine cannot tell them
+  // apart — which is the point. Casualties are named, never counted only.
+  if (detectorFailures.length > 0) {
+    result.detectorFailures = detectorFailures;
+    const named = detectorFailures.map((d) => d.detectorId).join(", ");
+    logger.error(
+      { detectorFailures },
+      "detection coverage degraded: detector(s) threw — result is NOT a clean scan",
+    );
+    result.errors.push({
+      message: `Detection coverage degraded: ${detectorFailures.length} detector(s) threw and contributed no findings (${named}) — findings are incomplete and "0 findings" must not be read as clean`,
+      details: { detectorFailures },
+    });
+  }
+
   let finalStatus: WorkflowResult["status"] = "failed";
 
   if (result.classifiedFindings === 0 && result.errors.length === 0) {
@@ -711,7 +752,8 @@ async function executeWorkflow(
     result.lowQualityPatches,
     anyPatchWarnings,
     result.automationReady,
-    llmCoverage.failed
+    llmCoverage.failed,
+    detectorFailures.length
   );
 
   return finalize(finalStatus);

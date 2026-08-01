@@ -47,8 +47,10 @@ export interface SarifRun {
     };
   };
   /** §3.14.11 — executionSuccessful is set false when detection coverage
-   *  was degraded (LLM calls failed), so SARIF consumers never treat a
-   *  partially-blind run's results as a complete clean scan. */
+   *  was degraded, so SARIF consumers never treat a partially-blind run's
+   *  results as a complete clean scan. Degradation is COMPOSED from every
+   *  coverage channel (failed LLM calls AND thrown detectors), never read
+   *  from one of them; see the composition at the invocations builder. */
   invocations: Array<{
     executionSuccessful: boolean;
     toolExecutionNotifications?: Array<{
@@ -172,8 +174,36 @@ export function buildSarifLog(
     results.push(fixToSarifResult(fix, ruleType));
   }
 
+  // Coverage degradation is COMPOSED from every channel that means "this
+  // was not analyzed", not read off the llm tally alone. A detector that
+  // threw analyzed nothing, exactly like a failed call; before F-002 it
+  // degraded the workflow status but left this flag `true`, and this flag
+  // is the one signal a machine reads (GitHub Code Scanning ingests it)
+  // with no human in the loop to notice the discrepancy.
+  //
+  // Route-guard resolution failures are deliberately NOT here. Those are an
+  // input-FIDELITY gap (the route was analyzed, on worse input), not a
+  // coverage gap (nothing was analyzed). They already degrade status via
+  // their own WorkflowError. Whether SARIF should also flag input-fidelity
+  // degradation is an open question, tracked, not decided here.
   const cov = workflow.llmCoverage;
-  const degraded = cov !== undefined && cov.failed > 0;
+  const llmFailed = cov?.failed ?? 0;
+  const detectorFailures = workflow.detectorFailures ?? [];
+  const degraded = llmFailed > 0 || detectorFailures.length > 0;
+
+  const causes: string[] = [];
+  if (cov !== undefined && llmFailed > 0) {
+    causes.push(
+      `${llmFailed} of ${cov.attempted} LLM detection call(s) failed`,
+    );
+  }
+  if (detectorFailures.length > 0) {
+    causes.push(
+      `${detectorFailures.length} detector(s) threw and contributed no findings ` +
+        `(${detectorFailures.map((d) => d.detectorId).join(", ")})`,
+    );
+  }
+
   const invocations: SarifRun["invocations"] = [
     {
       executionSuccessful: !degraded,
@@ -184,7 +214,7 @@ export function buildSarifLog(
                 level: "error" as const,
                 message: {
                   text:
-                    `Detection coverage degraded: ${cov.failed} of ${cov.attempted} LLM detection call(s) failed. ` +
+                    `Detection coverage degraded: ${causes.join("; ")}. ` +
                     `Results are incomplete; absence of findings must not be read as a clean scan.`,
                 },
               },

@@ -28,6 +28,7 @@ import {
   llmCoverageSince,
   snapshotLlmCoverage,
 } from "../lib/llm-coverage.js";
+import { errText } from "../lib/err-text.js";
 import { walkFiles } from "./file-walker.js";
 import { buildSyntheticDiff } from "./diff-builder.js";
 import {
@@ -101,17 +102,6 @@ const PRECOUNT_SAMPLE_SIZE = 500;
 const newDetectors = DETECTORS.filter(
   (d) => SHIPPING_DETECTOR_IDS.has(d.id) && typeof d.detect === "function",
 );
-
-/** One-line, report-safe rendering of a thrown value. The full error (with
- *  stack) still goes to the log; this is the operator-facing casualty note. */
-function errText(err: unknown): string {
-  if (!(err instanceof Error)) return String(err);
-  const text =
-    err.name && err.name !== "Error"
-      ? `${err.name}: ${err.message}`
-      : err.message;
-  return text.length > 300 ? `${text.slice(0, 297)}...` : text;
-}
 
 function normalizedToFinding(n: NormalizedFinding): Finding {
   const severity: Finding["severity"] =
