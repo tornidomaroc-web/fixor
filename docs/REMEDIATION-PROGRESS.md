@@ -671,7 +671,12 @@ ran against correct code and so could not have found one. Recall has since been 
 one FastAPI-idiom target (the langflow C run, a true positive idor caught; see L-010); broader
 recall across other idioms and under repeated sampling remains unmeasured. The remaining
 non-gating items are precision, signal-hygiene,
-coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
+coverage-integrity, and the three structural gaps L-006, L-007, and L-009. **UPDATE
+2026-08-01 (PR #141, squash `38d5c7ca`): coverage-integrity is now HALF closed and stays on
+this list for its other half.** F-003 is resolved and F-002's Engine A half with it, so on
+the CLI an unreadable file and a thrown detector both degrade the scan and exit 2. F-002
+remains open on Engine B, `runAuditorWorkflow`, the customer-facing path. Read the phrase as
+narrowed, not lifted; none of this moves the READY gate, which is still F-004 alone.
 
 ---
 
@@ -1276,6 +1281,59 @@ coverage-integrity, and the three structural gaps L-006, L-007, and L-009.
      key cleared the guard and failed at the API boundary.
   6. THE 4/5 AND 5/5 THRESHOLD LOGIC. `perPositiveThreshold: 4` and `perNegativeThreshold: 5` have
      never been evaluated against real verdicts, only against the degenerate all-error case.
+
+- **F-003 RESOLVED, F-002 NARROWED - PR #141, squash
+  `38d5c7cae71a97c2f3924d7a946d4f8e1734000e`.** The coverage-integrity gate on Engine A now sees
+  two failure classes it was structurally blind to. Both were the shape the second reasoning
+  guardrail names: an error path that kept going and produced zero findings indistinguishable from
+  "analyzed and found clean". Neither reached the gate, because the gate counts `callClaude`
+  outcomes at the client chokepoint and both failures happen OUTSIDE it. The demonstration was a
+  two-file repo with both files unreadable: it reported both as scanned, zero findings, full
+  coverage, exit 0 — a scan that read nothing, presenting as clean. That is an AFFIRMATIVE false
+  assurance, not a silence, which is why it was treated as more than a missing warning.
+
+  Exact scope, and only this scope:
+  1. A file whose analysis aborted is recorded as `FileScanResult.notAnalyzed` carrying the STAGE
+     it died at (`read`, `build-diff`, `resolve-route-guard`, `detect`), so an operator can tell a
+     permissions problem from a bug. The outer catch always spanned more than the read; naming the
+     stage is what makes that catchment legible.
+  2. A detector that threw is recorded as a `FileScanResult.detectorFailures` entry carrying the
+     detector id. Casualties BY NAME, never as a count, per the guardrail.
+  3. Both render by name in the report's "Coverage gaps" section, and both feed
+     `countCoverageDegradations` (`cli/report-builder.ts`), whose single total drives the banner,
+     the summary block AND the exit code, so the report and the exit code cannot disagree.
+  4. `coverageExitCode` keeps its signature and its one job. What COUNTS as degradation is composed
+     by the caller, so the exit-code mapping stays the one place that maps "something went wrong" to
+     a number.
+  5. The three channels are deliberately NOT merged into the `llm-coverage` tally. That tally means
+     "detection calls attempted/failed" and is read by the SARIF invocation record and by spend
+     measurement; laundering an unreadable file into it as a failed API call would corrupt both.
+     They share a verdict, not a counter.
+  6. "Total files scanned" counted files the scan never opened. The report now separates files
+     ENUMERATED from files fully ANALYZED.
+  7. New deterministic keyless test `src/test/test-scan-coverage-integrity.ts`, wired into `test:ci`
+     as `test:scan-coverage`. No API spend.
+
+  **BREAKING, and recorded as such because it changes an automation contract:** the scan CLI exits
+  2 on two failure classes that previously exited 0. Runs that were green may now be red. That is
+  the point — those runs were never clean.
+
+  **F-002 is NARROWED, NOT CLOSED, and the ledger row stays OPEN.** Item 2 above fixes the detector
+  throw on Engine A only. The identical defect is live on Engine B (`runAuditorWorkflow`), the
+  CUSTOMER-FACING path, so the larger blast radius is precisely the part still open. Recorded
+  explicitly because a half-fixed finding whose visible half is fixed is the easiest kind to read as
+  done at a glance.
+
+  **`docs/READINESS-AUDIT.md` deliberately NOT edited, weighed and accepted.** It carries F-003 on
+  four surfaces (the Evidentiary-gaps summary bullet, the MEDIUM entries for F-002 and F-003, and
+  item 3 of its ordered work list), all now stale. Left alone anyway: the audit is a DATED snapshot
+  ("Date: 2026-07-01 ... Diagnosis only - no fixes applied") and this file already records that it
+  "is left unedited; it remains an accurate record of what the audit itself gated". The settling
+  evidence is the file's own behavior, per the `scope a convention before enforcing it` guardrail:
+  the audit has been touched exactly once, at creation in PR #75, and was NOT touched when F-001 —
+  its own headline gate, still described in its VERDICT banner as the thing blocking READY — was
+  resolved. A MEDIUM does not earn an edit that a HIGH did not. Recorded here so a later reader
+  knows this was decided rather than missed, which is the whole cost of a deliberate deferral.
 
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
@@ -2455,13 +2513,15 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
-- **F-002 (MEDIUM) - non-LLM detector throw not counted as degraded coverage.**
-  `cli/scan.ts:458-463` (warn and continue); cf. `workflows/auditor-workflow.ts:383-395`.
-  A parser or unexpected-input throw yields zero findings for that detector without
-  flipping the integrity gate, so a partially-blind run can read as clean.
-- **F-003 (MEDIUM) - `readFileSync` failure yields zero findings with no coverage
-  signal.** `cli/scan.ts:465-467`. A file that was never analyzed is indistinguishable
-  from one analyzed and found clean; exit code and verdict are unaffected.
+- **F-002 (MEDIUM) - non-LLM detector throw not counted as degraded coverage. NARROWED to
+  ENGINE B by PR #141 (squash `38d5c7ca`); still OPEN.** The Engine A half is closed: a
+  detector that throws is now a named casualty counted toward the exit code (see the DONE
+  entry). What remains is `runAuditorWorkflow`, which captures the throw to Sentry and
+  continues without degrading workflow status. That is the SHIPPED, customer-facing path, so
+  the remaining half carries the larger blast radius, not the smaller.
+- **F-003 - RESOLVED, moved to DONE (PR #141, squash `38d5c7ca`).** Kept as a pointer rather
+  than deleted outright so a reader working down this worklist from an older reference does
+  not read the gap as an oversight.
 - **F-006 (MEDIUM) - admin-check false positive on a correctly admin-gated route.**
   `fixor-demo/src/routes/users.ts:8`; `admin-check.detector.ts`. Fires critical on a
   `/:id/promote` route that already performs an explicit admin check.
