@@ -188,14 +188,30 @@ describes code it sits beside.
   the gate is coupled to something it does not own; failing fewer means it does not cover what it
   claims. CASES, three, each paid for differently. (a) Re-recording a replay fixture to make a
   failing gate pass turns the gate into a tautology that reports success forever, which is why
-  `record:*` carries the standing prohibition it does. (b) F-004 stage 3 step 3 was MERGED and
-  has still never RUN, and a workflow that never executed closes nothing — green was never even
-  available to be misread. (c) The Engine B coverage-integrity test landed 25 passing assertions,
-  which on their own proved nothing; reverting only the SARIF composition predicate failed
-  exactly the three assertions covering the false-closure case and left every other assertion
-  green, and THAT is what made it evidence. Distinct from `A verification instrument decays as
-  the thing it verifies grows`, which is about an instrument that was once valid losing its grip
-  over time: this one is about initial validity, and asks whether the gate ever had any.
+  `record:*` carries the standing prohibition it does. (b) Stage-3 rehearsal (b), run
+  `30467532167`: a DUMMY key was set deliberately so the gate would fail, and the red proved the
+  plumbing carried it — including that `PIPESTATUS` propagates the detector's exit 1 through the
+  `tee` pipe, without which the pipeline would have taken `tee`'s 0 and the red run would have
+  read GREEN. That is this rule executed on purpose, at a cost of $0. (c) The Engine B
+  coverage-integrity test landed 25 passing assertions, which on their own proved nothing;
+  reverting only the SARIF composition predicate failed exactly the three assertions covering the
+  false-closure case and left every other assertion green, and THAT is what made it evidence.
+  The rule also applies to a gate that passes in a region where it cannot fail: the first paid
+  stage-3 run scored every fixture at the maximum, so `perPositiveThreshold: 4` never had to
+  discriminate and remains a gate we have not seen fail. Distinct from `A verification instrument
+  decays as the thing it verifies grows`, which is about an instrument that was once valid losing
+  its grip over time: this one is about initial validity, and asks whether the gate ever had any.
+
+  **CORRECTION of this bullet's own case (b), false from the moment it was written until this
+  entry.** It read "F-004 stage 3 step 3 was MERGED and has still never RUN, and a workflow that
+  never executed closes nothing". The workflow had been dispatched TWICE before that sentence was
+  authored — rehearsals (a) `30372496279` and (b) `30467532167`, both $0, both recorded in this
+  file's REHEARSAL EVIDENCE block. The true claim is that no DETECTION-QUALITY run had happened.
+  Worse than imprecise: rehearsal (b) is a MODEL INSTANCE of this very guardrail, so the bullet
+  cited the best example in the repo as though it were the absence of one. Recorded rather than
+  quietly fixed because the failure is the one this list exists to catch, and because it was
+  authored and reviewed without either of us noticing — the same shape as the lead-in count
+  above, on the rule rather than on the tally.
 
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
@@ -596,6 +612,8 @@ as the record of why the lists diverged while they did.
   opt-in live model-judgment workflow file) is now MERGED (PR #121, squash `419c6824`) but has
   NEVER executed; merging that workflow did NOT lift F-004, because a merged workflow that has
   never run closes nothing. F-004 stays OPEN pending a green RUN.**
+  (Pointer, 2026-08-02: stage 3 HAS since executed and one detector passed live; "a green RUN"
+  means across all six. See the UPDATE at the Priority 1 F-004 header.)
 
   Six of six detectors gated is progress, not readiness. Every gate landed so far is a
   wiring-and-parsing gate: none of them verifies detection quality. Stage 3 (live) has now
@@ -1086,7 +1104,13 @@ the READY gate, which is still F-004 alone.
   inverted admin-check-vs-auth-bypass claim) and recorded the 2b.4 idor scoping facts. No
   code, test, or CI change.
 
-- **F-004 stage 3 step 3 MERGED, NOT YET RUN - PR #121, squash `419c6824`.** Adds
+- **F-004 stage 3 step 3 MERGED, NOT YET RUN - PR #121, squash `419c6824`.**
+  (Pointer, 2026-08-02: this entry's TITLE is now stale. The file has since executed three times
+  — rehearsals `30372496279` and `30467532167` at $0, then the first paid run `30754480093`,
+  which passed `idor-tenant` for a measured $0.2713. F-004 is still OPEN; see the UPDATE at the
+  Priority 1 F-004 header for what "a green RUN" must mean. Cite this entry's STATUS, not its
+  title.)
+  Adds
   `.github/workflows/stage3-live-detection.yml`, the `workflow_dispatch`-only live
   detection-quality gate (the six `runStabilityHarness` callers at n=5: env-exposure,
   webhook-unverified, auth-bypass, admin-check, idor, idor-tenant; secrets-exposure excluded),
@@ -1285,6 +1309,72 @@ the READY gate, which is still F-004 alone.
     NOT exercised even by (b): the `^SKIPPED:` belt-and-suspenders net, because the abort exits on
     the detector's status before that grep is reached.
 
+  **FIRST PAID RUN — run `30754480093`, 2026-08-02, conclusion `success` in 3m57s. MEASURED
+  $0.2713.** Selection `idor-tenant` alone, dispatched on `main` at `f8090ade`. A real
+  `ANTHROPIC_API_KEY` was set as a repository secret by hand through the GitHub UI, never passing
+  through tooling, and was deleted immediately after the run and verified gone by a 404 plus a
+  `total_count=0` on the secrets list. Live exposure of the credential on a PUBLIC repo: about 25
+  minutes. Before the secret was set, the repo held ZERO secrets and no workflow could spend; the
+  spend surface was re-enumerated at `f8090ade` before dispatch and `stage3-live-detection.yml` is
+  the only path to the key (`ci.yml` names it in a COMMENT with no `env:` block, `pages.yml` uses
+  no secrets, `secrets.yml` uses only the auto-provided `GITHUB_TOKEN`, and no workflow uses
+  `pull_request_target`).
+
+  **TWO RESULTS OF DIFFERENT SCOPE. Do not collapse them into one sentence in either direction.**
+
+  1. **The DETECTION result is NARROW.** `idor-tenant`, 6 fixtures, n=5, one of six detectors.
+     Every fixture at maximum: the 3 positives `flagged 5/5` (bar is >=4/5) and the 3 negatives
+     `correctly-skipped 5/5` (bar is 5/5, zero-FP). Aggregates 3/3, 3/3, 6/6. `PASS`. The harness
+     states its own ceiling and it is repeated here rather than paraphrased: *n=5 catches
+     stochasticity at 20% resolution. Zero FP at n=5 means "no FP at this resolution," not
+     "calibrated."* Six fixtures cannot support a rate. **This does NOT lift F-004**, which gates
+     on all six detectors.
+  2. **The WORKFLOW result is BROAD, and is the first of its kind in this project.** The entire
+     paid path executed end to end: both guards, the `case "$SELECTION"` mapping, setup-node,
+     `npm ci`, the detector, a cost shape that had never been emitted live, the success footer, and
+     the artifact upload. Hedging this into the narrow claim would understate what $0.2713 bought.
+
+  **WHY THIS IS A MEASUREMENT AND (b) WAS NOT — the internal control.** In rehearsal (b) the three
+  negatives also read `5/5` and meant NOTHING: nothing was flagged because every call errored, so
+  the passes were hollow and the harness said so. Here the POSITIVES flagged 5/5 on the SAME run,
+  which demonstrates the detector was actively emitting findings. **That is what turns the
+  negatives' silence into evidence rather than absence.** A negative passing by not-firing is only
+  informative when something else fired alongside it. Transport was clean: `LLM calls: 30 (OBSERVED
+  at callClaude; 30 priced), no-verdict: 0, transport failures: 0`. `SYSTEM_PROMPT` fingerprint
+  `5f5129f12b11`, unchanged from (b).
+
+  **COST, MEASURED AGAINST THE PROJECTION IT BEAT.** The projection for this detector is
+  `30 x $0.0115263 + 1 x $0.00921495` = **$0.355** (the source of the `$0.36` row). Measured
+  **$0.2713**, about 24% under. Backing out the implied warm unit: `($0.2713 - $0.00921495) / 30`
+  = **$0.008736 per call**, which lands INSIDE the band this tracker predicted for itself — the
+  cost-model section calls $0.0115263 a "CONSERVATIVE UPPER" taken from a deliberately
+  above-median two-pair positive and states that one-verdict fixtures and negatives "will come in
+  lower, plausibly $0.008 to $0.010". So the measurement CONFIRMS the model's own self-assessment
+  rather than merely beating its point estimate, which is the stronger and more useful result.
+
+  **DO NOT RESCALE THE REMAINING FIVE BY THIS DATAPOINT.** It licenses a correction to the
+  `idor-tenant` component and nothing else. `test:idor` (18 fixtures) and `test:idor-multi` (2)
+  share idor's prompt but not its fixture mix, and the four non-idor detectors run on a SUPPLIED
+  $0.00828 constant that has never been measured and, in this file's own words, "carries the SAME
+  cold-versus-warm ambiguity and has not been decomposed". Multiplying $6.41 by 0.764 would be
+  exactly what the cost-model section warns against — the flat-constant mistake at a third number.
+  Cost shape 2 was also PARSED correctly by the workflow's `classify()` on first contact, with no
+  `::warning::`: the measurement path works end to end, which is a fact about the instrument, not
+  about the other five detectors.
+
+  **UPDATE 2026-08-02 (run `30754480093`): the six items below are the PRE-RUN prediction and are
+  now partly resolved. Resolved in place, item by item, rather than rewritten, so the prediction
+  and the outcome can be read side by side.** (1) CLOSED for this corpus only. (2) HALF: shape 2
+  (MEASURED) was emitted AND parsed live for the first time; shape 4 (MIXED) and the LOWER BOUND
+  flag remain unexercised. (3) CLOSED — the success footer rendered (`All selected detectors
+  passed. Measured total: $0.2713`). (4) STILL OPEN — the run finished in 3m57s, which tells us
+  nothing about the 120-minute ceiling. (5) CLOSED — key validity is proven by 30 priced calls.
+  (6) **NARROWED, NOT CLOSED.** The thresholds have now run against real verdicts, but EVERY
+  fixture scored at the maximum, so `perPositiveThreshold: 4` never had to discriminate: a
+  5/5-only run cannot distinguish a threshold of 4 from a threshold of 5. The threshold logic
+  executed in the region where it cannot fail, which is the ninth reasoning guardrail pointed at
+  our own green result.
+
   **WHAT REMAINS PROVABLE ONLY BY A PAID RUN.** Recorded because a paid run is the next step, and
   the record should state what that run is buying.
 
@@ -1459,6 +1549,22 @@ the READY gate, which is still F-004 alone.
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
+**UPDATE 2026-08-02 (run `30754480093`): stage 3 HAS now executed and one detector has passed
+live. F-004 REMAINS OPEN. Read the phrase "pending a green RUN" below as "pending a green run
+ACROSS ALL SIX DETECTORS" — a one-detector canary does not satisfy it.** This annotation covers
+SIX passages falsified by the same cause, and they are named here rather than corrected
+separately: this paragraph; "F-004 is still NOT closed ... never run closes nothing" under the
+stage-2 completion note; "The workflow file now exists on `main` but has NEVER executed" in the
+PR #121 DONE entry; "STEP 3 STATUS (workflow file MERGED, NOT YET RUN)"; "This does NOT lift
+F-004. A merged workflow that has never executed closes nothing"; and "Stage 3 has never
+executed, so this is true of ALL SIX harness bars". Each carries a one-line pointer back here.
+
+**Why this annotation is the urgent part of the run's record.** Every one of those passages read
+correctly until 2026-08-02. The paid run falsified them WITHOUT changing what F-004 requires, so
+a reader arriving at any of them now finds a sentence whose literal condition is satisfied by a
+canary that measured one detector out of six. That is F-002's shape one level up: a gate whose
+canary went green reading as a gate that passed. The run armed it; this block defuses it.
+
 **Stage 2 is COMPLETE**: sub-step 2a (env-exposure), sub-step 2b.0 (the shared harness),
 sub-step 2b.1 (webhook-unverified), sub-step 2b.2 (auth-bypass), sub-step 2b.3 (admin-check),
 sub-step 2b.4 (idor), and sub-step 2b.5 (secrets-exposure) are all merged, so every shipping
@@ -1533,7 +1639,9 @@ the READY verdict is unchanged.
   with repeated sampling so a single flaky verdict cannot pass as stable. This is the only
   gate that exercises the model's judgment.
 
-  **STEP 3 STATUS (workflow file MERGED, NOT YET RUN; PR #121, squash `419c6824`).** The file is
+  **STEP 3 STATUS (workflow file MERGED, NOT YET RUN; PR #121, squash `419c6824`).**
+  (Pointer, 2026-08-02: superseded — the file has now executed three times, twice free and once
+  paid. See the UPDATE at the Priority 1 F-004 header.) The file is
   `.github/workflows/stage3-live-detection.yml`, now on `main` and never executed. It triggers on
   `workflow_dispatch` only, runs
   one job on a single node 20.x (no matrix, which would double the spend), holds a
@@ -1568,6 +1676,9 @@ the READY verdict is unchanged.
 
   **This does NOT lift F-004.** A merged workflow that has never executed closes nothing. F-004
   lifts only on a green RUN, which spends and is a separate owner decision.
+  (Pointer, 2026-08-02: the workflow has since executed and `idor-tenant` passed live for
+  $0.2713. F-004 still does NOT lift — "a green RUN" means across all six detectors. See the
+  UPDATE at the Priority 1 F-004 header.)
 
   **CORRECTION of the sampling claim written before step 1 landed.** The sentence above
   previously said the workflow runs "the live detector tests through the existing
@@ -1624,6 +1735,10 @@ the READY verdict is unchanged.
   change, not a measurement: no live n=5 run of `fixtures/idor` has ever been taken at 9/9/18.
   Stage 3 has never executed, so this is true of ALL SIX harness bars at their current heights,
   not only idor's. The frozen replay recordings are n=1 and establish no stability.
+  (Pointer, 2026-08-02: stage 3 has since executed once, paid, for `idor-tenant` ONLY. That bar
+  — 3/3, 3/3, 6/6 — is now verified at its current height; the claim above still holds for the
+  other five, and `fixtures/idor` at 9/9/18 remains untaken. See the UPDATE at the Priority 1
+  F-004 header.)
 
   **MEASURED, not estimated: 144 model-reaching calls per sample.** `measure:stage3-calls`
   (`src/test/measure-stage3-calls.ts`, zero spend, not in `test:ci`) counts at the SDK
