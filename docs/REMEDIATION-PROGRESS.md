@@ -38,12 +38,13 @@ An open PR is "in review," never "done."
 Entry bar for this list: a new bullet earns its place only if it carries a general
 lesson that a real error cost us to extract, and is neither merely good practice nor a
 restatement of a bullet already here. The heading's rule (no case, no bullet) is
-necessary but not sufficient; the eight below set the full standard a ninth must clear,
+necessary but not sufficient; the nine below set the full standard a tenth must clear,
 each having been paid for by a specific, named mistake. This bar sits above the list,
 not within it: a rule about how rules enter the ledger is not a detector lesson the way
-the eight are, and gating the list from inside the list would be the first violation of
+the nine are, and gating the list from inside the list would be the first violation of
 its own spirit. The count is maintained with every addition, which is the whole point of
-the CORRECTION below; seven to eight here is that maintenance, not a further error.
+the CORRECTION below; seven to eight when the seventh bullet landed, and eight to nine
+when the ninth did, are that maintenance, not further errors.
 
 **CORRECTION of this lead-in's own count, stale from `bf2dea9` (PR #109) until this
 entry.** It read "the five below ... a sixth must clear" and "the way the five are".
@@ -177,6 +178,24 @@ describes code it sits beside.
   re-run anchored to line start and both artifacts were unchanged. Distinct from `Coordinates rot;
   cross-reference by identifier`, which says WHAT to anchor to: this says the anchor itself has a
   lifetime, and every annotation we add shortens it.
+
+- **A gate you have never seen FAIL is not a gate; make it fail on purpose before you trust it
+  green.** A passing check is evidence about a gate only once you know the gate can report the
+  defect it was built for. Until then green is consistent with "detects the defect", with "cannot
+  detect anything", and with "was never executed", and those are indistinguishable from the
+  outside. So before a new gate is entered as protection, revert ONLY the predicate it guards and
+  confirm it fails EXACTLY the assertions covering that defect and no others. Failing more means
+  the gate is coupled to something it does not own; failing fewer means it does not cover what it
+  claims. CASES, three, each paid for differently. (a) Re-recording a replay fixture to make a
+  failing gate pass turns the gate into a tautology that reports success forever, which is why
+  `record:*` carries the standing prohibition it does. (b) F-004 stage 3 step 3 was MERGED and
+  has still never RUN, and a workflow that never executed closes nothing — green was never even
+  available to be misread. (c) The Engine B coverage-integrity test landed 25 passing assertions,
+  which on their own proved nothing; reverting only the SARIF composition predicate failed
+  exactly the three assertions covering the false-closure case and left every other assertion
+  green, and THAT is what made it evidence. Distinct from `A verification instrument decays as
+  the thing it verifies grows`, which is about an instrument that was once valid losing its grip
+  over time: this one is about initial validity, and asks whether the gate ever had any.
 
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
@@ -672,11 +691,16 @@ one FastAPI-idiom target (the langflow C run, a true positive idor caught; see L
 recall across other idioms and under repeated sampling remains unmeasured. The remaining
 non-gating items are precision, signal-hygiene,
 coverage-integrity, and the three structural gaps L-006, L-007, and L-009. **UPDATE
-2026-08-01 (PR #141, squash `38d5c7ca`): coverage-integrity is now HALF closed and stays on
-this list for its other half.** F-003 is resolved and F-002's Engine A half with it, so on
-the CLI an unreadable file and a thrown detector both degrade the scan and exit 2. F-002
-remains open on Engine B, `runAuditorWorkflow`, the customer-facing path. Read the phrase as
-narrowed, not lifted; none of this moves the READY gate, which is still F-004 alone.
+2026-08-02 (PR #141, squash `38d5c7ca`, then PR #143, squash `7cbc3893`): coverage-integrity
+AS F-002 AND F-003 SCOPED IT is now closed on both engines and leaves this list.** #141
+closed F-003 and F-002's Engine A half; #143 closed F-002's Engine B half, so on the CLI and
+on the webhook path alike a thrown detector degrades the run and its zero findings cannot
+read as clean. This annotation supersedes the 2026-08-01 one, which read "HALF closed and
+stays on this list for its other half"; that half is the half #143 closed. What does NOT
+leave the list is coverage-integrity in general: F-014 is a live input-fidelity gap on
+Engine A, found while verifying the engine-symmetry claim #143 makes, and the scoped phrase
+above is the reason it needs its own row rather than reopening this one. None of this moves
+the READY gate, which is still F-004 alone.
 
 ---
 
@@ -1318,6 +1342,12 @@ narrowed, not lifted; none of this moves the READY gate, which is still F-004 al
   2 on two failure classes that previously exited 0. Runs that were green may now be red. That is
   the point — those runs were never clean.
 
+  **UPDATE 2026-08-02 (PR #143, squash `7cbc3893`): the paragraph below is a dated record of the
+  state at #141, not a live status. F-002's Engine B half is now CLOSED and its ledger row reads
+  RESOLVED.** The paragraph's closing observation held up: the half-fixed finding was not read as
+  done at a glance, and the half it named as carrying the larger blast radius is exactly the half
+  #143 closed.
+
   **F-002 is NARROWED, NOT CLOSED, and the ledger row stays OPEN.** Item 2 above fixes the detector
   throw on Engine A only. The identical defect is live on Engine B (`runAuditorWorkflow`), the
   CUSTOMER-FACING path, so the larger blast radius is precisely the part still open. Recorded
@@ -1335,10 +1365,93 @@ narrowed, not lifted; none of this moves the READY gate, which is still F-004 al
   resolved. A MEDIUM does not earn an edit that a HIGH did not. Recorded here so a later reader
   knows this was decided rather than missed, which is the whole cost of a deliberate deferral.
 
+- **F-002 RESOLVED - PR #143, squash `7cbc3893e0b8c40667d446952f638ee6c69de883`.** The Engine B
+  half, `runAuditorWorkflow`, the shipped customer-facing path. A detector that threw was caught
+  by `Promise.allSettled`, captured to Sentry, logged, and skipped; the run then reported
+  `status: "no_action"`, `errors: []`, and SARIF `invocations[0].executionSuccessful: true` with
+  no notification. Better OBSERVED than Engine A's pre-#141 path and just as invisible to the
+  run's own verdict, which is the point: Sentry is read by us, and SARIF is read by GitHub Code
+  Scanning with no human in the loop. That flag was an AFFIRMATIVE false assurance, not a missing
+  warning.
+
+  Exact scope, and only this scope:
+  1. A thrown detector is recorded as `WorkflowResult.detectorFailures`, carrying the detector id.
+     Casualties BY NAME, never as a count, per the guardrail. Same field name and shape as Engine
+     A's `FileScanResult.detectorFailures`, so the correspondence is visible rather than
+     coincidental.
+  2. It pushes a `WorkflowError` through the SAME channel as the LLM-coverage failure and the
+     route-guard degradation, so the status machine cannot tell the three apart. `status` can
+     never read `no_action` or `success` while any of them is set.
+  3. SARIF `executionSuccessful` is now COMPOSED from every coverage channel (failed LLM calls
+     AND thrown detectors) rather than read off the LLM tally alone, and the notification names
+     each cause. Route-guard failures are deliberately NOT in this composition; see F-014.
+  4. The channels are NOT merged into `llmCoverage`. That tally means "detection calls
+     attempted/failed" and is read by spend measurement; laundering a thrown detector into it as
+     a failed API call would corrupt the spend record. They share a verdict, not a counter.
+  5. `errText` extracted to `src/lib/err-text.ts` and imported by BOTH engines. Two copies of a
+     truncation helper would let one failure render two ways depending on which engine saw it.
+     One implementation is what makes the symmetry claim in item 7 true rather than approximately
+     true.
+  6. New deterministic keyless test `src/test/test-workflow-coverage-integrity.ts`, wired into
+     `test:ci` as `test:workflow-coverage`, beside its Engine A twin `test:scan-coverage`. Zero
+     API spend, by four independent locks (key deleted; base URL pointed at a dead loopback port;
+     a benign diff that clears no prefilter; and both workflow cases ASSERT
+     `llmCoverage.attempted === 0`, so a prefilter that ever starts matching fails the test loudly
+     instead of quietly starting to spend). The first three PREVENT, the fourth DETECTS.
+  7. **The symmetry claim, stated narrow on purpose.** The engines are symmetric ON THE
+     DETECTOR-THROW CHANNEL: same field name, same shape, same rendering helper, same inability to
+     read as clean. They are NOT symmetric on the route-guard channel, and F-014 is that
+     asymmetry. Written narrow because a PR that removes three false claims must not add a fourth,
+     and "the engines are symmetric" unqualified would have been one.
+
+  **VERIFIED BY NEGATIVE CONTROL, not by a green run.** 25 assertions passing proves nothing on
+  its own. Reverting ONLY the SARIF composition predicate (item 3) back to `cov.failed > 0`
+  failed EXACTLY the three case-1 assertions and no others, with every workflow-side assertion
+  still green. That reproduces the false-closure scenario mechanically and demonstrates the test
+  DETECTS the defect rather than agreeing with the fix. This is the standard recorded as the
+  ninth reasoning guardrail.
+
+  **Recorded, not defended with code:** the injected failure is an `async` detector whose promise
+  rejects, which is the only shape reachable from shipping code today — all six shipping detectors
+  are declared `async detect(`, so a SYNCHRONOUS throw (which would escape `Promise.allSettled`
+  and crash the run rather than degrade it) cannot occur. That is an observation about the current
+  registry, not a guarantee. It lives in the test's doc comment, which is what a person changing
+  the registry reads; a ledger row for an unreachable hypothetical would be noise, on the same
+  reasoning that rejected a duplicate guardrail two stages earlier.
+
+- **Merge read-back: the four assertions are NOT four independent proofs.** CLAUDE.md §5 requires
+  asserting all four after any merge — squash SHA on `main`, PR-head tree == `main` tree, head ref
+  404, local branch absent — and flagged the case as owed here. Recorded now, measured at #143
+  (gh 2.91.0, git 2.53.0, Windows).
+
+  What the assertions are actually worth. **Assertion 3 (head ref 404) is satisfied by the
+  server-side `delete_branch_on_merge` setting, which has been `true` since 2026-08-01,
+  REGARDLESS of what the client did.** It therefore cannot distinguish "`--delete-branch` worked"
+  from "the repo setting cleaned up after it", and it is not evidence about the client at all.
+  Only assertion 4 tests the client half, which is the half that silently survived at #141.
+  **Assertion 2 (tree equality) is the strongest of the four** and is the one that does real work:
+  `main`'s tree and the PR head's tree were both `6a52974c`, byte-identical, which transfers the
+  PR's green CI verdict to the squash commit as proof rather than as inference.
+
+  Mechanism, because it is not obvious and it is the reason assertion 4 passed. `gh pr merge
+  --delete-branch` cannot delete the branch the working copy is standing on, so gh fetched,
+  fast-forwarded local `main` `185542c..7cbc389`, switched HEAD to `main`, and only then deleted
+  the local branch. Assertion 4 passing is therefore a property of gh's behaviour when invoked
+  FROM the merged branch, not a property of the repo. A merge driven from a detached HEAD, from
+  another branch, or from the web UI would not exercise that path, and the local branch would
+  survive again exactly as it did at #141.
+
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
 - None. No open tracker PR is awaiting the merge command. (Stage-3 step 3 merged as PR #121;
   see the DONE entry "F-004 stage 3 step 3 MERGED, NOT YET RUN".)
+
+  **Convention, so a later session does not "fix" this section into a lie.** A tracker PR does
+  NOT list ITSELF here while it is open. Such a row would be accurate only until the merge
+  command and false on `main` forever after, since the text freezes at merge while the status it
+  asserts does not. Leaving "None." is stale only transiently and heals itself on merge, which is
+  the strictly smaller error. Settled by precedent, not preference: PR #122 wrote this very line
+  while it was itself open and awaiting the merge command.
 
 ---
 
@@ -2064,6 +2177,27 @@ preserving: `F-` is what the readiness diagnostic found by READING, `L-` is what
 RUNNING the detector. A third namespace for zero-spend findings was considered and REJECTED:
 that would split the taxonomy on SPEND, which says nothing about what an item is.
 
+**SECOND CORRECTION of the namespace definition (2026-08-02), the same shape as the first.** The
+sentence above reads "`F-` is what the READINESS DIAGNOSTIC found by READING". That was true when
+it was written, and again only because the audit was the sole instance of reading that existed;
+"the readiness diagnostic" was describing that instance, not the boundary — precisely the error
+the 2026-07-17 correction fixed on the other side of the split. It has now aged the same way:
+F-014 was found by READING `route-guard-resolver.ts` in order to check the engine-symmetry claim
+PR #143 was about to make, which is reading, and is not the audit. The definition is therefore
+WIDENED to "`F-` is what we found by READING (the readiness diagnostic, or later source
+verification)". The organising axis is again UNCHANGED and is again the thing worth preserving:
+READING versus RUNNING. Filing F-014 in `L-` was considered and REJECTED — nothing was run — and
+so was opening a provenance sub-section for one item, because `F-`'s sub-sections are severity
+headers ("Priority 2 - MEDIUM", "Priority 3 - LOW") rather than provenance headers, and a
+severity header stays true no matter who found the item.
+
+TWO passages state this definition and this block corrects both, rather than splitting one cause
+into two corrections: the sentence above beginning "The organising axis of the `F-`/`L-` split",
+and the parenthetical in the **Priority 1f** header beginning "Its provenance is L- by the
+tracker's own axis". The 1f passage does NOT become false, only incomplete, and its ARGUMENT is
+untouched: the widening is entirely on the READING side, while 1f turns on the RUNNING side, so
+"filing reach as F- would force F- to absorb found-by-running" holds exactly as written.
+
 Provenance within the namespace is recorded per sub-section, not per item: **Priority 1d** holds
 L-001 through L-010, surfaced by Run 1 (live). **Priority 1e** holds L-011, surfaced by the
 zero-spend structural rig. **Priority 1f** holds L-012 and L-013, both surfaced by structural
@@ -2393,6 +2527,9 @@ bears on readiness. Precedent: L-010 is a READY-gate, explicitly "NOT a defect",
 measurement, and it lives in L-; readiness-relevance is orthogonal to the namespace. Filing this
 as an F- item would have forced F- to absorb "found by running" — which is L-'s definition — so
 F- and L- would overlap and stop being a partition. This subsection needs no definition change.
+(Pointer, 2026-08-02: the `F-` half of the parenthetical above is now incomplete — see "SECOND
+CORRECTION of the namespace definition" under Priority 1d. The argument here is unaffected,
+because that widening is on the READING side and this argument turns on the RUNNING side.)
 
 - **L-012 (OPEN; MEASURED; reach / market-fit; NOT a defect; NON-gating) - the idor detector
   reaches the model on 2 of 43 ICP repos.** Confirmed under real execution
@@ -2513,12 +2650,12 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
-- **F-002 (MEDIUM) - non-LLM detector throw not counted as degraded coverage. NARROWED to
-  ENGINE B by PR #141 (squash `38d5c7ca`); still OPEN.** The Engine A half is closed: a
-  detector that throws is now a named casualty counted toward the exit code (see the DONE
-  entry). What remains is `runAuditorWorkflow`, which captures the throw to Sentry and
-  continues without degrading workflow status. That is the SHIPPED, customer-facing path, so
-  the remaining half carries the larger blast radius, not the smaller.
+- **F-002 - RESOLVED, moved to DONE (Engine A: PR #141, squash `38d5c7ca`; Engine B: PR #143,
+  squash `7cbc3893`).** Kept as a pointer rather than deleted outright for the same reason
+  F-003's row is: a reader working down this worklist from an older reference must not read
+  the gap as an oversight. Cite the STATUS, not the title — the row's old name asserted that a
+  detector throw is NOT counted as degraded coverage, which was the hypothesis this row was
+  opened on and is now false on both engines.
 - **F-003 - RESOLVED, moved to DONE (PR #141, squash `38d5c7ca`).** Kept as a pointer rather
   than deleted outright so a reader working down this worklist from an older reference does
   not read the gap as an oversight.
@@ -2548,6 +2685,53 @@ F- and L- would overlap and stop being a partition. This subsection needs no def
 - **F-010 (LOW) - secrets-exposure false positive on an obvious placeholder.**
   `fixor-demo-app-router/app/api/config/route.ts:3`; `secrets-exposure.detector.ts`.
   Down-rank self-identifying non-secret values.
+- **F-014 (LOW; OPEN; precision, with a silent input-fidelity cause) - on Engine A, a
+  parent-layout guard that EXISTS but cannot be READ is dropped in silence.**
+
+  `nodeGuardFs.read` (`detectors/shared/route-guard-resolver.ts`) is `try { readFileSync }
+  catch { return null }`, and `resolveRemixRouteGuard` pushes a guard only `if (content !==
+  null)`. `GuardFs.read`'s `string | null` return therefore conflates two different facts —
+  "no layout there" and "a layout is there and we could not read it" — and the `catch`
+  discards the error at the one point where it exists. `cli/scan.ts` calls the resolver with
+  the default `nodeGuardFs` and has nothing outside it watching for read failures, so the
+  route is judged WITHOUT its parent-layout guard and the scan reports no `notAnalyzed`, no
+  `detectorFailures`, no coverage degradation, and exit 0. Secondary effect: the `break` sits
+  outside the `content !== null` test, so an unreadable `_layout.tsx` also suppresses the
+  remaining `LAYOUT_BASENAMES` candidates in that same directory.
+
+  **Engine B does not have this gap, and the contrast is the evidence.**
+  `resolveRouteGuardSidecars` (`integrations/github/whole-file-scan-input.ts`) fetches the
+  candidates itself, records every non-404 failure in `failedCandidates`, and pushes a
+  `routeGuardErrors` entry naming the route, which becomes a `WorkflowError` — so the run can
+  never read `no_action` or `success`. It recovers the distinction OUTSIDE the resolver, which
+  is why its `memFs.exists` is false for a failed fetch and the resolver never meets the
+  exists-true/read-null shape at all. The asymmetry is in the fs adapter and its callers, not
+  in the shared resolver, which is used unchanged by both.
+
+  **Harm shape, stated precisely, because it is NOT the F-002 shape.** A correctly gated route
+  judged without its guard is the F-001 shape: a HIGH FALSE POSITIVE from auth-bypass or
+  admin-check. Nothing is reported clean that is not clean. This makes a run NOISIER, never
+  falsely quieter, so it is a precision defect with an input-fidelity cause and must not be
+  filed as false assurance. LOW because the trigger is narrow (`existsSync` true AND
+  `readFileSync` throwing — EACCES, EISDIR on a directory named `_layout.tsx`, or descriptor
+  exhaustion on a large scan; a broken symlink makes `existsSync` false and does not trigger
+  it), and because Engine A is the CLI, which this tracker consistently treats as the smaller
+  blast radius than the webhook path.
+
+  **This row is what makes a claim in shipping code true.** `sarif-output.service.ts` on `main`
+  says route-guard degradation is "an open question, tracked, not decided here". That word was
+  FALSE when it was written and merged at #143: nothing in this file carried it, so a reader
+  following the pointer could not tell deliberate deferral from forgotten. It was not caught in
+  authoring and not caught in review.
+
+  **The open question that comment names, ANSWERED for Engine B: design, not defect.** Excluding
+  route-guard failures from SARIF `executionSuccessful` is correct. The route WAS analyzed;
+  §3.14.11's flag is about whether the tool ran, not whether its input was ideal; and the
+  degradation already forces `status` off `no_action`/`success` through its own `WorkflowError`.
+  Engine B is the STRONGER engine on this channel, not the weaker one. What stays OPEN is
+  Engine A having no signal at all. A fix confined to `nodeGuardFs` would not be enough — the
+  resolver's `if (content !== null)` would swallow the distinction again — so the fix has to
+  widen `GuardFs.read` or give `GuardFs` an error sink. Not decided here; no code in this PR.
 
 ### Also deferred - Engine-B empirical coverage gap (audit item 8)
 
