@@ -1362,6 +1362,60 @@ the READY gate, which is still F-004 alone.
   `::warning::`: the measurement path works end to end, which is a fact about the instrument, not
   about the other five detectors.
 
+  **SECOND PAID RUN — run `30769713479`, 2026-08-02, conclusion `success` in about 12 minutes.
+  MEASURED $0.9204.** Selection `idor` alone, dispatched on `main` at `593ed02`. Same secret
+  procedure as the first paid run: set by hand through the UI, deleted the moment the run reached
+  a terminal state, verified by a 404 plus `total_count=0`. Transport clean: `LLM calls: 90
+  (OBSERVED at callClaude; 90 priced), no-verdict: 0, transport failures: 0`. Fingerprint
+  `5f5129f12b11`, unchanged. **Every one of the 18 fixtures scored at the MAXIMUM** — all 9
+  positives `flagged 5/5` against a >=4/5 bar, all 9 negatives `correctly-skipped 5/5` against a
+  5/5 bar. Aggregates 9/9, 9/9, 18/18. `PASS`.
+
+  **CORPUS COUNT, verified against the ITERATOR and not the directory.** `fixtures/idor/negative/`
+  holds 12 files, but three are sidecars the iterator excludes per the Fixtures convention: two
+  `.policy.sql` (postgres RLS, supabase) and one `.middleware.ts` (prisma extension). The real
+  corpus is 9 positives + 9 negatives = **18 model-reaching fixtures, 90 calls**. A directory count
+  would have claimed 21 fixtures and produced a wrong projection.
+
+  **THIS RUN VERIFIED THE RAISED BAR — and separately failed to exercise it.** The aggregates were
+  raised from `6/6/12` to `9/9/18` as a POLICY change that had never been taken live at its new
+  height; `test-idor.ts` says so in its own header. That bar now has a green run behind it. But
+  because every fixture scored maximum, the OLD `6/6/12` bar would have passed identically, so the
+  raise is verified as SATISFIABLE and remains unverified as DISCRIMINATING. See L-014.
+
+  **COST: a pre-registered prediction, and what held versus what did not.** Before dispatch the
+  prediction was recorded as $0.85-$0.95 measured, above the pure measured-unit estimate of $0.796
+  because three negatives here carry sidecar files that add input tokens `idor-tenant` never had.
+  **Measured $0.9204 — inside the band.** The reasoning held with the number. What did NOT hold is
+  the per-call constant:
+
+  | corpus | calls | measured | implied warm unit | vs the $0.0115263 projection constant |
+  |---|---|---|---|---|
+  | `idor-tenant` | 30 | $0.2713 | **$0.008736** | 76% |
+  | `idor` | 90 | $0.9204 | **$0.010124** | 88% |
+
+  $0.0115263 is now confirmed as a CONSERVATIVE UPPER on both corpora. But there is **no single
+  idor-family warm unit**: two corpora sharing one prompt and one 50/50 positive/negative split
+  differ by about 16%. That is direct evidence for the cold/warm/per-process decomposition this
+  file already says it lacks, and against adopting ANY constant — including against treating the
+  newer, larger-sample $0.010124 as authoritative just because it rests on 90 calls rather than 30.
+  The four non-idor detectors remain on a supplied $0.00828 that has never been measured at all.
+
+  **UPDATE 2026-08-03 (run `30769713479`): item 6 below is ESCALATED from NARROWED to a named open
+  question, L-014.** Two corpora, 24 fixtures, 120 live calls, and not one non-maximal score. That
+  is no longer a gap in the evidence; it is a measured property of the apparatus.
+
+  **CORRECTION of the stopping condition that produced L-014.** The condition was written and
+  accepted as: if `idor` also returns all-maximal, report before further spend, "because more
+  corpora at n=5 then buys repetition and not resolution." The clause is true of RESOLUTION and
+  false of COVERAGE, and it reads as an argument against running the remaining four detectors. It
+  is not one. More corpora at n=5 buys no additional threshold resolution — that part holds — but
+  each unrun detector is a different prompt over a different corpus that has never been measured
+  live at all, and per-detector detection-quality coverage is precisely what F-004 gates on. The
+  condition was right to halt and report; it would have been wrong to read as "stop measuring".
+  Recorded because the conflation is the kind that quietly converts a good stopping rule into a
+  bad scope decision.
+
   **UPDATE 2026-08-02 (run `30754480093`): the six items below are the PRE-RUN prediction and are
   now partly resolved. Resolved in place, item by item, rather than rewritten, so the prediction
   and the outcome can be read side by side.** (1) CLOSED for this corpus only. (2) HALF: shape 2
@@ -2317,9 +2371,11 @@ Provenance within the namespace is recorded per sub-section, not per item: **Pri
 L-001 through L-010, surfaced by Run 1 (live). **Priority 1e** holds L-011, surfaced by the
 zero-spend structural rig. **Priority 1f** holds L-012 and L-013, both surfaced by structural
 measurement but kept separate from 1e because 1e's header says "defects" and neither is one (both
-are reach findings, framed like L-010). The recurring alternative — filing an item under
-a sub-section whose header its content contradicts (L-011 under 1d, or L-012 under 1e) — would
-make that header FALSE, which is the defect class this tracker keeps correcting.
+are reach findings, framed like L-010). **Priority 1g** holds L-014, surfaced by the PAID stage-3
+runs and kept separate for both reasons at once: a different provenance from 1d/1e/1f, and a
+content that is a property of the harness rather than a defect. The recurring alternative — filing
+an item under a sub-section whose header its content contradicts (L-011 under 1d, or L-012 under
+1e) — would make that header FALSE, which is the defect class this tracker keeps correcting.
 
 - **L-001 (RETRACTED; this was a REPORTING ERROR, not a detection defect) - the file idor
   "missed" contained no vulnerability.** Retained in full, per this file's convention of
@@ -2762,6 +2818,68 @@ because that widening is on the READING side and this argument turns on the RUNN
   rests here: the one demonstrated HIGH is the FastAPI path-param to `session.get` idiom, and
   L-013 is the evidence that the prefilter does not cleanly reach the non-FastAPI idioms, so that
   single success does not generalize across frameworks.
+
+### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
+
+Same `L-` namespace as Priority 1d, 1e and 1f (found by RUNNING the detector), and a deliberately
+separate sub-section for two reasons. Provenance: these items were surfaced by the paid stage-3
+dispatches, not by Run 1 and not by the zero-spend structural rig. Content: 1e's header says
+"defects" and the item here is NOT one — it is a property of the measuring apparatus, in the same
+way 1f was kept out of 1e because reach findings are not defects. Filing it under a header its
+content contradicts is the defect class this tracker keeps correcting.
+
+- **L-014 (OPEN; MEASURED; a property of the HARNESS, not of any detector; NON-gating) -
+  `perPositiveThreshold: 4` has never once been the operative constraint, across two corpora and
+  120 live calls.**
+
+  MEASURED over both paid stage-3 runs: `idor-tenant` (6 fixtures, 30 calls, run `30754480093`)
+  and `idor` (18 fixtures, 90 calls, run `30769713479`). **24 fixtures, 120 model calls, zero
+  non-maximal scores.** Every positive `flagged 5/5` against a `>=4/5` bar; every negative
+  `correctly-skipped 5/5` against a `5/5` bar. The tolerance band the positive threshold exists to
+  provide has never been entered: at `perPositiveThreshold: 5` both runs return an identical
+  verdict, and at 3 likewise. The same holds one level up for the aggregates — `idor`'s raise from
+  `6/6/12` to `9/9/18` changed no outcome, so it is verified as satisfiable and unverified as
+  discriminating.
+
+  **THIS IS NOT A DEFECT IN THE HARNESS, AND R3 ALREADY SAID SO.** `docs/detector-test-rules.md`
+  R3 states that n=5 "catches outright stochasticity" and does NOT detect low-rate FP, and that
+  zero FP at n=5 means "no FP at 20% resolution," not "calibrated." The harness did precisely its
+  documented job: it looked for outright stochasticity on these corpora and found none, twice. A
+  tolerance that is never needed is not a broken tolerance. What is now MEASURED rather than
+  assumed is that the specific VALUE 4 is unvalidated, and that R3's blind spot — a 5-10% FP rate
+  — is exactly as invisible after 120 calls as it was after zero.
+
+  **TWO CANDIDATE EXPLANATIONS. Recorded unasserted; the evidence to date does not separate them.**
+
+  (a) **The structured verdict is near-deterministic on fixture-shaped input.** 120 calls across
+  seven language/framework families (TS, Python, Ruby, Go, plus Next.js / Express / FastAPI /
+  Rails / Hono / NestJS / tRPC / go-chi shapes) with zero variance would be a substantial POSITIVE
+  finding in its own right, and it is consistent with the existing temperature-0 note (stable on
+  the STRUCTURED verdict, variable in PROSE). If (a) holds, n=5 buys nothing over n=1 on these
+  corpora and the 5x cost is paid for a confirmation.
+
+  (b) **Curated fixtures are unambiguous by construction and cannot elicit the disagreement the
+  threshold exists to tolerate.** This is the explanation with the sharper consequence, and it
+  carries a specific structural detail that should not sit in a parenthesis: **the corpus's
+  known-hard case never reaches the model at all.** The write-variant IDOR constructed in
+  `IDOR-STRUCTURE-EXPOSURE.md` — the exact shape L-006 hypothesised, a demonstrated miss — is
+  dropped by the PREFILTER before any model call. The stability harness therefore samples only
+  inputs that already cleared the prefilter, which is by construction the region the detector
+  handles. If that generalises, no quantity of spend on fixture corpora can produce a
+  boundary-region verdict, because the boundary cases are filtered out upstream of the measurement.
+
+  **WHAT WOULD SEPARATE THEM.** (a) predicts variance appears at higher n on the SAME corpus; (b)
+  predicts it does not, and appears only on inputs authored near the decision boundary. Neither
+  experiment is scheduled and neither gates F-004. Recorded so the question is not rediscovered.
+
+  **WHAT THIS DOES NOT LICENSE.** It does not license lowering n, which is a code change at all six
+  hardcoded entry points and would make `perNegativeThreshold: 5` unsatisfiable below n=5. It does
+  not license calling the detectors calibrated — R3 forbids exactly that inference. And it does not
+  license skipping the remaining four detectors: those measure DETECTION-QUALITY COVERAGE per
+  detector, which is what F-004 gates on, and coverage is a different quantity from threshold
+  resolution. Conflating the two was an error in the stopping condition that produced this item;
+  the correction is recorded in the SECOND PAID RUN entry under "CORRECTION of the stopping
+  condition".
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
