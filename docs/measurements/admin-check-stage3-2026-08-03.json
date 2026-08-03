@@ -1,0 +1,140 @@
+{
+  "measurement": "admin-check stage-3 live detection-quality run (third paid run), plus the pre-registered cost bands for the three detectors still unrun",
+  "date": "2026-08-03",
+  "runId": "30821994020",
+  "ref": "main at 25fa0116bc0cab53864e47a692bc1505d81cfe6b",
+  "zeroSpend": false,
+  "totalSpentUsd": 1.2001,
+  "cumulativeStageThreeSpendUsd": 2.3918,
+  "scope": {
+    "isA": "A MEASURED detection-quality result for admin-check at n=5, a MEASURED per-call cost from the harness ledger, and a PRE-REGISTERED cost band for env-exposure, webhook-unverified and auth-bypass recorded BEFORE those runs.",
+    "isNot": "NOT a lift of F-004, which gates on all six detectors. NOT a claim that admin-check is calibrated: R3 forbids that inference from zero FP at n=5. NOT a measured rate for the three unrun detectors; their bands are estimates whose whole purpose is to be tested.",
+    "why": "The authorization for this dispatch was withheld until the call count was established by EXECUTION rather than read from the tracker. Two prior figures in this project were wrong in exactly that way: a $0.72 that was $1.05, and a directory count that would have claimed 21 idor fixtures where the iterator sees 18."
+  },
+  "countVerification": {
+    "method": "npm run measure:stage3-calls (zero spend). Enumerates fixture directories through the EXPORTED isFixtureFile and counts at the SDK boundary. Deletes any real key, asserts getAnthropicClient() === null, then installs a dummy. It counts by execution and is built so it CAN disagree with the manifest.",
+    "enumerated": { "positives": 24, "negatives": 21, "total": 45 },
+    "preModelTerminations": { "optionGBypass": 12, "preModelDrops": 3, "total": 15 },
+    "modelReaching": 30,
+    "callsAtN5": 150,
+    "instrumentsAgreeing": [
+      "call-count spy at messages.create: 30",
+      "llm-coverage attempted tally: 30",
+      "stability-harness ledger: 30",
+      "replay recordings on disk, asserted to cover the manifest exactly: 30"
+    ],
+    "divergence": 0,
+    "liveConfirmation": "The live run returned exactly 150 calls, and the bucket split reproduced without deviation: 60 llm-bypass iterations (12 x 5), 15 pre-model drop iterations (3 x 5), 150 model calls, 225 iterations total = 45 x 5."
+  },
+  "gateSatisfiability": {
+    "hardcodedInEntryPoint": { "positivesMinPassing": 24, "negativesMinPassing": 21, "combinedMinPassing": 45 },
+    "enumeratedByIterator": { "positives": 24, "negatives": 21, "combined": 45 },
+    "satisfiable": true,
+    "decayed": false,
+    "counterfactual": "Had the iterator seen 23 positives, positivesMinPassing: 24 would have been UNSATISFIABLE and this run a guaranteed red at full cost. The check is cheap, zero-spend, and belongs before every stage-3 authorization.",
+    "generalRule": "Verify the aggregate gate against the iterator, never against the entry point's own header comment."
+  },
+  "result": {
+    "conclusion": "success",
+    "durationSeconds": 927,
+    "transport": { "llmCalls": 150, "pricedCalls": 150, "noVerdict": 0, "transportFailures": 0 },
+    "runtimeWarnings": 0,
+    "costLineVerbatim": "cost: MEASURED $1.2001 over 150 priced call(s)",
+    "costLineClassifiedAs": "MEASURED",
+    "systemPromptFingerprint": "ed52ebe3db91",
+    "perFixture": "All 45 at maximum: 24 positives flagged 5/5 against a >=4/5 bar, 21 negatives correctly-skipped 5/5 against a 5/5 bar.",
+    "aggregates": { "positives": "24/24", "negatives": "21/21", "combined": "45/45", "verdict": "PASS" },
+    "harnessCeilingRepeatedVerbatim": "n=5 catches stochasticity at 20% resolution. Zero FP at n=5 means \"no FP at this resolution,\" not \"calibrated.\""
+  },
+  "verdictLaneCensus": {
+    "note": "Read from the per-iteration verdict lines the harness prints under R2. This is the heaviest output of the run; see L-015.",
+    "vuln_high": 60,
+    "safe_low": 50,
+    "safe_high": 40,
+    "any_medium": 0,
+    "reviewQueueEvents": 0,
+    "consequence": "resolveMediumVerdict has never executed live. The review-queue lane, where the H7 double-silence mechanism lives, has no live evidence behind it at all.",
+    "scopeLimit": "This census covers admin-check only. Runs 30754480093 and 30769713479 were NOT censused; their artifacts are retained and the census is a free grep over them."
+  },
+  "cost": {
+    "preRegisteredBandUsd": [1.15, 1.32],
+    "preRegisteredPointUsd": 1.21,
+    "measuredUsd": 1.2001,
+    "insideBand": true,
+    "deviationFromPoint": "-0.8%",
+    "impliedPerCallUsd": 0.008001,
+    "vsSuppliedConstant": "The supplied 0.00828 OVER-predicts admin-check by 3.5% (150 x 0.00828 = 1.2420). It remains unmeasured for the three unrun detectors.",
+    "coldSurchargeNote": "admin-check caches about 4405 prompt tokens against idor's 2671, so its cold surcharge is about 0.0152 versus idor's 0.00921495. A flat per-call constant cannot express this."
+  },
+  "method": {
+    "description": "Calibrate a chars-to-token ratio against the ONE call in this repo whose tokens were read from raw message.usage, apply it to the frozen replay recordings for the target corpus, and price against MODEL_PRICING (3 and 15 USD per Mtok, 1.25x cache-write, 0.10x cache-read).",
+    "calibrationAnchor": "docs/measurements/idor-percall-2026-07-22.json, call 2 (warm): 2671 cached prefix tokens, 1235 user tokens, 468 output tokens.",
+    "arithmeticSelfCheck": "Recomputing that call's warm unit from its own token counts returns 0.0115263 to the last digit.",
+    "recordingsAreCurrent": "All 30 admin-check recordings carry fingerprint ed52ebe3db91, identical to the current SYSTEM_PROMPT, so they represent the request stage 3 actually sends.",
+    "backTestBeforeUse": [
+      { "corpus": "idor", "calls": 90, "predictedUsd": 0.8973, "measuredUsd": 0.9204, "error": "-2.5%" },
+      { "corpus": "idor-tenant", "calls": 30, "predictedUsd": 0.2535, "measuredUsd": 0.2713, "error": "-6.6%" }
+    ],
+    "outOfSampleResult": [
+      { "corpus": "admin-check", "calls": 150, "predictedRawUsd": 1.1657, "measuredUsd": 1.2001, "error": "-2.9%" }
+    ],
+    "verdict": "The method under-predicts by 2.5 to 6.6 percent and did so again on a detector family it was never fitted to. That is what licenses it for the remaining three, rather than the mere fact that the band held.",
+    "warning": "This is an ESTIMATOR, not a cost. The figure of record is always the harness ledger's MEASURED line. Do not convert any number here into a new flat per-call constant; that is the mistake this whole line of work exists to stop."
+  },
+  "preRegisteredRemaining": {
+    "recordedBeforeTheseRunsOn": "2026-08-03",
+    "purpose": "Stated in advance so each subsequent run is a TEST of the estimator and not a rationalisation after the fact. A band quoted after the measurement is worthless.",
+    "detectors": [
+      {
+        "detector": "env-exposure",
+        "modelReachingFixtures": 17,
+        "callsAtN5": 85,
+        "bandUsd": [0.43, 0.5],
+        "pointUsd": 0.46,
+        "flatConstantWouldSayUsd": 0.7038,
+        "cachedPrefixTokensApprox": 450,
+        "decides": "Whether the 0.00828 constant is STRUCTURALLY wrong for short-prompt detectors rather than merely imprecise. Its prompt caches about 450 tokens against admin-check's 4405 and the constant over-predicts by 53%, far outside the 3.5% seen here. Near 0.46 confirms structural; near 0.70 withdraws the calibration for the other two."
+      },
+      {
+        "detector": "webhook-unverified",
+        "modelReachingFixtures": 34,
+        "callsAtN5": 170,
+        "bandUsd": [1.1, 1.26],
+        "pointUsd": 1.17,
+        "flatConstantWouldSayUsd": 1.4076,
+        "cachedPrefixTokensApprox": 2874
+      },
+      {
+        "detector": "auth-bypass",
+        "modelReachingFixtures": 37,
+        "callsAtN5": 185,
+        "bandUsd": [1.4, 1.61],
+        "pointUsd": 1.49,
+        "flatConstantWouldSayUsd": 1.5318,
+        "cachedPrefixTokensApprox": 4696
+      }
+    ],
+    "allThree": { "calls": 440, "pointUsd": 3.12, "bandUsd": [2.94, 3.37] },
+    "projectedSixDetectorTotalUsd": 5.51,
+    "priorDocumentProjectionUsd": 6.41
+  },
+  "h7": {
+    "status": "NARROWED on the un-guarded branch, NOT closed.",
+    "evidence": "All 12 model-reaching positives, including every route-def trigger, returned isVulnerable:true@high on 5 of 5 runs, with zero MEDIUM and zero review-queue events across 150 calls.",
+    "limitOne": "fixtures/admin-check contains NO route-guard sidecars, so all 26 route-def fixtures ran with routeGuard === undefined. The cross-file parent-layout path is untouched.",
+    "limitTwo": "Zero MEDIUM is reassuring because the silent lane was never entered, which is the same fact as having no live evidence about what happens when it IS entered.",
+    "limitThree": "admin-check's verdict schema carries no authPresent and no operationKind, so this run cannot say which routes auth-bypass would have deferred on. The two detectors' verdicts remain non-joinable."
+  },
+  "procedure": {
+    "keyValidation": "200 from GET /v1/models in the owner's terminal, out of band. The key never entered any tooling.",
+    "secretLifecycle": "Set by hand through the GitHub UI, dispatched once, deleted once the live step reached a terminal state, verified gone by a 404 on the secret endpoint plus total_count=0.",
+    "preDispatchState": "Zero Actions secrets AND zero Actions variables verified before the secret was set; main at 25fa0116 with all three required checks green; no run in flight.",
+    "dispatchCount": 1,
+    "dispatchNote": "The workflow's concurrency group guarantees non-simultaneity but does NOT refuse a second dispatch, and there is no dollar abort on this workflow. Single-spend rests entirely on dispatching once."
+  },
+  "provenance": {
+    "source": "GitHub Actions run 30821994020 log, read via gh run view --log. Cost is the harness's MEASURED ledger line, never the projection.",
+    "notFrom": "NOT the tracker's bucket split, which is what the count verification exists to replace.",
+    "reproducible": "The count and the estimator are fully reproducible at zero spend. The API calls are not reproducible without spending again."
+  }
+}
