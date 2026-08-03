@@ -51,6 +51,10 @@ on:
           - admin-check
           - idor
           - idor-tenant
+      max_spend_usd:
+        description: "HARD ceiling on this run's MEASURED spend in USD (e.g. 1.00). Required, no default: state it deliberately every dispatch. Aborts before the next call once the ledger's real summed cost crosses it. Bounds THIS RUN ONLY, never the number of runs."
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -154,6 +158,56 @@ jobs:
           [ "$fail" -eq 0 ] || exit 1
           echo "FIXOR_REPLAY, FIXOR_RECORD, FIXOR_ESCALATE_MEDIUM all unset."
 
+      # Fail-loud guard 3: the spend ceiling. Required with NO default, so a
+      # figure is stated deliberately for each dispatch instead of inherited from
+      # a previous one. Same split as guard 1: the WORKFLOW insists on a value,
+      # while the harness stays inert when FIXOR_HALT_USD is unset, so local and
+      # non-stage-3 callers are unaffected.
+      #
+      # Validated here as well as in the harness because the failure mode is
+      # fail-OPEN. An unparseable ceiling that silently meant "no ceiling" is the
+      # exact shape of the guard-1 bug this file already carries a case for (a
+      # secret of " " is non-empty to -z). The harness throws on a set-but-unusable
+      # value for the same reason; this step just fails 20 seconds earlier and
+      # before `npm ci`.
+      #
+      # WHAT THIS GUARD DOES NOT DO, STATED PLAINLY, so it is not over-read the way
+      # a "spend control" invites. It bounds the MAGNITUDE OF ONE RUN. It does NOT
+      # bound the NUMBER of runs: `concurrency` below queues a second dispatch
+      # rather than refusing it, and each run carries its own independent ceiling,
+      # so two dispatches under a $1.00 ceiling can spend $2.00 between them and
+      # neither aborts. Single-spend still rests entirely on dispatching once. Do
+      # not cite this guard as a reason to relax that.
+      #
+      # UPPER SANITY BOUND. Rejecting anything above $10.00 catches the
+      # order-of-magnitude fat-finger ("10" for "1.0") that would leave a nominal
+      # ceiling in place while removing all of its value. The largest single
+      # detector projects to about $1.49 and all six to about $5.51, so $10.00 is
+      # generous for every legitimate dispatch.
+      - name: Assert max_spend_usd is a usable ceiling (fail loud; never fail-open)
+        env:
+          MAX_SPEND_USD: ${{ inputs.max_spend_usd }}
+        run: |
+          set -euo pipefail
+          v="$(printf '%s' "${MAX_SPEND_USD:-}" | tr -d '[:space:]')"
+          if [ -z "$v" ]; then
+            echo "::error::max_spend_usd is unset, empty, or whitespace-only. A blank ceiling is not a disabled ceiling, it is an unstated one, and the harness would run unbounded. Failing loudly instead." >&2
+            exit 1
+          fi
+          if ! printf '%s' "$v" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
+            echo "::error::max_spend_usd must be a plain positive decimal number of USD (e.g. 1.00); got '${MAX_SPEND_USD}'." >&2
+            exit 1
+          fi
+          if ! awk -v x="$v" 'BEGIN { exit !(x + 0 > 0) }'; then
+            echo "::error::max_spend_usd must be greater than zero; got '${MAX_SPEND_USD}'. A zero ceiling would abort on the first priced call." >&2
+            exit 1
+          fi
+          if ! awk -v x="$v" 'BEGIN { exit !(x + 0 <= 10) }'; then
+            echo "::error::max_spend_usd of '${MAX_SPEND_USD}' exceeds the \$10.00 sanity bound. All six detectors project to about \$5.51; a ceiling this high is almost certainly a misplaced decimal point and would leave the guard nominal." >&2
+            exit 1
+          fi
+          echo "Spend ceiling for this run: \$${v} MEASURED (bounds this run only, not the number of runs)."
+
       - name: Use Node.js 20.x
         uses: actions/setup-node@v6
         with:
@@ -193,6 +247,10 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SELECTION: ${{ inputs.detector }}
+          # Deliberately mapped in, unlike the guard-2 flags which are asserted
+          # unset and never exposed. Validated by guard 3 above; the harness
+          # throws again on a set-but-unusable value rather than trusting it.
+          FIXOR_HALT_USD: ${{ inputs.max_spend_usd }}
         run: |
           set -euo pipefail
           case "$SELECTION" in
