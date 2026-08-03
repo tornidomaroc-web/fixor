@@ -1500,6 +1500,55 @@ the READY gate, which is still F-004 alone.
   census recorded as L-015. H7 is NARROWED, not closed; see Priority 1b. Cumulative stage-3 spend:
   $0.2713 + $0.9204 + $1.2001 = **$2.3918**.
 
+  **SPEND CEILING, added before the fourth run. Zero spend to build.** Through the first three paid
+  runs the only spend control was a pre-registered band plus the discipline to honour it, and
+  discipline is a person. `runStabilityHarness` now accepts an optional `haltAboveUsd`, falling back
+  to `FIXOR_HALT_USD`, and aborts with a named `SpendCeilingExceeded` once the call ledger's real
+  summed cost crosses it. Checked PER ITERATION, so overshoot is bounded to a single call. The
+  stage-3 workflow gains a `max_spend_usd` input that is REQUIRED with NO DEFAULT — a figure stated
+  deliberately per dispatch rather than inherited — validated by a new guard 3 that also rejects
+  anything above a $10.00 sanity bound, which catches the order-of-magnitude fat-finger ("10" for
+  "1.0") that would leave a nominal ceiling in place while removing all its value.
+
+  **THREE PROPERTIES IT WAS BUILT TO HAVE, each answering a failure this file already records.**
+  INERT WHEN ABSENT: no default, so every existing entry point behaves identically and the
+  measurements being paid for stay uncontaminated — the same asymmetry `costPerLlmCallUsd`
+  deliberately keeps. FAIL-CLOSED: a set-but-unparseable ceiling THROWS in both the workflow and the
+  harness rather than silently meaning "no ceiling", because fail-open is exactly the shape of the
+  guard-1 bug where a secret of " " was non-empty to `-z` and proceeded to spend. THROWN, NEVER
+  RETURNED: a truncated `StabilityReport` flowing through the normal PASS/FAIL computation could
+  print PASS on a run that stopped early, which would be a new false-green surface inside the one
+  gate built to prevent them.
+
+  **WHAT IT DOES NOT BOUND, recorded because the owner nearly acted on the wrong reading.** It
+  bounds the MAGNITUDE OF ONE RUN. It does NOT bound the NUMBER of runs: each dispatch carries its
+  own independent ceiling and `concurrency` queues a second dispatch rather than refusing it, so two
+  runs under a $1.00 ceiling can spend $2.00 between them and neither aborts. The release condition
+  for relaxing the delete-the-secret-every-time discipline was "a duplicate dispatch is impossible
+  or bounded", and this guard satisfies neither. **Single-spend still rests entirely on dispatching
+  once. Do not cite this guard as a reason to relax that.**
+
+  **THE DESIGN DISCOVERY, found by building it rather than by specifying it.** `stabilityRunDir`
+  wraps `detect()` in a try/catch that converts EVERY error into an `error:` fixture result. A
+  ceiling check written the obvious way — beside the cost accumulation, inside that try — is
+  swallowed by it: the abort is relabelled as a fixture error and the run KEEPS SPENDING. The guard
+  would have existed, passed review, and bounded nothing. Both the accumulation and the check
+  therefore sit OUTSIDE the try; the accumulator reads the ledger delta a second time, which is safe
+  because `llmCallsSince` is a pure delta from its snapshot, and it also means a detector that
+  throws mid-call still has its spend counted, where the in-try figure would have missed it.
+
+  **PROVEN BY NEGATIVE CONTROL, not by a green check.** `test:spend-ceiling` is keyless and joins
+  `test:ci`. Because a ceiling reading MEASURED cost cannot fire on any ordinary keyless path (replay
+  is unpriced; canned responses carry zero usage), the test drives `recordLlmCall` directly with a
+  synthetic priced cost. Six cases; the load-bearing one is that a ceiling ABOVE the total must
+  COMPLETE, since a guard that halts everything is not a guard. The placement claim was then verified
+  by reverting it: with the check moved back inside the try, cases 3 and 4 fail with exactly the
+  swallow message while 1, 2, 5 and 6 still pass, so the failure is specific to the placement and not
+  general breakage. A ceiling that is never exercised is the failure class this project keeps
+  catching — guard 1 asserts presence and never validity, a merged workflow that never ran closes
+  nothing — and it would have been the worst instance yet, because it buys false confidence about
+  money.
+
   **UPDATE 2026-08-02 (run `30754480093`): the six items below are the PRE-RUN prediction and are
   now partly resolved. Resolved in place, item by item, rather than rewritten, so the prediction
   and the outcome can be read side by side.** (1) CLOSED for this corpus only. (2) HALF: shape 2
@@ -3012,16 +3061,39 @@ content contradicts is the defect class this tracker keeps correcting.
   condition".
 
 - **L-015 (OPEN; MEASURED; a property of the CORPUS-MODEL pairing, not a defect; NON-gating) -
-  `resolveMediumVerdict` has never executed live across three corpora and 270 calls, so the
-  review-queue lane has no live evidence behind it. MEDIUM confidence itself HAS occurred, exactly
-  twice, and both were `safe/medium`.**
+  no naturally arising `isVulnerable:true @ medium` has ever occurred in the SHIPPED flag-off
+  configuration across three corpora and 270 calls, so the silent review-queue path has never been
+  taken by a real verdict. MEDIUM confidence itself HAS occurred, exactly twice, and both were
+  `safe/medium`.**
+
+  **CORRECTION, 2026-08-03, of this item as first merged in #147.** It said `resolveMediumVerdict`
+  "has never executed live" and that "the review-queue lane has no live evidence behind it", and
+  that we had "been reasoning about that lane from source reading alone". All three are FALSE.
+  `test:h8-escalation` ran on 2026-06-14 (`test-output/h8-escalation/anchors-k5-run1.json`) with
+  `FIXOR_ESCALATE_MEDIUM` ON, driving `resolveMediumVerdict` against constructed anchors — one of
+  which (`apple neg/14`) maps to `review-queue`, and another of which is
+  `idor-tenant/negative/02-express-prisma-membership.ts`, the very fixture this item identifies as
+  the corpus's only observed live waverer. The ADJUDICATOR MAPPING therefore has live evidence.
+  Caught while verifying the `HALT_USD` precedent before citing it, which is the second time in
+  this beat that checking a claim rather than asserting it changed the claim.
+
+  **THE DISTINCTION THAT SURVIVES, and it is sharper than what was merged.** Two different things
+  were being run together. With the flag ON, `resolveMediumVerdict` calls an adjudicator and maps
+  its decision; that path is exercised. With the flag OFF — the configuration that SHIPS — the hook
+  returns "review-queue" on its first line, before any client is constructed, and the detector goes
+  silent. What has never happened is a real detector producing `isVulnerable:true @ medium` and
+  taking that silent path. **That silent path, not the adjudicator mapping, is the H7 mechanism**,
+  so C must target the flag-off path; testing the mapping again would re-cover ground h8 already
+  holds.
 
   **THE PRECISE CLAIM, because the loose version is false.** `resolveMediumVerdict` is reached only
   by a verdict that is `isVulnerable: true` AND `confidence: medium`; a `safe/medium` is
   `isVulnerable: false` and returns empty for the ordinary reason, never touching the hook. Across
   all three paid runs there have been **zero `vuln/medium` verdicts in 270 calls**, and
-  correspondingly **zero `review-queue` events**. So the hook is unexecuted — but "zero MEDIUM
-  verdicts" full stop would be wrong, and was the first wording of this item.
+  correspondingly **zero `review-queue` events**. So the hook has never been entered BY A REAL
+  VERDICT in the shipped configuration — but "zero MEDIUM verdicts" full stop would be wrong, and
+  was the first wording of this item, and "never executed live" full stop is wrong too, and was the
+  second. See the CORRECTION above.
 
   MEASURED from the per-iteration verdict lines the harness prints under R2, censused across all
   three runs. Run `30821994020` (admin-check, 150 calls):
@@ -3041,8 +3113,9 @@ content contradicts is the defect class this tracker keeps correcting.
   never being the operative constraint. This is about a CODE PATH never being reached. MEDIUM is
   the only verdict routed through `resolveMediumVerdict`, which returns "review-queue" and stays
   silent while `FIXOR_ESCALATE_MEDIUM` is unset — and that silence is precisely the H7
-  double-silence mechanism in Priority 1b. We have been reasoning about that lane from source
-  reading alone. 150 live calls did not touch it.
+  double-silence mechanism in Priority 1b. 270 live calls did not enter it. What we hold instead is
+  h8's evidence about the flag-ON adjudicator, which is a different configuration from the one that
+  ships and cannot stand in for it.
 
   **CONSEQUENCE FOR THE REPLAY SPEC'S RECONCILIATION HOOK.** `EXPECTED_LANE` in
   `src/test/specs/admin-check.replay-spec.ts` is empty by design, to be filled from observed

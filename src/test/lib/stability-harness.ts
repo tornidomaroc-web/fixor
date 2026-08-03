@@ -135,6 +135,93 @@ export interface StabilityReport {
   passed: boolean;
 }
 
+/**
+ * Thrown when a run's MEASURED spend crosses the ceiling supplied for it.
+ *
+ * THROWN, NEVER RETURNED, and that is the whole point. Returning a truncated
+ * StabilityReport would push a partial corpus through the normal PASS/FAIL
+ * computation, and a run that stopped early could then print PASS: a brand-new
+ * false-green surface inside the one gate whose entire job is to prevent them.
+ * Throwing exits the entry point non-zero, which the stage-3 workflow's EXIT
+ * trap already handles, reporting the abort with spend-so-far preserved (that
+ * path was proven live by rehearsal (b)).
+ */
+export class SpendCeilingExceeded extends Error {
+  readonly spentUsd: number;
+  readonly ceilingUsd: number;
+  constructor(spentUsd: number, ceilingUsd: number) {
+    super(
+      `SPEND CEILING EXCEEDED: MEASURED $${spentUsd.toFixed(4)} crossed the ` +
+        `$${ceilingUsd.toFixed(4)} ceiling supplied for this run. Aborted before ` +
+        `the next call. This figure is real summed cost from the call ledger, ` +
+        `never a projection.`,
+    );
+    this.name = "SpendCeilingExceeded";
+    this.spentUsd = spentUsd;
+    this.ceilingUsd = ceilingUsd;
+  }
+}
+
+/**
+ * Run-wide MEASURED spend accumulator with an OPTIONAL ceiling.
+ *
+ * Inert when `ceilingUsd` is undefined: it still tracks, `check()` never
+ * throws, and no existing caller changes behavior by even one byte. Same
+ * deliberate asymmetry as `costPerLlmCallUsd`, which refuses a numeric default
+ * for the same reason — a made-up default is how a guard starts lying.
+ */
+class SpendGuard {
+  spentUsd = 0;
+  constructor(readonly ceilingUsd: number | undefined) {}
+  add(usd: number): void {
+    this.spentUsd += usd;
+  }
+  check(): void {
+    if (this.ceilingUsd !== undefined && this.spentUsd > this.ceilingUsd) {
+      throw new SpendCeilingExceeded(this.spentUsd, this.ceilingUsd);
+    }
+  }
+}
+
+/**
+ * Resolve the ceiling from an explicit option, else from FIXOR_HALT_USD.
+ *
+ * ABSENT IS INERT; SET-BUT-UNUSABLE THROWS. A typo'd ceiling that silently
+ * meant "no ceiling" would be fail-OPEN, which is the exact shape of the bug
+ * the stage-3 workflow already carries a case for: a secret of " " is non-empty
+ * to `-z`, so it cleared the old guard and proceeded to spend. Unset the var to
+ * disable the ceiling; do not pass it something unparseable and hope.
+ */
+export function resolveSpendCeilingUsd(
+  explicit: number | undefined,
+  env: string | undefined,
+): number | undefined {
+  if (explicit !== undefined) {
+    if (!Number.isFinite(explicit) || explicit <= 0) {
+      throw new Error(
+        `haltAboveUsd must be a positive finite number; got ${String(explicit)}.`,
+      );
+    }
+    return explicit;
+  }
+  if (env === undefined) return undefined;
+  const trimmed = env.trim();
+  if (trimmed === "") {
+    throw new Error(
+      "FIXOR_HALT_USD is set but empty or whitespace-only. Unset it to disable " +
+        "the ceiling, or give it a positive number. A blank ceiling is not a " +
+        "disabled ceiling; it is an unstated one.",
+    );
+  }
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(
+      `FIXOR_HALT_USD must be a positive finite number; got "${env}".`,
+    );
+  }
+  return n;
+}
+
 export interface HarnessOptions {
   /** For log headers. */
   detectorName: string;
@@ -168,6 +255,23 @@ export interface HarnessOptions {
    * projection until 0.0115263 is supplied deliberately.
    */
   costPerLlmCallUsd?: number;
+  /**
+   * OPTIONAL hard ceiling on this run's MEASURED spend, in USD. When the
+   * ledger's real summed cost crosses it the run throws SpendCeilingExceeded
+   * before issuing another call, so overshoot is bounded to a single call.
+   *
+   * NO DEFAULT, and absent means inert — every existing entry point behaves
+   * exactly as before. Falls back to the FIXOR_HALT_USD env var when not
+   * passed, which is how the stage-3 workflow supplies it.
+   *
+   * WHAT THIS BOUNDS, STATED PLAINLY so it is not over-read. It bounds the
+   * MAGNITUDE OF ONE RUN. It does NOT bound the NUMBER of runs: two dispatches
+   * each carry their own ceiling, so two runs under a $1.00 ceiling can spend
+   * $2.00 between them and neither halts. Single-spend still rests on
+   * dispatching once. Anyone citing this guard as a reason to relax the
+   * dispatch discipline is citing it for something it does not do.
+   */
+  haltAboveUsd?: number;
   /** Optional fingerprint string to print in the run header. */
   systemPromptFingerprint?: string;
 }
@@ -252,7 +356,7 @@ async function stabilityRunDir(
   opts: Required<
     Pick<HarnessOptions, "nRuns" | "sleepMsBetween">
   > &
-    Pick<HarnessOptions, "detector">,
+    Pick<HarnessOptions, "detector"> & { guard: SpendGuard },
 ): Promise<FixtureStability[]> {
   const files = readdirSync(dir).filter(isFixtureFile).sort();
   const out: FixtureStability[] = [];
@@ -316,6 +420,24 @@ async function stabilityRunDir(
           preFilterReason: `error: ${(err as Error).message}`,
         };
       }
+
+      // Run-wide MEASURED spend for the ceiling, read from the ledger OUTSIDE
+      // the try above. Two reasons, both load-bearing:
+      //
+      //   1. The catch above swallows EVERY error into an "error:" result. A
+      //      ceiling breach raised inside that try would be caught, relabelled
+      //      as a fixture error, and the run would CONTINUE SPENDING. The guard
+      //      would appear to exist and would never stop anything.
+      //   2. A detector that throws mid-call still spent. The in-try
+      //      accumulation below is skipped on that path, so a guard fed from it
+      //      would under-count exactly when things are going wrong.
+      //
+      // `llmCallsSince` is a pure delta from `ledgerBefore`, so reading it a
+      // second time here cannot double-count: the in-try read feeds the
+      // per-fixture report figure and is left untouched, this one feeds only
+      // the ceiling.
+      opts.guard.add(llmCallsSince(ledgerBefore).costUsd);
+
       runs.push(result);
 
       const mark = result.flagged ? "FLAG" : "skip";
@@ -332,6 +454,12 @@ async function stabilityRunDir(
           `      reasoning: ${result.verdict.reasoning}\n`,
         );
       }
+
+      // Checked PER ITERATION rather than per fixture, so overshoot past the
+      // ceiling is bounded to a single call. Placed after the iteration's log
+      // lines so the transcript shows the call that crossed it, and before the
+      // sleep so an aborting run does not idle first.
+      opts.guard.check();
 
       if (i < opts.nRuns - 1 || file !== files[files.length - 1]) {
         await sleep(opts.sleepMsBetween);
@@ -377,6 +505,14 @@ export async function runStabilityHarness(
   // No numeric default: absent rate means no would-cost-live projection is
   // printed, rather than a fabricated constant. See HarnessOptions.
   const costPerLlmCallUsd = opts.costPerLlmCallUsd;
+  // Resolved BEFORE any fixture runs, so a malformed ceiling fails the run
+  // before it can spend rather than after. ONE guard spans positives and
+  // negatives: a per-directory guard would silently double the real ceiling.
+  const ceilingUsd = resolveSpendCeilingUsd(
+    opts.haltAboveUsd,
+    process.env.FIXOR_HALT_USD,
+  );
+  const guard = new SpendGuard(ceilingUsd);
 
   process.stdout.write(
     `${opts.detectorName} stability run (n=${nRuns} per fixture)\n` +
@@ -384,21 +520,26 @@ export async function runStabilityHarness(
         ? `SYSTEM_PROMPT fingerprint: ${opts.systemPromptFingerprint}\n`
         : "") +
       `Per-fixture thresholds: positives flagged >= ${perPositiveThreshold}/${nRuns}, ` +
-      `negatives correctly-skipped == ${perNegativeThreshold}/${nRuns}\n\n`,
+      `negatives correctly-skipped == ${perNegativeThreshold}/${nRuns}\n` +
+      (ceilingUsd !== undefined
+        ? `Spend ceiling: $${ceilingUsd.toFixed(4)} MEASURED. Aborts before the ` +
+          `next call; bounds THIS run only, not the number of runs.\n`
+        : "") +
+      "\n",
   );
 
   process.stdout.write("Positives (should be flagged):\n");
   const positives = await stabilityRunDir(
     join(opts.fixturesDir, "positive"),
     true,
-    { nRuns, sleepMsBetween, detector: opts.detector },
+    { nRuns, sleepMsBetween, detector: opts.detector, guard },
   );
 
   process.stdout.write("\nNegatives (should NOT be flagged):\n");
   const negatives = await stabilityRunDir(
     join(opts.fixturesDir, "negative"),
     false,
-    { nRuns, sleepMsBetween, detector: opts.detector },
+    { nRuns, sleepMsBetween, detector: opts.detector, guard },
   );
 
   const positivesMinPassing = opts.positivesMinPassing ?? positives.length;
