@@ -221,9 +221,14 @@ const EXPECTED_LANE: Record<string, ExpectedLane> = {};
 
 /**
  * Completeness manifest: the 30 model-reaching source fixtures that MUST each
- * have a recording. The 12 pre-model fixtures are intentionally absent. The
- * expectedFlagged VALUE is read from each recording's meta at replay time; this
- * list only guarantees all 30 are present.
+ * have a recording. The 15 pre-model fixtures are intentionally absent: 12
+ * bucket-(b) bypasses + 3 bucket-(a) drops, matching the exclusion block below
+ * and the 3/12/30 split in the header. This line said "12" until 2026-08-03,
+ * contradicting both, and 45 - 30 = 15. Corrected while verifying the corpus
+ * count BY EXECUTION before the third paid stage-3 run: a wrong count in this
+ * file is the one most likely to be trusted downstream. The expectedFlagged
+ * VALUE is read from each recording's meta at replay time; this list only
+ * guarantees all 30 are present.
  */
 const SOURCE_MANIFEST: readonly string[] = Object.keys(EXPECTED_FLAGGED);
 

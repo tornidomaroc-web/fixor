@@ -1416,6 +1416,90 @@ the READY gate, which is still F-004 alone.
   Recorded because the conflation is the kind that quietly converts a good stopping rule into a
   bad scope decision.
 
+  **THIRD PAID RUN — run `30821994020`, 2026-08-03, conclusion `success` in 15m27s. MEASURED
+  $1.2001.** Selection `admin-check` alone, dispatched on `main` at `25fa0116`. Same secret
+  procedure as the first two, with one addition: the key was validated out of band by a 200 from
+  `GET /v1/models` in the owner's terminal and never entered any tooling, set by hand through the
+  UI, deleted once the `Run selected live detector(s)` step reached a terminal state, and verified
+  gone by a 404 plus `total_count=0`. Before dispatch the repo was re-verified to hold zero Actions
+  secrets AND zero Actions VARIABLES. Transport clean: `LLM calls: 150 (OBSERVED at callClaude; 150
+  priced), no-verdict: 0, transport failures: 0`, and no runtime `::warning::` of any kind — every
+  such string in the log is script-source echo. `SYSTEM_PROMPT` fingerprint `ed52ebe3db91`.
+  **Every one of the 45 fixtures scored at the MAXIMUM** — all 24 positives `flagged 5/5` against a
+  `>=4/5` bar, all 21 negatives `correctly-skipped 5/5` against a `5/5` bar. Aggregates 24/24,
+  21/21, 45/45. `PASS`.
+
+  **FIRST MIXED DETECTOR TAKEN LIVE, and the bucket split held exactly.** admin-check is the only
+  detector whose shipped path partly never reaches the model. The zero-spend split measured by
+  execution reproduced under live conditions without deviation: 60 `pre-filter:llm-bypass`
+  iterations (12 Option G fixtures x 5), 15 pre-model drops (3 fixtures x 5), and 150 model calls
+  — 225 iterations total, exactly 45 x 5.
+
+  **CORPUS COUNT AND GATE SATISFIABILITY, verified against the ITERATOR before authorizing spend.**
+  `measure:stage3-calls` (zero spend, counts by EXECUTION at the SDK boundary through the exported
+  `isFixtureFile`) enumerated **45 fixtures = 24 positives + 21 negatives**, 15 terminating
+  pre-model and **30 model-reaching**, with `divergence 0` across four independent instruments: the
+  call-count spy, the coverage tally, the harness ledger, and the 30 recordings the replay gate
+  asserts cover the manifest exactly. At n=5 that is **150 calls**, and the live run returned
+  exactly 150.
+
+  **The check that mattered more than the count.** `test-admin-check.ts` hardcodes
+  `positivesMinPassing: 24`, `negativesMinPassing: 21`, `combinedMinPassing: 45`. The iterator
+  enumerates 24 / 21 / 45. They match, so the gate is SATISFIABLE and not decayed. **Had the
+  iterator seen 23 positives, that bar would have been unsatisfiable and this run a guaranteed red
+  at full cost** — the count would have been wrong in the direction that spends the money and
+  returns nothing. Generalised for every future dispatch: verify the aggregate gate against the
+  iterator, never against the entry point's own header comment, BEFORE authorizing spend. This is
+  the same class as the idor `21`-versus-`18` directory miscount, one level up.
+
+  **COST: a pre-registered band, and the method that earned the right to state one.** Registered
+  before dispatch as **$1.15-$1.32, point $1.21**. **Measured $1.2001 — inside the band, 0.8% below
+  the point.** The method: calibrate a chars-to-token ratio against the ONE call in this repo whose
+  tokens were read from raw `message.usage` (`docs/measurements/idor-percall-2026-07-22.json`),
+  apply it to the 30 frozen recordings at fingerprint `ed52ebe3db91`, and price against
+  MODEL_PRICING. Recomputing the #118 warm unit from its own tokens returns $0.0115263 to the last
+  digit, so the arithmetic is anchored rather than asserted. Raw point $1.1657.
+
+  **The method was BACK-TESTED before it was used, which is why the result licenses anything.**
+  Against the only two live runs then available it under-predicted by 2.5% (`idor`) and 6.6%
+  (`idor-tenant`). admin-check came in 2.9% above the raw point — inside that same band, on a
+  detector family the calibration was never fitted to.
+
+  | corpus | calls | measured | implied per-call | method error |
+  |---|---|---|---|---|
+  | `idor-tenant` | 30 | $0.2713 | $0.008736 | -6.6% |
+  | `idor` | 90 | $0.9204 | $0.010124 | -2.5% |
+  | `admin-check` | 150 | **$1.2001** | **$0.008001** | **-2.9%** |
+
+  The supplied $0.00828 constant OVER-predicts admin-check by 3.5%. It remains unmeasured for the
+  three detectors still unrun.
+
+  **PRE-REGISTRATION FOR THE REMAINING THREE, recorded here BEFORE they run, which is the only
+  thing that makes them tests rather than rationalisations.** Same method, bias-corrected by the
+  now three-point error distribution. Machine-readable copy in
+  `docs/measurements/admin-check-stage3-2026-08-03.json`.
+
+  | detector | F (measured) | calls at N=5 | pre-registered band | point | flat constant would say |
+  |---|---|---|---|---|---|
+  | `env-exposure` | 17 | 85 | **$0.43-$0.50** | $0.46 | $0.70 |
+  | `webhook-unverified` | 34 | 170 | **$1.10-$1.26** | $1.17 | $1.41 |
+  | `auth-bypass` | 37 | 185 | **$1.40-$1.61** | $1.49 | $1.53 |
+
+  **`env-exposure` is not merely the cheapest remaining measurement; it is the one that DECIDES a
+  structural question.** Its prompt caches about 450 tokens against admin-check's ~4,405, and the
+  flat constant over-predicts it by 53% — far outside the 3.5% seen here. If it lands near $0.46,
+  $0.00828 is structurally wrong for short-prompt detectors rather than merely imprecise, and the
+  cold/warm/per-process decomposition this file has said it lacks since #118 becomes the only
+  defensible model. If it lands near $0.70, the calibration does NOT transfer on prompt size and
+  must be withdrawn for the other two.
+
+  **WHAT THIS RUN DOES NOT DO.** It does not lift F-004, which gates on all six detectors; three
+  have now run live. It does not make admin-check calibrated — R3 forbids that inference and the
+  harness printed its own ceiling again: *zero FP at n=5 means "no FP at this resolution," not
+  "calibrated."* And its heaviest output is not the third all-maximal corpus but the verdict-lane
+  census recorded as L-015. H7 is NARROWED, not closed; see Priority 1b. Cumulative stage-3 spend:
+  $0.2713 + $0.9204 + $1.2001 = **$2.3918**.
+
   **UPDATE 2026-08-02 (run `30754480093`): the six items below are the PRE-RUN prediction and are
   now partly resolved. Resolved in place, item by item, rather than rewritten, so the prediction
   and the outcome can be read side by side.** (1) CLOSED for this corpus only. (2) HALF: shape 2
@@ -1612,6 +1696,14 @@ stage-2 completion note; "The workflow file now exists on `main` but has NEVER e
 PR #121 DONE entry; "STEP 3 STATUS (workflow file MERGED, NOT YET RUN)"; "This does NOT lift
 F-004. A merged workflow that has never executed closes nothing"; and "Stage 3 has never
 executed, so this is true of ALL SIX harness bars". Each carries a one-line pointer back here.
+
+**COUNT UPDATE 2026-08-03 (run `30821994020`): THREE of six detectors have now passed live** —
+`idor-tenant`, `idor`, `admin-check`. The 2026-08-02 wording above is left at "one detector"
+deliberately: it is a dated record of what that run established, and rewriting its content would
+falsify the history it exists to hold. Only the count moves, and it moves here. **F-004 REMAINS
+OPEN**; three of six is not six, and the three unrun detectors (`env-exposure`,
+`webhook-unverified`, `auth-bypass`) are three distinct prompts over three corpora never measured
+live. Cumulative stage-3 spend $2.3918.
 
 **Why this annotation is the urgent part of the run's record.** Every one of those passages read
 correctly until 2026-08-02. The paid run falsified them WITHOUT changing what F-004 requires, so
@@ -1924,6 +2016,23 @@ CANNOT be turned into one from the admin-check recordings: admin-check's verdict
 `confidence`, `reasoning`, `suggestedFix`, `vulnerableRoute`). Nothing in those 30 recordings
 can tell us which routes auth-bypass would have deferred on. The two detectors' verdicts are
 not joinable from the data we hold.
+
+**LIVE EVIDENCE, run `30821994020` (2026-08-03), and it is genuinely stronger than the frozen
+sample.** All 12 model-reaching positives — which include every route-def trigger in the corpus —
+returned `isVulnerable:true@high` on all 5 of 5 runs, and the full 150-call verdict census
+contains **zero MEDIUM and zero `review-queue` events** (L-015). So on this corpus admin-check
+holds its side of the lane under repeated live sampling, not merely in one recording.
+
+**THE LIMIT IS SHARPER THAN THE REASSURANCE, AND CUTS BOTH WAYS.** Two constraints, neither
+removed by this run. First, `fixtures/admin-check` contains NO route-guard sidecars, so all 26
+route-def fixtures ran with `routeGuard === undefined`: this is the UN-GUARDED branch only, and
+the cross-file parent-layout path — where a real repo's admin gate most often actually lives — is
+untouched. Second, and less comfortable: zero MEDIUM is reassuring precisely because the silent
+lane was never entered, which is the same fact as *we still have no live evidence about what
+happens when it IS entered*. The mechanism that would lose the finding remains unexercised. H7 is
+**NARROWED on the un-guarded branch, and NOT closed.** The join problem is also unchanged:
+admin-check's schema still carries no `authPresent` and no `operationKind`, so this run cannot say
+which routes auth-bypass would have deferred on either.
 
 **What answering it requires.** A separate, scoped auth-bypass run over the 26 route-def
 fixtures in `fixtures/admin-check/`, capturing `authPresent`/`operationKind` per fixture, then
@@ -2829,17 +2938,38 @@ way 1f was kept out of 1e because reach findings are not defects. Filing it unde
 content contradicts is the defect class this tracker keeps correcting.
 
 - **L-014 (OPEN; MEASURED; a property of the HARNESS, not of any detector; NON-gating) -
-  `perPositiveThreshold: 4` has never once been the operative constraint, across two corpora and
-  120 live calls.**
+  `perPositiveThreshold: 4` has never once been the operative constraint, across three corpora and
+  270 live calls.**
 
-  MEASURED over both paid stage-3 runs: `idor-tenant` (6 fixtures, 30 calls, run `30754480093`)
-  and `idor` (18 fixtures, 90 calls, run `30769713479`). **24 fixtures, 120 model calls, zero
-  non-maximal scores.** Every positive `flagged 5/5` against a `>=4/5` bar; every negative
-  `correctly-skipped 5/5` against a `5/5` bar. The tolerance band the positive threshold exists to
-  provide has never been entered: at `perPositiveThreshold: 5` both runs return an identical
-  verdict, and at 3 likewise. The same holds one level up for the aggregates — `idor`'s raise from
-  `6/6/12` to `9/9/18` changed no outcome, so it is verified as satisfiable and unverified as
-  discriminating.
+  MEASURED over all three paid stage-3 runs: `idor-tenant` (6 fixtures, 30 calls, run
+  `30754480093`), `idor` (18 fixtures, 90 calls, run `30769713479`) and `admin-check` (45 fixtures,
+  150 calls, run `30821994020`). **69 fixtures scored, of which 54 are model-reaching, 270 model
+  calls, zero non-maximal scores.** Every positive `flagged 5/5` against a `>=4/5` bar; every
+  negative `correctly-skipped 5/5` against a `5/5` bar. The tolerance band the positive threshold
+  exists to provide has never been entered: at `perPositiveThreshold: 5` all three runs return an
+  identical verdict, and at 3 likewise. The same holds one level up for the aggregates — `idor`'s
+  raise from `6/6/12` to `9/9/18` changed no outcome, and `admin-check`'s 24/21/45 cleared with
+  every fixture at ceiling, so both are verified as satisfiable and unverified as discriminating.
+
+  **PRECISION ON THE THIRD CORPUS, so it is not over-counted.** 15 of admin-check's 45 fixtures
+  terminate before the model (12 Option G literal-tier bypasses, 3 pre-model drops). Their `5/5`
+  is DETERMINISTIC and is not evidence about model stability; it is evidence the regex bypass is
+  stable, which `test:admin-check-prefilter` already establishes for free. Only the 30
+  model-reaching fixtures and their 150 calls bear on this item. Counting all 45 as model evidence
+  would inflate the finding in exactly the direction that makes it sound stronger than it is.
+
+  **ADDED BY THE THIRD CORPUS: a distinct and heavier observation, filed separately as L-015.**
+  Across all three runs there are **zero `vuln/medium` verdicts in 270 calls**, so
+  `resolveMediumVerdict` — the lane where the H7 double-silence lives — has never executed live.
+  L-014 is about a threshold never being exercised; L-015 is about a code path never being reached.
+  They are kept apart because the second does not follow from the first.
+
+  **AND ONE QUALIFICATION THIS ITEM OWES ITSELF.** "Zero non-maximal SCORES" remains exactly true,
+  and it is not the same as "zero variance". The L-015 census found the model returning
+  `safe/medium` on 2 of 5 runs for `idor-tenant/negative/02-express-prisma-membership.ts` while its
+  `isVulnerable` stayed `safe` all five times. Variance exists in the corpus and has been observed
+  live; it simply lives in the `confidence` field, where no threshold reads it, rather than in the
+  flag the scores are computed from. Explanation (a) below must be read against that.
 
   **THIS IS NOT A DEFECT IN THE HARNESS, AND R3 ALREADY SAID SO.** `docs/detector-test-rules.md`
   R3 states that n=5 "catches outright stochasticity" and does NOT detect low-rate FP, and that
@@ -2880,6 +3010,85 @@ content contradicts is the defect class this tracker keeps correcting.
   resolution. Conflating the two was an error in the stopping condition that produced this item;
   the correction is recorded in the SECOND PAID RUN entry under "CORRECTION of the stopping
   condition".
+
+- **L-015 (OPEN; MEASURED; a property of the CORPUS-MODEL pairing, not a defect; NON-gating) -
+  `resolveMediumVerdict` has never executed live across three corpora and 270 calls, so the
+  review-queue lane has no live evidence behind it. MEDIUM confidence itself HAS occurred, exactly
+  twice, and both were `safe/medium`.**
+
+  **THE PRECISE CLAIM, because the loose version is false.** `resolveMediumVerdict` is reached only
+  by a verdict that is `isVulnerable: true` AND `confidence: medium`; a `safe/medium` is
+  `isVulnerable: false` and returns empty for the ordinary reason, never touching the hook. Across
+  all three paid runs there have been **zero `vuln/medium` verdicts in 270 calls**, and
+  correspondingly **zero `review-queue` events**. So the hook is unexecuted — but "zero MEDIUM
+  verdicts" full stop would be wrong, and was the first wording of this item.
+
+  MEASURED from the per-iteration verdict lines the harness prints under R2, censused across all
+  three runs. Run `30821994020` (admin-check, 150 calls):
+
+  | verdict lane | count | share |
+  |---|---|---|
+  | `vuln/high` | 60 | 40% |
+  | `safe/low` | 50 | 33% |
+  | `safe/high` | 40 | 27% |
+  | **any `medium`** | **0** | **0%** |
+
+  Zero `review-queue` events and zero medium-suppression log lines across the run. The 60
+  `vuln/high` are exactly the 12 model-reaching positives at 5/5; the 90 `safe/*` are the 18
+  model-reaching negatives at 5/5.
+
+  **WHY THIS IS HEAVIER THAN THE THIRD ALL-MAXIMAL CORPUS.** L-014 is about a threshold value
+  never being the operative constraint. This is about a CODE PATH never being reached. MEDIUM is
+  the only verdict routed through `resolveMediumVerdict`, which returns "review-queue" and stays
+  silent while `FIXOR_ESCALATE_MEDIUM` is unset — and that silence is precisely the H7
+  double-silence mechanism in Priority 1b. We have been reasoning about that lane from source
+  reading alone. 150 live calls did not touch it.
+
+  **CONSEQUENCE FOR THE REPLAY SPEC'S RECONCILIATION HOOK.** `EXPECTED_LANE` in
+  `src/test/specs/admin-check.replay-spec.ts` is empty by design, to be filled from observed
+  recordings rather than guessed. It is still correctly empty — but "correctly empty" now means
+  *the lane has never been observed*, not *the lane was checked and found unused*. Those read the
+  same in the file and are not the same claim.
+
+  **NOT A DEFECT.** Every verdict was correct on its designed class: 12/12 positives caught, 18/18
+  negatives silent. A model that answers confidently on unambiguous input is behaving well. The
+  finding is about what the measurement has and has not reached, which is why it sits in 1g with
+  L-014 rather than in 1d or 1e.
+
+  **ALL THREE RUNS CENSUSED (free, from the retained logs). This closed a scope limit and CHANGED
+  the finding, which is why it was done before the entry was merged rather than promised in it.**
+
+  | run | corpus | calls | `vuln/high` | `safe/high` | `safe/low` | `safe/medium` | `vuln/medium` | `review-queue` |
+  |---|---|---|---|---|---|---|---|---|
+  | `30754480093` | `idor-tenant` | 30 | 10 | 6 | 12 | **2** | 0 | 0 |
+  | `30769713479` | `idor` | 90 | 45 | 17 | 28 | 0 | 0 | 0 |
+  | `30821994020` | `admin-check` | 150 | 60 | 40 | 50 | 0 | 0 | 0 |
+  | **total** | | **270** | 115 | 63 | 90 | **2** | **0** | **0** |
+
+  **THE TWO MEDIUMS ARE THE MOST INTERESTING DATA POINT IN 270 CALLS, and they were nearly lost to
+  a scope limit.** Both fall on the SAME fixture — `idor-tenant/negative/02-express-prisma-membership.ts`
+  — on runs 2/5 and 4/5. Its VERDICT never moved (`safe` all five times, so it scored
+  `correctly-skipped 5/5` and contributed to L-014's all-maximal record); only its CONFIDENCE moved,
+  between `low`/`high` and `medium`.
+
+  **CONSEQUENCE FOR L-014's EXPLANATION (a).** (a) proposes that the structured verdict is
+  near-deterministic on fixture-shaped input. That is now measurably too strong as stated:
+  `isVulnerable` was stable across all 270 calls, but `confidence` — also a structured field, not
+  prose — demonstrably was not. The existing temperature-0 note ("stable on the STRUCTURED verdict,
+  variable in PROSE") draws the line in the wrong place; the line runs between `isVulnerable` and
+  `confidence`, both of which are structured.
+
+  **CONSEQUENCE FOR C.** This corpus contains an EMPIRICALLY LOCATED near-boundary input. C does not
+  have to be authored blind from intuition, which was the weakest part of the original proposal and
+  the source of the "debatable by construction" objection: `idor-tenant/negative/02` is a fixture
+  the model has already been observed to waver on, in the confidence field, under live conditions.
+  Seeding C from an observed wobble rather than an imagined one is strictly better evidence.
+
+  **WHAT WOULD SEPARATE IT, and it is now the scheduled next instrument.** A fixture authored to
+  land in the MEDIUM lane, as a MECHANISM-REACHABILITY test rather than a judgment test: the
+  question is whether the apparatus can emit a non-maximal score and route a MEDIUM at all, which
+  has a determinate answer and no debatable ground truth. One such fixture exercises the 4-of-5
+  threshold (L-014), `resolveMediumVerdict` (this item) and the H7 path (Priority 1b) at once.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
