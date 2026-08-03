@@ -2959,10 +2959,17 @@ content contradicts is the defect class this tracker keeps correcting.
   would inflate the finding in exactly the direction that makes it sound stronger than it is.
 
   **ADDED BY THE THIRD CORPUS: a distinct and heavier observation, filed separately as L-015.**
-  admin-check returned **zero MEDIUM verdicts in 150 calls**, so `resolveMediumVerdict` — the lane
-  where the H7 double-silence lives — has still never executed live. L-014 is about a threshold
-  never being exercised; L-015 is about a code path never being reached. They are kept apart
-  because the second does not follow from the first.
+  Across all three runs there are **zero `vuln/medium` verdicts in 270 calls**, so
+  `resolveMediumVerdict` — the lane where the H7 double-silence lives — has never executed live.
+  L-014 is about a threshold never being exercised; L-015 is about a code path never being reached.
+  They are kept apart because the second does not follow from the first.
+
+  **AND ONE QUALIFICATION THIS ITEM OWES ITSELF.** "Zero non-maximal SCORES" remains exactly true,
+  and it is not the same as "zero variance". The L-015 census found the model returning
+  `safe/medium` on 2 of 5 runs for `idor-tenant/negative/02-express-prisma-membership.ts` while its
+  `isVulnerable` stayed `safe` all five times. Variance exists in the corpus and has been observed
+  live; it simply lives in the `confidence` field, where no threshold reads it, rather than in the
+  flag the scores are computed from. Explanation (a) below must be read against that.
 
   **THIS IS NOT A DEFECT IN THE HARNESS, AND R3 ALREADY SAID SO.** `docs/detector-test-rules.md`
   R3 states that n=5 "catches outright stochasticity" and does NOT detect low-rate FP, and that
@@ -3005,11 +3012,19 @@ content contradicts is the defect class this tracker keeps correcting.
   condition".
 
 - **L-015 (OPEN; MEASURED; a property of the CORPUS-MODEL pairing, not a defect; NON-gating) -
-  zero MEDIUM verdicts in 150 live calls, so `resolveMediumVerdict` has never executed live and
-  the review-queue lane has no live evidence behind it at all.**
+  `resolveMediumVerdict` has never executed live across three corpora and 270 calls, so the
+  review-queue lane has no live evidence behind it. MEDIUM confidence itself HAS occurred, exactly
+  twice, and both were `safe/medium`.**
 
-  MEASURED on run `30821994020` from the per-iteration verdict lines the harness prints under R2.
-  Census over all 150 admin-check calls:
+  **THE PRECISE CLAIM, because the loose version is false.** `resolveMediumVerdict` is reached only
+  by a verdict that is `isVulnerable: true` AND `confidence: medium`; a `safe/medium` is
+  `isVulnerable: false` and returns empty for the ordinary reason, never touching the hook. Across
+  all three paid runs there have been **zero `vuln/medium` verdicts in 270 calls**, and
+  correspondingly **zero `review-queue` events**. So the hook is unexecuted — but "zero MEDIUM
+  verdicts" full stop would be wrong, and was the first wording of this item.
+
+  MEASURED from the per-iteration verdict lines the harness prints under R2, censused across all
+  three runs. Run `30821994020` (admin-check, 150 calls):
 
   | verdict lane | count | share |
   |---|---|---|
@@ -3040,10 +3055,34 @@ content contradicts is the defect class this tracker keeps correcting.
   finding is about what the measurement has and has not reached, which is why it sits in 1g with
   L-014 rather than in 1d or 1e.
 
-  **SCOPE LIMIT, STATED SO IT IS NOT OVER-CLAIMED.** This census covers `admin-check` only. The
-  verdict-lane distributions of runs `30754480093` and `30769713479` were NOT censused and are not
-  asserted here. Both artifacts are retained and the census is a free grep over them; until that is
-  done, "no MEDIUM has ever been observed live" is a claim about one corpus, not three.
+  **ALL THREE RUNS CENSUSED (free, from the retained logs). This closed a scope limit and CHANGED
+  the finding, which is why it was done before the entry was merged rather than promised in it.**
+
+  | run | corpus | calls | `vuln/high` | `safe/high` | `safe/low` | `safe/medium` | `vuln/medium` | `review-queue` |
+  |---|---|---|---|---|---|---|---|---|
+  | `30754480093` | `idor-tenant` | 30 | 10 | 6 | 12 | **2** | 0 | 0 |
+  | `30769713479` | `idor` | 90 | 45 | 17 | 28 | 0 | 0 | 0 |
+  | `30821994020` | `admin-check` | 150 | 60 | 40 | 50 | 0 | 0 | 0 |
+  | **total** | | **270** | 115 | 63 | 90 | **2** | **0** | **0** |
+
+  **THE TWO MEDIUMS ARE THE MOST INTERESTING DATA POINT IN 270 CALLS, and they were nearly lost to
+  a scope limit.** Both fall on the SAME fixture — `idor-tenant/negative/02-express-prisma-membership.ts`
+  — on runs 2/5 and 4/5. Its VERDICT never moved (`safe` all five times, so it scored
+  `correctly-skipped 5/5` and contributed to L-014's all-maximal record); only its CONFIDENCE moved,
+  between `low`/`high` and `medium`.
+
+  **CONSEQUENCE FOR L-014's EXPLANATION (a).** (a) proposes that the structured verdict is
+  near-deterministic on fixture-shaped input. That is now measurably too strong as stated:
+  `isVulnerable` was stable across all 270 calls, but `confidence` — also a structured field, not
+  prose — demonstrably was not. The existing temperature-0 note ("stable on the STRUCTURED verdict,
+  variable in PROSE") draws the line in the wrong place; the line runs between `isVulnerable` and
+  `confidence`, both of which are structured.
+
+  **CONSEQUENCE FOR C.** This corpus contains an EMPIRICALLY LOCATED near-boundary input. C does not
+  have to be authored blind from intuition, which was the weakest part of the original proposal and
+  the source of the "debatable by construction" objection: `idor-tenant/negative/02` is a fixture
+  the model has already been observed to waver on, in the confidence field, under live conditions.
+  Seeding C from an observed wobble rather than an imagined one is strictly better evidence.
 
   **WHAT WOULD SEPARATE IT, and it is now the scheduled next instrument.** A fixture authored to
   land in the MEDIUM lane, as a MECHANISM-REACHABILITY test rather than a judgment test: the

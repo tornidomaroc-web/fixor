@@ -47,14 +47,21 @@
     "harnessCeilingRepeatedVerbatim": "n=5 catches stochasticity at 20% resolution. Zero FP at n=5 means \"no FP at this resolution,\" not \"calibrated.\""
   },
   "verdictLaneCensus": {
-    "note": "Read from the per-iteration verdict lines the harness prints under R2. This is the heaviest output of the run; see L-015.",
-    "vuln_high": 60,
-    "safe_low": 50,
-    "safe_high": 40,
-    "any_medium": 0,
-    "reviewQueueEvents": 0,
-    "consequence": "resolveMediumVerdict has never executed live. The review-queue lane, where the H7 double-silence mechanism lives, has no live evidence behind it at all.",
-    "scopeLimit": "This census covers admin-check only. Runs 30754480093 and 30769713479 were NOT censused; their artifacts are retained and the census is a free grep over them."
+    "note": "Read from the per-iteration verdict lines the harness prints under R2. Censused across ALL THREE paid runs, not just this one. This is the heaviest output of the run; see L-015.",
+    "perRun": [
+      { "runId": "30754480093", "corpus": "idor-tenant", "calls": 30, "vuln_high": 10, "safe_high": 6, "safe_low": 12, "safe_medium": 2, "vuln_medium": 0, "reviewQueueEvents": 0 },
+      { "runId": "30769713479", "corpus": "idor", "calls": 90, "vuln_high": 45, "safe_high": 17, "safe_low": 28, "safe_medium": 0, "vuln_medium": 0, "reviewQueueEvents": 0 },
+      { "runId": "30821994020", "corpus": "admin-check", "calls": 150, "vuln_high": 60, "safe_high": 40, "safe_low": 50, "safe_medium": 0, "vuln_medium": 0, "reviewQueueEvents": 0 }
+    ],
+    "totals": { "calls": 270, "vuln_high": 115, "safe_high": 63, "safe_low": 90, "safe_medium": 2, "vuln_medium": 0, "reviewQueueEvents": 0 },
+    "consequence": "resolveMediumVerdict has never executed live. It is reached only by isVulnerable:true AND confidence:medium, and there have been ZERO such verdicts in 270 calls. The review-queue lane, where the H7 double-silence mechanism lives, has no live evidence behind it.",
+    "precision": "The loose claim 'zero MEDIUM verdicts' is FALSE and was this item's first wording. MEDIUM confidence occurred twice, both safe/medium (isVulnerable:false), which returns empty for the ordinary reason and never touches the hook.",
+    "nearBoundaryFixture": {
+      "id": "idor-tenant/negative/02-express-prisma-membership.ts",
+      "observation": "Both of the only two MEDIUM verdicts in 270 calls fall on this one fixture, on runs 2/5 and 4/5. Its isVulnerable stayed 'safe' all five times, so it scored correctly-skipped 5/5 and contributed to the all-maximal record; only its confidence moved.",
+      "consequenceForL014": "Explanation (a), that the structured verdict is near-deterministic on fixture-shaped input, is too strong as stated. isVulnerable was stable across 270 calls; confidence, also a structured field, was not. The existing temperature-0 note draws the line between STRUCTURED and PROSE; the line actually runs between isVulnerable and confidence, both structured.",
+      "consequenceForC": "C need not be authored blind. This is an empirically located near-boundary input the model has already been observed to waver on under live conditions, which answers the 'debatable by construction' objection to an authored ambiguity fixture."
+    }
   },
   "cost": {
     "preRegisteredBandUsd": [1.15, 1.32],
