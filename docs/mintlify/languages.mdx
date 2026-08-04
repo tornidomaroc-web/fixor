@@ -54,13 +54,15 @@ halted for API budget — not a full-corpus sweep): 0 auth-bypass and
 of documented-limitation classes (see `detectors.mdx` for the four
 scope limitations). Phase F + Path-A structural follow-up (2026-05-23) lifted the cross-
 file verifier-helper class (c) and the non-HMAC shared-secret
-challenge class (d) from HIGH to MEDIUM/review-queue. Path A
+challenge class (d) from HIGH to MEDIUM. Path A
 switched the webhook detector to whole-file payload for App Router
 route-def triggers (matching auth-bypass / admin-check); both real
-inbox-zero routes — outlook/webhook and apple/webhook — now route
-to MEDIUM/review-queue with the verify*Payload name-convention
+inbox-zero routes — outlook/webhook and apple/webhook — are now
+judged MEDIUM with the verify*Payload name-convention
 recognized in the full file context. No remaining apple-shape
-residual.
+residual. Note that a MEDIUM verdict is discarded and never
+reported to you: see `detectors.mdx` under "How findings are
+produced".
 Remix v2 `loader` / `action` exports ARE now covered (Phase E,
 2026-05-23) for the same three route-shape detectors via a sibling
 `REMIX_HANDLER_DEF_RE` and an `isRemixRoutePath` path-aware filter

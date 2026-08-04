@@ -58,9 +58,10 @@ sample, including all measured `withAuth` / `withAdmin` / `withEmailAccount`
 / `withEmailProvider` / `withError` wrapper shapes. The body-
 discriminator rule generalized correctly to unfamiliar ApiKey-suffix
 wrappers in Phase D synthetic measurement (`withAccountApiKey`,
-`withStatsApiKey`); unfamiliar wrappers with no body enforcement
-surface at MEDIUM in the review queue, not as HIGH alerts in the
-main panel.
+`withStatsApiKey`); unfamiliar wrappers with no body enforcement are
+judged MEDIUM rather than HIGH, and a MEDIUM verdict is discarded
+rather than surfaced anywhere. See "How findings are produced" below:
+there is no review queue behind MEDIUM.
 
 Remix v2 `loader` / `action` exports ARE now covered (Phase E,
 2026-05-23): a sibling `REMIX_HANDLER_DEF_RE` matches
@@ -354,7 +355,8 @@ still hit the looser-comparison content patterns.
 routes that delegate verification to a helper imported from another
 module — e.g. `await verifyAppleNotificationPayload(body.signedPayload)`
 from `@/ee/billing/apple`. **Phase F + Path-A structural follow-up
-(2026-05-23) lifted this from HIGH to MEDIUM/review-queue.** Phase F's
+(2026-05-23) lifted this from HIGH to MEDIUM (and MEDIUM is
+discarded, not queued).** Phase F's
 first cut handled the case where the verifier import path was
 verification-suggesting (e.g., `@/utils/webhook/validate-webhook-
 account`) or the helper call sat within the ±8/+16 line window the
@@ -377,7 +379,8 @@ finding is a false positive in your codebase.
 Graph webhooks compare `notification.clientState` against an env-
 stored expected value and return 403 on mismatch — that IS
 verification, but it is shared-secret equality, not HMAC. **Phase
-F (2026-05-23) lifted this from HIGH to MEDIUM/review-queue.** The
+F (2026-05-23) lifted this from HIGH to MEDIUM (and MEDIUM is
+discarded, not queued).** The
 webhook prompt now recognizes the body-field-compare-against-env-
 value-with-unauthorized-status shape as the documented Microsoft-
 Graph subscription-validation pattern, routes it to MEDIUM (the env
@@ -385,7 +388,7 @@ value cannot be confirmed cross-file, which is why MEDIUM rather
 than LOW), and the LLM reasoning explicitly names the field, env
 value, and 403 response. Measured Phase F success: inbox-zero's
 Outlook (Microsoft Graph) webhook handler correctly dropped to
-MEDIUM/review-queue post-tune. Other shared-secret challenge
+MEDIUM post-tune, and therefore discarded. Other shared-secret challenge
 mechanisms (custom integrations, internal services) using the same
 body-field-compare-env-and-unauthorized-on-mismatch shape route the
 same way. Class (d) has no observed window-truncation residual in
@@ -393,9 +396,11 @@ the Phase F measurement: the compare happens close to the route
 declaration in the outlook real-world case.
 
 **MEDIUM-confidence findings on this detector** (timing-leak
-comparisons, env-flag-conditional bypass) are routed to the internal
-review queue, not posted as a PR-comment finding, matching the
-HIGH-only emit policy used by the other five detectors.
+comparisons, env-flag-conditional bypass) are discarded, not posted
+as a PR-comment finding, matching the HIGH-only emit policy used by
+the other five detectors. They are written to one server-side log
+line that nothing reads. There is no review queue behind that line,
+so a MEDIUM verdict on this detector reaches nobody.
 
 ## How findings are produced
 
@@ -420,8 +425,12 @@ Each detector follows the same two-stage pipeline:
    `high`/`medium`/`low` tier is the model's own self-reported
    confidence, not an externally calibrated or validated score. The
    emit policy is HIGH-only: only HIGH verdicts surface as PR-comment
-   findings, MEDIUM verdicts land in an internal review queue, and LOW
-   is dropped.
+   findings. MEDIUM and LOW verdicts are both discarded, and neither
+   reaches you. A MEDIUM verdict is written to a single server-side
+   application log line and nothing reads it: there is no review
+   queue, no dashboard view, no digest, no notification, and no
+   retained record you can query later. If the model judges your code
+   vulnerable at MEDIUM confidence, your report is silent about it.
 
 The driver of false-positive control is Claude reasoning per finding
 (for the five model-backed detectors), not a single tunable rate.

@@ -97,7 +97,7 @@ raw-verdict view are both captured.
 | Detector | Runs | isVulnerable | Confidence | Lane facts | Emitted? |
 |----------|------|--------------|------------|------------|----------|
 | idor | 6/6 (1 workflow + 5 direct) | true | **high** | callerAuth=unclear, opClass=user_resource (no deferral) | **YES - `idor_risk` every run** |
-| auth-bypass | 5/5 | true | medium | authPresent=no, opKind=general | no (MEDIUM → review-queue) |
+| auth-bypass | 5/5 | true | medium | authPresent=no, opKind=general | no (MEDIUM → discarded; no queue exists) |
 
 Conclusion: on the shipped path the anon-IDOR is reliably caught by `idor` (HIGH),
 not missed. The Phase-3 Engine-A zero could not be reproduced here on byte-identical
