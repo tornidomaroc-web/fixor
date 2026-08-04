@@ -52,6 +52,7 @@ import {
   snapshotLlmCoverage,
 } from "../../lib/llm-coverage";
 import { lfNormalize } from "../replay-harness";
+import { buildVerdictCensus, formatVerdictCensus } from "./verdict-census";
 
 /** Diagnostic shape every Phase 3-5 detector exposes via lastDiagnostics. */
 interface DetectorDiag {
@@ -655,12 +656,30 @@ export async function runStabilityHarness(
       `SYSTEM_PROMPT fingerprint: ${opts.systemPromptFingerprint}\n`,
     );
   }
+  // RECORDING (MEDIUM-lane fix, commit 1 of 2). Counts what the model ASSERTED,
+  // not what the detector emitted. Changes no DETECTION verdict: the positive,
+  // negative and aggregate gates below are computed exactly as before. It adds
+  // one INSTRUMENT-INTEGRITY failure, thrown after the report is printed so the
+  // evidence survives the throw, because a census that cannot account for every
+  // run must refuse to report rather than report a figure it cannot stand behind.
+  const census = buildVerdictCensus([...positives, ...negatives], nRuns);
+  process.stdout.write(formatVerdictCensus(census));
+
   process.stdout.write(
     `\nResolution caveat: n=${nRuns} catches stochasticity at ${Math.round(
       100 / nRuns,
     )}% resolution. ` +
       `Zero FP at n=${nRuns} means "no FP at this resolution," not "calibrated."\n`,
   );
+
+  if (!census.reconciled) {
+    throw new Error(
+      "VERDICT CENSUS DID NOT RECONCILE. This is an instrument failure, not a " +
+        "detection result; the run's pass/fail verdict cannot be trusted and is " +
+        "not reported.\n  - " +
+        census.reconciliationErrors.join("\n  - "),
+    );
+  }
 
   const hardGatePositives = positivesPassed >= positivesMinPassing;
   const hardGateNegatives = negativesPassed >= negativesMinPassing;
