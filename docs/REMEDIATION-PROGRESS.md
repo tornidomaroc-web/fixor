@@ -3060,11 +3060,28 @@ content contradicts is the defect class this tracker keeps correcting.
   the correction is recorded in the SECOND PAID RUN entry under "CORRECTION of the stopping
   condition".
 
-- **L-015 (OPEN; MEASURED; a property of the CORPUS-MODEL pairing, not a defect; NON-gating) -
+- **L-015 (FALSIFIED 2026-08-04; superseded, see the correction immediately below) -
   no naturally arising `isVulnerable:true @ medium` has ever occurred in the SHIPPED flag-off
   configuration across three corpora and 270 calls, so the silent review-queue path has never been
   taken by a real verdict. MEDIUM confidence itself HAS occurred, exactly twice, and both were
   `safe/medium`.**
+
+  **CORRECTION, 2026-08-04. The statement above is FALSE as of run `30903038957`** (env-exposure,
+  85 calls, MEASURED $0.6649). That run produced 15 naturally arising `isVulnerable:true @ medium`
+  verdicts in the SHIPPED flag-off configuration, unanimous 5/5 on three fixtures:
+  `positive/03-fastify-logs-env.ts`, `positive/11-redacted-diagnostics.js` and
+  `negative/03-fastify-redacted-logs.ts`. All 15 were discarded, with 15 matching
+  `medium-confidence verdict suppressed` log lines (1:1). The silent path HAS now been taken by real
+  verdicts, on the first corpus that reached it, with no authored boundary fixture required.
+  Consequences: (i) the two positives are suppression-induced FALSE NEGATIVES rather than judgment
+  misses, since the model asserted `isVulnerable` 5/5 on both; (ii) the negative scored
+  `correctly-skipped 5/5 PASS` while the model called it vulnerable on all five runs, so the gate
+  cannot distinguish a clean negative from a masked false positive, and more sampling would never
+  reveal it. **Runs `30754480093`, `30769713479` and `30821994020` are NOT retroactively
+  contaminated:** zero `vuln/medium` AND zero suppression log lines in all three, re-censused from
+  raw logs on 2026-08-04 and matching `docs/measurements/admin-check-stage3-2026-08-03.json` field
+  for field. The 2 `safe/medium` on `idor-tenant/negative/02` exit at the `!verdict.isVulnerable`
+  early return and never reach the suppression branch.
 
   **CORRECTION, 2026-08-03, of this item as first merged in #147.** It said `resolveMediumVerdict`
   "has never executed live" and that "the review-queue lane has no live evidence behind it", and
