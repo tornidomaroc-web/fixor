@@ -224,6 +224,68 @@ export function buildVerdictCensus(
   };
 }
 
+/**
+ * Per-fixture declarations of verdict classes that are EXPECTED on a negative.
+ * Keyed by fixture basename. The undeclared default is "the model must not
+ * assert isVulnerable"; an entry here is a narrow, evidenced exception.
+ *
+ * A declaration requires documentation that MEDIUM is the CORRECT outcome, with
+ * a reason. It is NOT earned by observation alone: a live run showing a wrong
+ * verdict documents that it OCCURRED, not that it is right, and treating
+ * occurrence as licence would let any false positive declare itself legitimate.
+ * That is declaring your way past a defect, which is the thing this whole
+ * mechanism exists to stop.
+ */
+export type NegativeExpectations = Record<string, readonly string[]>;
+
+export interface NegativeScore {
+  /** Runs where the model did not assert vulnerability, or asserted a declared class. */
+  cleanRuns: number;
+  totalRuns: number;
+  /** Runs where the model asserted a class this fixture does not declare. */
+  violations: number;
+  /** Runs excused by a declaration. Reported so an exception is never invisible. */
+  excused: number;
+  /** True when the fixture carries a declaration at all. */
+  declared: boolean;
+}
+
+/**
+ * Score one negative on ASSERTION rather than EMISSION.
+ *
+ * The old rule counted a run clean whenever the detector emitted nothing, which
+ * is a proxy: `env-exposure/negative/03` emitted nothing on all five runs while
+ * the model called it vulnerable on all five. Emission is what the suppression
+ * branch controls; assertion is what the model actually judged.
+ */
+export function scoreNegative(
+  fixtureFile: string,
+  runs: ReadonlyArray<{ verdict?: { isVulnerable: boolean; confidence: string } | null }>,
+  expectations: NegativeExpectations = {},
+): NegativeScore {
+  const allowed = expectations[fixtureFile];
+  let cleanRuns = 0;
+  let violations = 0;
+  let excused = 0;
+
+  for (const run of runs) {
+    const v = run.verdict;
+    if (!v || v.isVulnerable !== true) {
+      cleanRuns++;
+      continue;
+    }
+    const cls = `vuln/${String(v.confidence).toLowerCase()}`;
+    if (allowed?.includes(cls)) {
+      cleanRuns++;
+      excused++;
+    } else {
+      violations++;
+    }
+  }
+
+  return { cleanRuns, totalRuns: runs.length, violations, excused, declared: allowed !== undefined };
+}
+
 /** Render the census. Returns a string; the caller decides where it goes. */
 export function formatVerdictCensus(c: VerdictCensus): string {
   const lines: string[] = [];
