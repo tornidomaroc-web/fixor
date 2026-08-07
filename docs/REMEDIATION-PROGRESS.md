@@ -1505,11 +1505,30 @@ the READY gate, which is still F-004 alone.
   | `webhook-unverified` | $1.10-$1.26 | **WITHDRAWN, unrun** |
   | `auth-bypass` | $1.40-$1.61 | **WITHDRAWN, unrun** |
 
-  **DO NOT QUOTE THE WITHDRAWN BANDS.** Until a replacement model exists, the defensible predictor
+  **DO NOT QUOTE THE WITHDRAWN BANDS.** Until a replacement model exists, the least-bad predictor
   for the two unrun detectors is the flat constant $0.00828/call: `webhook-unverified` 170 calls
-  → **~$1.41**, `auth-bypass` 185 calls → **~$1.53**. State those, and state that they are a flat
-  constant with a demonstrated ±3.5% error on long-prompt detectors and no validated behaviour on
-  short-prompt ones.
+  → point **~$1.41**, `auth-bypass` 185 calls → point **~$1.53**.
+
+  **AND QUOTE ITS REAL ERROR, WHICH IS NOT ±3.5%.** This entry said "±3.5%" when first written on
+  2026-08-07 and that was wrong within the hour. $0.00828 vs the four MEASURED per-call figures:
+
+  | run | calls | measured | actual $/call | flat constant is |
+  |---|---|---|---|---|
+  | `idor-tenant` | 30 | $0.2713 | $0.009043 | **8.4% under** |
+  | `idor` | 90 | $0.9204 | $0.010227 | **19.0% under** |
+  | `admin-check` | 150 | $1.2001 | $0.008001 | 3.5% over |
+  | `env-exposure` | 85 | $0.6649 | $0.007822 | 5.9% over |
+
+  Demonstrated range: **19.0% under to 5.9% over.** The "±3.5%" figure was admin-check's error
+  ALONE, and the −6.6/−2.5/−2.9% table above it belongs to the BIAS-CORRECTED model, not the flat
+  constant. Two different estimators' error figures were read as one. `idor` is the outlier and
+  plausibly for a structural reason — it batches multiple source/sink verdicts per call, so its
+  calls are heavier than the others' — but that is a hypothesis, not a measured decomposition.
+
+  **PRE-REGISTERED BAND FOR `webhook-unverified`, recorded BEFORE the run: $1.33-$1.74**, point
+  $1.45, from the observed per-call min ($0.007822) and max ($0.010227) across 170 calls. Ceiling
+  **$2.00**, not $1.50 — a ceiling set at the point estimate aborts a run that is merely at the
+  high end of the known error, which wastes the spend without learning anything.
 
   **WHAT THE FALSIFICATION ESTABLISHES, stated narrowly.** The bias-corrected calibration does not
   transfer across prompt size. It does NOT establish that the flat constant is correct — env-exposure

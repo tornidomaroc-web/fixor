@@ -104,9 +104,29 @@
       },
       "useInstead": {
         "predictor": "flat constant 0.00828 USD/call",
-        "webhook-unverified": 1.41,
-        "auth-bypass": 1.53,
-        "caveat": "The flat constant has a demonstrated +/-3.5% error on LONG-prompt detectors and NO validated behaviour on short-prompt ones. One falsifying point does not select among the models consistent with it; it only eliminates the bias-corrected calibration. A defensible estimator needs the cold/warm/per-process decomposition outstanding since #118, which costs $0 to build from retained ledger data."
+        "webhookUnverifiedPointUsd": 1.41,
+        "authBypassPointUsd": 1.53,
+        "measuredErrorOfThisConstant": {
+          "correctionNote": "This field first read '+/-3.5%' on 2026-08-07 and was WRONG. 3.5% was admin-check's error ALONE; the -6.6/-2.5/-2.9% table in the tracker belongs to the BIAS-CORRECTED model, not this constant. Two estimators' error figures were read as one.",
+          "perRun": [
+            { "run": "idor-tenant", "calls": 30, "measuredUsd": 0.2713, "actualPerCallUsd": 0.009043, "constantErrorPct": -8.4 },
+            { "run": "idor", "calls": 90, "measuredUsd": 0.9204, "actualPerCallUsd": 0.010227, "constantErrorPct": -19.0 },
+            { "run": "admin-check", "calls": 150, "measuredUsd": 1.2001, "actualPerCallUsd": 0.008001, "constantErrorPct": 3.5 },
+            { "run": "env-exposure", "calls": 85, "measuredUsd": 0.6649, "actualPerCallUsd": 0.007822, "constantErrorPct": 5.9 }
+          ],
+          "rangePct": [-19.0, 5.9],
+          "outlierHypothesis": "idor batches multiple source/sink verdicts per call, so its calls are heavier. HYPOTHESIS, not a measured decomposition."
+        },
+        "caveat": "One falsifying point eliminates the bias-corrected calibration; it does not select among the models consistent with it. A defensible estimator needs the cold/warm/per-process decomposition outstanding since #118, which costs $0 to build from retained ledger data."
+      },
+      "preRegisteredWebhookBand_2026_08_07": {
+        "recordedBeforeTheRun": true,
+        "detector": "webhook-unverified",
+        "callsAtN5": 170,
+        "bandUsd": [1.33, 1.74],
+        "pointUsd": 1.45,
+        "ceilingUsd": 2.0,
+        "derivation": "Observed per-call min 0.007822 (env-exposure) and max 0.010227 (idor) x 170 calls. Ceiling set ABOVE the band, not at the point: a ceiling at the point aborts a run merely at the high end of known error, wasting the spend without learning anything."
       }
     },
     "purpose": "Stated in advance so each subsequent run is a TEST of the estimator and not a rationalisation after the fact. A band quoted after the measurement is worthless.",
