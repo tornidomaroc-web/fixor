@@ -45,9 +45,9 @@ const EXPECTED_MEDIUM: Record<string, string[]> = {
   "auth-bypass-multi": [],
   "idor-multi": [],
   "env-exposure-multi": [
-    "negative/03-fastify-redacted-logs.ts",
     "positive/03-fastify-logs-env.ts",
     "positive/11-redacted-diagnostics.js",
+    "positive/12-fastify-redacted-logs.ts",
   ],
   "webhook-unverified-multi": [
     "negative/14-app-router-apple-cross-file-verifier-helper.ts",
@@ -101,8 +101,12 @@ for (const [corpus, expected] of Object.entries(EXPECTED_MEDIUM)) {
   );
   const e = recordedMediumFixtures(REPLAY_ROOT, "env-exposure-multi");
   check(
-    e.includes("negative/03-fastify-redacted-logs.ts"),
-    "env-exposure negative/03 is in the MEDIUM lane (masked FP: stays at default, must FAIL)",
+    e.includes("positive/12-fastify-redacted-logs.ts"),
+    "env-exposure positive/12 is in the MEDIUM lane (R6: was negative/03, a TRUE positive)",
+  );
+  check(
+    e.every((f) => f.startsWith("positive/")),
+    "env-exposure's MEDIUM lane is now ALL positives (zero masked negatives remain)",
   );
   check(
     recordedMediumFixtures(REPLAY_ROOT, "auth-bypass-multi").length === 0,

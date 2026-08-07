@@ -13,8 +13,10 @@
  *    workflow_dispatch a single-shot live run would look green while proving
  *    nothing about stability. It now samples n=5 per fixture.
  * 2. DECAYED THRESHOLDS. The old gate was POSITIVES_MIN 7, NEGATIVES_MIN 9,
- *    COMBINED_MIN 16, calibrated when this corpus was 10 and 10. It is now 11
- *    positives and 9 negatives. Aggregates are corpus-relative and all-passing.
+ *    COMBINED_MIN 16, calibrated when this corpus was 10 and 10. It was then
+ *    11 and 9; it is now 12 positives and 8 negatives (R6 #2, see the PORTFOLIO
+ *    note below). Aggregates are corpus-relative and all-passing, so they track
+ *    the corpus rather than decaying against it.
  * 3. MISREPORTED DENOMINATORS. The old summary printed a HARDCODED "/10" and
  *    "/20" while scanning the real directory, so with 11 positives it could
  *    print "Positives caught: 11/10". The harness prints real denominators.
@@ -23,12 +25,21 @@
  * (zero false-positive tolerance; false positives are what made F-001
  * ship-blocking). Aggregate: every fixture must clear its per-fixture bar.
  *
- * NOTE, and this is the strictest cell in the matrix: this corpus has only 9
- * negatives, and negativesMinPassing is all 9 at 5/5 each. A single flaky
+ * NOTE, and this is the strictest cell in the matrix: this corpus has only 8
+ * negatives, and negativesMinPassing is all 8 at 5/5 each. A single flaky
  * false positive on any one negative fails the whole detector. That is
  * deliberate and was adopted with eyes open. If this is the first thing to
  * fail on a live run, read it as a THRESHOLD result first, not automatically
  * as a detector regression, and re-sample before concluding either way.
+ *
+ * PORTFOLIO, post-R6: 12 positives / 8 negatives. `negative/03` became
+ * `positive/12` (see fixtures/env-exposure/META.md) after run 30903038957
+ * showed the model calling it vulnerable 5/5 with reasoning that is correct on
+ * the merits. It is the SECOND R6 move in this corpus; `positive/11` was
+ * `negative/07`. THREE positives now sit at the MEDIUM ceiling (03, 11, 12), so
+ * this gate cannot reach 12/12 while the confidence ladder discards MEDIUM.
+ * That is a stated, measured consequence of the emit policy, not a corpus
+ * defect and not a detector regression.
  *
  * SCOPE: this is a detection-quality gate, the only kind in this repo. It is
  * the opposite of the deterministic replay and prefilter gates, which verify
@@ -57,8 +68,8 @@ async function main(): Promise<void> {
     nRuns: 5,
     perPositiveThreshold: 4,
     perNegativeThreshold: 5,
-    positivesMinPassing: 11,
-    negativesMinPassing: 9,
+    positivesMinPassing: 12,
+    negativesMinPassing: 8,
     combinedMinPassing: 20,
     costPerLlmCallUsd: 0.00828,
     systemPromptFingerprint: SYSTEM_PROMPT_FINGERPRINT,

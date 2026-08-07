@@ -15,9 +15,20 @@
  *
  * IT IS A DEMONSTRATED PREDICTOR, ONCE. The env-exposure recordings name exactly
  * the three fixtures that paid run 30903038957 found in the MEDIUM lane:
- * `negative/03-fastify-redacted-logs.ts`, `positive/03-fastify-logs-env.ts`,
+ * `positive/12-fastify-redacted-logs.ts` (recorded as `negative/03` at the time
+ * of that run; R6-reclassified since), `positive/03-fastify-logs-env.ts`,
  * `positive/11-redacted-diagnostics.js`. That is one corpus of corroboration, not
  * a law, and this header is the place that says so.
+ *
+ * WHAT THE CENSUS FOUND ON ITS FIRST USE, recorded because it inverts the reason
+ * the module was written. The lane was expected to hold a mix of true positives
+ * and masked false positives. On inspection of the recorded REASONING - not the
+ * lane membership, which is all this module measures - all six MEDIUM entries
+ * across both corpora are true positives or correct uncertainties, and ZERO are
+ * false positives. The one entry believed to be the masked FP, env-exposure
+ * `negative/03`, was a mislabelled fixture; it is now `positive/12`. Lane
+ * membership is cheap and this module gives it away free; the reasoning behind
+ * an entry is where the finding was, and reading it is not automatable here.
  *
  * THE HONEST LIMIT, so it is not over-read. A recording is n=1. It proves a
  * verdict shape EXISTS for a fixture; it does NOT prove the shape recurs 5/5.

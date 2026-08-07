@@ -5,7 +5,7 @@
     "model": "claude-sonnet-4-6",
     "systemPromptFingerprint": "d2ca2f022d99",
     "recordedAtIso": "2026-07-04T08:28:35.819Z",
-    "sourceFixture": "negative/03-fastify-redacted-logs.ts",
+    "sourceFixture": "positive/12-fastify-redacted-logs.ts",
     "expectedFlagged": false
   },
   "request": {
