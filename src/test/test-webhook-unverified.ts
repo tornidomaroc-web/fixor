@@ -57,6 +57,19 @@ async function main(): Promise<void> {
     nRuns: 5,
     perPositiveThreshold: 4,
     perNegativeThreshold: 5,
+    // The ONLY two declared exceptions in the repo, and both are evidenced.
+    // fixtures/webhook-unverified/META.md step 3 specifies these negatives land
+    // at MEDIUM with isVulnerable true, and docs/detector-capabilities.md gives
+    // the reason: class (c)'s verifier implementation and class (d)'s env value
+    // both live cross-file and cannot be confirmed from the scanned file, so
+    // MEDIUM is the CORRECT epistemic state rather than an error. The recorded
+    // corpus confirms both against the shipping prompt fingerprint
+    // (test:recorded-medium-census). Every other negative in this repo stays at
+    // the default: the model must not assert isVulnerable at all.
+    negativeExpectations: {
+      "14-app-router-apple-cross-file-verifier-helper.ts": ["vuln/medium"],
+      "15-app-router-graph-clientstate-challenge.ts": ["vuln/medium"],
+    },
     positivesMinPassing: 17,
     negativesMinPassing: 18,
     combinedMinPassing: 35,

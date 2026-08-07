@@ -1,10 +1,31 @@
 # env-exposure fixtures
 
+## R6 reclassification #2 (2026-08-07): negative/03 → positive/12
+
+`negative/03-fastify-redacted-logs.ts` is now `positive/12-fastify-redacted-logs.ts`. **The LLM was right and the fixture was mislabeled.** This is the SECOND R6 case in this corpus, the same failure mode as `negative/07` → `positive/11` on Day 5.
+
+**The code.** `redactedEnv()` iterates the whole of `process.env` and redacts a hardcoded allowlist of exactly four keys (`DATABASE_URL`, `STRIPE_SECRET_KEY`, `ANTHROPIC_API_KEY`, `JWT_SECRET`). Everything else — `AWS_SECRET_ACCESS_KEY`, `GITHUB_TOKEN`, `REDIS_URL`, `SMTP_PASSWORD`, `SENTRY_DSN`, `CLOUDINARY_API_SECRET` — is returned in plaintext from `GET /api/health`, which is unauthenticated. That is a real vulnerability.
+
+**Where the authoring went wrong.** The fixture was built as the Fastify twin of `negative/06-logger-only-env.js`. It is not. `negative/06` does `logger.info({ env: process.env })` and then `res.json({ ok: true })` — the response body contains nothing from env, and it is correctly safe. `negative/03` does `return { ok: true, env: redactedEnv() }`. The env goes into the RESPONSE, through a separate and much weaker allowlist. The `logger: { redact: [...] }` block that makes it *look* like `negative/06` governs log output only and has no bearing on the returned object.
+
+**The description in this file was wrong about the code**, and that is what let it stand. It read *"env logged but routed through pino redact list (Category B — context)"*. The env is not only logged; it is returned.
+
+**The model applied the shipped rubric correctly — it did not get lucky.** The system prompt defines MEDIUM as *"Subset returned but includes potentially sensitive keys (DATABASE_URL, AUTH, KEY, SECRET, TOKEN patterns)"*, which is this fixture exactly. Its question 5 asks *"Is `process.env` passed only to a redacting logger (pino redact list, etc.) rather than to an HTTP response?"* — the precise distinction this file got backwards. The recorded reasoning names it: *"The Fastify logger's `redact` list is separate and only applies to log output — it does not protect the `redactedEnv()` return value."* `medium` was the specified answer for this shape, not a hedge.
+
+**Evidence.** Paid run `30903038957` (env-exposure, 85 calls): `isVulnerable:true @ medium`, unanimous 5/5. Recording `452869ba3d64…json`, fingerprint `d2ca2f022d99`.
+
+**Why it survived so long.** The confidence ladder discards MEDIUM, so the detector emitted nothing, and the old emission-based scorer counted "emitted nothing on a negative" as `correctly-skipped 5/5 PASS`. The suppression hid a corpus defect as well as a finding. No amount of extra sampling would have surfaced it; only reading the recorded reasoning did.
+
+**Key preservation, deliberate.** The `// ASSUMED-PATH:` header still reads `src/app/handlers/env-exposure/03-fastify-redacted-logs.ts` and the file body is byte-identical. The replay key hashes the prompt, the prompt path comes from that header, so the recording still matches and **no re-record was needed and nothing was spent**. `positive/11` still reads `07-…` for the same reason. Do not "tidy" these headers to match their filenames — doing so moves the key and forces a paid re-record.
+
+**Portfolio after this move: 12 positives + 8 negatives** (negatives keep their original numbers; 03 and 07 are now gaps, as intended). THREE positives sit at the MEDIUM ceiling — 03, 11, 12 — so `test:env-exposure` cannot reach 12/12 while the ladder discards MEDIUM.
+
 ## Day 5 audit notes (2026-05-15)
 
 - **R6 reclassification**: `negative/07-redacted-diagnostics.js` moved to `positive/11-redacted-diagnostics.js`. Original classification (negative — "the redaction pattern catches sensitive keys") was contradicted by the LLM's argument that the regex `KEY|SECRET|TOKEN|PASSWORD|DSN` misses common sensitive vars (`DATABASE_URL`, `MONGO_URI`, `REDIS_URL`, `AWS_SESSION_TOKEN` variants). LLM was right; fixture was mislabeled. See R6 in `docs/detector-test-rules.md`.
 - **Two medium-confidence ceiling cases identified**: positive/03-fastify-logs-env (logger module opacity) and positive/11-redacted-diagnostics (incomplete redaction regex). Both correctly identified as vulnerable by the LLM at MEDIUM confidence, suppressed by the detector's confidence ladder. Both are **logger-config sidecar candidates** (P0.5).
 - **Post-reclassification portfolio**: 11 positives + 9 negatives. 9/11 positives flag at HIGH (5/5 each); 2 at 0/5 due to medium-conf ceiling. 6 cognitive negatives + 3 R4 (no-pattern-match: /01, /02, /10). Aggregate harness PASS 18/20; cognitive accuracy 15/17 (excluding 3 R4 negatives that pre-filter SKIPped). Fingerprint `d2ca2f022d99`.
+  - **Superseded 2026-08-07 by R6 #2 above.** These Day-5 figures are kept as the dated record of what was believed then. Current portfolio is **12 positives + 8 negatives**, with 5 cognitive negatives + 3 R4, and three MEDIUM-ceiling positives rather than two.
 
 ## Positive (real vulnerabilities)
 - 01-debug-env-route.ts: GET /api/debug/env returns full process.env in JSON
@@ -18,11 +39,11 @@
 - 09-fastapi-runtime.py: FastAPI /internal/runtime returns dict(os.environ)
 - 10-go-env-dump.go: Go EnvDump handler iterates os.Environ and emits as JSON
 - 11-redacted-diagnostics.js: regex-redacts SECRET/KEY/TOKEN/PASSWORD/DSN before responding, BUT the redaction pattern misses common sensitive vars (DATABASE_URL, MONGO_URI, REDIS_URL). LLM flags at MEDIUM (calibration ceiling). **Reclassified from negative/07 on Day 5 per R6.** Logger-config sidecar candidate.
+- 12-fastify-redacted-logs.ts: unauthenticated `GET /api/health` returns `{ ok: true, env: redactedEnv() }`, where `redactedEnv()` redacts a hardcoded 4-key allowlist and returns every other env var in plaintext. The `logger: { redact: [...] }` block governs log output only and does not touch the response. LLM flags at MEDIUM (the rubric's own "subset returned but includes potentially sensitive keys" band). **Reclassified from negative/03 on 2026-08-07 per R6 — see the section at the top of this file.**
 
 ## Negative (looks similar, actually safe)
 - 01-admin-env-gated.ts: /admin/env requires admin AND production check, returns subset (Category B — context)
 - 02-public-config.ts: /api/config returns hand-picked typed PublicConfig (Category B — context)
-- 03-fastify-redacted-logs.ts: env logged but routed through pino redact list (Category B — context)
 - 04-dev-env-keys-only.ts: dev route returns env KEYS only, 404 in prod (Category B — context)
 - 05-healthz-specific-fields.js: /healthz returns only region/version/uptime (Category B — context)
 - 06-logger-only-env.js: process.env passed only to redacting logger, not response (Category B — context)

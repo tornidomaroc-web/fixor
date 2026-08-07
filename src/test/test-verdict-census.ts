@@ -31,6 +31,7 @@
 import {
   buildVerdictCensus,
   formatVerdictCensus,
+  scoreNegative,
   VERDICT_CLASSES,
 } from "./lib/verdict-census";
 import type { FixtureStability } from "./lib/stability-harness";
@@ -101,8 +102,14 @@ function runsOf(n: number, flagged: boolean, verdict: Verdict) {
     ...Array.from({ length: 5 }, (_, i) =>
       fixture(`negative/n${i}.ts`, false, runsOf(5, false, v(false, "low"))),
     ),
-    // 1 negative the model called vulnerable at medium, suppressed (5 runs)
-    fixture("negative/03-fastify-redacted-logs.ts", false, runsOf(5, false, v(true, "medium"))),
+    // 1 negative the model called vulnerable at medium, suppressed (5 runs).
+    // SYNTHETIC. This case was named after env-exposure/negative/03 until that
+    // fixture was found to be a mislabelled POSITIVE (R6; it is now
+    // positive/12). No masked negative exists in any real corpus today, so this
+    // guard is exercised only by constructed input - which is the correct state
+    // for a guard against a defect we do not currently have, but it must not be
+    // read as corpus-validated.
+    fixture("negative/n-masked.ts", false, runsOf(5, false, v(true, "medium"))),
   ];
 
   const c = buildVerdictCensus(fixtures, 5);
@@ -121,8 +128,8 @@ function runsOf(n: number, flagged: boolean, verdict: Verdict) {
     `exactly 1 masked negative (got ${c.maskedNegatives.length})`,
   );
   check(
-    c.maskedNegatives[0]?.file === "negative/03-fastify-redacted-logs.ts",
-    "the masked negative is negative/03",
+    c.maskedNegatives[0]?.file === "negative/n-masked.ts",
+    "the masked negative is the synthetic n-masked fixture",
   );
   check(
     c.maskedNegatives[0]?.assertedRuns === 5,
@@ -241,6 +248,76 @@ function runsOf(n: number, flagged: boolean, verdict: Verdict) {
   check(
     formatVerdictCensus(c).includes("Every negative's clean pass is backed by a safe verdict"),
     "the clean-corpus census says so explicitly",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Case 7: scoring on ASSERTION, not EMISSION. This is the whole fix.
+// ---------------------------------------------------------------------------
+{
+  // The shape that motivated the whole scoring change: emitted nothing 5/5,
+  // asserted vulnerable 5/5. Observed live on env-exposure/negative/03 in run
+  // 30903038957 - where it turned out to mean the FIXTURE was mislabelled
+  // (R6, now positive/12), not that the model was wrong. Either way the OLD
+  // proxy scored it a clean 5/5 PASS and could not tell the two apart, which
+  // is exactly what this asserts.
+  const runs = runsOf(5, false, v(true, "medium"));
+
+  // The OLD proxy: nRuns - flaggedCount === 5, so it scored correctly-skipped 5/5 PASS.
+  const oldProxyClean = runs.length - runs.filter((r) => r.flagged).length;
+  check(oldProxyClean === 5, "the OLD emission proxy would have scored this 5/5 clean");
+
+  const s = scoreNegative("n-masked.ts", runs, {});
+  check(s.cleanRuns === 0, `undeclared negative asserting vulnerable: clean 0/5 (got ${s.cleanRuns})`);
+  check(s.violations === 5, `all 5 runs counted as violations (got ${s.violations})`);
+  check(s.excused === 0, "nothing excused without a declaration");
+  check(!s.declared, "fixture carries no declaration");
+}
+
+// ---------------------------------------------------------------------------
+// Case 8: a DECLARED negative asserting its declared class passes, and the
+// excusal is visible rather than silent.
+// ---------------------------------------------------------------------------
+{
+  const s = scoreNegative(
+    "14-app-router-apple-cross-file-verifier-helper.ts",
+    runsOf(5, false, v(true, "medium")),
+    { "14-app-router-apple-cross-file-verifier-helper.ts": ["vuln/medium"] },
+  );
+  check(s.cleanRuns === 5, `declared MEDIUM negative: clean 5/5 (got ${s.cleanRuns})`);
+  check(s.violations === 0, "no violations when the asserted class is declared");
+  check(s.excused === 5, `all 5 runs reported as excused (got ${s.excused})`);
+  check(s.declared, "fixture is marked as carrying a declaration");
+}
+
+// ---------------------------------------------------------------------------
+// Case 9: NEGATIVE CONTROL for the declaration. A declaration is NARROW: it
+// excuses the class it names and nothing else. Weakening the lookup to "is this
+// fixture declared at all" makes this case fail and no other.
+// ---------------------------------------------------------------------------
+{
+  const s = scoreNegative(
+    "14-app-router-apple-cross-file-verifier-helper.ts",
+    runsOf(5, false, v(true, "high")), // HIGH, not the declared MEDIUM
+    { "14-app-router-apple-cross-file-verifier-helper.ts": ["vuln/medium"] },
+  );
+  check(
+    s.violations === 5,
+    `a declared fixture asserting an UNDECLARED class still violates (got ${s.violations})`,
+  );
+  check(s.cleanRuns === 0, "a MEDIUM declaration does not excuse a HIGH assertion");
+  check(s.excused === 0, "nothing excused when the class does not match");
+}
+
+// ---------------------------------------------------------------------------
+// Case 10: a genuinely safe negative is clean with or without a declaration.
+// ---------------------------------------------------------------------------
+{
+  const safe = runsOf(5, false, v(false, "low"));
+  check(scoreNegative("n.ts", safe, {}).cleanRuns === 5, "safe/low negative: clean 5/5 undeclared");
+  check(
+    scoreNegative("n.ts", safe, { "n.ts": ["vuln/medium"] }).excused === 0,
+    "a declaration excuses nothing when the model never asserted",
   );
 }
 

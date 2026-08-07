@@ -52,7 +52,12 @@ import {
   snapshotLlmCoverage,
 } from "../../lib/llm-coverage";
 import { lfNormalize } from "../replay-harness";
-import { buildVerdictCensus, formatVerdictCensus } from "./verdict-census";
+import {
+  buildVerdictCensus,
+  formatVerdictCensus,
+  scoreNegative,
+  type NegativeExpectations,
+} from "./verdict-census";
 
 /** Diagnostic shape every Phase 3-5 detector exposes via lastDiagnostics. */
 interface DetectorDiag {
@@ -236,6 +241,15 @@ export interface HarnessOptions {
   perPositiveThreshold?: number;
   /** Per-fixture stability threshold for negatives (correctly-skipped == K of N). Default nRuns. */
   perNegativeThreshold?: number;
+  /**
+   * Narrow, evidenced exceptions to the negative default. Keyed by fixture
+   * basename; the value lists verdict classes that are EXPECTED on that
+   * negative. Undeclared negatives require the model not to assert
+   * isVulnerable at all. Declare only where a tracked spec documents that the
+   * class is CORRECT there and says why (deciding evidence genuinely
+   * cross-file), never merely because a run was observed producing it.
+   */
+  negativeExpectations?: NegativeExpectations;
   /** Aggregate: at least this many positives must hit per-fixture threshold. Default = all positives. */
   positivesMinPassing?: number;
   /** Aggregate: at least this many negatives must hit per-fixture threshold. Default = all negatives. */
@@ -553,19 +567,41 @@ export async function runStabilityHarness(
   for (const r of positives) {
     const ok = r.flaggedCount >= perPositiveThreshold;
     if (ok) positivesPassed++;
+    // A positive that the model DID call vulnerable but that emitted nothing is
+    // a suppression-induced false negative, not a judgment miss. It still FAILS,
+    // because the shipped path reported nothing to the customer, but it is
+    // labelled so nobody "repairs" it by editing a prompt (R8, R11).
+    const suppressed = r.runs.filter(
+      (x) => x.verdict?.isVulnerable === true && !x.flagged,
+    ).length;
     process.stdout.write(
-      `  pos ${r.file}: flagged ${r.flaggedCount}/${nRuns} ` +
-        `${ok ? "PASS" : "FAIL"}\n`,
+      `  pos ${r.file}: flagged ${r.flaggedCount}/${nRuns} ${ok ? "PASS" : "FAIL"}` +
+        (!ok && suppressed > 0
+          ? `  [DETECTED-BUT-SUPPRESSED on ${suppressed}/${nRuns}: model asserted ` +
+            "vulnerable, emit policy discarded it. NOT a detection miss]"
+          : "") +
+        "\n",
     );
   }
+  // SCORED ON ASSERTION, NOT EMISSION. A negative used to count clean whenever
+  // the detector emitted nothing, which is a proxy: env-exposure/negative/03
+  // emitted nothing on all five runs while the model called it vulnerable on all
+  // five, and it scored correctly-skipped 5/5 PASS. Emission is what the MEDIUM
+  // suppression branch controls; assertion is what the model actually judged.
+  // A fixture may declare an expected class via negativeExpectations, but only
+  // on documented evidence that MEDIUM is CORRECT there, never on observation.
   let negativesPassed = 0;
   for (const r of negatives) {
-    const correctlySkipped = nRuns - r.flaggedCount;
-    const ok = correctlySkipped >= perNegativeThreshold;
+    const s = scoreNegative(r.file, r.runs, opts.negativeExpectations);
+    const ok = s.cleanRuns >= perNegativeThreshold;
     if (ok) negativesPassed++;
     process.stdout.write(
-      `  neg ${r.file}: correctly-skipped ${correctlySkipped}/${nRuns} ` +
-        `${ok ? "PASS" : "FAIL"}\n`,
+      `  neg ${r.file}: clean ${s.cleanRuns}/${nRuns} ${ok ? "PASS" : "FAIL"}` +
+        (s.violations > 0
+          ? `  [${s.violations} run(s) ASSERTED VULNERABLE, undeclared: masked FP]`
+          : "") +
+        (s.excused > 0 ? `  [${s.excused} excused by declaration]` : "") +
+        "\n",
     );
   }
 
