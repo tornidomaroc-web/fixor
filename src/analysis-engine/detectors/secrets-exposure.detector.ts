@@ -3,9 +3,11 @@
  *
  * Mirrors the auth-bypass detector architecture (Phase 3): path/import +
  * regex pre-filter, then per-file LLM call via callClaude with a tool
- * that enforces the verdict JSON shape. Only HIGH-confidence verdicts
- * are emitted as findings; MEDIUM is logged via logger.warn for offline
- * review; LOW is dropped silently.
+ * that enforces the verdict JSON shape. HIGH
+ * and MEDIUM verdicts are both emitted as findings, carrying the model's
+ * own confidence; LOW is dropped silently. MEDIUM used to be discarded to
+ * a logger.warn nothing consumed — the emit-policy decision of 2026-08-07
+ * ended that. Severity is unchanged by confidence.
  *
  * Filter order (must match auth-bypass):
  *   1. shouldSkipPath  (drops fixtures/, tests/, scripts/, migrations/, ...)
@@ -577,6 +579,13 @@ export class SecretsExposureDetector implements Detector {
       this.lastDiagnostics.push(diag);
       return [];
     }
+    // The confidence the FINDING carries. A HIGH verdict, and a MEDIUM that
+    // escalation promoted, emit as "high". An unescalated MEDIUM now emits as
+    // "medium" instead of being discarded — the emit-policy decision of
+    // 2026-08-07. Severity is unchanged: it answers "how bad if real", while
+    // confidence answers "is it real", and only the latter is in doubt here.
+    let emitConfidence: "high" | "medium" = "high";
+
     if (verdict.confidence === "medium") {
       // H8: route the MEDIUM through the shared verdict-layer escalation.
       // Flag OFF (default) → resolveMediumVerdict returns "review-queue"
@@ -589,35 +598,42 @@ export class SecretsExposureDetector implements Detector {
         originalReasoning: verdict.reasoning,
         wholeFileContent: content,
       });
-      if (escalation !== "emit-high") {
-        if (escalation === "review-queue") {
-          logger.warn(
-            {
-              category: "secrets-exposure-review-queue",
-              file: filePath,
-              line: trigger.line,
-              pattern: trigger.patternText,
-              reasoning: verdict.reasoning,
-            },
-            "secrets-exposure: medium-confidence verdict suppressed",
-          );
-        }
-        // "drop": escalation cleared it — silent, like LOW.
+      if (escalation === "drop") {
+        // Escalation ADJUDICATED it clear. Reachable only with the flag ON; an
+        // explicit clear still drops silently, like LOW. This is the one path
+        // that still discards a MEDIUM, and it does so on a positive decision
+        // rather than on the absence of one.
         this.lastDiagnostics.push(diag);
         return [];
       }
-      // "emit-high": escalation promoted the MEDIUM — fall through to the
-      // HIGH-emit path below.
-      logger.warn(
-        {
-          category: "secrets-exposure-escalation-promoted",
-          file: filePath,
-          line: trigger.line,
-          pattern: trigger.patternText,
-          reasoning: verdict.reasoning,
-        },
-        "secrets-exposure: medium-confidence verdict promoted to HIGH by escalation",
-      );
+      if (escalation !== "emit-high") {
+        // "review-queue". With escalation OFF — the shipped configuration —
+        // this is EVERY naturally arising MEDIUM. It used to return [] and
+        // write a log line nothing consumed. It now emits, at the model's own
+        // confidence, so the customer sees both the finding and the doubt.
+        emitConfidence = "medium";
+        logger.warn(
+          {
+            category: "secrets-exposure-medium-emitted",
+            file: filePath,
+            line: trigger.line,
+            pattern: trigger.patternText,
+            reasoning: verdict.reasoning,
+          },
+          "secrets-exposure: medium-confidence verdict emitted at MEDIUM confidence",
+        );
+      } else {
+        logger.warn(
+          {
+            category: "secrets-exposure-escalation-promoted",
+            file: filePath,
+            line: trigger.line,
+            pattern: trigger.patternText,
+            reasoning: verdict.reasoning,
+          },
+          "secrets-exposure: medium-confidence verdict promoted to HIGH by escalation",
+        );
+      }
     }
 
     diag.flagged = true;
@@ -635,7 +651,7 @@ export class SecretsExposureDetector implements Detector {
         ruleId: `secrets-exposure-${trigger.patternId}`,
         message: verdict.reasoning,
         explanation: verdict.reasoning,
-        confidence: "high",
+        confidence: emitConfidence,
         severity: "critical",
       },
     ];

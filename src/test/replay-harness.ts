@@ -244,14 +244,24 @@ export function flaggedOutcome(): OutcomeAssertion {
 /**
  * MEDIUM/review-queue verdict-lane assertion (webhook-unverified 14/15 anchor).
  *
- * WHY THIS READS THE DIAGNOSTIC, NOT THE FINDING: with escalation off (the
- * only record/replay mode, enforced by assertEscalationUnset), a MEDIUM verdict
- * routes to "review-queue" and the detector returns [] - byte-identical to LOW
- * and to drop - and any emitted finding is hard-coded confidence:"high". So the
- * lane is invisible in `findings`; it lives ONLY on
- * `detector.lastDiagnostics[0].verdict`. Each fixture is a single-file synthetic
- * diff (positiveNegativeLayout builds one file), so exactly one diagnostic is
- * pushed and lastDiagnostics[0] is unambiguous.
+ * WHY THIS READS THE DIAGNOSTIC, NOT THE FINDING. The original reason was that
+ * a MEDIUM returned [] - byte-identical to LOW and to drop - and any emitted
+ * finding was hard-coded confidence:"high", so the lane was INVISIBLE in
+ * `findings`. That reason expired on 2026-08-07: a MEDIUM now emits carrying
+ * confidence:"medium", so the lane IS visible in findings.
+ *
+ * THE ASSERTION IS KEPT ON THE DIAGNOSTIC ANYWAY, and this is deliberate. What
+ * this lane pins is what the MODEL SAID - isVulnerable:true at confidence
+ * medium - which is a fact about the recorded verdict and must not drift when
+ * the emit policy changes. Asserting it through `findings` would couple a
+ * verdict-lane contract to the emit policy, so a future policy change would
+ * silently rewrite what the lane means. It stayed correct across THIS policy
+ * change precisely because it does not read findings, which is the argument for
+ * leaving it alone.
+ *
+ * Each fixture is a single-file synthetic diff (positiveNegativeLayout builds
+ * one file), so exactly one diagnostic is pushed and lastDiagnostics[0] is
+ * unambiguous.
  *
  * The expected lane is read from the SAME source the recorder uses (the spec's
  * expectedLane); this factory is closed over that accessor and dispatched by the

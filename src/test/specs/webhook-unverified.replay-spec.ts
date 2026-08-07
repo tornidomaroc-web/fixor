@@ -21,11 +21,15 @@
  * positive). Negatives 14 and 15 are the Phase F locked anchors. positive/10
  * joins them for a DIFFERENT reason: it verifies the HMAC but compares it with a
  * non-constant-time equality (a timing side-channel the model stably rates
- * MEDIUM, unlike the no-verification positives that flag HIGH). With escalation
- * off (the record/replay mode), that MEDIUM routes to "review-queue" and the
- * detector returns [], so all three are expectedFlagged:false; the lane is
- * asserted separately on the diagnostic verdict via verdictLaneOutcome. The two
- * positive anchors (14/15) must FLAG.
+ * MEDIUM, unlike the no-verification positives that flag HIGH).
+ *
+ * SINCE 2026-08-07 a MEDIUM EMITS, carrying confidence:"medium", so all three
+ * now flag. Their expectedFlagged entries below moved false -> true to match.
+ * That value is read ONLY by the record path (recordOne); at replay these three
+ * dispatch to verdictLaneOutcome, which asserts the recorded VERDICT and is
+ * untouched by the emit policy. The move keeps the record path truthful for any
+ * future re-record rather than changing what the gate checks today.
+ * The two positive anchors (14/15) must FLAG.
  */
 
 import {
@@ -48,9 +52,12 @@ const REPLAY_DIR = "fixtures/replay/webhook-unverified-multi";
 
 /**
  * Expected END-TO-END flagged outcome per model-reaching fixture. Positives
- * flag (incl. the 14/15 HIGH anchors); negatives do not. Negatives 14/15 are
- * flagged:false because their MEDIUM verdict routes to review-queue (returns [])
- * with escalation off - their lane is pinned separately below.
+ * flag (incl. the 14/15 HIGH anchors). Negatives do not - EXCEPT 14/15, whose
+ * MEDIUM verdict now emits at confidence:"medium" (2026-08-07 emit policy).
+ * They are the two DECLARED negatives: the verifier and the env value live
+ * cross-file and cannot be confirmed from the scanned file, so MEDIUM is the
+ * correct epistemic state and emitting it tells the customer the truth about
+ * what the tool could and could not see. Their lane is pinned separately below.
  */
 const EXPECTED_FLAGGED: Record<string, boolean> = {
   // --- positives (real vulnerabilities): all FLAG ---
@@ -63,9 +70,9 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   "positive/07-flask-stripe-no-sig.py": true,
   "positive/08-flask-github-no-sig.py": true,
   "positive/09-go-stripe-no-hmac.go": true,
-  // MEDIUM/review-queue -> [] (verifies HMAC but non-constant-time compare;
+  // MEDIUM, emitted at medium (verifies HMAC but non-constant-time compare;
   // lane pinned in EXPECTED_LANE below), so flagged:false is its correct class.
-  "positive/10-go-github-eq-compare.go": false,
+  "positive/10-go-github-eq-compare.go": true, // MEDIUM, emitted at medium since 2026-08-07
   "positive/11-app-router-stripe-no-sig.ts": true,
   "positive/12-app-router-lemon-diy-hmac-stub.ts": true,
   "positive/13-app-router-custom-url-sig-header-no-verify.ts": true,
@@ -87,8 +94,8 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   "negative/11-app-router-cache-key-hashing.ts": false,
   "negative/12-app-router-stripe-construct-event-proper.ts": false,
   "negative/13-app-router-content-addressed-storage.ts": false,
-  "negative/14-app-router-apple-cross-file-verifier-helper.ts": false, // MEDIUM/review-queue -> []
-  "negative/15-app-router-graph-clientstate-challenge.ts": false, // MEDIUM/review-queue -> []
+  "negative/14-app-router-apple-cross-file-verifier-helper.ts": true, // MEDIUM, emitted at medium since 2026-08-07
+  "negative/15-app-router-graph-clientstate-challenge.ts": true, // MEDIUM, emitted at medium since 2026-08-07
   "negative/16-remix-action-stripe-construct-event.ts": false,
   "negative/17-remix-action-github-timing-safe-equal.ts": false,
 };
@@ -104,9 +111,11 @@ const EXPECTED_LANE: Record<string, ExpectedLane> = {
   // Filed under positive/ but its recorded verdict is MEDIUM, not HIGH: unlike
   // the no-verification positives, 10-go-github-eq-compare.go DOES verify the
   // HMAC and only compares it with a non-constant-time `!=` (a timing side-
-  // channel), which the model stably rates MEDIUM -> review-queue -> [] (never
-  // HIGH). So it is pinned to the review-queue lane, same contract as 14/15,
-  // rather than expected to flag.
+  // channel), which the model stably rates MEDIUM (never HIGH). It is pinned
+  // to the MEDIUM lane, same contract as 14/15. Since 2026-08-07 it also FLAGS,
+  // at confidence:"medium" - it is a real timing leak the ladder used to throw
+  // away, and it is the fixture that made this detector's 17/17 gate
+  // unsatisfiable while MEDIUM was discarded.
   "positive/10-go-github-eq-compare.go": {
     isVulnerable: true,
     confidence: "medium",

@@ -23,12 +23,18 @@
  * ship-blocking). Aggregate: every fixture must clear its per-fixture bar.
  *
  * KNOWN TENSION worth watching on the first live run: this detector owns the
- * MEDIUM/review-queue lane anchors (negatives 14 and 15), which the replay
- * spec pins via a verdict-lane assertion. The stability harness classifies on
- * `flagged` alone and has no lane concept, so a negative that lands MEDIUM and
- * is routed to review-queue counts here as correctly-skipped. This gate
- * therefore does NOT protect the lane contract; `test:replay-webhook-unverified`
+ * MEDIUM lane anchors (negatives 14 and 15), which the replay spec pins via a
+ * verdict-lane assertion. The stability harness has no lane concept, so this
+ * gate does NOT protect the lane contract; `test:replay-webhook-unverified`
  * does. Do not read a green run here as lane coverage.
+ *
+ * UPDATED 2026-08-07. The old wording said a negative landing MEDIUM "is
+ * routed to review-queue" and "counts here as correctly-skipped". Both halves
+ * are now wrong. A MEDIUM EMITS, so 14/15 produce findings; and negatives are
+ * scored on ASSERTION, not emission, so they count clean only because they are
+ * the two DECLARED exceptions. An UNDECLARED negative that asserts vulnerable
+ * now fails whether or not it emits - which is the whole point of the
+ * assertion-based scorer.
  *
  * SCOPE: this is a detection-quality gate, the only kind in this repo. It is
  * the opposite of the deterministic replay and prefilter gates, which verify
