@@ -1493,6 +1493,38 @@ the READY gate, which is still F-004 alone.
   defensible model. If it lands near $0.70, the calibration does NOT transfer on prompt size and
   must be withdrawn for the other two.
 
+  **RESULT, 2026-08-07: THE BAND WAS FALSIFIED AND THE CALIBRATION IS HEREBY WITHDRAWN.** Run
+  `30903038957` measured **$0.6649** against a pre-registered band of **$0.43-$0.50**. That is 33%
+  above the band ceiling, 45% above the $0.46 point estimate, and within 5% of the flat constant's
+  $0.70. The pre-registration named this outcome in advance and named its consequence; the
+  consequence is now executed rather than merely stated.
+
+  | detector | pre-registered band | outcome |
+  |---|---|---|
+  | `env-exposure` | $0.43-$0.50 | **MEASURED $0.6649 — OUTSIDE, high** |
+  | `webhook-unverified` | $1.10-$1.26 | **WITHDRAWN, unrun** |
+  | `auth-bypass` | $1.40-$1.61 | **WITHDRAWN, unrun** |
+
+  **DO NOT QUOTE THE WITHDRAWN BANDS.** Until a replacement model exists, the defensible predictor
+  for the two unrun detectors is the flat constant $0.00828/call: `webhook-unverified` 170 calls
+  → **~$1.41**, `auth-bypass` 185 calls → **~$1.53**. State those, and state that they are a flat
+  constant with a demonstrated ±3.5% error on long-prompt detectors and no validated behaviour on
+  short-prompt ones.
+
+  **WHAT THE FALSIFICATION ESTABLISHES, stated narrowly.** The bias-corrected calibration does not
+  transfer across prompt size. It does NOT establish that the flat constant is correct — env-exposure
+  landing near $0.70 is consistent with the flat constant AND with several other models, and one
+  point does not select among them. The cold/warm/per-process decomposition this file has wanted
+  since #118 remains unbuilt and is now the only route to a defensible estimator. Cost to build it:
+  $0 — it is a re-analysis of ledger data already retained from four paid runs, not a new
+  measurement.
+
+  **THIS ENTRY EXISTS BECAUSE THE CONSEQUENCE WAS NEARLY LOST.** The run happened on 2026-08-04, the
+  rule fired, and nothing was written down; the tracker carried two live bands its own decision rule
+  had already retired for three days. A pre-registration that is not resolved in writing decays into
+  a rationalisation, which is the exact failure it was adopted to prevent. Resolve the band in the
+  same beat as the run.
+
   **WHAT THIS RUN DOES NOT DO.** It does not lift F-004, which gates on all six detectors; three
   have now run live. It does not make admin-check calibrated — R3 forbids that inference and the
   harness printed its own ceiling again: *zero FP at n=5 means "no FP at this resolution," not
@@ -3082,6 +3114,44 @@ content contradicts is the defect class this tracker keeps correcting.
   raw logs on 2026-08-04 and matching `docs/measurements/admin-check-stage3-2026-08-03.json` field
   for field. The 2 `safe/medium` on `idor-tenant/negative/02` exit at the `!verdict.isVulnerable`
   early return and never reach the suppression branch.
+
+  **CORRECTION, 2026-08-07, to consequence (ii) above. The model was right and the FIXTURE was
+  wrong.** (ii) called `negative/03-fastify-redacted-logs.ts` a masked FALSE positive. It is a
+  masked **TRUE** positive. `redactedEnv()` iterates the whole of `process.env`, redacts a
+  hardcoded four-key allowlist, and returns every other variable in plaintext from an
+  unauthenticated `GET /api/health`; the `logger: { redact: [...] }` block that makes it look like
+  the safe `negative/06` governs log output only and does not touch the returned object. The
+  fixture is now `positive/12-fastify-redacted-logs.ts` under R6 — the SECOND R6 case in this
+  corpus, identical in shape to `negative/07` → `positive/11` on Day 5. Case and evidence in
+  `fixtures/env-exposure/META.md`.
+
+  **The model applied the shipped rubric, it did not get lucky.** The system prompt defines MEDIUM
+  as *"Subset returned but includes potentially sensitive keys"*, which is this fixture exactly, and
+  its question 5 asks whether env is passed *"only to a redacting logger ... rather than to an HTTP
+  response"* — the precise distinction the fixture's own description got backwards. `medium` was the
+  specified answer for this input shape.
+
+  **WHAT SURVIVES UNCHANGED, and it is the load-bearing half.** Consequence (i) stands. The scoring
+  defect stands and is worse than stated: emission-based scoring gave this fixture
+  `correctly-skipped 5/5 PASS` and thereby concealed *two* defects at once — the suppression AND a
+  corpus mislabel — which is a stronger argument for scoring on assertion, not a weaker one. The
+  gate still could not distinguish a clean negative from a masked assertion; that was always the
+  finding, and "masked false positive" was a guess about WHICH kind of masking, made without reading
+  the recorded reasoning.
+
+  **CONSEQUENCE FOR THE MEDIUM LANE AS A WHOLE.** Reading all six recorded MEDIUM entries across
+  both corpora (`npm run test:recorded-medium-census`, keyless): four true positives
+  (env-exposure 03, 11, 12; webhook positive/10) and two correct uncertainties (webhook negatives
+  14/15, both cross-file-unconfirmable and both already documented as correct), and **zero false
+  positives**. The premise the suppression rested on — that the lane is a mix worth hiding — has no
+  support in the only evidence held. Its measured price is four real vulnerabilities hidden to
+  conceal none.
+
+  **METHOD NOTE, because this is the reusable part.** The census measures lane MEMBERSHIP, which is
+  cheap and automatable. The finding was in the recorded REASONING, which is neither. Membership
+  said "three env-exposure fixtures are MEDIUM" and was correct; the characterisation of what those
+  three WERE came from assumption until someone opened the JSON. Cite lane membership from the
+  census; never cite a verdict's correctness without reading it.
 
   **CORRECTION, 2026-08-03, of this item as first merged in #147.** It said `resolveMediumVerdict`
   "has never executed live" and that "the review-queue lane has no live evidence behind it", and

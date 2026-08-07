@@ -90,6 +90,25 @@
   },
   "preRegisteredRemaining": {
     "recordedBeforeTheseRunsOn": "2026-08-03",
+    "RESOLUTION_2026_08_07": {
+      "status": "FALSIFIED. The calibration behind every band in this block is WITHDRAWN.",
+      "doNotQuoteTheBands": "The bandUsd / pointUsd values below are PRESERVED EXACTLY AS PRE-REGISTERED and must not be edited - a band that can be edited after the fact is not a pre-registration. They are no longer usable as predictions. Read this key before quoting any value beneath it.",
+      "testedBy": {
+        "detector": "env-exposure",
+        "runId": "30903038957",
+        "predictedBandUsd": [0.43, 0.5],
+        "predictedPointUsd": 0.46,
+        "measuredUsd": 0.6649,
+        "outcome": "OUTSIDE the band, high: 33% above the ceiling, 45% above the point, within 5% of flatConstantWouldSayUsd 0.7038",
+        "decisionRuleFired": "The 'decides' field on the env-exposure entry below states: 'near 0.70 withdraws the calibration for the other two.' It landed near 0.70."
+      },
+      "useInstead": {
+        "predictor": "flat constant 0.00828 USD/call",
+        "webhook-unverified": 1.41,
+        "auth-bypass": 1.53,
+        "caveat": "The flat constant has a demonstrated +/-3.5% error on LONG-prompt detectors and NO validated behaviour on short-prompt ones. One falsifying point does not select among the models consistent with it; it only eliminates the bias-corrected calibration. A defensible estimator needs the cold/warm/per-process decomposition outstanding since #118, which costs $0 to build from retained ledger data."
+      }
+    },
     "purpose": "Stated in advance so each subsequent run is a TEST of the estimator and not a rationalisation after the fact. A band quoted after the measurement is worthless.",
     "detectors": [
       {
