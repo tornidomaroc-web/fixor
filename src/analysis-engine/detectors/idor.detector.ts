@@ -3,9 +3,12 @@
  *
  * Mirrors Phase 5c (admin-check) architecture: path/import + regex
  * pre-filter (full-content scan), then per-file LLM call via callClaude
- * with a tool that enforces the verdict JSON shape. Only HIGH-confidence
- * verdicts are emitted; MEDIUM is logged via logger.warn for offline
- * review; LOW is dropped silently.
+ * with a tool that enforces the verdict JSON shape.
+ * HIGH and MEDIUM verdicts are both EMITTED, carrying the model's own
+ * confidence on the finding; LOW is dropped silently. MEDIUM used to be
+ * discarded to a logger.warn nothing consumed — the emit-policy decision
+ * of 2026-08-07 ended that. Severity is unchanged by confidence: severity
+ * answers "how bad if real", confidence answers "is it real".
  *
  * Filter order:
  *   1. shouldSkipPath           (negative: tests, fixtures, seeds, etc.)
@@ -881,6 +884,15 @@ export class IdorDetector implements Detector {
       // path, applied independently to each candidate site.
       if (!verdict.isVulnerable) continue;
       if (verdict.confidence === "low") continue;
+
+      // The confidence THIS PAIR's finding carries. Declared inside the loop,
+      // not at method scope: idor emits one finding per (source, sink) pair and
+      // each pair has its own verdict, so a MEDIUM on one pair must not label a
+      // HIGH on the next. A HIGH verdict, and a MEDIUM that escalation
+      // promoted, emit as "high"; an unescalated MEDIUM now emits as "medium"
+      // instead of being discarded (the emit-policy decision of 2026-08-07).
+      let emitConfidence: "high" | "medium" = "high";
+
       if (verdict.confidence === "medium") {
         // H8: route the MEDIUM through the shared verdict-layer escalation.
         // Flag OFF (default) → resolveMediumVerdict returns "review-queue"
@@ -896,39 +908,49 @@ export class IdorDetector implements Detector {
           originalReasoning: verdict.reasoning,
           wholeFileContent: content,
         });
-        if (escalation !== "emit-high") {
-          if (escalation === "review-queue") {
-            logger.warn(
-              {
-                category: "idor-review-queue",
-                file: filePath,
-                sourceLine: pair.source.line,
-                sinkLine: pair.sink.line,
-                sourcePatternId: pair.source.patternId,
-                sinkPatternId: pair.sink.patternId,
-                reasoning: verdict.reasoning,
-              },
-              "idor: medium-confidence verdict suppressed",
-            );
-          }
-          // "drop": escalation cleared it — silent, like LOW.
+        if (escalation === "drop") {
+          // Escalation ADJUDICATED this pair clear. Reachable only with the
+          // flag ON; an explicit clear still drops silently, like LOW. This is
+          // the one path that still discards a MEDIUM, and it does so on a
+          // positive decision rather than on the absence of one.
           continue;
         }
-        // "emit-high": escalation promoted the MEDIUM — fall through to the
-        // lane-deferral (R10) + HIGH-emit path below. A promoted HIGH still
-        // respects lane discipline, exactly like a native HIGH verdict.
-        logger.warn(
-          {
-            category: "idor-escalation-promoted",
-            file: filePath,
-            sourceLine: pair.source.line,
-            sinkLine: pair.sink.line,
-            sourcePatternId: pair.source.patternId,
-            sinkPatternId: pair.sink.patternId,
-            reasoning: verdict.reasoning,
-          },
-          "idor: medium-confidence verdict promoted to HIGH by escalation",
-        );
+        if (escalation !== "emit-high") {
+          // "review-queue". With escalation OFF — the shipped configuration —
+          // this is EVERY naturally arising MEDIUM. It used to `continue` and
+          // write a log line nothing consumed. It now emits, at the model's own
+          // confidence, so the customer sees both the finding and the doubt.
+          emitConfidence = "medium";
+          logger.warn(
+            {
+              category: "idor-medium-emitted",
+              file: filePath,
+              sourceLine: pair.source.line,
+              sinkLine: pair.sink.line,
+              sourcePatternId: pair.source.patternId,
+              sinkPatternId: pair.sink.patternId,
+              reasoning: verdict.reasoning,
+            },
+            "idor: medium-confidence verdict emitted at MEDIUM confidence",
+          );
+        } else {
+          // "emit-high": escalation promoted the MEDIUM — fall through to the
+          // lane-deferral (R10) + HIGH-emit path below. A promoted HIGH still
+          // respects lane discipline, exactly like a native HIGH verdict. So
+          // does an emitted MEDIUM.
+          logger.warn(
+            {
+              category: "idor-escalation-promoted",
+              file: filePath,
+              sourceLine: pair.source.line,
+              sinkLine: pair.sink.line,
+              sourcePatternId: pair.source.patternId,
+              sinkPatternId: pair.sink.patternId,
+              reasoning: verdict.reasoning,
+            },
+            "idor: medium-confidence verdict promoted to HIGH by escalation",
+          );
+        }
       }
 
       // Lane discipline (R10) — deterministic routing bound per the
@@ -969,7 +991,7 @@ export class IdorDetector implements Detector {
         ruleId: `idor-${pair.source.patternId}-${pair.sink.patternId}`,
         message: verdict.reasoning,
         explanation: verdict.reasoning,
-        confidence: "high",
+        confidence: emitConfidence,
         severity: "critical",
       });
     }

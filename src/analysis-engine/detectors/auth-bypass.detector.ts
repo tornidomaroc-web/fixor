@@ -6,8 +6,10 @@
  *  2. Per-file LLM call via callClaude with a tool that enforces the
  *     verdict JSON shape.
  *
- * Only HIGH-confidence verdicts are emitted as findings. MEDIUM is
- * routed to logger.warn for offline review; LOW is dropped silently.
+ * HIGH and MEDIUM verdicts are both EMITTED as findings, carrying the
+ * model's own confidence; LOW is dropped silently. MEDIUM used to be
+ * discarded to a logger.warn nothing consumed — the emit-policy decision
+ * of 2026-08-07 ended that. Severity is unchanged by confidence.
  *
  * NOTE: /server/, /lib/server/, /api/server/ are NOT path-skipped — real
  * bypass bugs live in those folders. Server-only context is detected via
@@ -711,12 +713,19 @@ export class AuthBypassDetector implements Detector {
       this.lastDiagnostics.push(diag);
       return [];
     }
+    // The confidence the FINDING carries. A HIGH verdict, and a MEDIUM that
+    // escalation promoted, emit as "high". An unescalated MEDIUM now emits as
+    // "medium" instead of being discarded — the emit-policy decision of
+    // 2026-08-07. Severity is unchanged: it answers "how bad if real", while
+    // confidence answers "is it real", and only the latter is in doubt here.
+    let emitConfidence: "high" | "medium" = "high";
+
     if (verdict.confidence === "medium") {
       // H8: route the MEDIUM through the shared verdict-layer escalation.
       // Flag OFF (default) → resolveMediumVerdict returns "review-queue"
-      // synchronously (no call), so this branch behaves exactly as before.
-      // A promoted (emit-high) verdict falls through to the H7 lane gate
-      // below — a promoted HIGH still respects lane discipline.
+      // synchronously, with no client and no call. Either way the verdict
+      // falls through to the H7 lane gate below — an emitted MEDIUM respects
+      // lane discipline exactly as a promoted HIGH does.
       const escalation = await resolveMediumVerdict({
         detectorId: DETECTOR_ID,
         findingType: "auth_bypass_risk",
@@ -725,35 +734,42 @@ export class AuthBypassDetector implements Detector {
         originalReasoning: verdict.reasoning,
         wholeFileContent: content,
       });
-      if (escalation !== "emit-high") {
-        if (escalation === "review-queue") {
-          logger.warn(
-            {
-              category: "auth-bypass-review-queue",
-              file: filePath,
-              line: trigger.line,
-              pattern: trigger.patternText,
-              reasoning: verdict.reasoning,
-            },
-            "auth-bypass: medium-confidence verdict suppressed",
-          );
-        }
-        // "drop": escalation cleared it — silent, like LOW.
+      if (escalation === "drop") {
+        // Escalation ADJUDICATED it clear. Reachable only with the flag ON; an
+        // explicit clear still drops silently, like LOW. This is the one path
+        // that still discards a MEDIUM, and it does so on a positive decision
+        // rather than on absence of one.
         this.lastDiagnostics.push(diag);
         return [];
       }
-      // "emit-high": escalation promoted the MEDIUM — fall through to the
-      // lane gate + HIGH-emit path below.
-      logger.warn(
-        {
-          category: "auth-bypass-escalation-promoted",
-          file: filePath,
-          line: trigger.line,
-          pattern: trigger.patternText,
-          reasoning: verdict.reasoning,
-        },
-        "auth-bypass: medium-confidence verdict promoted to HIGH by escalation",
-      );
+      if (escalation !== "emit-high") {
+        // "review-queue". With escalation OFF — the shipped configuration —
+        // this is EVERY naturally arising MEDIUM. It used to return [] and
+        // write a log line nothing consumed. It now emits, at the model's own
+        // confidence, so the customer sees both the finding and the doubt.
+        emitConfidence = "medium";
+        logger.warn(
+          {
+            category: "auth-bypass-medium-emitted",
+            file: filePath,
+            line: trigger.line,
+            pattern: trigger.patternText,
+            reasoning: verdict.reasoning,
+          },
+          "auth-bypass: medium-confidence verdict emitted at MEDIUM confidence",
+        );
+      } else {
+        logger.warn(
+          {
+            category: "auth-bypass-escalation-promoted",
+            file: filePath,
+            line: trigger.line,
+            pattern: trigger.patternText,
+            reasoning: verdict.reasoning,
+          },
+          "auth-bypass: medium-confidence verdict promoted to HIGH by escalation",
+        );
+      }
     }
 
     // Lane discipline (H7, 2026-06-13) — deterministic routing bound in
@@ -818,7 +834,7 @@ export class AuthBypassDetector implements Detector {
         ruleId: `auth-bypass-${trigger.patternId}`,
         message: verdict.reasoning,
         explanation: verdict.reasoning,
-        confidence: "high",
+        confidence: emitConfidence,
         severity: "critical",
       },
     ];

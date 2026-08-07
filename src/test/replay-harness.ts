@@ -220,8 +220,50 @@ export interface DetectorReplaySpec {
 // ===========================================================================
 
 /**
+ * CONFIDENCE PARITY: every emitted finding carries the model's own verdict
+ * confidence. Returns a failing OutcomeResult on violation, null when clean.
+ *
+ * WHY THIS EXISTS, and it is a hole that a negative control found rather than
+ * a precaution. Before 2026-08-07 every emit site hard-coded
+ * confidence:"high", and no gate in this repo read a finding's confidence at
+ * all. When the emit policy changed to carry the real value, reverting an emit
+ * site back to the hard-coded "high" produced a FULLY GREEN test:ci - because
+ * `flaggedOutcome` asks only WHETHER a finding was emitted, never what it says.
+ *
+ * That green run means the suite could not distinguish the shipped policy
+ * (option C, emit MEDIUM as medium) from the policy that was explicitly
+ * REJECTED (option B, emit MEDIUM as high). B was rejected because it converts
+ * a stated uncertainty into an asserted certainty; a suite that cannot tell
+ * them apart cannot defend the distinction it was built to protect.
+ *
+ * In replay, escalation is off (assertEscalationUnset), so promotion cannot
+ * occur and parity is unconditional: the emitted confidence MUST equal the
+ * recorded verdict's confidence. The bypass paths (admin-check Option G,
+ * secrets-exposure regex-only) synthesize a verdict at "high" and emit "high",
+ * so they satisfy it too.
+ */
+function confidenceParity(
+  findings: readonly { confidence?: string }[],
+  verdict: { confidence?: string } | null,
+): { pass: boolean; detail: string } | null {
+  if (findings.length === 0 || !verdict?.confidence) return null;
+  const want = verdict.confidence;
+  const bad = findings.filter((f) => f.confidence !== want);
+  if (bad.length === 0) return null;
+  const got = [...new Set(bad.map((f) => String(f.confidence)))].join(",");
+  return {
+    pass: false,
+    detail:
+      `CONFIDENCE PARITY: ${bad.length}/${findings.length} finding(s) carry ` +
+      `confidence:${got} but the verdict was ${want}. An emitted finding must ` +
+      `carry the model's own confidence, never a hard-coded one.`,
+  };
+}
+
+/**
  * flagged (>=1 finding) === recording.meta.expectedFlagged. The 2a env-exposure
  * shape. Used by any plain positive/negative "did it flag" detector (auth-bypass).
+ * Also enforces confidence parity on every emitted finding.
  */
 export function flaggedOutcome(): OutcomeAssertion {
   return ({ findings, detector, recording }) => {
@@ -234,9 +276,17 @@ export function flaggedOutcome(): OutcomeAssertion {
     const vstr = verdict
       ? `isVulnerable:${verdict.isVulnerable}@${verdict.confidence}`
       : "verdict:none";
+    if (flagged !== expected) {
+      return {
+        pass: false,
+        detail: `flagged:${flagged} != expected:${expected}  (${vstr})`,
+      };
+    }
+    const parity = confidenceParity(findings, verdict);
+    if (parity) return parity;
     return {
-      pass: flagged === expected,
-      detail: `flagged:${flagged} ${flagged === expected ? "==" : "!="} expected:${expected}  (${vstr})`,
+      pass: true,
+      detail: `flagged:${flagged} == expected:${expected}  (${vstr})`,
     };
   };
 }
@@ -244,14 +294,24 @@ export function flaggedOutcome(): OutcomeAssertion {
 /**
  * MEDIUM/review-queue verdict-lane assertion (webhook-unverified 14/15 anchor).
  *
- * WHY THIS READS THE DIAGNOSTIC, NOT THE FINDING: with escalation off (the
- * only record/replay mode, enforced by assertEscalationUnset), a MEDIUM verdict
- * routes to "review-queue" and the detector returns [] - byte-identical to LOW
- * and to drop - and any emitted finding is hard-coded confidence:"high". So the
- * lane is invisible in `findings`; it lives ONLY on
- * `detector.lastDiagnostics[0].verdict`. Each fixture is a single-file synthetic
- * diff (positiveNegativeLayout builds one file), so exactly one diagnostic is
- * pushed and lastDiagnostics[0] is unambiguous.
+ * WHY THIS READS THE DIAGNOSTIC, NOT THE FINDING. The original reason was that
+ * a MEDIUM returned [] - byte-identical to LOW and to drop - and any emitted
+ * finding was hard-coded confidence:"high", so the lane was INVISIBLE in
+ * `findings`. That reason expired on 2026-08-07: a MEDIUM now emits carrying
+ * confidence:"medium", so the lane IS visible in findings.
+ *
+ * THE ASSERTION IS KEPT ON THE DIAGNOSTIC ANYWAY, and this is deliberate. What
+ * this lane pins is what the MODEL SAID - isVulnerable:true at confidence
+ * medium - which is a fact about the recorded verdict and must not drift when
+ * the emit policy changes. Asserting it through `findings` would couple a
+ * verdict-lane contract to the emit policy, so a future policy change would
+ * silently rewrite what the lane means. It stayed correct across THIS policy
+ * change precisely because it does not read findings, which is the argument for
+ * leaving it alone.
+ *
+ * Each fixture is a single-file synthetic diff (positiveNegativeLayout builds
+ * one file), so exactly one diagnostic is pushed and lastDiagnostics[0] is
+ * unambiguous.
  *
  * The expected lane is read from the SAME source the recorder uses (the spec's
  * expectedLane); this factory is closed over that accessor and dispatched by the
@@ -268,7 +328,7 @@ export function flaggedOutcome(): OutcomeAssertion {
 export function verdictLaneOutcome(
   expectedLane: (id: string) => ExpectedLane | undefined,
 ): OutcomeAssertion {
-  return ({ id, detector }) => {
+  return ({ id, detector, findings }) => {
     const lane = expectedLane(id);
     if (!lane) {
       return {
@@ -284,9 +344,27 @@ export function verdictLaneOutcome(
       verdict !== null &&
       verdict.isVulnerable === lane.isVulnerable &&
       verdict.confidence === lane.confidence;
+    if (!pass) {
+      return {
+        pass: false,
+        detail: `lane ${vstr} != expected:isVulnerable:${lane.isVulnerable}@${lane.confidence}`,
+      };
+    }
+    // Since 2026-08-07 a lane fixture whose verdict is isVulnerable MUST also
+    // EMIT, carrying that lane's confidence. Before then it emitted nothing and
+    // this assertion would have been false; it is added with the emit policy
+    // that makes it true, not speculatively.
+    if (lane.isVulnerable && findings.length === 0) {
+      return {
+        pass: false,
+        detail: `lane ${vstr} matched but NOTHING WAS EMITTED — an isVulnerable lane must produce a finding`,
+      };
+    }
+    const parity = confidenceParity(findings, verdict);
+    if (parity) return parity;
     return {
-      pass,
-      detail: `lane ${vstr} ${pass ? "==" : "!="} expected:isVulnerable:${lane.isVulnerable}@${lane.confidence}`,
+      pass: true,
+      detail: `lane ${vstr} == expected:isVulnerable:${lane.isVulnerable}@${lane.confidence}, emitted ${findings.length} at confidence:${lane.confidence}`,
     };
   };
 }
