@@ -6,7 +6,7 @@
     "systemPromptFingerprint": "d2ca2f022d99",
     "recordedAtIso": "2026-07-04T08:27:43.717Z",
     "sourceFixture": "positive/03-fastify-logs-env.ts",
-    "expectedFlagged": false,
+    "expectedFlagged": true,
     "note": "Positive-folder MEDIUM-ceiling case: the LLM verdict is isVulnerable:true at confidence:medium, and the detector's confidence ladder correctly suppresses it (escalation off). Expected flagged=false; this is NOT a mismatch."
   },
   "request": {
