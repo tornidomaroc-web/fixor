@@ -78,6 +78,15 @@ export interface VerdictCensus {
   unclassified: number;
   /** Human-readable samples of what landed in UNCLASSIFIED, capped. */
   unclassifiedSamples: string[];
+  /**
+   * Per verdict class, runs where isVulnerable was asserted and NOTHING was
+   * emitted. Exists so the rendered census can COUNT what it used to ASSERT:
+   * the `vuln/medium` row carried a hardcoded "SUPPRESSED (not emitted)" label
+   * inherited from the pre-#152 emit policy, which went false the moment
+   * option C shipped and then contradicted this same census's own
+   * asserted-but-not-emitted total further down the identical report.
+   */
+  notEmittedByClass: Record<string, number>;
   /** Sum of every bucket. Must equal actualRuns. */
   countedRuns: number;
   /** Sum of runs actually executed across all fixtures. */
@@ -93,7 +102,13 @@ export interface VerdictCensus {
   /** True when countedRuns === actualRuns AND ledgerCalls >= callingRuns. */
   reconciled: boolean;
   reconciliationErrors: string[];
-  /** Negatives the model called vulnerable at least once. The masked-FP census. */
+  /**
+   * Negatives the model called vulnerable at least once. LANE MEMBERSHIP, not a
+   * masked-FP census: since #152 such a verdict is usually EMITTED, and since
+   * #151 an undeclared one FAILS the fixture rather than passing it quietly.
+   * Read `assertedButNotEmitted` for masking and the `neg` scoring line for the
+   * pass/fail; neither is decidable from membership alone.
+   */
   maskedNegatives: MaskedNegative[];
   /** Runs, anywhere, where isVulnerable was asserted but nothing was emitted. */
   assertedButNotEmitted: number;
@@ -126,7 +141,11 @@ export function buildVerdictCensus(
   nRuns: number,
 ): VerdictCensus {
   const byClass: Record<string, number> = {};
-  for (const c of VERDICT_CLASSES) byClass[c] = 0;
+  const notEmittedByClass: Record<string, number> = {};
+  for (const c of VERDICT_CLASSES) {
+    byClass[c] = 0;
+    notEmittedByClass[c] = 0;
+  }
 
   let preFiltered = 0;
   let noVerdict = 0;
@@ -162,7 +181,12 @@ export function buildVerdictCensus(
       // classification, so an UNCLASSIFIED shape that still asserts vulnerability
       // is not lost from this tally.
       const asserted = run.verdict?.isVulnerable === true;
-      if (asserted && !run.flagged) assertedButNotEmitted++;
+      if (asserted && !run.flagged) {
+        assertedButNotEmitted++;
+        if (bucket !== "pre-filtered" && bucket !== "no-verdict" && bucket !== "unclassified") {
+          notEmittedByClass[bucket] = (notEmittedByClass[bucket] ?? 0) + 1;
+        }
+      }
       if (!f.isPositive && asserted) {
         negAsserted++;
         if (!run.flagged) negAssertedNotEmitted++;
@@ -207,6 +231,7 @@ export function buildVerdictCensus(
 
   return {
     byClass,
+    notEmittedByClass,
     preFiltered,
     noVerdict,
     unclassified,
@@ -286,7 +311,29 @@ export function scoreNegative(
   return { cleanRuns, totalRuns: runs.length, violations, excused, declared: allowed !== undefined };
 }
 
-/** Render the census. Returns a string; the caller decides where it goes. */
+/**
+ * Render the census. Returns a string; the caller decides where it goes.
+ *
+ * EVERY ANNOTATION HERE IS A COUNT, NEVER A POLICY CLAIM. Three claims on this
+ * surface went false when option C shipped (#152) and no test read any of them,
+ * so a paid run printed a report that argued with itself:
+ *
+ *   1. the `vuln/medium` row was labelled "SUPPRESSED (not emitted)" from the
+ *      hardcoded pre-#152 emit policy, while the same report's own
+ *      asserted-but-not-emitted total two sections down read 0;
+ *   2. "N negative(s) passed on silence rather than on a safe verdict" — since
+ *      #151 a negative is scored on ASSERTION, so silence is not what makes one
+ *      pass, and the run that printed it passed both on DECLARATIONS with
+ *      "0 not emitted" on the line two rows above;
+ *   3. "Read these as masked false positives, not as clean negatives" — nothing
+ *      was masked (both emitted) and both are documented correct cross-file
+ *      uncertainties, not false positives.
+ *
+ * The rule that keeps this from recurring: this module measures lane
+ * MEMBERSHIP. It must never render a claim about emit policy, about why a
+ * fixture passed, or about whether a verdict is right — three properties it
+ * does not measure. State the count, point at the surface that owns the rest.
+ */
 export function formatVerdictCensus(c: VerdictCensus): string {
   const lines: string[] = [];
   lines.push("\n=== VERDICT CENSUS (counts RUNS, not calls) ===");
@@ -294,10 +341,12 @@ export function formatVerdictCensus(c: VerdictCensus): string {
   for (const cls of VERDICT_CLASSES) {
     const n = c.byClass[cls] ?? 0;
     if (n === 0) continue;
-    const note =
-      cls === "vuln/medium"
-        ? "   <-- asserted vulnerable, SUPPRESSED (not emitted)"
-        : "";
+    // Counted, not asserted: emission is read off the runs, so this line stays
+    // true across any future change to the emit policy.
+    const notEmitted = c.notEmittedByClass[cls] ?? 0;
+    const note = cls.startsWith("vuln/")
+      ? `   asserted vulnerable: ${n - notEmitted} emitted, ${notEmitted} not`
+      : "";
     lines.push(`  ${cls.padEnd(16)} ${String(n).padStart(4)}${note}`);
   }
   if (c.preFiltered > 0) {
@@ -325,9 +374,12 @@ export function formatVerdictCensus(c: VerdictCensus): string {
       `${c.auxiliaryCalls} auxiliary/escalation`,
   );
 
-  lines.push("\n=== NEGATIVES THE MODEL CALLED VULNERABLE (masked-FP census) ===");
+  lines.push("\n=== NEGATIVES THE MODEL CALLED VULNERABLE ===");
   if (c.maskedNegatives.length === 0) {
-    lines.push("  none. Every negative's clean pass is backed by a safe verdict.");
+    // NOT "every clean pass is backed by a safe verdict": scoreNegative also
+    // counts a run with NO verdict at all as clean, so that phrasing claimed a
+    // safe verdict this census never saw. It says only what it measured.
+    lines.push("  none. No negative had isVulnerable asserted on any run.");
   } else {
     for (const m of c.maskedNegatives) {
       lines.push(
@@ -336,8 +388,10 @@ export function formatVerdictCensus(c: VerdictCensus): string {
       );
     }
     lines.push(
-      `  ${c.maskedNegatives.length} negative(s) passed on silence rather than on a safe verdict. ` +
-        "Read these as masked false positives, not as clean negatives.",
+      `  ${c.maskedNegatives.length} negative(s) had isVulnerable asserted on at least one run. ` +
+        "This census measures lane MEMBERSHIP only. Whether an entry is a false positive or a " +
+        "correct uncertainty is NOT decided here - read the recorded reasoning. Whether the " +
+        "fixture passed, and whether on a declaration, is on its `neg` line above.",
     );
   }
   lines.push(
