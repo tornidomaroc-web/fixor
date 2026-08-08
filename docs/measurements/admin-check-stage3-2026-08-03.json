@@ -126,7 +126,16 @@
         "bandUsd": [1.33, 1.74],
         "pointUsd": 1.45,
         "ceilingUsd": 2.0,
-        "derivation": "Observed per-call min 0.007822 (env-exposure) and max 0.010227 (idor) x 170 calls. Ceiling set ABOVE the band, not at the point: a ceiling at the point aborts a run merely at the high end of known error, wasting the spend without learning anything."
+        "derivation": "Observed per-call min 0.007822 (env-exposure) and max 0.010227 (idor) x 170 calls. Ceiling set ABOVE the band, not at the point: a ceiling at the point aborts a run merely at the high end of known error, wasting the spend without learning anything.",
+      "RESOLVED_2026_08_08": {
+        "measuredUsd": 1.2032,
+        "runId": "31208881040",
+        "outcome": "OUTSIDE the band, LOW. 9.5% below the band floor, and 9.5% below the lowest per-call cost ever observed before this run (0.007822).",
+        "bothBandsMissedTheSameWay": "Band A (this flat-constant band, 1.33-1.74) and band B (the verdict-structure refinement, 1.30-1.45) BOTH missed low. Cost is not monotonic in prefix, not explained by verdict structure, and not explained by call count.",
+        "consequenceForTheFlatConstant": "Its measured error range is now -19.0% to +17.0%, not -19.0% to +5.9%. This run doubled its known upper error in one measurement.",
+        "fullRecordIn": "docs/measurements/webhook-unverified-stage3-2026-08-07.json",
+        "bandValuesAboveAreUNEDITED": "Per doNotQuoteTheBands: a band that can be edited after the fact is not a band. This block is ADDED alongside; nothing above it was changed."
+      }
       }
     },
     "purpose": "Stated in advance so each subsequent run is a TEST of the estimator and not a rationalisation after the fact. A band quoted after the measurement is worthless.",

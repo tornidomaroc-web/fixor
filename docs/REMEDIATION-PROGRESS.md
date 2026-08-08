@@ -1518,8 +1518,11 @@ the READY gate, which is still F-004 alone.
   | `idor` | 90 | $0.9204 | $0.010227 | **19.0% under** |
   | `admin-check` | 150 | $1.2001 | $0.008001 | 3.5% over |
   | `env-exposure` | 85 | $0.6649 | $0.007822 | 5.9% over |
+  | `webhook-unverified` | 170 | $1.2032 | $0.0070776 | **17.0% over** |
 
-  Demonstrated range: **19.0% under to 5.9% over.** The "±3.5%" figure was admin-check's error
+  Demonstrated range: **19.0% under to 17.0% over.** CORRECTED 2026-08-08: this line read "19.0%
+  under to 5.9% over" until run `31208881040` added the fifth row and doubled the constant's known
+  upper error in one measurement. Do not quote the old range. The "±3.5%" figure was admin-check's error
   ALONE, and the −6.6/−2.5/−2.9% table above it belongs to the BIAS-CORRECTED model, not the flat
   constant. Two different estimators' error figures were read as one. `idor` is the outlier and
   plausibly for a structural reason — it batches multiple source/sink verdicts per call, so its
@@ -1529,6 +1532,93 @@ the READY gate, which is still F-004 alone.
   $1.45, from the observed per-call min ($0.007822) and max ($0.010227) across 170 calls. Ceiling
   **$2.00**, not $1.50 — a ceiling set at the point estimate aborts a run that is merely at the
   high end of the known error, which wastes the spend without learning anything.
+
+  **RESOLVED 2026-08-08, in the same beat as its successor rather than three days late.**
+
+  **FIFTH PAID RUN - run `31208881040`, 2026-08-07, `webhook-unverified` alone, conclusion
+  `success` in 16m09s at `main` 72598ba6. MEASURED $1.2032 over 170 priced calls; 0 no-verdict, 0
+  transport failures; fingerprint `c2c5deba87c9`. Aggregates 17/17 positives, 18/18 negatives,
+  35/35 combined, PASS.** Negatives 14 and 15 passed clean 5/5, five runs each excused by
+  declaration. Cumulative stage-3 spend: **$4.2599**.
+
+  **THE RESULT THAT MATTERS IS NOT THE PASS.** Under the pre-#152 emit policy this exact run scores
+  **16/17 and FAILS**: `positive/10-go-github-eq-compare.go` returns `vuln/medium` and would have
+  been discarded. It flagged 5/5 instead, and asserted-but-not-emitted came back **0 on every
+  fixture**. The gate did not become satisfiable because a threshold was lowered; it became
+  satisfiable because the detector stopped discarding what it had already found. The
+  recorded-verdict census predicted the outcome AND named the mechanism in advance, 15 medium
+  verdicts across exactly the three fixtures it named, against the SHIPPING fingerprint rather than
+  a stale one. Second corpus of corroboration, still not a law.
+
+  **THE BAND MISSED, AND IT MISSED LOW.** $1.2032 against $1.33-$1.74. Measured per-call $0.0070776
+  is **9.5% BELOW the lowest per-call cost ever observed** ($0.007822, env-exposure), so band A
+  (flat constant) and band B (the verdict-structure refinement, $1.30-$1.45) missed on the same
+  side. Cost is **not** monotonic in prefix, **not** explained by verdict structure, and **not**
+  explained by call count. No single-factor model survives five points. The $2.00 ceiling was never
+  approached, and setting it above the band rather than at the point is vindicated.
+
+  **THE DECOMPOSITION THIS FILE HAS WANTED SINCE #118 IS BUILT, AND IT COST $0.** It is COMPUTED,
+  not FITTED: the coefficients are the price sheet in `services/cost-tracking.service.ts`, the
+  inputs are readable free from `fixtures/replay/**`, and the five paid runs are therefore a
+  HELD-OUT TEST SET rather than training data. Calibrated on the single 2026-07-22 anchor call
+  alone it lands -6.0/-2.3/-2.3/-18.7/-6.9% across the five. **Output is 40 to 55 percent of the
+  bill on every cacheable run and the cached prefix is never above 18 percent**, which is why cost
+  is not monotonic in prefix; that is a measured decomposition, replacing the `idor`-batching
+  hypothesis this file recorded. env-exposure's ~442-token prefix is BELOW Sonnet's 1024-token
+  minimum cacheable size, so it never caches and bills its prefix at ten times the cache-read rate,
+  and that named mechanism alone moved it from -33.7% to -18.7%. **Honest limit: the model
+  under-predicts on all five and env-exposure stays an outlier, so it is incomplete in the
+  short-prefix uncached regime and must not be quoted there.** Full record:
+  `docs/measurements/webhook-unverified-stage3-2026-08-07.json`.
+
+  **THE REPORT ARGUED WITH ITSELF, AND NO GATE READ IT (PR #153, squash `c0c28896`).** Three claims
+  on the rendered verdict census went false when option C shipped: the `vuln/medium` row still read
+  "SUPPRESSED (not emitted)" while the same report's own not-emitted total read 0; "passed on
+  silence rather than on a safe verdict" survived #151 making silence irrelevant to a negative's
+  score, printed over two fixtures that passed by DECLARATION with "0 not emitted" two rows above;
+  and "masked false positives" described two documented correct uncertainties that were not masked
+  at all. Two further instances in `stability-harness.ts` would have fired only on a RED run, one
+  of them naming a branch that no longer exists as the cause. Every annotation is now a COUNT read
+  off the runs, so it stays true across the NEXT policy change and not only this one. Negative
+  control: restoring the one hardcoded label fails exactly 3 of 55 assertions, all three aimed at
+  that row. **General rule: a claim on a surface no test reads survives every gate, and this census
+  carried three of them in its own output within hours of being built to catch that class
+  elsewhere.**
+
+  **F-004's "a green RUN across all six" IS DECIDED (owner's ruling, 2026-08-08): SIX PER-DETECTOR
+  GREENS, not one green `all` run. Do not reopen.** Grounds: the single-detector selector exists and
+  has been used five times, and the `all` loop exits on first failure, so it spends without
+  reporting on what it never reached. A failure at `auth-bypass`, third in the loop order, costs
+  about $3.4 and returns nothing about `admin-check`, `idor` or `idor-tenant`. Remaining bill $2.20
+  against $7.34, and the difference buys tidiness rather than information.
+
+  **THE RULING'S STATED RESIDUAL, recorded as a LIMIT and explicitly NOT as a reason to spend the
+  difference.** Six greens at six different SHAs do NOT prove the six pass SIMULTANEOUSLY at one
+  SHA. Three of them (`idor-tenant`, `idor`, `admin-check`) predate #152 and transfer to the
+  shipped emit policy on the argument that their censuses show zero `vuln/medium` across 270 calls,
+  so option C cannot have changed them. **That is an argument, not a run, and it must be cited as
+  one whenever F-004's closure is described.**
+
+  **PRE-REGISTERED FOR `auth-bypass`, RECORDED BEFORE THE RUN**, in
+  `docs/measurements/webhook-unverified-stage3-2026-08-07.json` under
+  `preRegisteredAuthBypass_2026_08_08`, carrying `recordedBeforeTheRun: true` with this commit as
+  its timestamp. 37 model-reaching, 185 calls at n=5. Point **$1.54**, band **$1.42-$1.66**, ceiling
+  **$2.00**. **THAT BAND TESTS NOTHING, AND SAYS SO IN ADVANCE**: it contains the computed model
+  ($1.5422), the flat constant ($1.5318), the withdrawn calibration ($1.49) and the mechanism-only
+  model ($1.4322), and the two leading candidates disagree by 0.7%. **No corroboration of any cost
+  model may be claimed from that run, however it lands.** The out-of-sample slot was never able to
+  buy a cost result; that follows from the corpus's structure, not from any choice made here. The
+  detection prediction is 45/45 with ZERO declarations required, `positive/15` resolving the
+  documented 44/45 miss, and zero H7 lane deferrals. Two refinements surfaced while recording it,
+  both narrowing the risk without changing the prediction: only **37 of 45** fixtures can fail,
+  since 8 negatives are pre-filtered and cannot assert; and `positive/15` can no longer miss via
+  MEDIUM, because option C emits it, so a miss now requires a sign change to `safe`. The one named
+  red is `negative/14-app-router-bare-public-readonly.ts`, the only `safe/low` recording in the
+  corpus, and the flip it would take is a **sign change on `isVulnerable`, not a confidence
+  wobble** - `scoreNegative` ignores confidence, and the only fixture ever observed to waver live
+  moved confidence while the sign held. **It must not be declared away if it flips**: a live run
+  showing a wrong verdict documents that it OCCURRED, never that it is right, and declaring it
+  would be the declare-the-positive move performed on the other side of the equation.
 
   **WHAT THE FALSIFICATION ESTABLISHES, stated narrowly.** The bias-corrected calibration does not
   transfer across prompt size. It does NOT establish that the flat constant is correct — env-exposure
