@@ -1,0 +1,151 @@
+{
+  "measurement": "webhook-unverified stage-3 live detection-quality run (fifth paid run), the resolution of its pre-registered cost band, the cost decomposition the resolution forced, and the PRE-REGISTERED band and detection prediction for auth-bypass.",
+  "date": "2026-08-07",
+  "recordedOn": "2026-08-08",
+  "runId": "31208881040",
+  "ref": "main at 72598ba6a81fb0630b15a19676d51de2d4f4f534",
+  "zeroSpend": false,
+  "totalSpentUsd": 1.2032,
+  "cumulativeStageThreeSpendUsd": 4.2599,
+
+  "scope": {
+    "isA": "A MEASURED detection-quality result for webhook-unverified at n=5, a MEASURED per-call cost from the harness ledger, the RESOLUTION of the band pre-registered for this run on 2026-08-07, and a PRE-REGISTRATION for auth-bypass recorded before that run is dispatched.",
+    "isNot": "NOT a lift of F-004, which gates on all six. NOT a claim that webhook-unverified is calibrated: R3 forbids that inference from n=5. NOT corroboration of any cost model, for the reason stated under preRegisteredAuthBypass_2026_08_08.costBand.",
+    "why": "The band pre-registered for this run went unresolved in tracked docs for a day while the tracker continued to quote a superseded error range. The ledger for the third paid run already warns: resolve a pre-registered band in the same beat as the run. This file closes that and refuses to open the same gap for auth-bypass."
+  },
+
+  "result": {
+    "conclusion": "success",
+    "durationSeconds": 969,
+    "transport": { "llmCalls": 170, "pricedCalls": 170, "noVerdict": 0, "transportFailures": 0 },
+    "costLineVerbatim": "cost: MEASURED $1.2032 over 170 priced call(s)",
+    "costLineClassifiedAs": "MEASURED",
+    "systemPromptFingerprint": "c2c5deba87c9",
+    "aggregates": { "positives": "17/17", "negatives": "18/18", "combined": "35/35", "verdict": "PASS" },
+    "spendCeilingSuppliedUsd": 2.0,
+    "declaredNegatives": [
+      "negative/14-app-router-apple-cross-file-verifier-helper.ts: clean 5/5, 5 excused by declaration",
+      "negative/15-app-router-graph-clientstate-challenge.ts: clean 5/5, 5 excused by declaration"
+    ],
+    "optionCEffect": "Under the pre-#152 emit policy this exact run scores 16/17 and FAILS: positive/10-go-github-eq-compare.go returns vuln/medium and would have been discarded. It flagged 5/5 instead, and assertedButNotEmitted came back 0 on every fixture. The gate did not become satisfiable by lowering a threshold; it became satisfiable because the detector stopped discarding what it had already found.",
+    "harnessCeilingRepeatedVerbatim": "n=5 catches stochasticity at 20% resolution. Zero FP at n=5 means \"no FP at this resolution,\" not \"calibrated.\""
+  },
+
+  "bandResolution": {
+    "resolves": "preRegisteredRemaining.RESOLUTION_2026_08_07.preRegisteredWebhookBand_2026_08_07 in docs/measurements/admin-check-stage3-2026-08-03.json",
+    "predictedBandUsd": [1.33, 1.74],
+    "predictedPointUsd": 1.45,
+    "measuredUsd": 1.2032,
+    "outcome": "OUTSIDE the band, LOW. 9.5% below the band floor.",
+    "measuredPerCallUsd": 0.00707765,
+    "theStructuralFact": "0.00707765 is 9.5% BELOW the lowest per-call cost ever observed before this run (0.007822, env-exposure). Both pre-registered bands missed on the same side: band A (flat constant, 1.33-1.74) and band B (the verdict-structure refinement, 1.30-1.45). Band B was the structural hypothesis that one-verdict-per-call detectors run cheaper than idor's batched calls; it fell with band A, so cost is not monotonic in prefix, not explained by verdict structure, and not explained by call count. No single-factor model survives five points.",
+    "ceilingHeld": "The $2.00 ceiling was never approached. It was set ABOVE the band deliberately, per the rule recorded at pre-registration: a ceiling at the point aborts a run merely at the high end of known error, losing both the money and the result."
+  },
+
+  "flatConstantErrorUpdate": {
+    "constantUsdPerCall": 0.00828,
+    "supersedes": "The range -19.0% to +5.9% recorded on 2026-08-07, which is now WRONG in its upper half. Also supersedes the +/-3.5% figure, which was admin-check's error alone and was briefly written into the docs by reading two estimators' error figures as one.",
+    "correctedRangePct": [-19.0, 17.0],
+    "note": "constantErrorPct = (constant - actual) / actual. This run doubled the constant's known upper error in one measurement.",
+    "perRun": [
+      { "run": "idor-tenant", "calls": 30, "measuredUsd": 0.2713, "actualPerCallUsd": 0.009043, "constantErrorPct": -8.4 },
+      { "run": "idor", "calls": 90, "measuredUsd": 0.9204, "actualPerCallUsd": 0.010227, "constantErrorPct": -19.0 },
+      { "run": "admin-check", "calls": 150, "measuredUsd": 1.2001, "actualPerCallUsd": 0.008001, "constantErrorPct": 3.5 },
+      { "run": "env-exposure", "calls": 85, "measuredUsd": 0.6649, "actualPerCallUsd": 0.007822, "constantErrorPct": 5.9 },
+      { "run": "webhook-unverified", "calls": 170, "measuredUsd": 1.2032, "actualPerCallUsd": 0.0070776, "constantErrorPct": 17.0 }
+    ]
+  },
+
+  "costModel": {
+    "claim": "The model is COMPUTED, not FITTED, and the five paid runs are a HELD-OUT TEST SET rather than training data.",
+    "why": "Its coefficients are the published price sheet, not free parameters: MODEL_PRICING in src/services/cost-tracking.service.ts gives claude-sonnet-4-6 at $3.00/Mtok input and $15.00/Mtok output, cache write x1.25 and cache read x0.10. Its inputs are readable at ZERO SPEND from fixtures/replay/**, which holds the full request and response for every model-reaching fixture in every corpus.",
+    "formula": "per_call_usd = (0.30 * P_tok + 3.00 * U_tok + 15.00 * O_tok) / 1e6, plus one cache-write of 1.25 * 3.00 * P_tok / 1e6 per run. P = cached prefix (system prompt + tool schema), U = per-call user content, O = output.",
+    "calibration": "THREE chars-to-token ratios, taken from the single call in this repo whose tokens were read from raw message.usage: docs/measurements/idor-percall-2026-07-22.json call 2 (warm), P=2671, U=1235, O=468. Nothing is fitted to any run total.",
+    "corpusValidity": "Recording counts equal measure:stage3-calls per corpus, and every corpus's systemPromptFingerprint was verified EQUAL to the shipping detector's on 2026-08-08: env-exposure d2ca2f022d99, webhook-unverified c2c5deba87c9, admin-check ed52ebe3db91, idor 5f5129f12b11, auth-bypass 45a17ae07c26.",
+    "heldOutResult": [
+      { "run": "idor-tenant", "predictedUsd": 0.2550, "measuredUsd": 0.2713, "errorPct": -6.0 },
+      { "run": "idor", "predictedUsd": 0.8995, "measuredUsd": 0.9204, "errorPct": -2.3 },
+      { "run": "admin-check", "predictedUsd": 1.1731, "measuredUsd": 1.2001, "errorPct": -2.3 },
+      { "run": "env-exposure", "predictedUsd": 0.5406, "measuredUsd": 0.6649, "errorPct": -18.7 },
+      { "run": "webhook-unverified", "predictedUsd": 1.1201, "measuredUsd": 1.2032, "errorPct": -6.9 }
+    ],
+    "theDecomposition": "Output is 40 to 55 percent of the bill on every cacheable run and the cached prefix is NEVER above 18 percent. That is WHY per-call cost is not monotonic in prefix, and it is a measured decomposition rather than the hypothesis the third-run ledger recorded.",
+    "namedMechanism": "env-exposure's prefix is about 442 tokens, BELOW Sonnet's 1024-token minimum cacheable prefix, so it never caches and bills its prefix at ten times the cache-read rate. Applying that one documented rule, which is not a fitted parameter, moved env-exposure from -33.7% to -18.7%.",
+    "honestLimit": "The model under-predicts on all five, so it carries a systematic bias, and env-exposure remains an outlier at -18.7% even after the mechanism. It is therefore INCOMPLETE in the short-prefix uncached regime and MUST NOT be quoted there. With one fitted global output scale (1.155) over the five, mean absolute error is 4.6%; restricted to the four CACHEABLE runs it is [-0.02%, +6.03%]. One fitted parameter over five points is a weak fit, not a strong one, and it is reported as such.",
+    "whatItAlreadyEarned": "It predicted, out of sample, that webhook would be the cheapest PER CALL of the long-prefix set. Measured 0.00707765, below every previously observed per-call cost. The flat constant holds all five identical by construction and cannot express that prediction at all."
+  },
+
+  "legendDefect": {
+    "pr": "#153",
+    "squash": "c0c288969d73b27bbb9fb1f78e48c82f8e5e9f13",
+    "what": "This run printed a report that argued with itself. Three claims on the rendered verdict census went false when option C shipped (#152), and no gate read any of them.",
+    "theThree": [
+      "The vuln/medium row was labelled 'SUPPRESSED (not emitted)', hardcoded from the pre-#152 emit policy, and contradicted by the same report's own asserted-but-not-emitted total three lines below it.",
+      "'2 negative(s) passed on silence rather than on a safe verdict'. Since #151 a negative is scored on ASSERTION, so silence is not what makes one pass; both passed on DECLARATIONS, and the line two rows above each read '0 not emitted'.",
+      "'Read these as masked false positives, not as clean negatives'. Nothing was masked, both emitted, and both are documented correct cross-file uncertainties."
+    ],
+    "twoMore": "Two adjacent instances in stability-harness.ts would have fired only on a RED run: DETECTED-BUT-SUPPRESSED named the removed MEDIUM branch as the cause when a lane deferral is now the likelier path, and the undeclared-negative label read 'masked FP' when such a verdict is now most likely REPORTED, which is worse than masked rather than better.",
+    "fix": "Every annotation is now a COUNT read off the runs, so the rows stay true across the NEXT policy change rather than only across this one. The census states lane MEMBERSHIP, the one property it measures, and points at the neg scoring line for pass/fail and at the recorded reasoning for correctness.",
+    "negativeControl": "Restoring the hardcoded vuln/medium label and nothing else fails exactly 3 of 55 assertions, all three aimed at that row, leaving the other 52 green. Case 11 also renders the SAME corpus under pre-#152 emission: a hardcoded renderer fails one half or the other, only a counting one passes both.",
+    "generalRule": "A claim on a surface no test reads survives every gate. The census was built to catch assertion-versus-emission drift elsewhere and carried three instances of it in its own output within hours."
+  },
+
+  "f004Ruling": {
+    "decidedOn": "2026-08-08",
+    "decidedBy": "repository owner",
+    "ruling": "F-004's 'a green RUN across all six' means SIX PER-DETECTOR GREENS, not one green 'all' run. Do not reopen.",
+    "grounds": "The single-detector selector exists in stage3-live-detection.yml and has been used five times. The 'all' loop exits on first failure, so it spends without reporting on what it never reached: a failure at auth-bypass, third in the loop order, would cost about $3.4 and return nothing about admin-check, idor or idor-tenant. Remaining bill $2.20 against $7.34, and the difference buys tidiness rather than information.",
+    "statedResidual": "This is a limit on what the evidence says, recorded as a limit and NOT as a reason to spend the difference. Six greens at six different SHAs do NOT prove the six pass SIMULTANEOUSLY at one SHA. Three of them (idor-tenant, idor, admin-check) predate #152 and transfer to the current emit policy on the argument that their censuses show zero vuln/medium across 270 calls, so option C cannot have changed them. That is an argument, not a run, and it must be cited as one."
+  },
+
+  "preRegisteredAuthBypass_2026_08_08": {
+    "recordedBeforeTheRun": true,
+    "verifiableBy": "This file's first commit predates any auth-bypass stage-3 run. Run the workflow history and compare timestamps; no auth-bypass run exists at the time of writing.",
+    "detector": "auth-bypass",
+    "modelReachingFixtures": 37,
+    "callsAtN5": 185,
+    "purpose": "Stated in advance so the run is a TEST and not a rationalisation after the fact.",
+
+    "costBand": {
+      "pointUsd": 1.54,
+      "bandUsd": [1.42, 1.66],
+      "ceilingUsd": 2.0,
+      "derivation": "The computed model with one fitted output scale gives $1.5422 ($0.008336/call) at P=4699 tokens, comfortably cacheable. The band is the point widened by the largest single residual the model showed on any cacheable run, rounded up to 8%. The ceiling is set ABOVE the band, per the rule established for the webhook run.",
+      "THIS_BAND_TESTS_NOTHING": "RECORDED IN ADVANCE, AND BINDING. The band contains every candidate: computed model $1.5422, flat constant $1.5318, withdrawn calibration $1.49, mechanism-only model $1.4322. The two leading candidates disagree by 0.7%. auth-bypass is the long-prefix high-call-count detector where every model agrees, so this run CANNOT discriminate between them. NO CORROBORATION OF ANY COST MODEL MAY BE CLAIMED FROM THIS RUN'S COST, HOWEVER IT LANDS. The out-of-sample slot was never able to buy a cost result; that follows from the corpus's structure and not from any choice made here.",
+      "theOneThingCostStillMeasures": "A miss beyond roughly 20% is a CORPUS-DRIFT TRIPWIRE, not a cost result: it would mean the frozen recordings no longer describe the live run despite the fingerprint matching. That is a consistency check on the instrument. It must not be read as evidence for or against any cost model."
+    },
+
+    "detectionPrediction": {
+      "aggregate": "45/45. Positives 22/22 at >= 4/5, negatives 23/23 at 5/5.",
+      "gateSatisfiability": "Entry point src/test/test-auth-bypass.ts hardcodes positivesMinPassing 22, negativesMinPassing 23, combinedMinPassing 45. The ITERATOR enumerates 22 positives, 23 negatives, 45 combined. Satisfiable. Verified by npm run measure:stage3-calls at zero spend, against the iterator and never against the entry point's own header comment.",
+      "basis": "All 37 recordings at the shipping fingerprint 45a17ae07c26: 22 positives all vuln/high, 15 model-reaching negatives all safe (14 safe/high, 1 safe/low). Zero entries in the MEDIUM lane, so ZERO declarations are required and auth-bypass's undeclared default is demonstrated rather than assumed.",
+      "pos15Resolves": "positive/15-app-router-with-account-api-key-no-enforce.ts is predicted to FLAG, resolving the documented 44/45 baseline miss in docs/detector-capabilities.md. Under the shipping prompt its recording is vuln/high with authPresent 'unclear', not the MEDIUM the 2026-06-13 baseline recorded.",
+      "zeroLaneDeferrals": "The H7 rule defers to admin-check only when authPresent is 'yes' AND operationKind is 'admin' on a route-def trigger. No fixture in the corpus carries that pair: every recording with operationKind 'admin' has authPresent 'no'. So no positive is silently emptied by a deferral.",
+      "assertedButNotEmitted": 0,
+
+      "refinementsSurfacedWhileRecordingThis": [
+        "ONLY 37 OF 45 FIXTURES CAN FAIL. All 22 positives reach the model, but only 15 of the 23 negatives do; the other 8 are pre-filtered and cannot assert anything, so they cannot fail. The run's risk surface is 37 fixtures, not 45. This narrows the prediction; it does not change it.",
+        "POS-15 CAN NO LONGER MISS VIA MEDIUM. Option C removed that path: a MEDIUM verdict now emits, so it flags. For POS-15 to miss, the model must return isVulnerable FALSE on at least 2 of 5 runs, which is a sign change and a materially stronger claim than the 2026-06-13 baseline history suggests. This narrows the prediction; it does not change it."
+      ],
+
+      "theNamedRed": {
+        "fixture": "negative/14-app-router-bare-public-readonly.ts",
+        "why": "It is the ONLY recording in the corpus at safe/LOW; the other 14 model-reaching negatives are safe/high. Negatives need 5/5 clean on ASSERTION, so one run asserting isVulnerable fails the fixture, hence negativesMinPassing 23, hence the run.",
+        "whatTheFlipRequires": "A SIGN CHANGE on isVulnerable, not a confidence wobble. scoreNegative ignores confidence entirely. The only fixture ever observed to waver live, idor-tenant/negative/02-express-prisma-membership.ts, moved confidence while isVulnerable held. Named risk, not a likely one.",
+        "whatItWouldMeasure": "A genuine false positive on a public read-only route: the highest-cost error class for the product. Under option C it would be REPORTED to the customer rather than masked, which is worse, and is the trade option C was adopted knowing.",
+        "itMustNotBeDeclaredAway": "PRE-COMMITTED. NegativeExpectations requires documented evidence that the class is CORRECT for that fixture. A live run showing a wrong verdict documents that it OCCURRED, never that it is right, and treating occurrence as licence would let any false positive declare itself legitimate. Declaring it would be the declare-the-positive move performed on the other side of the equation, which is rejected option F wearing a different hat. On this outcome: stop and report."
+      }
+    },
+
+    "stopConditions": [
+      "Any '^SKIPPED:' marker: the key guard was bypassed and the detector tested nothing.",
+      "no-verdict > 0 or transport failures > 0: any pass on a negative may be hollow.",
+      "Verdict census fails to reconcile: instrument failure, the run's pass/fail cannot be trusted and is not reported.",
+      "SpendCeilingExceeded: aborted before the next call; the workflow's EXIT trap preserves spend-so-far.",
+      "ANY per-fixture FAIL: stop and report. Do not edit a prompt, do not re-record, do not add a declaration (R8, R11)."
+    ],
+
+    "procedure": "Unchanged and proven five times. Validate the key out of band (200 from GET /v1/models in the owner's terminal; the key never enters any tooling), set it by hand in the GitHub UI, verify main SHA and required checks green and zero secrets and zero variables and no run in flight, dispatch EXACTLY ONCE, delete the secret the moment the STEP 'Run selected live detector(s)' reaches a terminal state, then verify 404 plus total_count=0 across Actions secrets, Actions variables, Dependabot secrets and every environment. Guard 1 asserts PRESENCE, never VALIDITY.",
+    "singleSpendNote": "The ceiling bounds the MAGNITUDE of one run. It does NOT bound the NUMBER of runs: the concurrency group queues a second dispatch rather than refusing it, and each run carries its own independent ceiling. Single-spend rests entirely on dispatching once."
+  }
+}
