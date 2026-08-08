@@ -568,17 +568,24 @@ export async function runStabilityHarness(
     const ok = r.flaggedCount >= perPositiveThreshold;
     if (ok) positivesPassed++;
     // A positive that the model DID call vulnerable but that emitted nothing is
-    // a suppression-induced false negative, not a judgment miss. It still FAILS,
-    // because the shipped path reported nothing to the customer, but it is
-    // labelled so nobody "repairs" it by editing a prompt (R8, R11).
-    const suppressed = r.runs.filter(
+    // an emit-path false negative, not a judgment miss. It still FAILS, because
+    // the shipped path reported nothing to the customer, but it is labelled so
+    // nobody "repairs" it by editing a prompt (R8, R11).
+    //
+    // NAMES THE FACT, NEVER THE CAUSE. This label used to read "emit policy
+    // discarded it", which pointed at the pre-#152 MEDIUM suppression. That
+    // branch no longer exists, and the paths that reach this line today are
+    // different ones - a lane deferral, most of all. A label that misattributes
+    // the cause sends the next reader to repair the wrong mechanism.
+    const assertedNotEmitted = r.runs.filter(
       (x) => x.verdict?.isVulnerable === true && !x.flagged,
     ).length;
     process.stdout.write(
       `  pos ${r.file}: flagged ${r.flaggedCount}/${nRuns} ${ok ? "PASS" : "FAIL"}` +
-        (!ok && suppressed > 0
-          ? `  [DETECTED-BUT-SUPPRESSED on ${suppressed}/${nRuns}: model asserted ` +
-            "vulnerable, emit policy discarded it. NOT a detection miss]"
+        (!ok && assertedNotEmitted > 0
+          ? `  [ASSERTED-BUT-NOT-EMITTED on ${assertedNotEmitted}/${nRuns}: the model ` +
+            "called it vulnerable and nothing reached the customer. NOT a judgment " +
+            "miss; find which emit path dropped it before touching the prompt]"
           : "") +
         "\n",
     );
@@ -595,10 +602,18 @@ export async function runStabilityHarness(
     const s = scoreNegative(r.file, r.runs, opts.negativeExpectations);
     const ok = s.cleanRuns >= perNegativeThreshold;
     if (ok) negativesPassed++;
+    // "masked FP" was the old wording and it presumed masking. Since #152 an
+    // undeclared assertion on a negative is most likely REPORTED to the
+    // customer, which is worse than masked, not better - so the label states
+    // the assertion and lets the census line report emission.
+    const negNotEmitted = r.runs.filter(
+      (x) => x.verdict?.isVulnerable === true && !x.flagged,
+    ).length;
     process.stdout.write(
       `  neg ${r.file}: clean ${s.cleanRuns}/${nRuns} ${ok ? "PASS" : "FAIL"}` +
         (s.violations > 0
-          ? `  [${s.violations} run(s) ASSERTED VULNERABLE, undeclared: masked FP]`
+          ? `  [${s.violations} run(s) ASSERTED VULNERABLE, undeclared` +
+            ` (${negNotEmitted}/${nRuns} not emitted): false positive]`
           : "") +
         (s.excused > 0 ? `  [${s.excused} excused by declaration]` : "") +
         "\n",

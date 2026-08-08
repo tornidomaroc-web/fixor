@@ -246,8 +246,92 @@ function runsOf(n: number, flagged: boolean, verdict: Verdict) {
   check(c.assertedButNotEmitted === 0, "clean corpus reports zero asserted-but-not-emitted");
   check(c.reconciled, "clean corpus reconciles");
   check(
-    formatVerdictCensus(c).includes("Every negative's clean pass is backed by a safe verdict"),
-    "the clean-corpus census says so explicitly",
+    formatVerdictCensus(c).includes("No negative had isVulnerable asserted on any run"),
+    "the clean-corpus census says exactly what it measured",
+  );
+  // It must NOT claim a safe verdict backs every clean pass: scoreNegative
+  // counts a run with no verdict at all as clean, so that phrasing asserted a
+  // verdict this census never saw.
+  check(
+    !formatVerdictCensus(c).includes("backed by a safe verdict"),
+    "the clean branch does not claim a safe verdict it never read",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Case 11: THE RENDERED SURFACE. Every earlier case reads the census OBJECT;
+// nothing read the string that a paid run actually prints, and three claims on
+// it went false when option C shipped (#152) without a single gate turning red.
+// This case reads the string.
+//
+// The input is run 31208881040's real shape: webhook-unverified, two DECLARED
+// negatives asserting vuln/medium on 5/5, EMITTED every time. Under the shipped
+// emit policy `flagged` is true, so "SUPPRESSED", "passed on silence" and
+// "masked false positives" are all false of this exact run - and the run's own
+// asserted-but-not-emitted total, printed in the same report, read 0.
+// ---------------------------------------------------------------------------
+{
+  const fixtures: FixtureStability[] = [
+    fixture("positive/10-go-github-eq-compare.go", true, runsOf(5, true, v(true, "medium"))),
+    fixture("negative/14-app-router-apple-cross-file-verifier-helper.ts", false,
+      runsOf(5, true, v(true, "medium"))),
+    fixture("negative/15-app-router-graph-clientstate-challenge.ts", false,
+      runsOf(5, true, v(true, "medium"))),
+    fixture("negative/01-clean.ts", false, runsOf(5, false, v(false, "low"))),
+  ];
+  const c = buildVerdictCensus(fixtures, 5);
+  const out = formatVerdictCensus(c);
+
+  check(c.assertedButNotEmitted === 0, `nothing was suppressed (got ${c.assertedButNotEmitted})`);
+  check(
+    (c.notEmittedByClass["vuln/medium"] ?? -1) === 0,
+    `vuln/medium not-emitted === 0 (got ${c.notEmittedByClass["vuln/medium"]})`,
+  );
+
+  // The three claims, by their load-bearing words. Each is asserted ABSENT.
+  check(!out.includes("SUPPRESSED"), "the vuln/medium row does not claim SUPPRESSED");
+  check(!out.includes("passed on silence"), "no claim that a negative passed on silence");
+  check(
+    !out.includes("masked false positive"),
+    "no claim that an asserting negative is a masked false positive",
+  );
+
+  // And the counted facts that replaced them, which must MOVE with the data.
+  check(
+    out.includes("vuln/medium        15   asserted vulnerable: 15 emitted, 0 not"),
+    "the vuln/medium row COUNTS emission instead of asserting it",
+  );
+  check(
+    out.includes("2 negative(s) had isVulnerable asserted on at least one run"),
+    "the summary states membership, the one property this census measures",
+  );
+  check(
+    out.includes("Asserted-but-not-emitted across all fixtures: 0 run(s)"),
+    "the report's own not-emitted total is 0, which the rows must not contradict",
+  );
+
+  // NEGATIVE CONTROL, and it is the one that matters: the SAME corpus with the
+  // pre-#152 emit behaviour (asserted, nothing emitted) must render the OPPOSITE
+  // counts off the same code path. A renderer that hardcodes either answer fails
+  // one of these two halves; only a renderer that counts passes both.
+  const suppressedShape = buildVerdictCensus(
+    fixtures.map((f) =>
+      fixture(f.file, f.isPositive, f.runs.map((r) => ({ ...r, flagged: false }))),
+    ),
+    5,
+  );
+  const outSuppressed = formatVerdictCensus(suppressedShape);
+  check(
+    suppressedShape.assertedButNotEmitted === 15,
+    `pre-#152 shape: 15 asserted-but-not-emitted (got ${suppressedShape.assertedButNotEmitted})`,
+  );
+  check(
+    outSuppressed.includes("vuln/medium        15   asserted vulnerable: 0 emitted, 15 not"),
+    "the SAME row renders the opposite counts on the suppressed shape",
+  );
+  check(
+    outSuppressed.includes("2 negative(s) had isVulnerable asserted on at least one run"),
+    "the membership summary is unchanged by emission, because membership is not emission",
   );
 }
 
