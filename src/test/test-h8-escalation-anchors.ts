@@ -9,7 +9,8 @@
  *  made. This is the structural guarantee that the six refactored MEDIUM
  *  branches are byte-identical to pre-H8 on the default path.
  *
- *  PHASE B — ON-PATH K-REPLAY (paid; needs ANTHROPIC_API_KEY). Opus 4.8 has
+ *  PHASE B — ON-PATH K-REPLAY (paid; ARMED ONLY by FIXOR_H8_LIVE=1, and needs
+ *  ANTHROPIC_API_KEY). Opus 4.8 has
  *  no temperature:0 and is NOT run-to-run deterministic, so each of the four
  *  pinned anchors is replayed K times (default 5) and ANY flip is a FAIL.
  *  Pass condition is binary — all four anchors must reach their pinned
@@ -22,6 +23,16 @@
  * Every escalation call's USD cost is summed and reported after each replay.
  * A defensive HALT aborts if cumulative spend crosses $2. All raw results
  * are written to test-output/h8-escalation/.
+ *
+ * ARMING, AND WHY KEY PRESENCE IS NOT CONSENT. The npm script runs with
+ * --env-file=.env, so a real key is in the environment on EVERY invocation
+ * whether or not anyone meant to spend. Key presence therefore cannot be the
+ * opt-in, and until FIXOR_H8_LIVE existed this harness had none: the key check
+ * below tested for a condition the script itself guaranteed, so `npm run
+ * test:h8-escalation` spent on contact. Unarmed, it now runs Phase A and exits
+ * NON-ZERO, because the contract above is two acceptance checks BOTH required
+ * and a run that performed one of two has not passed.
+ * Paid run: FIXOR_H8_LIVE=1 npm run test:h8-escalation
  *
  * The first-pass ("original") reasoning fed to the adjudicator is held
  * NEUTRAL and, for the two opposite-outcome clientState anchors (POS-15 and
@@ -44,6 +55,7 @@ import {
 import type { FindingType } from "../analysis-engine/types";
 
 const FLAG = "FIXOR_ESCALATE_MEDIUM";
+const LIVE_FLAG = "FIXOR_H8_LIVE";
 const K = Number.parseInt(process.env.H8_REPLAYS ?? "5", 10) || 5;
 const HALT_USD = 2.0;
 const OUT_DIR = "test-output/h8-escalation";
@@ -253,14 +265,31 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // PHASE B — paid. Requires the flag ON and an API key.
+  // PHASE B — paid, and armed only by a deliberate act. This check MUST precede
+  // the FLAG assignment below: declining after mutating process env would leave
+  // escalation switched on in a process that is about to refuse to use it.
+  //
+  // Both decline paths report Phase A from `offPathOk` rather than asserting it
+  // passed. The assertion would be TRUE here today - a failing Phase A exits
+  // above and cannot reach these lines - but it would be true only by virtue of
+  // that upstream guard, and would become a silent lie if the guard were ever
+  // weakened. Printing the measured value cannot desynchronise from it.
+  if (process.env[LIVE_FLAG] !== "1") {
+    out.write(
+      `\nPHASE B NOT RUN: ${LIVE_FLAG} is not set to 1, so the paid acceptance did not execute.\n` +
+        `Phase A: ${offPathOk ? "PASS" : "FAIL"}. This harness requires BOTH phases, and one of two ran, so this is NOT a pass.\n` +
+        `To spend (${ANCHORS.length} anchors x ${K} replays = ${ANCHORS.length * K} Opus 4.8 calls, HALT at $${HALT_USD}):\n` +
+        `  ${LIVE_FLAG}=1 npm run test:h8-escalation\n`,
+    );
+    process.exit(1);
+  }
   process.env[FLAG] = "true";
   if (!process.env.ANTHROPIC_API_KEY) {
     out.write(
-      "PHASE B skipped: ANTHROPIC_API_KEY not set (opt-in live-LLM test). Re-run with the key " +
-        "(e.g. `node --env-file=.env dist/test/test-h8-escalation-anchors.js`).\n",
+      `\nPHASE B NOT RUN: ANTHROPIC_API_KEY is not set, so the paid acceptance did not execute.\n` +
+        `Phase A: ${offPathOk ? "PASS" : "FAIL"}. This harness requires BOTH phases, and one of two ran, so this is NOT a pass.\n`,
     );
-    process.exit(0);
+    process.exit(1);
   }
 
   out.write(`PHASE B — on-path K-replay (flag ON, K=${K})\n`);
