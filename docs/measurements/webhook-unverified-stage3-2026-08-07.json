@@ -99,6 +99,14 @@
   },
 
   "preRegisteredAuthBypass_2026_08_08": {
+    "RESOLUTION_2026_08_08": {
+      "status": "RESOLVED by run 31277606806 (auth-bypass alone, 2026-08-08, at ref c02b37fe, which is this pre-registration's own squash SHA). Full record: docs/measurements/auth-bypass-stage3-2026-08-08.json.",
+      "doNotEditTheValuesBelow": "Everything beneath this key is PRESERVED EXACTLY AS PRE-REGISTERED and must not be edited. A band or a prediction that can be edited after the fact is not a pre-registration. Read this key before quoting any value beneath it.",
+      "costBandOutcome": "INSIDE the band. Measured $1.5967 against band $1.42-$1.66, point $1.54; 3.7% above the point. THIS CORROBORATES NO COST MODEL, exactly as costBand.THIS_BAND_TESTS_NOTHING pre-committed. The only inference drawn is that the corpus-drift tripwire did not fire at 4.1%.",
+      "detectionPredictionOutcome": "45/45 CONFIRMED, zero declarations CONFIRMED, zero lane deferrals CONFIRMED, assertedButNotEmitted 0 CONFIRMED, and the named red at negative/14 DID NOT FIRE (clean 5/5).",
+      "whatWasFALSIFIED": "The detectionPrediction.basis claim that all 22 positive recordings being vuln/high describes the live run, and the detectionPrediction.pos15Resolves claim that positive/15 flags BECAUSE it is vuln/high rather than the MEDIUM the 2026-06-13 baseline recorded. Live, positive/15 returned vuln/medium on 4 of 5 runs. The outcome held; the mechanism did not.",
+      "theContradictionThisBlockCONTAINED": "pos15Resolves and the second entry of refinementsSurfacedWhileRecordingThis assert incompatible mechanisms for the same outcome: the first says positive/15 flags because it is HIGH, the second says it flags because option C now emits MEDIUM. The run adjudicated for the second. Had the first been true, option C would have been irrelevant to positive/15 and the 44/45 baseline could never have existed, so the contradiction was detectable for free before the dispatch."
+    },
     "recordedBeforeTheRun": true,
     "verifiableBy": "This file's first commit predates any auth-bypass stage-3 run. Run the workflow history and compare timestamps; no auth-bypass run exists at the time of writing.",
     "detector": "auth-bypass",
