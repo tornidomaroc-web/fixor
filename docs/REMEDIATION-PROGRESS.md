@@ -1666,12 +1666,22 @@ the READY gate, which is still F-004 alone.
   model-reaching fixtures reproduced their recording on all five runs, and exactly one did not.**
   97.3% is high enough to be trusted and does not identify its own exception. The "zero
   declarations required" prediction was correct, and correct for a reason it did not state: under
-  option C a MEDIUM positive flags anyway, so the emit policy absorbed the error. **It would not
-  have absorbed it on a NEGATIVE**, where a minority-branch recording would have predicted zero
-  declarations, produced undeclared assertions and returned a full RED. That consequence is an
-  INFERENCE and did not occur; what occurred is the premise, that one recording in a corpus can be
-  the minority branch. Seed declarations from n=1 if the alternative costs money, but say that the
-  seed is n=1.
+  option C a MEDIUM positive flags anyway, so the emit policy absorbed the error.
+
+  **AND THE DIVERGENCE WAS CONFIDENCE-ONLY, WHICH NARROWS THIS SHARPLY - THE OBVIOUS NEGATIVE
+  COUNTERFACTUAL DOES NOT FOLLOW AND MUST NOT BE CITED.** POS-15 held `isVulnerable` TRUE on all
+  five runs; only its confidence moved. Decomposed, the census's **SIGN fidelity is 37 of 37 and
+  its CONFIDENCE fidelity is 36 of 37** - nothing in 185 calls changed a recorded sign. Transposing
+  this divergence onto a negative therefore produces no red at all: `scoreNegative` ignores
+  confidence entirely, so a negative recorded `safe/high` and living at `safe/medium` still passes
+  5/5 clean and seeds no declaration. **The observed error class is harmless on negatives by
+  construction, not by luck**, and it is harmless on positives because option C makes a positive's
+  fate turn on sign too. Under the RETIRED policy that same error is precisely what produced 44/45,
+  so the safety is a property of option C and not of the census. **The genuinely unmeasured
+  residual is a SIGN divergence from an n=1 seed** - the only class that can red a run, of which
+  this run produced zero instances, so it offers no estimate of its frequency. 37 of 37 at n=5
+  bounds it loosely and does not exclude it. State the sign/confidence split whenever a declaration
+  is seeded from n=1, because only the sign half can fail a gate.
 
   **THE PRE-REGISTRATION CONTRADICTED ITSELF, AND THE CONTRADICTION WAS FREE TO CATCH.** It gave
   two incompatible mechanisms for the same predicted outcome: `pos15Resolves` said POS-15 flags
