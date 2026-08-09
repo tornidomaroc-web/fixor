@@ -1,0 +1,160 @@
+{
+  "measurement": "stage-3 live detection-quality, auth-bypass alone, at n=5",
+  "date": "2026-08-08",
+  "recordedOn": "2026-08-09",
+  "runId": "31277606806",
+  "ref": "c02b37fed53198e8c67dd6fea022a8cdd05872cf",
+  "zeroSpend": false,
+  "totalSpentUsd": 1.5967,
+  "cumulativeStageThreeSpendUsd": 5.8566,
+
+  "isA": "A MEASURED detection-quality result for auth-bypass at n=5, a MEASURED per-call cost from the harness ledger, the RESOLUTION of the band and the detection prediction pre-registered for this run on 2026-08-08, and the counterfactual that is the only thing this run actually bought.",
+
+  "scope": {
+    "detector": "auth-bypass",
+    "selector": "auth-bypass (single-detector canary path, not 'all')",
+    "dispatchedAtOwnPreRegistrationSha": "The run was dispatched at c02b37fe, which is the squash SHA of the commit that landed its own pre-registration. The prediction could not be edited after the run because the run ref IS the pre-registration ref.",
+    "fixtures": "45 enumerated (22 positives, 23 negatives); 37 reach the model (22 positives, 15 negatives), 8 negatives are pre-filtered and cannot assert",
+    "callsAtN5": 185,
+    "conclusion": "success",
+    "wallClock": "22m44s (2026-08-08T20:44:02Z to 2026-08-08T21:06:46Z)",
+    "fingerprint": "45a17ae07c26",
+    "fingerprintMatchesShipping": true
+  },
+
+  "result": {
+    "aggregate": "45/45 PASS",
+    "positives": "22/22 at >= 4/5 (aggregate need >= 22)",
+    "negatives": "23/23 at 5/5 (aggregate need >= 23)",
+    "combined": "45/45 (aggregate need >= 45)",
+    "declarationsUsed": 0,
+    "assertedButNotEmitted": 0,
+    "transport": {
+      "llmCalls": 185,
+      "pricedCalls": 185,
+      "noVerdict": 0,
+      "transportFailures": 0,
+      "emittedWarnings": 0
+    },
+    "verdictCensus": {
+      "vulnHigh": 106,
+      "vulnMedium": 4,
+      "safeHigh": 70,
+      "safeLow": 5,
+      "preFiltered": 40,
+      "unclassified": 0,
+      "reconciliation": "counted 225 of 225 executed runs, RECONCILED. 225 = 45 fixtures x 5 runs. 185 reached the model, 40 were pre-filtered.",
+      "ledger": "185 calls; 185 runs reached the model; 0 auxiliary/escalation"
+    },
+    "negativesCalledVulnerable": "none. No negative had isVulnerable asserted on any run.",
+    "resolutionCaveat": "PRINTED BY THE HARNESS AND REPEATED HERE, not softened: n=5 catches stochasticity at 20% resolution. Zero FP at n=5 means 'no FP at this resolution', never 'calibrated'."
+  },
+
+  "theResultThatMatters": {
+    "claim": "THE PASS IS NOT THE RESULT. Under the pre-#152 emit policy this exact run scores 44/45 and FAILS. Option C is the entire difference between red and green.",
+    "mechanism": "All four vuln/medium verdicts in the run fell on a single fixture, positive/15-app-router-with-account-api-key-no-enforce.ts, on runs 1, 2, 3 and 4. Run 5 returned vuln/high. Under the pre-#152 policy a MEDIUM is discarded to the review queue rather than emitted, so those four runs contribute nothing.",
+    "arithmetic": {
+      "pos15Live": "flagged 5/5 (4 x vuln/medium, 1 x vuln/high)",
+      "pos15UnderPre152Policy": "flagged 1/5",
+      "barItWouldMiss": "perPositiveThreshold 4, hardcoded at the entry point; 1/5 FAILS",
+      "positivesUnderPre152Policy": "21/22, against positivesMinPassing 22: FAILS",
+      "negativesUnaffected": "23/23. Every vuln/medium in the run was on positive/15; no negative produced one.",
+      "combinedUnderPre152Policy": "44/45, against combinedMinPassing 45: FAILS"
+    },
+    "whyThisIsTheWholePoint": "44/45 is not an approximation of the pre-#152 score. It is that score exactly, on the same fixture, by the same mechanism, and it is the number docs/detector-capabilities.md has carried since the 2026-06-13 post-H7 re-baseline. The gate did not become satisfiable because a threshold moved. It became satisfiable because the detector stopped discarding a finding it had already made.",
+    "corroborationStatus": "SECOND detector to demonstrate this, after webhook-unverified at run 31208881040 (16/17 under the old policy, 35/35 under the shipped one). Two corpora, still not a law.",
+    "whatTheModelActuallySaid": "READ, not inferred, per the rule that lane membership may be cited from the census but a verdict's correctness may not be cited without reading it. On all four MEDIUM runs the model's stated reason for MEDIUM rather than HIGH is the same: the withAccountApiKey wrapper plausibly authenticates the caller (so the confidence is hedged), but the handler body applies no ownership or scope filter, so any authenticated caller can delete any label. The hedge is about the wrapper; the finding is about the missing scope filter. That is a correct and well-reasoned uncertainty, and the pre-#152 policy discarded it."
+  },
+
+  "bandResolution": {
+    "resolves": "preRegisteredAuthBypass_2026_08_08.costBand in docs/measurements/webhook-unverified-stage3-2026-08-07.json",
+    "predictedPointUsd": 1.54,
+    "predictedBandUsd": [1.42, 1.66],
+    "ceilingUsd": 2.0,
+    "measuredUsd": 1.5967,
+    "measuredPerCallUsd": 0.0086308,
+    "outcome": "INSIDE the band. 3.7% above the point. 4.0% below the top of the band. The $2.00 ceiling was never approached.",
+    "NO_COST_MODEL_IS_CORROBORATED": "BINDING, AND PRE-REGISTERED AS SUCH BEFORE THE RUN. The band was recorded as UNINFORMATIVE: it contains the computed model ($1.5422), the flat constant ($1.5318), the withdrawn calibration ($1.49) and the mechanism-only model ($1.4322), and the two leading candidates disagree by 0.7%. A result inside it therefore selects among none of them. This entry does not claim, and may not be cited as claiming, support for any cost model. The number landing near the point is not evidence; the band was built so that it could not be.",
+    "candidateErrorsForCompletenessNotForSelection": {
+      "note": "Listed so nobody recomputes them and mistakes the exercise for a test. Every one of these is inside the band by construction.",
+      "computedModelUsd": 1.5422,
+      "computedModelError": "-3.4%",
+      "flatConstantUsd": 1.5318,
+      "flatConstantError": "-4.1%",
+      "withdrawnCalibrationUsd": 1.49,
+      "withdrawnCalibrationError": "-6.7%",
+      "mechanismOnlyUsd": 1.4322,
+      "mechanismOnlyError": "-10.3%",
+      "errorConvention": "model prediction relative to measured, the convention this repo's flat-constant range uses"
+    },
+    "theOneThingCostDidMeasure": "THE CORPUS-DRIFT TRIPWIRE DID NOT FIRE. The pre-registration set a miss beyond roughly 20% as evidence that the frozen recordings no longer describe the live run despite a matching fingerprint. The miss is 4.1%. The frozen corpus still describes the live run. That is a consistency check on the instrument and is the ONLY inference this run's cost supports."
+  },
+
+  "flatConstantErrorUpdate": {
+    "beforeThisRun": "-19.0% to +17.0% across five paid runs",
+    "thisRunsContribution": "-4.1%, the sixth point",
+    "afterThisRun": "-19.0% to +17.0%, UNCHANGED. This run adds a point well inside the existing envelope and does not widen it.",
+    "doNotRead": "An unchanged envelope is not confirmation. Six points, one of which (idor) is a -19% outlier and one of which (env-exposure) is a documented short-prefix outlier, do not make the constant correct; they bound how wrong it has been observed to be."
+  },
+
+  "censusFidelityDefect": {
+    "headline": "THE RECORDED-VERDICT CENSUS WAS RIGHT ABOUT THE OUTCOME AND WRONG ABOUT THE MECHANISM, AND n=1 GIVES NO SIGNAL ABOUT WHICH FIXTURE IS THE EXCEPTION.",
+    "whatWasRecorded": "The single n=1 replay recording for positive/15 (fixtures/replay/auth-bypass-multi/be1492ec3c4575569cd32c04220c74e75c3ed6d9a3a60fe9aa58f6fbaf0255d6.json) is isVulnerable true at confidence high. READ from the file, not inferred from the census summary.",
+    "whatIsLive": "positive/15 is 80% MEDIUM and 20% HIGH across five runs. The n=1 recording sampled the 20% MINORITY branch.",
+    "measuredFidelityOfTheWholeCorpus": {
+      "modelReachingFixtures": 37,
+      "reproducedTheirRecordingOnAllFiveRuns": 36,
+      "diverged": 1,
+      "whichOne": "positive/15, on 4 of its 5 runs",
+      "derivation": "22 positives x 5 = 110 vulnerable assertions = 106 vuln/high + 4 vuln/medium; the 4 mediums are positive/15 runs 1-4 and its run 5 is high, so the other 21 positives are 105/105 vuln/high. 15 model-reaching negatives x 5 = 75 = 70 safe/high + 5 safe/low, and all five safe/low runs are negative/14, matching its recording. Reconciles exactly against the census totals."
+    },
+    "whyThatIsTheDangerousResult": "97.3% fixture-level fidelity is high enough to be trusted and does not identify its own exception. The census was not unreliable in general; it was wrong in exactly one place, and n=1 cannot say where.",
+    "theConsequenceThatDidNotHappen": "STATED AS AN INFERENCE, NOT AN OBSERVATION, because it did not occur. Declarations are seeded from the census. Had a minority-branch recording of this kind fallen on a NEGATIVE rather than a positive, the census would have predicted zero declarations required, the run would have produced undeclared assertions, and the result would have been a full RED. Nothing in this run demonstrates that; what this run demonstrates is the premise, that a single recording can be the minority branch.",
+    "whyOptionCMASKEDIT": "Under the shipped emit policy a MEDIUM positive still flags, so a positive whose recording says HIGH and whose live behaviour is MEDIUM passes either way. The census's 'zero declarations required' conclusion was CORRECT, and correct for a reason it did not state. The emit policy absorbed the error. It would not have absorbed it on a negative.",
+    "recommendation": "Do not seed declarations from n=1 without stating that the seed is n=1. This does not argue for re-recording at n>1, which spends real money and overwrites frozen evidence; it argues for the limitation being written next to the prediction."
+  },
+
+  "preRegistrationResolution": {
+    "resolves": "preRegisteredAuthBypass_2026_08_08.detectionPrediction in docs/measurements/webhook-unverified-stage3-2026-08-07.json",
+    "aggregate": "CONFIRMED. Predicted 45/45 with positives 22/22 at >= 4/5 and negatives 23/23 at 5/5. Measured exactly that.",
+    "gateSatisfiability": "CONFIRMED. The entry point's hardcoded 22/23/45 matched the iterator's enumerated 22/23/45, verified at zero spend before the dispatch, and the run reached all three.",
+    "zeroLaneDeferrals": "CONFIRMED. No positive was emptied by an H7 deferral; every positive flagged.",
+    "assertedButNotEmitted": "CONFIRMED at 0.",
+    "declarationsRequired": "CONFIRMED at 0. See censusFidelityDefect for why this was right for a reason the pre-registration did not state.",
+    "theNamedRed": {
+      "fixture": "negative/14-app-router-bare-public-readonly.ts",
+      "outcome": "DID NOT FIRE. Clean 5/5, skip on every run, safe/low on every run.",
+      "andItsRecordingWasFAITHFUL": "negative/14 held its recorded safe/low on all five runs, sign and confidence both. The corpus's one LOW-confidence recording was representative; the corpus's one divergence was a HIGH-confidence recording. Confidence level did not predict which recording would hold.",
+      "preCommitmentNotExercised": "The pre-commitment that a flip must not be declared away was never tested, because there was no flip. It stands unexercised and remains binding."
+    },
+    "basis": "PARTIALLY FALSIFIED. The pre-registration's basis was that all 22 positive recordings are vuln/high with zero entries in the MEDIUM lane. That is true of the RECORDINGS and false of the LIVE RUN, which produced four MEDIUM verdicts on positive/15. The conclusion drawn from the basis survived; the basis itself did not.",
+    "pos15Resolves": {
+      "outcome": "OUTCOME CONFIRMED, MECHANISM FALSIFIED.",
+      "predicted": "positive/15 would flag, and would do so because its recording is vuln/high rather than the MEDIUM the 2026-06-13 baseline recorded.",
+      "measured": "positive/15 flagged 5/5, and it did so at MEDIUM on four of five runs. The 2026-06-13 baseline's MEDIUM characterisation of this fixture was correct and the pre-registration's correction of it was not.",
+      "theInternalContradictionTheRunADJUDICATED": "The pre-registration contained two incompatible mechanisms for the same predicted outcome. Its pos15Resolves field said positive/15 flags because it is HIGH. Its second stated refinement said positive/15 can no longer miss via MEDIUM because option C now emits MEDIUM. Only one can be operative: if the fixture were genuinely HIGH, option C would be irrelevant to it and it would have flagged under the pre-#152 policy too, in which case the 44/45 baseline could never have existed. The live run adjudicates in favour of the refinement. THE 44/45 BASELINE IS ITSELF EVIDENCE THAT THE MECHANISM IS MEDIUM, and that evidence was available before the run without spending anything.",
+      "lesson": "A pre-registration can be internally inconsistent and still predict the right outcome. Checking a prediction's mechanism against the repo's own recorded history is free; this one contradicted a number in a tracked doc and the contradiction was not caught."
+    },
+    "refinementOne": "CONFIRMED. Only 37 of 45 fixtures could fail; 8 negatives were pre-filtered. The census shows exactly 40 pre-filtered runs, which is 8 fixtures x 5.",
+    "refinementTwo": "CONFIRMED, AND IT IS THE OPERATIVE MECHANISM OF THE ENTIRE RUN. Option C removed positive/15's MEDIUM miss path. Everything in theResultThatMatters follows from this one refinement being right."
+  },
+
+  "whatThisRunDoesNotDo": {
+    "doesNotLiftF004": "F-004 gates on all six detectors. Under the owner's 2026-08-08 ruling that is six per-detector greens; five detectors have now run green and env-exposure has not been re-run since option C shipped. F-004 REMAINS OPEN.",
+    "doesNotCalibrate": "R3 forbids reading zero FP at n=5 as calibration, and the harness printed that ceiling itself.",
+    "doesNotProveSimultaneity": "Six greens at six different SHAs would not prove the six pass simultaneously at one SHA. This run is one more green at one more SHA and inherits that limit.",
+    "doesNotCloseTheOptionCQUESTION": "It shows option C is load-bearing for auth-bypass. It says nothing about whether emitting MEDIUM to customers is correct in general; the medium lane's zero-false-positive record is six entries, measured free, and six is not a rate."
+  },
+
+  "procedure": {
+    "followed": "The proven stage-3 dispatch procedure: key validated out of band, set by hand in the UI, main SHA plus required checks plus zero secrets plus no run in flight verified, dispatched exactly once, secret deleted the moment the run step went terminal, absence verified.",
+    "guardLimit": "Guard 1 asserts key PRESENCE, never VALIDITY. That gap is deliberate and documented in the workflow."
+  },
+
+  "provenance": {
+    "detectionAndCost": "Read from the run's own uploaded artifact stage3-detector-logs (run 31277606806), not from a session narrative. Every count in this file reconciles against the census block printed in that log.",
+    "pos15Recording": "Read from the replay fixture named in censusFidelityDefect.whatWasRecorded.",
+    "runMetadata": "Read back from the GitHub Actions API: headSha, conclusion, created/updated timestamps.",
+    "causingPolicyChange": "PR #152, squash 72598ba6a81fb0630b15a19676d51de2d4f4f534, merged 2026-08-07."
+  }
+}

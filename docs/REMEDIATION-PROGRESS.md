@@ -1505,6 +1505,14 @@ the READY gate, which is still F-004 alone.
   | `webhook-unverified` | $1.10-$1.26 | **WITHDRAWN, unrun** |
   | `auth-bypass` | $1.40-$1.61 | **WITHDRAWN, unrun** |
 
+  **ANNOTATION (2026-08-09): both rows marked "unrun" have since run, and neither run tested the
+  withdrawn band in that row.** `webhook-unverified` ran at `31208881040` (2026-08-07, measured
+  $1.2032) and `auth-bypass` at `31277606806` (2026-08-08, measured $1.5967); each was dispatched
+  against a REPLACEMENT band pre-registered for it, not against the withdrawn band beside it. The
+  table is preserved because its subject is the withdrawn bands' fate, and that fate is unchanged:
+  they were retired by decision rule and never tested. The word "unrun" describes the detectors as
+  they stood on 2026-08-04 and is not their current status.
+
   **DO NOT QUOTE THE WITHDRAWN BANDS.** Until a replacement model exists, the least-bad predictor
   for the two unrun detectors is the flat constant $0.00828/call: `webhook-unverified` 170 calls
   → point **~$1.41**, `auth-bypass` 185 calls → point **~$1.53**.
@@ -1619,6 +1627,79 @@ the READY gate, which is still F-004 alone.
   moved confidence while the sign held. **It must not be declared away if it flips**: a live run
   showing a wrong verdict documents that it OCCURRED, never that it is right, and declaring it
   would be the declare-the-positive move performed on the other side of the equation.
+
+  **SIXTH PAID RUN - run `31277606806`, 2026-08-08, `auth-bypass` alone, conclusion `success` in
+  22m44s at `main` c02b37fe, which is the squash SHA of the commit that landed this run's own
+  pre-registration. MEASURED $1.5967 over 185 priced calls; 0 no-verdict, 0 transport failures, 0
+  emitted warnings; fingerprint `45a17ae07c26` matching shipping. Aggregates 22/22 positives, 23/23
+  negatives, 45/45 combined, PASS, with ZERO declarations used.** The verdict census reconciled 225
+  of 225 executed runs and the ledger's 185 calls against 185 model-reaching runs with 0 auxiliary.
+  No negative was called vulnerable on any run. Cumulative stage-3 spend: **$5.8566**.
+
+  **THE RESULT THAT MATTERS IS NOT THE PASS, AND THIS TIME THE COUNTERFACTUAL IS THE DOCUMENTED
+  NUMBER ITSELF.** Under the pre-#152 emit policy this exact run scores **44/45 and FAILS**. All
+  four `vuln/medium` verdicts in the run fell on `positive/15-app-router-with-account-api-key-no-
+  enforce.ts`, runs 1 through 4; run 5 returned `vuln/high`. Discard the four, as the old policy
+  did, and POS-15 flags 1/5 against a >= 4/5 bar, positives fall to 21/22 and the suite lands on
+  exactly the 44/45 that `docs/detector-capabilities.md` has carried since 2026-06-13 - same
+  fixture, same mechanism, same number. Option C is the whole difference between red and green.
+  Second detector to show this after `webhook-unverified` at `31208881040`; two corpora, still not
+  a law. The MEDIUM reasoning was READ rather than assumed: on all four runs the model hedges to
+  MEDIUM because the wrapper plausibly authenticates, while the finding itself is that the handler
+  body applies no ownership filter, so any authenticated caller can delete any label. A correct
+  uncertainty, discarded by the old policy.
+
+  **THE BAND LANDED INSIDE AND CORROBORATES NOTHING, EXACTLY AS PRE-COMMITTED.** $1.5967 against
+  band $1.42-$1.66, point $1.54, so 3.7% above the point and 4.0% below the top. That band was
+  recorded in advance as UNINFORMATIVE - it contains the computed model, the flat constant, the
+  withdrawn calibration and the mechanism-only model, and the two leading candidates disagree by
+  0.7%. **No corroboration of any cost model is claimed here and none may be cited from here.** The
+  single inference the cost supports is that the corpus-drift tripwire did NOT fire: the miss is
+  4.1%, far inside the 20% threshold, so the frozen recordings still describe the live run. The
+  flat constant's measured error envelope stays **-19.0% to +17.0%, UNCHANGED**; this is a sixth
+  point well inside it, and an unwidened envelope is not confirmation.
+
+  **THE CENSUS WAS RIGHT ABOUT THE OUTCOME AND WRONG ABOUT THE MECHANISM, AND n=1 CANNOT SAY WHICH
+  FIXTURE IS THE EXCEPTION.** POS-15's single recording is `vuln/high`, read from the replay
+  fixture rather than from the census summary. Live, POS-15 is 80% MEDIUM: the recording sampled
+  the 20% minority branch. The corpus-wide fidelity is the uncomfortable part - **36 of 37
+  model-reaching fixtures reproduced their recording on all five runs, and exactly one did not.**
+  97.3% is high enough to be trusted and does not identify its own exception. The "zero
+  declarations required" prediction was correct, and correct for a reason it did not state: under
+  option C a MEDIUM positive flags anyway, so the emit policy absorbed the error. **It would not
+  have absorbed it on a NEGATIVE**, where a minority-branch recording would have predicted zero
+  declarations, produced undeclared assertions and returned a full RED. That consequence is an
+  INFERENCE and did not occur; what occurred is the premise, that one recording in a corpus can be
+  the minority branch. Seed declarations from n=1 if the alternative costs money, but say that the
+  seed is n=1.
+
+  **THE PRE-REGISTRATION CONTRADICTED ITSELF, AND THE CONTRADICTION WAS FREE TO CATCH.** It gave
+  two incompatible mechanisms for the same predicted outcome: `pos15Resolves` said POS-15 flags
+  because its recording is HIGH rather than the MEDIUM the 2026-06-13 baseline recorded, while its
+  second stated refinement said POS-15 can no longer miss via MEDIUM because option C now emits
+  one. Only one can be operative. **Had POS-15 genuinely been HIGH, option C would have been
+  irrelevant to it, it would have flagged under the old policy too, and the 44/45 baseline could
+  never have existed** - so the tracked number was itself evidence against the mechanism claimed
+  beside it. The run adjudicated for the refinement. A prediction can be internally inconsistent
+  and still call the outcome; checking a mechanism against the repo's own recorded history costs
+  nothing and was not done.
+
+  **THE NAMED RED DID NOT FIRE, AND ITS PRE-COMMITMENT STANDS UNEXERCISED.**
+  `negative/14-app-router-bare-public-readonly.ts`, the corpus's only `safe/low` recording, came
+  back clean 5/5 and held both sign and confidence on every run. The commitment that a flip must
+  not be declared away was never tested and remains binding. Note the asymmetry worth carrying
+  forward: the corpus's one LOW-confidence recording was faithful and its divergence came from a
+  HIGH-confidence one, so recorded confidence did not predict which recording would hold.
+
+  **WHAT THIS RUN DOES NOT DO.** It does not lift F-004. Under the owner's 2026-08-08 ruling that
+  gate is six per-detector greens; five detectors now have one, `env-exposure` has not been re-run
+  since option C shipped, and **F-004 REMAINS OPEN**. It does not calibrate anything - R3 forbids
+  reading zero FP at n=5 as calibration and the harness printed that ceiling itself. It does not
+  prove the six pass simultaneously at one SHA. And it does not settle whether emitting MEDIUM to
+  customers is right in general: the medium lane's clean record is six entries, and six is not a
+  rate. Full record: `docs/measurements/auth-bypass-stage3-2026-08-08.json`; the pre-registration
+  is resolved in place under `preRegisteredAuthBypass_2026_08_08.RESOLUTION_2026_08_08` in
+  `docs/measurements/webhook-unverified-stage3-2026-08-07.json`, values preserved unedited.
 
   **WHAT THE FALSIFICATION ESTABLISHES, stated narrowly.** The bias-corrected calibration does not
   transfer across prompt size. It does NOT establish that the flat constant is correct — env-exposure
