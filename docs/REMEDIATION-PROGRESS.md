@@ -38,13 +38,14 @@ An open PR is "in review," never "done."
 Entry bar for this list: a new bullet earns its place only if it carries a general
 lesson that a real error cost us to extract, and is neither merely good practice nor a
 restatement of a bullet already here. The heading's rule (no case, no bullet) is
-necessary but not sufficient; the nine below set the full standard a tenth must clear,
+necessary but not sufficient; the ten below set the full standard an eleventh must clear,
 each having been paid for by a specific, named mistake. This bar sits above the list,
 not within it: a rule about how rules enter the ledger is not a detector lesson the way
-the nine are, and gating the list from inside the list would be the first violation of
+the ten are, and gating the list from inside the list would be the first violation of
 its own spirit. The count is maintained with every addition, which is the whole point of
-the CORRECTION below; seven to eight when the seventh bullet landed, and eight to nine
-when the ninth did, are that maintenance, not further errors.
+the CORRECTION below; seven to eight when the seventh bullet landed, eight to nine
+when the ninth did, and nine to ten when the tenth did, are that maintenance, not further
+errors.
 
 **CORRECTION of this lead-in's own count, stale from `bf2dea9` (PR #109) until this
 entry.** It read "the five below ... a sixth must clear" and "the way the five are".
@@ -212,6 +213,49 @@ describes code it sits beside.
   quietly fixed because the failure is the one this list exists to catch, and because it was
   authored and reviewed without either of us noticing — the same shape as the lead-in count
   above, on the rule rather than on the tally.
+
+- **An untracked surface cannot be swept, so it is never evidence about the tree.** A file kept
+  outside version control is invisible to review, absent from a fresh clone, and unreachable by
+  every sweep a PR can perform, so nothing falsifies it except a reader who goes and looks. Any
+  DERIVED fact it carries — what has run, what a run cost, what is unrun, what has landed — is a
+  cache with no invalidation, and it decays the moment the tree moves. Read a derived fact from
+  the artifact that produces it. A constraint or a pointer may live on such a surface; a number
+  may not. CASE: on 2026-08-10 a session read the root `CLAUDE.md` (gitignored, hand-edited)
+  where its in-flight section held that the auth-bypass pre-registration had not yet reached a
+  tracked artifact and had to land before the dispatch, and recommended authoring one dated that
+  day. `c02b37fe` (#154, 2026-08-08) had already landed it, as `preRegisteredAuthBypass_2026_08_08`
+  inside `docs/measurements/webhook-unverified-stage3-2026-08-07.json`; run `31277606806` had
+  executed against that same SHA; and `ee15ebca` (#155, 2026-08-09) had resolved it in place and
+  added `docs/measurements/auth-bypass-stage3-2026-08-08.json`. The recommendation would have
+  produced a duplicate pre-registration, post-dated by two days, carrying a point estimate and an
+  empty resolution slot for a run that had already returned 45/45 at $1.5967. The same surface
+  simultaneously put cumulative stage-3 spend at $4.2599 against the tracked $5.8566, listed the
+  sixth detector as unrun, and ended its merged-PR list two PRs early. Four tracked places
+  contradicted it while it was being read and none were opened. Caught by the owner, not by any
+  mechanism. Distinct from `A claim lives on more than one SURFACE; a sweep certifies only the
+  surface it swept`, which is about a surface a sweep MISSED: this is about a surface no sweep can
+  REACH, so the remedy is not to sweep wider but to refuse the surface as evidence.
+
+  **The remedy's hole, stated here so it is not met as a surprise.** `docs/measurements/` holds
+  stage-3 artifacts for three of the six runs only: `admin-check`, `webhook-unverified` and
+  `auth-bypass`. The `idor-tenant`, `idor` and `env-exposure` runs predate the artifact practice
+  and survive only in this file and in the Actions run history. A glob over that directory would
+  report three of six while carrying the authority of a command, which is this bullet's own defect
+  mechanised. No such script exists and the absence is deliberate, not an omission.
+
+  **A provenance field inside the pre-registration schema was weighed and REJECTED, recorded so a
+  later reader knows it was decided rather than missed.** The proposal was one key naming where a
+  prediction came from, so a number carried in from prose would be visible after the fact rather
+  than merely discouraged before it. The slot already exists and already did not bind:
+  `detectionPrediction.basis` in the block named above carries real coordinates, 37 recordings at
+  the shipping fingerprint `45a17ae07c26`, and `ee15ebca` (#155) records both that its inference
+  was falsified live and that the same block held two incompatible mechanisms for one predicted
+  outcome, one of which a tracked number refuted for free before the dispatch. A field cannot
+  separate a careless fill from a careful one when the stale source asserts the same basis in the
+  same words. And a provenance claim is itself a derived fact, so the field would install this
+  bullet's own defect inside the one artifact class that forbids its own amendment. The limit that
+  leaves is accepted and not patched: nothing written on a tracked surface can force a session to
+  look at it.
 
 ## Recording-cost lessons (read this BEFORE the next recording session)
 
