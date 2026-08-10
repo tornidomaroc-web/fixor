@@ -158,5 +158,69 @@
     "pos15Recording": "Read from the replay fixture named in censusFidelityDefect.whatWasRecorded.",
     "runMetadata": "Read back from the GitHub Actions API: headSha, conclusion, created/updated timestamps.",
     "causingPolicyChange": "PR #152, squash 72598ba6a81fb0630b15a19676d51de2d4f4f534, merged 2026-08-07."
+  },
+
+  "preRegisteredEnvExposureRerun_2026_08_10": {
+    "recordedBeforeTheRun": true,
+    "verifiableBy": "This block's first commit predates any env-exposure re-run. The only env-exposure stage-3 run in existence at the time of writing is 30903038957 (2026-08-04). Compare workflow history timestamps.",
+    "detector": "env-exposure",
+    "selector": "env-exposure ALONE. Never 'all'.",
+    "whyThisRunExists": "whatThisRunDoesNotDo.doesNotLiftF004 in this same file states that five detectors have run green and env-exposure has not been re-run since option C shipped, so F-004 remains open. The tracker makes F-004 the sole substantive READY gate. This is its last outstanding per-detector green.",
+
+    "corpusAndGate": {
+      "iteratorEnumerates": "12 positives, 8 negatives, 20 combined, 17 model-reaching. Read from `npm run measure:stage3-calls` at zero spend, against the ITERATOR and never against the entry point's own header comment.",
+      "entryPointHardcodes": "src/test/test-env-exposure.ts: positivesMinPassing 12, negativesMinPassing 8, combinedMinPassing 20, nRuns 5, perPositiveThreshold 4, perNegativeThreshold 5.",
+      "satisfiable": "YES, and with ZERO SLACK IN BOTH DIRECTIONS: 12 of 12 positives and 8 of 8 negatives. Every fixture must clear its own bar. One flake anywhere is a full RED. The entry point's header adopts this deliberately and says so.",
+      "callCount": "17 x 5 = 85 priced calls.",
+      "corpusChangedSinceThePriorRun": "Run 30903038957 ran against 11 positives / 9 negatives. TWO R6 moves produced today's 12 / 8: negative/07 -> positive/11 (first, Day 5), then negative/03 -> positive/12 (second, AFTER that run). SCORES ARE NOT COMPARABLE FIXTURE-FOR-FIXTURE.",
+      "NOT_held_and_previously_asserted_in_error": "That the prompts are byte-identical to the prior run's. That claim rested on 'a prompt change moves the replay request key so the fixtures stop matching', which the negative control below REFUTED: the key did NOT move and a separate fingerprint assertion caught the drift. Nothing here establishes the prior run's prompt bytes or its billed token counts.",
+      "whatWouldEstablishIt": "Run 30903038957's own uploaded artifact `stage3-detector-logs` is STILL RETAINED and NOT EXPIRED as of 2026-08-10 (6,579 bytes, verified via the Actions API). Reading its recorded fingerprint and its billed input/output token totals would settle both the prompt identity and the token identity. Until that is done, byte-identity is not claimed."
+    },
+
+    "fingerprintParity": {
+      "held": "The shipping detector's SYSTEM_PROMPT_FINGERPRINT equals every recording's systemPromptFingerprint. Both are d2ca2f022d99. This is ASSERTED per fixture by the replay harness, not inferred from key derivation.",
+      "witness": "Negative control, 2026-08-10, zero spend, on the guardrail that a gate never seen to FAIL is not a gate. One character changed inside SYSTEM_PROMPT (auditor -> auditorX) moved the detector fingerprint to c3c95a7695a1 and failed all 17 fixtures with exactly `systemPromptFingerprint d2ca2f022d99 != detector c3c95a7695a1 (prompt drift; re-record)` and with no other failure. Build exited 0, so the red is the assertion and not a compile break. Restored by `git checkout --` and proven byte-exact: source c8a69d7089b7d12885f17886e7e318882c245fb759df76d5196e2692c18ff0b3, artifact 82cfbfab6f8828c9e2427b392eeda616009c9ded697d057e633bf8ac8351cc31, tree clean at e801d91f, gate re-run RESULT PASS.",
+      "SCOPE_OF_THE_WITNESS": "It covers SYSTEM_PROMPT drift ONLY. The fingerprint hashes SYSTEM_PROMPT alone (createHash('sha256').update(SYSTEM_PROMPT)). It says NOTHING about a change to fixture bytes, the context window, or an ASSUMED-PATH header, and the same control showed the replay key does NOT track the system prompt, so a user-content change is covered neither by this assertion nor by key movement."
+    },
+
+    "detectionPrediction": {
+      "aggregate": "20/20. Positives 12/12 at >= 4/5, negatives 8/8 at 5/5.",
+      "predictedPerFixture_SIGN": {
+        "allTwelvePositives": "isVulnerable TRUE. Read per fixture from `npm run test:replay-env-exposure`, which prints each recorded verdict.",
+        "allEightNegatives": "isVulnerable FALSE. The recorded MEDIUM lane is ALL positives and zero negatives are masked (`npm run test:recorded-medium-census`).",
+        "theThreeThatCarryTheRESULT": "positive/03-fastify-logs-env.ts, positive/11-redacted-diagnostics.js, positive/12-fastify-redacted-logs.ts, all recorded isVulnerable:true@medium. Under the retired pre-#152 policy these three are discarded, positives fall to 9/12 and the run is RED. Under option C they emit and the gate reaches 12/12. The entry point's own header states this: 'THREE positives now sit at the MEDIUM ceiling (03, 11, 12), so this gate cannot reach 12/12 while the confidence ladder discards MEDIUM.' The outcome rests on these three and on nothing else."
+      },
+      "confidenceIsDELIBERATELY_NOT_PREDICTED": "No confidence value is predicted for any fixture and a later reader must not score one. Recorded in advance: auth-bypass measured SIGN fidelity 37/37 but CONFIDENCE fidelity 36/37 at n=5 against n=1 recordings, and the single miss fell on the one fixture whose confidence carried that block's mechanism claim, which is this file's own whatWasFALSIFIED. Declining costs the prediction NOTHING: under option C a positive emits on SIGN regardless of confidence, and scoreNegative ignores confidence entirely. A confidence flip on 03, 11 or 12 is EXPECTED-POSSIBLE and CANNOT change the score.",
+      "theOnlyClassThatCanRedThisRun": "A SIGN divergence from an n=1 seed. This corpus has zero slack, so ONE sign flip on ANY of the 20 is a full RED.",
+      "howToReadAPartialResult": "A red names its fixture. If it is a NEGATIVE, the entry point's header applies: read it as a THRESHOLD result first, not automatically as a detector regression. That governs INTERPRETATION of the red, never funding of a retry."
+    },
+
+    "costBand": {
+      "band": "$0.54 - $0.82",
+      "point": "$0.66",
+      "ceiling": "$1.00",
+      "anchors": "A, this detector's own measured total: 85 calls, $0.6649. Read as RECORDED FIELDS from admin-check-stage3-2026-08-03.json preRegisteredRemaining.RESOLUTION_2026_08_07.useInstead.measuredErrorOfThisConstant.perRun, entry run=env-exposure, which carries calls:85 and measuredUsd:0.6649 as separate recorded values. The call count was NOT inferred by dividing the per-call figure. B, the flat constant the entry point itself hardcodes as costPerLlmCallUsd: 85 x $0.00828 = $0.7038.",
+      "howTheWideningWasCHOSEN_notDerived": "READ THIS BEFORE RE-EXECUTING THE ARITHMETIC. The band spans both anchors and is widened by -19.0% / +17.0%: 0.6649 x 0.81 = $0.5386 low, 0.7038 x 1.17 = $0.8234 high. That envelope is the FLAT CONSTANT's prediction error across six paid runs, and its source is flatConstantErrorUpdate IN THIS FILE, not the perRun table. It is NOT a measurement of run-to-run variation of one detector on one corpus, which is the quantity anchor A actually depends on. That quantity has ZERO observations, because no detector has ever been re-run, so no envelope belonging to anchor A exists to derive. The magnitude is therefore BORROWED and CHOSEN, not computed. It is kept rather than dropped because with no widening the band is $0.6649-$0.7038 and the ceiling would have to sit just above $0.70, where it could fire on a legitimate result, and a ceiling that can fire on a legitimate result is a coin toss on our own hypothesis rather than a guard.",
+      "doNotDeriveTheEnvelopeFromThePerRunTABLE": "Caught by the pre-commit consistency read on 2026-08-10, on this block's own first draft, which cited the wrong source. The perRun table in admin-check-stage3-2026-08-03.json holds FOUR rows (idor-tenant -8.4, idor -19.0, admin-check +3.5, env-exposure +5.9) and yields an envelope of -19.0% to +5.9%. That table is a correct DATED record as of 2026-08-07 and predates the webhook-unverified and auth-bypass runs; it is not stale and must not be rewritten. Cite it ONLY for anchor A's recorded calls and measuredUsd. The six-run envelope is flatConstantErrorUpdate's.",
+      "THIS_BAND_TESTS_NOTHING": "RECORDED IN ADVANCE AND BINDING. The two anchors disagree by 5.9%, far inside the constant's own envelope, so this run CANNOT discriminate between them. NO CORROBORATION OF ANY COST MODEL MAY BE CLAIMED FROM THIS RUN'S COST, HOWEVER IT LANDS. env-exposure is additionally a documented short-prefix outlier whose ~442-token prefix never reaches the cacheable minimum, so the decomposition model is not quoted here at all.",
+      "whatTheCostCANbuy": "NOTHING. The reproducibility reading drafted earlier is WITHDRAWN: it required a byte-identity that the negative control removed the support for. Nor does this run supply the missing anchor-A envelope, because without byte-identity a cost difference is confounded between prompt change and run-to-run variation and measures neither. The cost is recorded for the ledger and read no further."
+    },
+
+    "threeExits": {
+      "why": "Stated inside the artifact rather than assumed from precedent, because this artifact is what a later reader has.",
+      "1_success": "20/20. Consumes the authorization. F-004's sixth per-detector green.",
+      "2_detectionFailure": "Any score below 20/20. CONSUMES the authorization and does NOT earn a re-run. Re-sampling is a fresh decision requiring fresh authorization.",
+      "3_abortOnCeiling": "SpendCeilingExceeded at $1.00. Does NOT consume the authorization, but BOUNDED: one retry only, cumulative spend across attempts counted and reported, and a SECOND abort escalates to fresh authorization rather than a third attempt. Without that bound a dollar authorization becomes an unlimited one, since every abort spends up to the ceiling.",
+      "transportFailure": "Treated as exit 3 under the same bound. It spends the same dollars."
+    },
+
+    "claimsUNAVAILABLE_regardlessOfOutcome": {
+      "spendCeiling": "#148's ceiling has never executed live. test:spend-ceiling is keyless and sits in the test:ci chain, so the PREDICATE is gated for free on every push; what is untested is a live abort against real accumulating spend. No run may be cited as evidence for the live path unless the abort actually fires, and no abort will be engineered to obtain it.",
+      "simultaneity": "A sixth green at a sixth SHA does not prove the six pass simultaneously at one SHA.",
+      "calibration": "R3 forbids reading zero false positives at n=5 as calibration.",
+      "avertedSpend": "None claimable."
+    },
+
+    "procedure": "The proven stage-3 dispatch procedure, unchanged: validate the key out of band, set it by hand in the UI, verify main SHA plus required checks plus zero secrets and variables plus no run in flight, dispatch EXACTLY ONCE, delete the secret the moment the run step goes terminal, verify 404 and total_count 0. Guard 1 asserts key PRESENCE, never VALIDITY."
   }
 }
