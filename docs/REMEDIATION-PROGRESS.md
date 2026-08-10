@@ -3494,6 +3494,60 @@ content contradicts is the defect class this tracker keeps correcting.
   has a determinate answer and no debatable ground truth. One such fixture exercises the 4-of-5
   threshold (L-014), `resolveMediumVerdict` (this item) and the H7 path (Priority 1b) at once.
 
+### Priority 1h - OPEN: detector-scope findings surfaced by the PAID stage-3 runs
+
+Same `L-` namespace as 1d, 1e, 1f and 1g (found by RUNNING the detector), and a separate
+sub-section from 1g on the reason 1g itself gives for existing. Provenance matches 1g: surfaced by
+a paid stage-3 dispatch. Content does not: 1g holds properties of the measuring APPARATUS and says
+so, and the item below is a property of a shipped DETECTOR and its corpus. Filing it under 1g would
+be filing it under a header its content contradicts, which 1g's own lead names as the defect class
+this tracker keeps correcting.
+
+- **L-016 (OPEN; MEASURED; a property of the env-exposure DETECTOR and its CORPUS, not of the
+  harness; blocks the next env-exposure dispatch) - the detector's rejection clause and the corpus
+  disagree on exactly one fixture, and nothing in the repo has the standing to settle it except a
+  scope decision.** Surfaced by run `31435865020` (env-exposure alone, 2026-08-10, ref
+  `820b1647`, $0.6671, 85 priced calls), which scored **19/20** and failed on a single fixture:
+  `negative/08-flask-env-keys-only.py`, flagged `vuln/medium` on 5 of 5 runs. Full record and
+  resolution in `docs/measurements/auth-bypass-stage3-2026-08-08.json` under
+  `preRegisteredEnvExposureRerun_2026_08_10.RESOLUTION_2026_08_10`.
+
+  **EXTENT, measured rather than estimated: ONE fixture.** The names-only shape exists in exactly
+  two files across the twenty, and both are negatives. `negative/04-dev-env-keys-only.ts` returns
+  `Object.keys(process.env).sort()` and 404s in production. `negative/08-flask-env-keys-only.py`
+  returns `sorted(os.environ.keys())` with no authentication, authorization or production guard.
+  `positive/10-go-env-dump.go` touches `os.Environ()` but splits on `=` and returns names AND
+  values, so it is a different shape. Read from the code in every case, never from a filename or a
+  label, which are the two things that have misled this corpus most.
+
+  **THE DISAGREEMENT, stated as a fact about two artifacts and not as a verdict on either.** The
+  corpus labels BOTH the guarded and the unguarded names-only case `negative`. The detector's
+  rejection clause is a CONJUNCTION that distinguishes them: "Reject when only env KEY NAMES are
+  returned (no values), **and** the route is dev-only / 404 in production." The corpus does not
+  treat the production guard as load-bearing; the prompt does. Separately, the prompt's opening
+  definition scopes the harm to VALUES being returned, which points the other way on this one input
+  and never functions as a rejection ground anywhere else in the corpus.
+
+  **THE DETECTOR DID NOT DEVIATE, and this is evidence about it rather than about the gate.** All
+  seven negatives that fully satisfy a written reject clause scored clean 5/5; the one that
+  satisfies none completely scored flagged 5/5. On every input where the written criteria decide,
+  the detector matched them.
+
+  **NOT ADJUDICATED HERE, deliberately.** Which half of the prompt is authoritative is a
+  detector-SCOPE decision and the owner's to make. R8 and R11 forbid editing a prompt to make a
+  verdict come out right, and the stop-and-report rule forbids fixing an unexpected verdict in the
+  same execution that found it. No fixture has been edited, relabelled or moved. This is NOT a
+  third R6: the two prior R6 moves in this corpus (`negative/07` to `positive/11`, `negative/03` to
+  `positive/12`) were cases where the model read a real vulnerability the fixture denied, and
+  relabelling settled them. Relabelling cannot settle this one, because the two halves of the
+  prompt would still disagree afterwards.
+
+  **A RE-RUN BEFORE THIS IS ADJUDICATED IS A GUARANTEED RED AT FULL PRICE.** `negative/08` is
+  stable at 5/5, not marginal, and the corpus is untouched, so a second dispatch reproduces 19/20
+  for roughly $0.67. "Exit 2 consumes the authorization" must not be read as "a re-run merely needs
+  fresh money": this is the same shape as a threshold hardcoded above the enumerated corpus, which
+  is spending on a result that is decided before the dispatch.
+
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
 - **F-002 - RESOLVED, moved to DONE (Engine A: PR #141, squash `38d5c7ca`; Engine B: PR #143,
