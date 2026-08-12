@@ -3745,6 +3745,73 @@ this tracker keeps correcting.
   shows the regression resting on reject clause 5, untouched by the amendment, applied on the mere
   PRESENCE of a redaction regex.
 
+  **PRESERVED EVIDENCE, PART 2: the five remaining paid outputs of 2026-08-12.** Part 1 above holds
+  the two withdrawn-prompt recordings. Together the seven are the COMPLETE paid record of this
+  beat - $0.05429, seven calls, two fixtures, four prompts, one day. Transcribed verbatim because
+  four of the five sit in UNTRACKED files that leave no history when removed, and the fifth was
+  written to a temp directory outside the repo by the same-day control run and is not recoverable
+  at all once that directory is cleared. **The seventeen d2ca2f022d99 recordings need no such
+  transcription: they are tracked, so any of them is recoverable forever with
+  `git show 25db5e08:fixtures/replay/env-exposure-multi/<sha>.json`. That difference - tracked
+  versus untracked - is the whole test for whether a recording must be transcribed before it is
+  deleted.**
+
+  **negative/08 under A** (`1ad63c16bd58`, 2026-08-12T17:03:44.171Z) - `isVulnerable:false @ low`, class MATCHED, $0.00655:
+
+  > The endpoint only returns the *names* (keys) of environment variables via
+  > `os.environ.keys()`, never their values. Per the analysis rules, returning only key names —
+  > with no values exposed — does not constitute an env-exposure vulnerability regardless of
+  > whether the route has an auth gate.
+
+  **positive/11 under A** (`1ad63c16bd58`, 2026-08-12T17:10:12.667Z) - `isVulnerable:false @ low`, class MISMATCH, $0.00692:
+
+  > The code iterates over the full `process.env` but applies regex redaction (`SECRET =
+  > /KEY|SECRET|TOKEN|PASSWORD|DSN/i`) to mask values of any key matching common secret patterns
+  > before responding. Per the analysis rules, regex redaction that strips
+  > SECRET/KEY/TOKEN/PASSWORD before responding is an explicit rejection criterion.
+
+  **positive/11 under main (same-day control)** (`d2ca2f022d99`, 2026-08-12T17:33:59.316Z) - `isVulnerable:true @ medium`, class MATCHED, $0.01062:
+
+  > The `redacted()` function iterates over the full `process.env` and returns all environment
+  > variable values to the HTTP response, only redacting keys matching the pattern
+  > `KEY|SECRET|TOKEN|PASSWORD|DSN`. This leaves a wide range of potentially sensitive variables
+  > exposed — such as `DATABASE_URL`, `REDIS_URL`, `AWS_ACCESS_KEY_ID` (wait — KEY is caught),
+  > `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (PASS is not in the pattern), `PRIVATE_KEY` (KEY is
+  > caught), `AUTH_URL`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET` (SECRET is caught),
+  > `STRIPE_PUBLISHABLE_KEY` (KEY is caught), `MONGO_URI`, `POSTGRES_HOST`, etc. The regex does
+  > not cover all sensitive patterns (e.g., `PASS`, `CREDENTIAL`, `CERT`, `PRIVATE`, `URL`,
+  > `URI`, `HOST`, `USER`, `ADDR`), and there is no authentication or authorization gate on the
+  > `/api/v1/diagnostics` route.
+
+  **positive/11 under C** (`ef92d1311a1e`, 2026-08-12T17:56:55.715Z) - `isVulnerable:true @ medium`, class MATCHED, $0.00926:
+
+  > The `redacted()` function iterates over the full `process.env` and redacts values whose keys
+  > match the pattern `KEY|SECRET|TOKEN|PASSWORD|DSN`, but all non-matching environment variables
+  > (e.g., `DATABASE_URL`, `DB_PASS`, `AUTH_HEADER`, `PRIVATE_KEY` with alternate naming,
+  > `SMTP_USER`, `AWS_SESSION_TOKEN` if named differently, or any custom secret with an
+  > unconventional name) are returned in plaintext in the HTTP response. The route
+  > `/api/v1/diagnostics` has no authentication or authorization gating whatsoever, meaning any
+  > unauthenticated caller can retrieve the partially-redacted environment.
+
+  **negative/08 under C** (`ef92d1311a1e`, 2026-08-12T18:02:46.683Z) - `isVulnerable:false @ low`, class MATCHED, $0.00626:
+
+  > The endpoint only returns the **names** (keys) of environment variables via
+  > `os.environ.keys()`, not their values. Per the analysis rules, returning only env key names
+  > with no values does not constitute an env-exposure vulnerability.
+
+  **WHAT THE SEVEN ESTABLISH, and what they do not.** They group by whether the prompt asserts that
+  rejection clauses apply unconditionally: `main` and Variant C say no such thing and both flag
+  `positive/11` WITH the redaction-incompleteness analysis; Variant A ("whether or not") and the
+  withdrawn text ("every rejection rule under IMPORTANT still applies") both decline it and BOTH
+  rest on the mere presence of the redaction regex. The grouping is not by edit size: C edits the
+  same clause as A, in the same place, by a larger character count, in the opposite direction, and
+  passes. **This is the strongest evidence this beat produced and it is still n=1 per prompt on a
+  MEDIUM-confidence fixture.** It does not establish stability at n=5 for anything. `negative/08`
+  in particular recorded `false@low` at n=1 under `main` and then flagged `vuln/medium` 5/5 live,
+  so its Variant C pass is weaker evidence than it appears; what carries weight is the STRUCTURAL
+  change, that the fixture now fully satisfies a written reject clause and so joins the class of
+  seven negatives that scored clean 5/5 live across 35 samples. That remains an inference.
+
 - **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
   free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
   with a PARKED structural gap of exactly that shape, and nothing has been measured to confirm the
