@@ -3711,6 +3711,40 @@ this tracker keeps correcting.
   recorded. `negative/08`'s clause applies for the FIRST time, so the transfer is an inference and
   not a measurement, and it is the inference the probe buys.
 
+  **PRESERVED EVIDENCE: the only two model outputs ever produced under the WITHDRAWN 0872c970ef2f
+  prompt.** Both recordings were bought ($0.01468 combined) and then deleted from
+  `fixtures/replay/env-exposure-multi/`, where they were never valid for any current prompt and
+  where two keyless gates scan and count. **The files are gone and were untracked, so this is the
+  only surviving copy.** Transcribed verbatim rather than paraphrased, because this tracker has
+  twice recorded the cost of citing a verdict without reading it. The prompt that produced them
+  survives only in git history at `9048c9e`; reproducing either output costs a paid call.
+
+  `negative/08-flask-env-keys-only.py` recorded 2026-08-12T11:54:22.348Z, verdict
+  `isVulnerable:false @ high`, class MATCHED, $0.00699:
+
+  > The route returns only the *names* (keys) of environment variables via `os.environ.keys()`,
+  > with no values included in the response. This is explicitly out of lane for env-value
+  > exposure: no secret values can reach the HTTP response.
+
+  `positive/11-redacted-diagnostics.js` recorded 2026-08-12T12:32:06.326Z, verdict
+  `isVulnerable:false @ low`, **class MISMATCH against expected
+  flagged:true**, $0.00769:
+
+  > The `redacted()` function iterates over all `process.env` entries but applies regex redaction
+  > (`SECRET.test(k)`) that strips values for keys matching KEY, SECRET, TOKEN, PASSWORD, or DSN
+  > before responding. Per the rejection rules, regex redaction that strips
+  > SECRET/KEY/TOKEN/PASSWORD before responding is an explicit rejection criterion, so this does
+  > not qualify as a reportable vulnerability.
+
+  **WHY THESE ARE KEPT AS TEXT AND WHY THEY MATTER TO THE NEXT PROBE.** The first shows the
+  withdrawn text DID work on the out-of-lane case, and that the model adopted the lane vocabulary
+  directly. That makes it the comparator for Variant A: A carries no lane prose, so if A fails on
+  `negative/08` the difference between these two outputs is the evidence that the philosophical
+  framing was doing work the bare clause cannot do - which would argue for a middle path rather
+  than for reverting. The second is the primary artifact behind the falsified check-2 claim, and it
+  shows the regression resting on reject clause 5, untouched by the amendment, applied on the mere
+  PRESENCE of a redaction regex.
+
 - **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
   free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
   with a PARKED structural gap of exactly that shape, and nothing has been measured to confirm the
