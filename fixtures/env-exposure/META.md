@@ -1,5 +1,39 @@
 # env-exposure fixtures
 
+## Owner scope ruling (2026-08-12): names-only is OUT of env-exposure's lane. NOTHING HERE CHANGED.
+
+An unguarded, complete enumeration of environment variable NAMES, with no values returned, is a
+real but LOW-severity reconnaissance disclosure and is OUT of this detector's lane. Values leaving
+the process is env-exposure's lane; a missing guard on a route is auth-bypass's lane. Closes L-016
+in `docs/REMEDIATION-PROGRESS.md`, where the full grounds and the measured evidence live.
+
+**THIS IS NOT A THIRD R6 MOVE, AND NO FILE IN THIS DIRECTORY WAS TOUCHED.** The two R6 moves
+recorded below both leaked VALUES, and in both the description in THIS file was factually WRONG
+about its own code, which is what let them stand - stated explicitly for `negative/03` above.
+`negative/08-flask-env-keys-only.py` leaks no value, and its line under "Negative" - "Flask returns
+sorted env key names without values" - is exactly true. A relabel would have been the first in this
+corpus performed on an accurate description: not correcting an error, but changing a scope rule by
+moving a file. The corpus was right; the PROMPT was defective, and the prompt is what was amended.
+`SYSTEM_PROMPT_FINGERPRINT` moves `d2ca2f022d99` to `0872c970ef2f`.
+
+**Portfolio unchanged: 12 positives + 8 negatives.** `negative/04` (guarded) and `negative/08`
+(unguarded) are both still negatives, and both are now rejected on the SAME ground - no value
+leaves - instead of on two different ones. Removing that split is the whole content of the ruling.
+The old reject clause made the production guard load-bearing for the names-only shape; it is
+deleted, because names-only is a strict subset of no-value-leaves.
+
+**The disagreement, for a reader who wants it rather than its resolution.** Live run
+`31435865020` flagged `negative/08` `vuln/medium` on 5 of 5 runs and EMITTED all five under option
+C, while the frozen n=1 recording `b8e6785891d5` (2026-07-04) returned `isVulnerable:false @ low`
+on the identical canonical request, reasoning that the missing guard aids reconnaissance "but does
+not constitute a direct env-value exposure vulnerability per the defined criteria". The model has
+rendered BOTH verdicts on this input. That is why relabelling was refused: it would have promoted
+one of the two to ground truth on the strength of which one happened to land inside a paid run.
+
+**Untested, deliberately stated here.** That the amended words actually move the model is NOT
+established by the amendment. The recorder's class assertion is what will test it: this file stays
+in `negative/`, so a re-record that still flags it fails rather than freezing a wrong verdict.
+
 ## R6 reclassification #2 (2026-08-07): negative/03 → positive/12
 
 `negative/03-fastify-redacted-logs.ts` is now `positive/12-fastify-redacted-logs.ts`. **The LLM was right and the fixture was mislabeled.** This is the SECOND R6 case in this corpus, the same failure mode as `negative/07` → `positive/11` on Day 5.

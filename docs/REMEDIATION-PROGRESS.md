@@ -3494,6 +3494,17 @@ content contradicts is the defect class this tracker keeps correcting.
   has a determinate answer and no debatable ground truth. One such fixture exercises the 4-of-5
   threshold (L-014), `resolveMediumVerdict` (this item) and the H7 path (Priority 1b) at once.
 
+- **L-018 (OPEN; a property of the measuring APPARATUS; zero spend to reproduce) -
+  `SYSTEM_PROMPT_FINGERPRINT` does not cover the whole request, so a user-message-only change moves
+  every replay key while the human-legible drift guard reports NO drift.** `computeReplayKey`
+  hashes `{model, system, messages, tool, max_tokens, temperature}` (`llm-replay.ts:114-127`);
+  `SYSTEM_PROMPT_FINGERPRINT` hashes SYSTEM_PROMPT alone. A change confined to `buildUserMessage`
+  therefore invalidates every recording for that detector while the fingerprint printed by the
+  harness, asserted by the census ("exactly one prompt fingerprint across recordings") and quoted by
+  every pre-registration stays unchanged - so the parity check would report agreement across a
+  changed request. Moot for the L-016 amendment, which moves both halves. Live for any future prompt
+  work that touches only the user message. Surfaced while pricing that amendment, not by a run.
+
 ### Priority 1h - OPEN: detector-scope findings surfaced by the PAID stage-3 runs
 
 Same `L-` namespace as 1d, 1e, 1f and 1g (found by RUNNING the detector), and a separate
@@ -3503,10 +3514,10 @@ so, and the item below is a property of a shipped DETECTOR and its corpus. Filin
 be filing it under a header its content contradicts, which 1g's own lead names as the defect class
 this tracker keeps correcting.
 
-- **L-016 (OPEN; MEASURED; a property of the env-exposure DETECTOR and its CORPUS, not of the
-  harness; blocks the next env-exposure dispatch) - the detector's rejection clause and the corpus
-  disagree on exactly one fixture, and nothing in the repo has the standing to settle it except a
-  scope decision.** Surfaced by run `31435865020` (env-exposure alone, 2026-08-10, ref
+- **L-016 (CLOSED BY OWNER RULING 2026-08-12; resolution at the end of this entry; a property of
+  the env-exposure DETECTOR and its CORPUS, not of the harness) - the detector's rejection clause
+  and the corpus disagreed on exactly one fixture, and nothing in the repo had the standing to
+  settle it except a scope decision, which the owner has now made.** Surfaced by run `31435865020` (env-exposure alone, 2026-08-10, ref
   `820b1647`, $0.6671, 85 priced calls), which scored **19/20** and failed on a single fixture:
   `negative/08-flask-env-keys-only.py`, flagged `vuln/medium` on 5 of 5 runs. Full record and
   resolution in `docs/measurements/auth-bypass-stage3-2026-08-08.json` under
@@ -3547,6 +3558,274 @@ this tracker keeps correcting.
   for roughly $0.67. "Exit 2 consumes the authorization" must not be read as "a re-run merely needs
   fresh money": this is the same shape as a threshold hardcoded above the enumerated corpus, which
   is spending on a result that is decided before the dispatch.
+
+  **CLOSED BY OWNER RULING, 2026-08-12.** An unguarded, complete enumeration of environment
+  variable NAMES, with no values returned, is a real but LOW-severity reconnaissance disclosure and
+  is OUT of env-exposure's lane. Values leaving the process is env-exposure's lane; a missing guard
+  on a route is auth-bypass's lane, per the registry's own division. THE CORPUS IS CORRECT AND THE
+  PROMPT WAS DEFECTIVE. No fixture was edited, relabelled, moved or retired; the corpus stands at
+  12 positives / 8 negatives / 20 total and all three gate constants in `test-env-exposure.ts`
+  are unchanged.
+
+  **WHAT THE RULING RESTS ON, none of it the gate's colour.** (1) Neither prior R6 shape holds.
+  Both `negative/07` to `positive/11` and `negative/03` to `positive/12` leaked VALUES, and in
+  both the META description was factually FALSE about its own code, which is what let them stand.
+  `negative/08` leaks no value and its META line ("returns sorted env key names without values") is
+  exactly true, so a relabel would have been the first in this corpus performed on an accurate
+  description - not correcting an error, changing a scope rule. (2) The model is not consistent on
+  this input: recording `b8e6785891d5`, dated 2026-07-04, returned `isVulnerable:false @ low` on
+  the identical canonical request, reasoning that the missing guard aids reconnaissance "but does
+  not constitute a direct env-value exposure vulnerability per the defined criteria". A relabel
+  would have promoted one of the model's two readings to ground truth, selected by which one landed
+  inside a paid dispatch. (3) R10 already classified the shape: cross-lane signal is FP-shaped even
+  when the observation is real, and its prescribed remedy is to tighten the lane in the system
+  prompt. (4) The PRODUCTION consequence decided it, not the gate. Under option C all five of
+  `negative/08`'s MEDIUM verdicts were EMITTED - ledger `vuln/medium 20` = positives 03/11/12 x 5
+  plus negative/08 x 5, and "20 emitted warnings all of category env-exposure-medium-emitted" - so
+  the shipped detector was emitting a customer-visible finding on an endpoint that leaks no secret
+  value.
+
+  **THE AMENDMENT, branch `fix/env-exposure-lane-scope`.** Five changes in
+  `env-exposure.detector.ts`, all in the prompt and none in the corpus: the opening definition now
+  says VALUES; a SCOPE paragraph states the lane and hands the out-of-lane case to auth-bypass; an
+  IN-LANE paragraph restates that guards remain load-bearing for in-lane cases; the MEDIUM rung
+  says "subset of values"; the names-only reject clause is DELETED as fully subsumed (names-only is
+  a strict subset of no-value-leaves, so deleting it removes no coverage, and leaving a redundant
+  conjunction standing is the exact artifact that caused this). **The same conjunction existed a
+  SECOND time in `buildUserMessage` question 4 and was rewritten with it** - amending SYSTEM_PROMPT
+  alone would have left the contradiction one layer down, in the message that carries the code. A
+  free-standing lane handoff was drafted and REJECTED before it shipped: it would have contradicted
+  the admin-auth-AND-production-check reject clause and destroyed `positive/04`'s only
+  discriminator against `negative/01`. `SYSTEM_PROMPT_FINGERPRINT` moves `d2ca2f022d99` to
+  `0872c970ef2f`.
+
+  **BY CODE, NO OTHER FIXTURE'S VERDICT CHANGES - FALSIFIED 2026-08-12 BY MEASUREMENT. THE CLAIM
+  BELOW MUST NOT BE CITED.** The claim was that all 12 positives leak values so the scope paragraph
+  never fires on them, that negatives 01/02/05/06/09/10 are rejected by unchanged clauses, and that
+  `negative/04` changes ground without changing verdict. **A verdict change among the other nineteen
+  was predicted ABSENT AND IT OCCURRED.** The paid probe on `positive/11-redacted-diagnostics.js`
+  under fingerprint `0872c970ef2f` returned `isVulnerable:false @ low` against an expected class of
+  flagged:true. Not a confidence drop - a SIGN FLIP. A true positive became a MISS: an
+  unauthenticated `/api/v1/diagnostics` returning plaintext `DATABASE_URL`, `MONGO_URI` and
+  `REDIS_URL` is no longer reported at all. Measured $0.00769, exit 1, class mismatches 1. The
+  recorder refused to freeze it, so "a re-record cannot launder a failed amendment" is now
+  demonstrated rather than asserted.
+
+  **WHY THE CHECK COULD NOT HAVE CAUGHT IT, which is the transferable part.** The check reasoned
+  about which TEXT applies to which fixture. `positive/11`'s new reasoning rests on reject clause 5
+  - "regex redaction strips SECRET/KEY/TOKEN/PASSWORD before responding" - which the amendment did
+  NOT touch, and which the model applied on the mere PRESENCE of a redaction regex without
+  performing the incompleteness analysis that made this fixture a positive in the first place (R6
+  #1, Day 5: the regex misses `DATABASE_URL`, `MONGO_URI`, `REDIS_URL`, whose plaintext values
+  still leak). **A text-applicability analysis cannot bound how ADDED text reweights an UNTOUCHED
+  clause.** That limit was flagged when the check was written and then treated as a formality. It is
+  not a formality; it is the entire exposure. **Treat any prompt change as unbounded over the whole
+  corpus until measured, and the only instrument that measures it is one call per fixture.**
+
+  **THE CAUSE IS NOT ESTABLISHED, and the claim that it was is WITHDRAWN.** It was asserted that
+  [G]'s sentence "every rejection rule under IMPORTANT still applies" is the only new text plausibly
+  bearing on clause 5. That cannot be established without paid discrimination between prompt
+  variants, and it is implausible on measurement: dropping that sentence removes 56 of the 837
+  characters the amendment added, or 6.7%. Live candidates, none excluded - the checklist sentence;
+  [S]'s closing "Neither is reported by this detector", a dismissive posture stated immediately
+  before the rejection list; the 62% growth in prompt length, which reweights every clause; [M]'s
+  rewording of the MEDIUM rung; and [X]'s removal of a fifth rejection clause, which changes the
+  shape of the list the model matches against. **A re-probe of any single narrowed variant
+  establishes only whether THAT TEXT works. It does not establish which candidate caused the
+  regression. Those are different claims and only the first is worth a call.**
+
+  **WHAT THE AMENDMENT DOES NOT ESTABLISH: that the words move the model. That is UNTESTED.** No
+  live call has been made. The recorder's class assertion (`record-env-exposure-fixtures.ts` step 5)
+  is what will test it: `negative/08` remains in `negative/`, so a re-record that still flags it
+  FAILS rather than freezing a wrong verdict. **A re-record cannot launder a failed amendment.**
+
+  **THE GATE FAILS WITH THE DRIFT MESSAGE, NOT A MISSING RECORDING, and the difference was measured
+  rather than assumed.** `loadRecordings` indexes by `meta.sourceFixture`, not by request key, so
+  all 17 recordings are FOUND and the fingerprint guard at `replay-harness.ts:884` fires first and
+  `continue`s; the key-based lookup inside `callClaude` is never reached. Measured on the branch:
+  `test:replay-env-exposure` exit 1, `RESULT: FAIL (17)`, every line reading
+  `systemPromptFingerprint d2ca2f022d99 != detector 0872c970ef2f (prompt drift; re-record)`. A
+  GREEN baseline was measured on `main` immediately before the edit (exit 0, all 17 PASS), so the
+  red is attributable to the amendment alone and to nothing else.
+
+  **ORPHANED RECORDINGS CANNOT ACCUMULATE SILENTLY, and the answer was checked rather than
+  deferred.** Nothing in `replay-harness.ts` deletes a recording - it imports only `readFileSync`,
+  `readdirSync` and `writeFileSync` - so a re-record writes 17 NEW files at new keys and leaves the
+  17 old ones, reaching 34. Two keyless gates refuse that state: `loadRecordings` fails
+  `duplicate recording for sourceFixture` (`replay-harness.ts:802-805`), and
+  `test:recorded-medium-census` asserts `env-exposure-multi: 17` recordings AND exactly one prompt
+  fingerprint across them. **The superseded 17 must be deleted in the same commit as the
+  re-record.** A partial re-record of one fixture also breaks the one-fingerprint assertion until
+  the set is completed.
+
+  **RECORD SELECTION: the recorder CAN take one named fixture, and an earlier report in this thread
+  said it could not.** `record-env-exposure-fixtures.ts` delegates `process.argv.slice(2)` to
+  `recordFixtures` and documents "shorthand selectors (`positive/04`) and `all`". The CLAUDE.md
+  cell "Record all fixtures in ONE process" is a COST-REPORTING discipline - do not sum printed
+  projections across processes - not a capability limit. **The consequence: the earlier pricing of
+  the rejected "give negative/08 a production guard" option was wrong by about 17x.** That edit
+  moves ONE key, so it needed ONE call (~$0.008), not a 17-call re-record (~$0.13). The option
+  remains rejected, on grounds that never depended on its price: it deletes the only input in the
+  corpus that discriminates the scope question and leaves the shipped prompt emitting on that shape
+  in customer code.
+
+  **VARIANT A LANDED 2026-08-12; THE 0872c970ef2f AMENDMENT IS WITHDRAWN.** The first amendment
+  added 837 characters and cost a true positive. What landed instead is MAIN'S PROMPT WITH ONE
+  EXISTING CLAUSE MADE UNCONDITIONAL - eleven characters - plus the matching question-4 fix:
+  "Reject when only env KEY NAMES are returned (no values), whether or not the route is dev-only /
+  404 in production." The diff against main is exactly two hunks, 4 insertions and 4 deletions.
+  `SYSTEM_PROMPT_FINGERPRINT` d2ca2f022d99 -> `1ad63c16bd58`, computed by a method first validated
+  by reproducing d2ca2f022d99 from main's own blob in the same execution.
+
+  **WHY A RATHER THAN NARROWING [G].** Narrowing [G] removes 56 of the 837 added characters, 6.7%,
+  and spends a call betting on ONE candidate in a five-candidate field that cannot be discriminated
+  without paid variant testing. A does not bet: it minimises the only thing known to have changed.
+  It also DISSOLVES rather than patches the two problems that produced [S] and [G] - [G] existed
+  solely to protect `positive/04` from a free-standing lane handoff, and A has no handoff; [S]'s
+  ladder-foreclosure existed to block the MEDIUM route, and A's clause applies to the input
+  directly. **The lane PHILOSOPHY is documentation: it lives here and in META, not in the prompt,
+  where it perturbs judgment on fixtures it was never aimed at.**
+
+  **L-018 IS NOT OBSERVED BY THIS CHANGE, and a note claiming it were would be wrong.** Both halves
+  moved again - the system prompt changed, so the fingerprint moved, AND question 4 changed. L-018's
+  scenario is a user-message-ONLY change; it stays latent, proven by construction from
+  `requestShape` rather than by observation. **What IS newly recordable is sharper and worth more:
+  the fingerprint UNDERSTATES the request delta.** Question 4 moves all 17 replay keys and
+  contributes nothing to `SYSTEM_PROMPT_FINGERPRINT`, so the harness's drift guard, the census's
+  one-fingerprint assertion and every pre-registration's parity check are all verifying a PROPER
+  SUBSET of what the replay key covers. **Fingerprint parity is evidence about the system prompt
+  alone and must never be quoted as evidence that the request is unchanged.**
+
+  **PROBE ORDER RULED: `negative/08` BEFORE `positive/11`, reversing this session's earlier
+  recommendation.** Under A the fixture that must CHANGE behaviour is `negative/08` - it flagged
+  5/5 live under main's prompt, and A's newly-applicable clause must now override that - while
+  `positive/11` must merely PERSIST, eleven characters from a prompt under which it was recorded
+  `true@medium` and flagged correctly in the live run. **A fixture required to change is riskier
+  than one required to persist.** Ordering by probability of failure therefore puts `negative/08`
+  first, and manifest position agrees: it is 16th of 17, so a completion would spend roughly fifteen
+  calls before testing the one fixture the amendment exists for. The counter-argument that an
+  explicit reject clause reliably beats the confidence ladder is NOT merely reasoned - under main's
+  own prompt all SEVEN negatives that fully satisfied a written reject clause scored clean 5/5, 35
+  samples, including `negative/06` where the ladder had a real pull (full `process.env` to a
+  logger) and the clause won. But every one of those clauses already applied when its fixture was
+  recorded. `negative/08`'s clause applies for the FIRST time, so the transfer is an inference and
+  not a measurement, and it is the inference the probe buys.
+
+  **PRESERVED EVIDENCE: the only two model outputs ever produced under the WITHDRAWN 0872c970ef2f
+  prompt.** Both recordings were bought ($0.01468 combined) and then deleted from
+  `fixtures/replay/env-exposure-multi/`, where they were never valid for any current prompt and
+  where two keyless gates scan and count. **The files are gone and were untracked, so this is the
+  only surviving copy.** Transcribed verbatim rather than paraphrased, because this tracker has
+  twice recorded the cost of citing a verdict without reading it. The prompt that produced them
+  survives only in git history at `9048c9e`; reproducing either output costs a paid call.
+
+  `negative/08-flask-env-keys-only.py` recorded 2026-08-12T11:54:22.348Z, verdict
+  `isVulnerable:false @ high`, class MATCHED, $0.00699:
+
+  > The route returns only the *names* (keys) of environment variables via `os.environ.keys()`,
+  > with no values included in the response. This is explicitly out of lane for env-value
+  > exposure: no secret values can reach the HTTP response.
+
+  `positive/11-redacted-diagnostics.js` recorded 2026-08-12T12:32:06.326Z, verdict
+  `isVulnerable:false @ low`, **class MISMATCH against expected
+  flagged:true**, $0.00769:
+
+  > The `redacted()` function iterates over all `process.env` entries but applies regex redaction
+  > (`SECRET.test(k)`) that strips values for keys matching KEY, SECRET, TOKEN, PASSWORD, or DSN
+  > before responding. Per the rejection rules, regex redaction that strips
+  > SECRET/KEY/TOKEN/PASSWORD before responding is an explicit rejection criterion, so this does
+  > not qualify as a reportable vulnerability.
+
+  **WHY THESE ARE KEPT AS TEXT AND WHY THEY MATTER TO THE NEXT PROBE.** The first shows the
+  withdrawn text DID work on the out-of-lane case, and that the model adopted the lane vocabulary
+  directly. That makes it the comparator for Variant A: A carries no lane prose, so if A fails on
+  `negative/08` the difference between these two outputs is the evidence that the philosophical
+  framing was doing work the bare clause cannot do - which would argue for a middle path rather
+  than for reverting. The second is the primary artifact behind the falsified check-2 claim, and it
+  shows the regression resting on reject clause 5, untouched by the amendment, applied on the mere
+  PRESENCE of a redaction regex.
+
+  **PRESERVED EVIDENCE, PART 2: the five remaining paid outputs of 2026-08-12.** Part 1 above holds
+  the two withdrawn-prompt recordings. Together the seven are the COMPLETE paid record of this
+  beat - $0.05429, seven calls, two fixtures, four prompts, one day. Transcribed verbatim because
+  four of the five sit in UNTRACKED files that leave no history when removed, and the fifth was
+  written to a temp directory outside the repo by the same-day control run and is not recoverable
+  at all once that directory is cleared. **The seventeen d2ca2f022d99 recordings need no such
+  transcription: they are tracked, so any of them is recoverable forever with
+  `git show 25db5e08:fixtures/replay/env-exposure-multi/<sha>.json`. That difference - tracked
+  versus untracked - is the whole test for whether a recording must be transcribed before it is
+  deleted.**
+
+  **negative/08 under A** (`1ad63c16bd58`, 2026-08-12T17:03:44.171Z) - `isVulnerable:false @ low`, class MATCHED, $0.00655:
+
+  > The endpoint only returns the *names* (keys) of environment variables via
+  > `os.environ.keys()`, never their values. Per the analysis rules, returning only key names —
+  > with no values exposed — does not constitute an env-exposure vulnerability regardless of
+  > whether the route has an auth gate.
+
+  **positive/11 under A** (`1ad63c16bd58`, 2026-08-12T17:10:12.667Z) - `isVulnerable:false @ low`, class MISMATCH, $0.00692:
+
+  > The code iterates over the full `process.env` but applies regex redaction (`SECRET =
+  > /KEY|SECRET|TOKEN|PASSWORD|DSN/i`) to mask values of any key matching common secret patterns
+  > before responding. Per the analysis rules, regex redaction that strips
+  > SECRET/KEY/TOKEN/PASSWORD before responding is an explicit rejection criterion.
+
+  **positive/11 under main (same-day control)** (`d2ca2f022d99`, 2026-08-12T17:33:59.316Z) - `isVulnerable:true @ medium`, class MATCHED, $0.01062:
+
+  > The `redacted()` function iterates over the full `process.env` and returns all environment
+  > variable values to the HTTP response, only redacting keys matching the pattern
+  > `KEY|SECRET|TOKEN|PASSWORD|DSN`. This leaves a wide range of potentially sensitive variables
+  > exposed — such as `DATABASE_URL`, `REDIS_URL`, `AWS_ACCESS_KEY_ID` (wait — KEY is caught),
+  > `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (PASS is not in the pattern), `PRIVATE_KEY` (KEY is
+  > caught), `AUTH_URL`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET` (SECRET is caught),
+  > `STRIPE_PUBLISHABLE_KEY` (KEY is caught), `MONGO_URI`, `POSTGRES_HOST`, etc. The regex does
+  > not cover all sensitive patterns (e.g., `PASS`, `CREDENTIAL`, `CERT`, `PRIVATE`, `URL`,
+  > `URI`, `HOST`, `USER`, `ADDR`), and there is no authentication or authorization gate on the
+  > `/api/v1/diagnostics` route.
+
+  **positive/11 under C** (`ef92d1311a1e`, 2026-08-12T17:56:55.715Z) - `isVulnerable:true @ medium`, class MATCHED, $0.00926:
+
+  > The `redacted()` function iterates over the full `process.env` and redacts values whose keys
+  > match the pattern `KEY|SECRET|TOKEN|PASSWORD|DSN`, but all non-matching environment variables
+  > (e.g., `DATABASE_URL`, `DB_PASS`, `AUTH_HEADER`, `PRIVATE_KEY` with alternate naming,
+  > `SMTP_USER`, `AWS_SESSION_TOKEN` if named differently, or any custom secret with an
+  > unconventional name) are returned in plaintext in the HTTP response. The route
+  > `/api/v1/diagnostics` has no authentication or authorization gating whatsoever, meaning any
+  > unauthenticated caller can retrieve the partially-redacted environment.
+
+  **negative/08 under C** (`ef92d1311a1e`, 2026-08-12T18:02:46.683Z) - `isVulnerable:false @ low`, class MATCHED, $0.00626:
+
+  > The endpoint only returns the **names** (keys) of environment variables via
+  > `os.environ.keys()`, not their values. Per the analysis rules, returning only env key names
+  > with no values does not constitute an env-exposure vulnerability.
+
+  **WHAT THE SEVEN ESTABLISH, and what they do not.** They group by whether the prompt asserts that
+  rejection clauses apply unconditionally: `main` and Variant C say no such thing and both flag
+  `positive/11` WITH the redaction-incompleteness analysis; Variant A ("whether or not") and the
+  withdrawn text ("every rejection rule under IMPORTANT still applies") both decline it and BOTH
+  rest on the mere presence of the redaction regex. The grouping is not by edit size: C edits the
+  same clause as A, in the same place, by a larger character count, in the opposite direction, and
+  passes. **This is the strongest evidence this beat produced and it is still n=1 per prompt on a
+  MEDIUM-confidence fixture.** It does not establish stability at n=5 for anything. `negative/08`
+  in particular recorded `false@low` at n=1 under `main` and then flagged `vuln/medium` 5/5 live,
+  so its Variant C pass is weaker evidence than it appears; what carries weight is the STRUCTURAL
+  change, that the fixture now fully satisfies a written reject clause and so joins the class of
+  seven negatives that scored clean 5/5 live across 35 samples. That remains an inference.
+
+- **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
+  free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
+  with a PARKED structural gap of exactly that shape, and nothing has been measured to confirm the
+  handoff has a receiver.** The L-016 ruling says a missing auth or production guard is
+  auth-bypass's concern. `docs/detector-test-rules.md` parks
+  `auth-bypass/positive/05-missing-middleware.js` as **R5-structural**: "absence of `requireAuth`
+  middleware on a route. Regex cannot express 'no middleware applied.'" That is this shape. After
+  the amendment an unguarded `/internal/env-keys` produces no finding from env-exposure, and
+  whether auth-bypass's prefilter reaches a Flask Blueprint route carrying no decorator is
+  UNTESTED. **This is a recall consequence of a CORRECT scope ruling, recorded before it is
+  discovered rather than after.** Measuring it costs nothing: the prefilter gates are keyless. Do
+  NOT read this as a reason to reopen L-016 - the ruling settles which lane owns the shape, and a
+  gap in the receiving lane is an argument for fixing that lane, never for putting the shape back
+  in the wrong one.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 

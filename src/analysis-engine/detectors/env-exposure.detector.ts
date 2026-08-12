@@ -112,8 +112,7 @@ IMPORTANT:
   and returns a curated subset.
 - Reject when env is logged via a redacting logger (pino redact, winston
   format.combine with redaction).
-- Reject when only env KEY NAMES are returned (no values), and the route
-  is dev-only / 404 in production.
+- Reject when only env KEY NAMES are returned (no values).
 - Reject when regex redaction strips SECRET/KEY/TOKEN/PASSWORD before responding.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
@@ -260,8 +259,7 @@ Analyze whether this is a real env-exposure vulnerability. Consider:
    os.environ, or just a hand-picked subset?
 2. Is the route gated by admin auth AND a production check before returning?
 3. Are SECRET / KEY / TOKEN / PASSWORD values redacted before being emitted?
-4. Are only env KEY NAMES returned (no values), with a dev-only / 404-in-prod
-   guard?
+4. Are only env KEY NAMES returned (no values)?
 5. Is process.env passed only to a redacting logger (pino redact list, etc.)
    rather than to an HTTP response?
 
