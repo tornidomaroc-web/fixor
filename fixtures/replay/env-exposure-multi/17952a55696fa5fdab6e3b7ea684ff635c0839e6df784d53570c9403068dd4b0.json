@@ -1,0 +1,32 @@
+{
+  "key": "17952a55696fa5fdab6e3b7ea684ff635c0839e6df784d53570c9403068dd4b0",
+  "meta": {
+    "detectorId": "env-exposure-multi",
+    "model": "claude-sonnet-4-6",
+    "systemPromptFingerprint": "ef92d1311a1e",
+    "recordedAtIso": "2026-08-12T18:54:08.012Z",
+    "sourceFixture": "positive/12-fastify-redacted-logs.ts",
+    "expectedFlagged": true,
+    "note": "MEDIUM-confidence emit: the LLM verdict is isVulnerable:true at confidence:medium, and the finding is emitted carrying that confidence rather than discarded. Expected flagged=true. Before 2026-08-07 this expected flagged=false and was a suppression-induced false negative."
+  },
+  "request": {
+    "model": "claude-sonnet-4-6",
+    "system": "You are a security auditor analyzing a code change for environment-variable\nexposure vulnerabilities. Env exposure means server environment variables\n(secrets, database URLs, API keys, configuration) are returned in HTTP\nresponses or written to user-accessible logs, allowing attackers to read\nthe entire server configuration.\n\nSet confidence:\n- HIGH: Full process.env or os.environ dumped to a response or log accessible\n  to non-admin callers\n- MEDIUM: Subset returned but includes potentially sensitive keys\n  (DATABASE_URL, AUTH, KEY, SECRET, TOKEN patterns)\n- LOW: Hand-picked non-secret values (NODE_ENV, region, version), or full\n  env behind strict admin+prod gating, or env routed through a redacting\n  logger (not a response)\n\nIMPORTANT:\n- Only return findings with confidence \"high\" or \"medium\".\n- Reject when the response includes ONLY explicitly allowlisted, non-secret\n  values (NODE_ENV, APP_VERSION, REGION, SITE_URL).\n- Reject when the route is gated by both admin auth AND a production check,\n  and returns a curated subset.\n- Reject when env is logged via a redacting logger (pino redact, winston\n  format.combine with redaction).\n- Reject when only env KEY NAMES are returned (no values).\n- Reject when regex redaction strips SECRET/KEY/TOKEN/PASSWORD before responding.",
+    "messages": [
+      {
+        "role": "user",
+        "content": "CONTEXT:\nFile: src/app/handlers/env-exposure/03-fastify-redacted-logs.ts\nLanguage: typescript\nFunction context:\n```typescript\n  \"DATABASE_URL\",\n  \"STRIPE_SECRET_KEY\",\n  \"ANTHROPIC_API_KEY\",\n  \"JWT_SECRET\",\n]);\n\nfunction redactedEnv(): Record<string, string> {\n  const out: Record<string, string> = {};\n  for (const [k, v] of Object.entries(process.env)) {\n    out[k] = SECRET_KEYS.has(k) ? \"[redacted]\" : (v ?? \"\");\n  }\n  return out;\n}\n\nconst app = fastify({\n  logger: {\n    redact: [\n      \"env.DATABASE_URL\",\n      \"env.STRIPE_SECRET_KEY\",\n      \"env.ANTHROPIC_API_KEY\",\n      \"env.JWT_SECRET\",\n    ],\n  },\n});\n```\n\nImports in file:\n```typescript\nimport { fastify } from \"fastify\";\n```\n\nPattern that triggered review: for (const [k, v] of Object.entries(process.env)) {\nTriggered at line: 12\n\nAnalyze whether this is a real env-exposure vulnerability. Consider:\n\n1. Is the response body or log payload returning the full process.env /\n   os.environ, or just a hand-picked subset?\n2. Is the route gated by admin auth AND a production check before returning?\n3. Are SECRET / KEY / TOKEN / PASSWORD values redacted before being emitted?\n4. Are only env KEY NAMES returned (no values)?\n5. Is process.env passed only to a redacting logger (pino redact list, etc.)\n   rather than to an HTTP response?\n\nCall the report_env_exposure_verdict tool with your verdict."
+      }
+    ],
+    "tool": "report_env_exposure_verdict"
+  },
+  "response": {
+    "toolInput": {
+      "isVulnerable": true,
+      "confidence": "medium",
+      "reasoning": "The `redactedEnv()` function iterates over the full `process.env` and only redacts a hardcoded allowlist of four known secret keys (`DATABASE_URL`, `STRIPE_SECRET_KEY`, `ANTHROPIC_API_KEY`, `JWT_SECRET`). Any other sensitive environment variables (e.g., `AWS_SECRET_ACCESS_KEY`, `REDIS_URL`, `SMTP_PASSWORD`, `SESSION_SECRET`, etc.) that happen to be present will be returned in plaintext. The redaction is a blocklist approach, which is inherently incomplete.",
+      "suggestedFix": "Invert the logic to an allowlist approach: only expose a pre-approved set of explicitly non-sensitive keys (e.g., `NODE_ENV`, `APP_VERSION`, `REGION`) rather than dumping all env vars and attempting to redact known secrets. Alternatively, if a broader dump is required, use a regex-based redaction that strips any key matching patterns like `SECRET|KEY|TOKEN|PASSWORD|URL|DSN|CREDENTIAL` before returning."
+    },
+    "text": ""
+  }
+}
