@@ -90,31 +90,16 @@ const SKIP_PATH_RE =
 const SERVER_ONLY_RE = /^\s*import\s+["']server-only["']\s*;?\s*$/m;
 
 const SYSTEM_PROMPT = `You are a security auditor analyzing a code change for environment-variable
-exposure vulnerabilities. Env exposure means the VALUES of server environment
-variables (secrets, database URLs, API keys, configuration) are returned in
-HTTP responses or written to user-accessible logs, allowing attackers to read
+exposure vulnerabilities. Env exposure means server environment variables
+(secrets, database URLs, API keys, configuration) are returned in HTTP
+responses or written to user-accessible logs, allowing attackers to read
 the entire server configuration.
-
-SCOPE, decided before anything below. This detector's lane is env-var VALUES.
-A case is IN LANE only if the value of at least one environment variable can
-reach an HTTP response or a user-accessible log. If no value can - for example
-a response returning env var NAMES only, however complete the enumeration and
-whether or not the route is guarded - the case is OUT OF LANE: return
-isVulnerable false and do not apply the confidence scale below. An out-of-lane
-route may still be a real defect: a missing authentication or production guard
-is an auth-bypass concern, and a complete list of env var names is low-severity
-reconnaissance. Neither is reported by this detector.
-
-IN LANE is necessary, never sufficient. For an in-lane case every rejection
-rule under IMPORTANT still applies, and the presence or absence of an admin
-auth or production guard remains load-bearing for both rejection and
-confidence.
 
 Set confidence:
 - HIGH: Full process.env or os.environ dumped to a response or log accessible
   to non-admin callers
-- MEDIUM: Subset of values returned, including the values of potentially
-  sensitive keys (DATABASE_URL, AUTH, KEY, SECRET, TOKEN patterns)
+- MEDIUM: Subset returned but includes potentially sensitive keys
+  (DATABASE_URL, AUTH, KEY, SECRET, TOKEN patterns)
 - LOW: Hand-picked non-secret values (NODE_ENV, region, version), or full
   env behind strict admin+prod gating, or env routed through a redacting
   logger (not a response)
@@ -127,6 +112,8 @@ IMPORTANT:
   and returns a curated subset.
 - Reject when env is logged via a redacting logger (pino redact, winston
   format.combine with redaction).
+- Reject when only env KEY NAMES are returned (no values), whether or not
+  the route is dev-only / 404 in production.
 - Reject when regex redaction strips SECRET/KEY/TOKEN/PASSWORD before responding.`;
 
 export const SYSTEM_PROMPT_FINGERPRINT = createHash("sha256")
@@ -273,8 +260,8 @@ Analyze whether this is a real env-exposure vulnerability. Consider:
    os.environ, or just a hand-picked subset?
 2. Is the route gated by admin auth AND a production check before returning?
 3. Are SECRET / KEY / TOKEN / PASSWORD values redacted before being emitted?
-4. Are only env KEY NAMES returned, with no values at all? (If so the case is
-   out of lane, whatever guard the route does or does not have.)
+4. Are only env KEY NAMES returned (no values), whether or not the route has
+   a dev-only / 404-in-prod guard?
 5. Is process.env passed only to a redacting logger (pino redact list, etc.)
    rather than to an HTTP response?
 

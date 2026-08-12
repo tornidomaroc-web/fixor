@@ -3669,6 +3669,48 @@ this tracker keeps correcting.
   corpus that discriminates the scope question and leaves the shipped prompt emitting on that shape
   in customer code.
 
+  **VARIANT A LANDED 2026-08-12; THE 0872c970ef2f AMENDMENT IS WITHDRAWN.** The first amendment
+  added 837 characters and cost a true positive. What landed instead is MAIN'S PROMPT WITH ONE
+  EXISTING CLAUSE MADE UNCONDITIONAL - eleven characters - plus the matching question-4 fix:
+  "Reject when only env KEY NAMES are returned (no values), whether or not the route is dev-only /
+  404 in production." The diff against main is exactly two hunks, 4 insertions and 4 deletions.
+  `SYSTEM_PROMPT_FINGERPRINT` d2ca2f022d99 -> `1ad63c16bd58`, computed by a method first validated
+  by reproducing d2ca2f022d99 from main's own blob in the same execution.
+
+  **WHY A RATHER THAN NARROWING [G].** Narrowing [G] removes 56 of the 837 added characters, 6.7%,
+  and spends a call betting on ONE candidate in a five-candidate field that cannot be discriminated
+  without paid variant testing. A does not bet: it minimises the only thing known to have changed.
+  It also DISSOLVES rather than patches the two problems that produced [S] and [G] - [G] existed
+  solely to protect `positive/04` from a free-standing lane handoff, and A has no handoff; [S]'s
+  ladder-foreclosure existed to block the MEDIUM route, and A's clause applies to the input
+  directly. **The lane PHILOSOPHY is documentation: it lives here and in META, not in the prompt,
+  where it perturbs judgment on fixtures it was never aimed at.**
+
+  **L-018 IS NOT OBSERVED BY THIS CHANGE, and a note claiming it were would be wrong.** Both halves
+  moved again - the system prompt changed, so the fingerprint moved, AND question 4 changed. L-018's
+  scenario is a user-message-ONLY change; it stays latent, proven by construction from
+  `requestShape` rather than by observation. **What IS newly recordable is sharper and worth more:
+  the fingerprint UNDERSTATES the request delta.** Question 4 moves all 17 replay keys and
+  contributes nothing to `SYSTEM_PROMPT_FINGERPRINT`, so the harness's drift guard, the census's
+  one-fingerprint assertion and every pre-registration's parity check are all verifying a PROPER
+  SUBSET of what the replay key covers. **Fingerprint parity is evidence about the system prompt
+  alone and must never be quoted as evidence that the request is unchanged.**
+
+  **PROBE ORDER RULED: `negative/08` BEFORE `positive/11`, reversing this session's earlier
+  recommendation.** Under A the fixture that must CHANGE behaviour is `negative/08` - it flagged
+  5/5 live under main's prompt, and A's newly-applicable clause must now override that - while
+  `positive/11` must merely PERSIST, eleven characters from a prompt under which it was recorded
+  `true@medium` and flagged correctly in the live run. **A fixture required to change is riskier
+  than one required to persist.** Ordering by probability of failure therefore puts `negative/08`
+  first, and manifest position agrees: it is 16th of 17, so a completion would spend roughly fifteen
+  calls before testing the one fixture the amendment exists for. The counter-argument that an
+  explicit reject clause reliably beats the confidence ladder is NOT merely reasoned - under main's
+  own prompt all SEVEN negatives that fully satisfied a written reject clause scored clean 5/5, 35
+  samples, including `negative/06` where the ladder had a real pull (full `process.env` to a
+  logger) and the clause won. But every one of those clauses already applied when its fixture was
+  recorded. `negative/08`'s clause applies for the FIRST time, so the transfer is an inference and
+  not a measurement, and it is the inference the probe buys.
+
 - **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
   free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
   with a PARKED structural gap of exactly that shape, and nothing has been measured to confirm the
