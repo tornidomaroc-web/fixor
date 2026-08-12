@@ -1,0 +1,79 @@
+{
+  "measurement": "PRE-REGISTRATION for the env-exposure stage-3 dispatch under Variant C. Recorded BEFORE the run, at main 1041ae79, which is the squash SHA of PR #160.",
+  "detector": "env-exposure",
+  "selector": "env-exposure (ALONE; never 'all')",
+  "recordedOn": "2026-08-12",
+  "recordedBeforeTheRun": "TRUE, CHECKED RATHER THAN ASSUMED. `gh run list --workflow=stage3-live-detection.yml` returns 9 runs in total; max databaseId is 31435865020, created 2026-08-10T21:52:57Z, conclusion failure. No env-exposure run exists after it. This artifact was written with no result to write toward.",
+  "zeroSpendToProduce": "TRUE. Every number below was derived by execution at 1041ae79 from free instruments: measure:stage3-calls, source reads, directory iteration, and recordings already on disk or recoverable from git.",
+  "doNotEditTheValuesBelow": "Everything beneath this key is PRESERVED EXACTLY AS PRE-REGISTERED and must not be edited. A band or a prediction that can be edited after the fact is not a pre-registration. A wrong number here cannot be fixed except by a SECOND artifact arguing with this one, and every number was therefore re-derived by execution against the tree this commit lands on rather than carried from a session narrative.",
+  "whyThisRunExists": "Run 31435865020 (env-exposure alone, 2026-08-10, $0.6671, 85 priced calls) scored 19/20 and failed on exactly one fixture: negative/08-flask-env-keys-only.py, flagged vuln/medium on 5 of 5 runs and EMITTED all five under option C. L-016 was opened. The owner ruled the shape OUT of env-exposure's lane; the corpus was ruled correct and the prompt defective. The prompt was amended and no fixture was edited, relabelled, moved or retired. THIS RUN MEASURES WHETHER THE AMENDMENT CARRIES THE RULING AT n=5.",
+  "corpusAndGate": "12 positives + 8 negatives = 20 enumerated; 17 model-reaching; 3 pre-filtered (negative/01, negative/02, negative/10); 85 calls at n=5. Entry point (test-env-exposure.ts): nRuns 5, perPositiveThreshold 4, perNegativeThreshold 5, positivesMinPassing 12, negativesMinPassing 8, combinedMinPassing 20. GATE IS SATISFIABLE WITH EXACTLY ZERO SLACK: iterator/entry-point divergence measured 0 by measure:stage3-calls at 1041ae79. A single flake on any ONE of the eight negatives is a full RED.",
+  "fingerprintParity": "Shipping SYSTEM_PROMPT_FINGERPRINT is ef92d1311a1e (Variant C). All 17 recordings carry ef92d1311a1e; the census asserts exactly one fingerprint across them. Parity verified at 1041ae79.",
+  "theEvidenceIsASYMMETRIC_andThisBlockRefusesToAverageOverIt": "n=5 ON ONE FIXTURE, n=1 ON SIXTEEN. negative/08 was sampled five times on 2026-08-12 in five isolated FIXOR_REPLAY_ROOT directories, leaving fixtures/replay byte-unchanged (manifest sha256 e1353fcba856a2b67c4baea547ed3cd2 before and after). All five returned isVulnerable:false @ low. All five carry ONE request key, yet produced THREE DISTINCT reasoning texts, which proves genuine re-sampling rather than one draw repeated. The other sixteen model-reaching fixtures have ONE sample each. FIVE-OF-FIVE REMOVES THE MOST LIKELY CAUSE OF A REPEAT RED AND DOES NOT MAKE AN 85-CALL RUN SAFE.",
+  "detectionPrediction": {
+    "aggregate": "20/20. Positives 12/12 at >= 4/5; negatives 8/8 at 5/5; combined 20 against a need of 20.",
+    "noPerFixturePrediction": "NO per-fixture prediction of any n=1-derived property is written here, DELIBERATELY. The previous pre-registration predicted per-fixture SIGN from n=1 seeds and lost; its own transferable rule forbids repeating that. Predicting the modal branch says nothing about WHICH fixture is the exception, and on a corpus with zero slack exactly one exception is a full RED."
+  },
+  "exceptionSurface_NAMED": {
+    "note": "The fixtures whose only evidence is a single sample under ef92d1311a1e. Any one of them is a candidate exception. A negative needs ONE flake to red the run; a positive needs two of five to miss.",
+    "sixteen": [
+      "negative/04-dev-env-keys-only.ts",
+      "negative/05-healthz-specific-fields.js",
+      "negative/06-logger-only-env.js",
+      "negative/09-fastapi-runtime-specific.py",
+      "positive/01-debug-env-route.ts",
+      "positive/02-error-handler-leaks-env.ts",
+      "positive/03-fastify-logs-env.ts",
+      "positive/04-admin-runtime-no-prod-check.ts",
+      "positive/05-healthz-config.js",
+      "positive/06-diagnostics-send.js",
+      "positive/07-error-includes-env.js",
+      "positive/08-flask-diagnostics.py",
+      "positive/09-fastapi-runtime.py",
+      "positive/10-go-env-dump.go",
+      "positive/11-redacted-diagnostics.js",
+      "positive/12-fastify-redacted-logs.ts"
+    ],
+    "cannotFlake": [
+      "negative/01-admin-env-gated.ts",
+      "negative/02-public-config.ts",
+      "negative/10-go-public-env.go"
+    ],
+    "cannotFlakeWhy": "Pre-filtered: they never reach the model, so they cannot vary."
+  },
+  "costBand": {
+    "decomposition": "$0.65215, from 17 measured per-call values at ef92d1311a1e on 2026-08-12, multiplied by 5.",
+    "flatConstant": "$0.70380 (85 x $0.00828, the rate hardcoded at the entry point).",
+    "recordedForTheLedgerOnly": "THIS RUN CANNOT DISCRIMINATE BETWEEN THE TWO MODELS, AND THAT IS PRE-COMMITTED HERE. No cost model is corroborated by where this run lands, however it lands. Report the MEASURED total; never quote the harness's printed projection.",
+    "ceiling": "$1.00, set ABOVE both candidates. A ceiling at the point aborts a run merely at the high end of known error."
+  },
+  "whyItCannotDiscriminate_andTheNoiseFloorThisRestsOn": "The candidates sit 7.9% apart. THE NOISE FLOOR THAT MATTERS IS CROSS-WINDOW, not within-window, because the dispatch runs in a different serving window from every measurement in this artifact. The only cross-window evidence this corpus supports is n=1: positive/11-redacted-diagnostics.js, request key b940fa656b8b, fingerprint d2ca2f022d99 on BOTH sides, recorded 2026-07-04T08:28:28Z and re-recorded 2026-08-12T17:33:59Z on an identical request -- output 1058 -> 1231 chars, +16.4%. At the tracker's stated 40-55% output share of the bill, that swing moves an 85-call total by 6.6% to 9.0%, STRADDLING the 7.9% gap. A WITHIN-WINDOW FIGURE WAS NEARLY USED INSTEAD AND WOULD HAVE BEEN WRONG: five same-day samples of negative/08 spread only 0.48%, which measures sampling jitter inside one window and not what the dispatch is exposed to -- the same error class as citing a local gate result to claim something about CI. Two further limits: the cross-window datum is ONE fixture and ONE pair, so no distribution can be estimated from it; and the July call's COST was never recorded, because recordings persist request and response but no usage, so even that datum is an output-length PROXY rather than a cost measurement. If the drift is systematic rather than random it does not average out across 85 calls -- it shifts the whole bill.",
+  "threeExits": {
+    "exit0": "GREEN. Every fixture clears its bar; combined 20/20.",
+    "exit2": "DETECTION FAILURE. At least one fixture misses its bar. All 85 expected calls executed and were priced. CONSUMES the authorization and earns NO re-run.",
+    "abort": "SpendGuard.check() throws SpendCeilingExceeded once spentUsd > ceilingUsd, checked per iteration in runStabilityHarness, stopping BEFORE the next call.",
+    "howToTellAbortFromExit2": "By the ARTIFACT, never by the step conclusion: an abort produces FEWER than 85 priced calls and a SpendCeilingExceeded occurrence; exit 2 produces all 85 and none."
+  },
+  "claimsUNAVAILABLE_regardlessOfOutcome": {
+    "cost": "No cost model is corroborated. See costBand.",
+    "spendCeiling": "#148's ceiling has never executed live. test:spend-ceiling is keyless and sits in the test:ci chain, so the PREDICATE is gated for free on every push; what is untested is a live abort against real accumulating spend. No run may be cited as evidence for the live path unless the abort actually fires, AND NO ABORT WILL BE ENGINEERED TO OBTAIN IT.",
+    "stability": "No stability claim about the sixteen n=1 fixtures beyond what this run itself measures.",
+    "theRulingItself": "A green does NOT prove the scope ruling correct. It shows only that the prompt carries it in that serving window.",
+    "fOO4": "A green makes env-exposure the sixth per-detector green, subject to the standing residual: six greens at six different SHAs do not prove the six pass SIMULTANEOUSLY at one SHA."
+  },
+  "whatAREDWouldAndWouldNotMEAN_readThisBeforeRelitigatingL016": "NO OUTCOME OF THIS RUN CAN REOPEN L-016, BECAUSE THE RUN MEASURES COMPLIANCE WITH A SCOPE RULE AND NOT THE CORRECTNESS OF ONE. If negative/08 flags again, that is the amendment failing to carry a ruling that has already shipped: an implementation result. The remedy space is different wording, a different instrument, or an accepted and stated gap. IT IS NOT RELABELLING negative/08 TO POSITIVE. That move was refused at the opening of this beat on grounds that never depended on any run: the fixture's META description is factually ACCURATE about its code, unlike both prior R6 moves whose descriptions were false; no value leaves the process; and under main the model rendered BOTH verdicts on the identical request. A red adds nothing to those grounds. A red on any of the other nineteen bears on Variant C's blast radius and on L-016 not at all. Only new evidence about the lane boundary itself, or an owner decision to move it, can reopen L-016, and a dispatch cannot supply either.",
+  "preservedProbeOutputs": {
+    "why": "These five outputs exist only in a temporary directory outside the repo and are unrecoverable once it clears. Transcribed verbatim under the same rule that applied to the untracked orphans: TRACKED means recoverable and needs no transcription; UNTRACKED means it must be written down before it is lost.",
+    "fixture": "negative/08-flask-env-keys-only.py",
+    "fingerprint": "ef92d1311a1e",
+    "allFiveVerdicts": "isVulnerable:false @ low, five of five, zero class mismatches",
+    "oneRequestKeyThreeDistinctTexts": {
+      "samples_1_3": "The endpoint returns only the **keys** (names) of environment variables via `os.environ.keys()`, not their values. Per the analysis rules, returning only env key names with no associated values does not constitute an env-exposure vulnerability.",
+      "samples_2_4": "The endpoint only returns the **names** (keys) of environment variables via `os.environ.keys()`, not their values. Per the analysis rules, returning only env key names with no values does not constitute an env-exposure vulnerability.",
+      "samples_5": "The endpoint returns only the **keys** (names) of environment variables via `os.environ.keys()`, not their values. Per the analysis rules, returning only env key names (with no values) does not constitute an env-exposure vulnerability."
+    }
+  },
+  "temperatureZeroRefinement": "The structured verdict (isVulnerable, confidence) was CONSTANT across all five samples while the prose VARIED. The tracker's note that temperature-0 is 'stable on the STRUCTURED verdict and variable in PROSE' therefore holds WITHIN a serving window; it never covered drift ACROSS time. This fixture's July-to-August flip on an identical request is drift, not a counterexample to that note.",
+  "procedure": "Validate the key out of band; set it by hand in the UI; verify main SHA, required checks green, zero Actions secrets and variables, and no run in flight; dispatch EXACTLY ONCE with max_spend_usd stated deliberately; delete the secret the moment the run goes terminal; verify 404 and total_count=0. Guard 1 asserts the key's PRESENCE, never its validity.",
+  "verifiableBy": "Every number here re-derived at 1041ae79 by execution: corpus counts by directory iteration; 17/20/3 and divergence 0 by `npm run measure:stage3-calls`; thresholds by source read of test-env-exposure.ts; fingerprint parity by runtime import plus recording meta; the cross-window pair by `git show 25db5e08:<path>` against the same-day control; the probe spread from the five isolated roots."
+}
