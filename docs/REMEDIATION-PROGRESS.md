@@ -3599,14 +3599,40 @@ this tracker keeps correcting.
   discriminator against `negative/01`. `SYSTEM_PROMPT_FINGERPRINT` moves `d2ca2f022d99` to
   `0872c970ef2f`.
 
-  **BY CODE, NO OTHER FIXTURE'S VERDICT CHANGES.** All 12 positives leak values, so the scope
-  paragraph never fires on them (`positive/10-go-env-dump.go` splits on `=` and stores the value;
-  `positive/04` returns `env: process.env`). Negatives 01/02/05/09/10 return curated or allowlisted
-  VALUES and are rejected by unchanged clauses; `negative/06` routes values to a redacting logger
-  and is rejected by its unchanged clause. `negative/04` changes GROUND without changing verdict:
-  from the deleted names-only clause to the scope paragraph. This is an analysis of which TEXT
-  applies, read from code. It is NOT a prediction of model output, which the transferable rule in
-  `docs/measurements/auth-bypass-stage3-2026-08-08.json` forbids.
+  **BY CODE, NO OTHER FIXTURE'S VERDICT CHANGES - FALSIFIED 2026-08-12 BY MEASUREMENT. THE CLAIM
+  BELOW MUST NOT BE CITED.** The claim was that all 12 positives leak values so the scope paragraph
+  never fires on them, that negatives 01/02/05/06/09/10 are rejected by unchanged clauses, and that
+  `negative/04` changes ground without changing verdict. **A verdict change among the other nineteen
+  was predicted ABSENT AND IT OCCURRED.** The paid probe on `positive/11-redacted-diagnostics.js`
+  under fingerprint `0872c970ef2f` returned `isVulnerable:false @ low` against an expected class of
+  flagged:true. Not a confidence drop - a SIGN FLIP. A true positive became a MISS: an
+  unauthenticated `/api/v1/diagnostics` returning plaintext `DATABASE_URL`, `MONGO_URI` and
+  `REDIS_URL` is no longer reported at all. Measured $0.00769, exit 1, class mismatches 1. The
+  recorder refused to freeze it, so "a re-record cannot launder a failed amendment" is now
+  demonstrated rather than asserted.
+
+  **WHY THE CHECK COULD NOT HAVE CAUGHT IT, which is the transferable part.** The check reasoned
+  about which TEXT applies to which fixture. `positive/11`'s new reasoning rests on reject clause 5
+  - "regex redaction strips SECRET/KEY/TOKEN/PASSWORD before responding" - which the amendment did
+  NOT touch, and which the model applied on the mere PRESENCE of a redaction regex without
+  performing the incompleteness analysis that made this fixture a positive in the first place (R6
+  #1, Day 5: the regex misses `DATABASE_URL`, `MONGO_URI`, `REDIS_URL`, whose plaintext values
+  still leak). **A text-applicability analysis cannot bound how ADDED text reweights an UNTOUCHED
+  clause.** That limit was flagged when the check was written and then treated as a formality. It is
+  not a formality; it is the entire exposure. **Treat any prompt change as unbounded over the whole
+  corpus until measured, and the only instrument that measures it is one call per fixture.**
+
+  **THE CAUSE IS NOT ESTABLISHED, and the claim that it was is WITHDRAWN.** It was asserted that
+  [G]'s sentence "every rejection rule under IMPORTANT still applies" is the only new text plausibly
+  bearing on clause 5. That cannot be established without paid discrimination between prompt
+  variants, and it is implausible on measurement: dropping that sentence removes 56 of the 837
+  characters the amendment added, or 6.7%. Live candidates, none excluded - the checklist sentence;
+  [S]'s closing "Neither is reported by this detector", a dismissive posture stated immediately
+  before the rejection list; the 62% growth in prompt length, which reweights every clause; [M]'s
+  rewording of the MEDIUM rung; and [X]'s removal of a fifth rejection clause, which changes the
+  shape of the list the model matches against. **A re-probe of any single narrowed variant
+  establishes only whether THAT TEXT works. It does not establish which candidate caused the
+  regression. Those are different claims and only the first is worth a call.**
 
   **WHAT THE AMENDMENT DOES NOT ESTABLISH: that the words move the model. That is UNTESTED.** No
   live call has been made. The recorder's class assertion (`record-env-exposure-fixtures.ts` step 5)
