@@ -3938,6 +3938,48 @@ this tracker keeps correcting.
   gap in the receiving lane is an argument for fixing that lane, never for putting the shape back
   in the wrong one.
 
+- **L-021 (OPEN; MEASURED in a live paid run; a property of the env-exposure DETECTOR and its corpus;
+  the most likely cause of the NEXT env-exposure red) - the MEDIUM-ceiling positives are not stable at
+  n=5, and the gate survived only because the positive threshold tolerates one flake while the negative
+  threshold tolerates none.**
+
+  **THE DATUM, quoted verbatim from the run's own artifact and NOT from any parse of it.** Run
+  `31649593669`, `stage3-detector-logs/stage3-env-exposure.log`, stated INDEPENDENTLY TWICE by the
+  harness:
+
+  > `  -> 11-redacted-diagnostics.js: flagged 4/5`  (line 199, run-loop summary)
+  > `    pos 11-redacted-diagnostics.js: flagged 4/5 PASS`  (line 338, STABILITY REPORT)
+
+  The five runs behind it: `vuln/medium` on runs 1-4, `safe/low` on run 5. **The artifact reports the
+  count directly; 4/5 is not a derivation.** This matters because an earlier parse of the same log was
+  wrong twice - it spanned newlines through ANSI-coded WARN blocks and produced 34 phantom fixtures,
+  then silently dropped the three pre-filtered fixtures whose verdict field is multi-word - so the
+  number is taken from the harness's own summary lines rather than from any tallying of run lines.
+
+  **THE COMPLETE TALLY, from the STABILITY REPORT.** Positives: ELEVEN at `flagged 5/5 PASS`, ONE at
+  `flagged 4/5 PASS`. Negatives: ALL EIGHT at `clean 5/5 PASS`, including
+  `neg 08-flask-env-keys-only.py: clean 5/5 PASS`. **`positive/11` is the ONLY fixture below its
+  maximum in the entire run.** There was no second flake.
+
+  **WHAT IS MEASURED.** One flake in five samples on `positive/11` under `ef92d1311a1e`, absorbed
+  ONLY because `perPositiveThreshold` is 4. Across the run that is 1 of 15 MEDIUM-positive runs and 1
+  of 85 model-reaching runs - small n, one serving window, and not a rate to quote as if it were one.
+  The fixture is also the one that flipped to `isVulnerable:false` under BOTH rejected prompt variants
+  and is the reason Variant C exists, so it has now shown instability under three different prompts.
+
+  **WHAT IS NOT MEASURED, AND IS THE WHOLE RISK.** Whether a NEGATIVE can flake. `perNegativeThreshold`
+  is 5 with ZERO slack: one false positive on any one of the eight negatives is a full RED, where the
+  identical event on a positive is absorbed. This run observed 40 clean negative runs in one window,
+  which is evidence and not a bound. **The gate's asymmetry means the class that CAN flake is protected
+  and the class that CANNOT is not.**
+
+  **THE CHEAPEST INSTRUMENT, already proven this beat.** Five `record` invocations against one fixture,
+  each with a distinct `FIXOR_REPLAY_ROOT` so `fixtures/replay` is never touched, cost **$0.03137**
+  for five genuine re-samples - genuine because all five carried one request key yet produced three
+  distinct reasoning texts. That is 4.8% of an 85-call dispatch and it answers a per-fixture stability
+  question directly. Do NOT read a green dispatch as having answered it: this run's green is one sample
+  away from not being green, and the aggregate hides which sample.
+
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
 - **F-002 - RESOLVED, moved to DONE (Engine A: PR #141, squash `38d5c7ca`; Engine B: PR #143,
