@@ -2046,6 +2046,23 @@ closes nothing. F-004 stays OPEN pending a green RUN.** The model-judgment gate 
 exercised by opt-in live runs, never free-in-CI, so completing stage 2 does not lift F-004 and
 the READY verdict is unchanged.
 
+  **THE ASSERTION-4 COUNTERFACTUAL HAS NOW BEEN RUN ONCE, AT #160, AND IT CAME OUT CONSISTENT WITH
+  THE HYPOTHESIS.** #153 and #154 were merged from an already-checked-out base and assertion 4
+  FAILED both times - `gh pr merge --delete-branch` removed the remote ref and left the local one.
+  #160 was merged while ON the branch `fix/env-exposure-lane-scope`: gh moved HEAD to main and
+  **assertion 4 PASSED** (`git branch --list` returned zero refs). That is the counterfactual the
+  previous entry recorded as untested. **n=1 on each arm, nothing else held constant - gh version,
+  repo settings and network state were not controlled. DO NOT upgrade it to a fact.** What it does
+  license is dropping "the cause is still NOT tested" from the description: it is now tested once.
+
+  **A DEFECT IN THE EXECUTOR'S OWN ASSERTION-3 CHECK, recorded because this tracker records
+  instrument failures.** The check ran `gh api <ref> 2>&1 | head -2; echo "exit: $?"` and reported
+  `exit: 0`. `$?` after a pipeline is the exit status of the LAST command, `head`, not of `gh`.
+  The exit code printed was meaningless; the evidence was the `"status":"404"` body. This is the
+  third instrument-measures-a-correlate failure in one session, after a `grep -v "^[+-][+-]"` filter
+  that hid every changed line beginning with a dash and a `--diff-filter=A/D` count that read zero
+  because git had classified the changes as renames.
+
 - **Stage 2 - deterministic replay gate (required, free, in CI).** The replay shim
   (`src/analysis-engine/llm-replay.ts`, wired at the single `callClaude` choke point in
   `anthropic-client.ts`) returns a recorded per-detector response keyed by a hash of the
@@ -3504,6 +3521,52 @@ content contradicts is the defect class this tracker keeps correcting.
   every pre-registration stays unchanged - so the parity check would report agreement across a
   changed request. Moot for the L-016 amendment, which moves both halves. Live for any future prompt
   work that touches only the user message. Surfaced while pricing that amendment, not by a run.
+
+- **L-019 (OPEN; a property of the measuring APPARATUS; zero spend to reproduce; observed TWICE in
+  one session) - `loadRecordings` names the WRONG artifact in its duplicate-recording failure, so a
+  reader of a red gate is pointed at the innocent file.** `loadRecordings` walks `readdirSync` in
+  lexicographic order over filenames that are CONTENT HASHES, and indexes by `meta.sourceFixture`;
+  the first file to claim a sourceFixture wins the index and every later one is reported as the
+  duplicate. **Which file wins is arbitrary with respect to correctness** - it is decided by hash
+  sort order, which carries no information about which recording is current.
+
+  **INSTANCE 1 (2026-08-12, during probing).** With the 17 tracked main-era recordings plus two
+  untracked probe recordings on disk, the gate reported
+  `duplicate recording for sourceFixture negative/08-flask-env-keys-only.py (b8e678....json)` -
+  naming the TRACKED, FROZEN recording as the duplicate, because the probe's sha sorted first. The
+  output reads as though the frozen evidence were the defect.
+
+  **INSTANCE 2 (2026-08-12, after the completion commit).** With the 17 Variant C recordings
+  committed and two dead Variant A orphans still on disk, the gate reported
+  `duplicate recording for sourceFixture positive/11-redacted-diagnostics.js (c14e7f7d....json)` -
+  naming the FRESHLY COMMITTED, VALID recording as the duplicate, because the orphan `bd5f4ded`
+  sorted first. It then reported drift as `1ad63c16bd58 != detector ef92d1311a1e` against the
+  ORPHAN, on a fixture whose correct recording was present and correct. Three failures, all
+  attributable to two files that should not have been there, and none of the three named them.
+
+  **REMEDY DIRECTION, not adjudicated here:** the duplicate message should name BOTH paths with
+  their fingerprints, or the index should prefer the recording whose `systemPromptFingerprint`
+  matches the detector's. Either makes the message point at the stale file rather than at whichever
+  hash happens to sort later.
+
+- **L-020 (OPEN as a standing rule rather than a defect; zero spend; the executor got this WRONG in
+  both directions in one session) - UNTRACKED FILES ARE INVISIBLE TO CI, AND A LOCAL GATE RESULT
+  LICENSES NO CLAIM ABOUT A PULL REQUEST'S STATE IN EITHER DIRECTION.** CI checks out the PUSHED
+  commit. Files that were never staged are not in it.
+
+  **The direction that actually bit.** Two untracked probe recordings made both keyless gates fail
+  locally. The executor stated that PR #160's required matrices "will fail: test:ci contains both
+  gates that the orphans break." **They passed on their first run** - the orphans had never been
+  staged, so the pushed tree at `f4e51d0` held exactly the 17 tracked recordings and CI could not
+  see them. A LOCAL RED licensed a false claim about CI.
+
+  **The direction usually warned about.** A local green equally licenses nothing: the pushed tree
+  may differ from the working tree in the other direction.
+
+  **The rule:** read a PR's state ONLY from the check-runs bound to its head SHA, selecting by
+  `app.id` and not by context name - this repo's head also carries a `Vercel Preview Comments` run
+  from `app_id=8329` that is green and is NOT a required context. Never infer it from local gate
+  output, in either direction.
 
 ### Priority 1h - OPEN: detector-scope findings surfaced by the PAID stage-3 runs
 
