@@ -3494,6 +3494,17 @@ content contradicts is the defect class this tracker keeps correcting.
   has a determinate answer and no debatable ground truth. One such fixture exercises the 4-of-5
   threshold (L-014), `resolveMediumVerdict` (this item) and the H7 path (Priority 1b) at once.
 
+- **L-018 (OPEN; a property of the measuring APPARATUS; zero spend to reproduce) -
+  `SYSTEM_PROMPT_FINGERPRINT` does not cover the whole request, so a user-message-only change moves
+  every replay key while the human-legible drift guard reports NO drift.** `computeReplayKey`
+  hashes `{model, system, messages, tool, max_tokens, temperature}` (`llm-replay.ts:114-127`);
+  `SYSTEM_PROMPT_FINGERPRINT` hashes SYSTEM_PROMPT alone. A change confined to `buildUserMessage`
+  therefore invalidates every recording for that detector while the fingerprint printed by the
+  harness, asserted by the census ("exactly one prompt fingerprint across recordings") and quoted by
+  every pre-registration stays unchanged - so the parity check would report agreement across a
+  changed request. Moot for the L-016 amendment, which moves both halves. Live for any future prompt
+  work that touches only the user message. Surfaced while pricing that amendment, not by a run.
+
 ### Priority 1h - OPEN: detector-scope findings surfaced by the PAID stage-3 runs
 
 Same `L-` namespace as 1d, 1e, 1f and 1g (found by RUNNING the detector), and a separate
@@ -3503,10 +3514,10 @@ so, and the item below is a property of a shipped DETECTOR and its corpus. Filin
 be filing it under a header its content contradicts, which 1g's own lead names as the defect class
 this tracker keeps correcting.
 
-- **L-016 (OPEN; MEASURED; a property of the env-exposure DETECTOR and its CORPUS, not of the
-  harness; blocks the next env-exposure dispatch) - the detector's rejection clause and the corpus
-  disagree on exactly one fixture, and nothing in the repo has the standing to settle it except a
-  scope decision.** Surfaced by run `31435865020` (env-exposure alone, 2026-08-10, ref
+- **L-016 (CLOSED BY OWNER RULING 2026-08-12; resolution at the end of this entry; a property of
+  the env-exposure DETECTOR and its CORPUS, not of the harness) - the detector's rejection clause
+  and the corpus disagreed on exactly one fixture, and nothing in the repo had the standing to
+  settle it except a scope decision, which the owner has now made.** Surfaced by run `31435865020` (env-exposure alone, 2026-08-10, ref
   `820b1647`, $0.6671, 85 priced calls), which scored **19/20** and failed on a single fixture:
   `negative/08-flask-env-keys-only.py`, flagged `vuln/medium` on 5 of 5 runs. Full record and
   resolution in `docs/measurements/auth-bypass-stage3-2026-08-08.json` under
@@ -3547,6 +3558,105 @@ this tracker keeps correcting.
   for roughly $0.67. "Exit 2 consumes the authorization" must not be read as "a re-run merely needs
   fresh money": this is the same shape as a threshold hardcoded above the enumerated corpus, which
   is spending on a result that is decided before the dispatch.
+
+  **CLOSED BY OWNER RULING, 2026-08-12.** An unguarded, complete enumeration of environment
+  variable NAMES, with no values returned, is a real but LOW-severity reconnaissance disclosure and
+  is OUT of env-exposure's lane. Values leaving the process is env-exposure's lane; a missing guard
+  on a route is auth-bypass's lane, per the registry's own division. THE CORPUS IS CORRECT AND THE
+  PROMPT WAS DEFECTIVE. No fixture was edited, relabelled, moved or retired; the corpus stands at
+  12 positives / 8 negatives / 20 total and all three gate constants in `test-env-exposure.ts`
+  are unchanged.
+
+  **WHAT THE RULING RESTS ON, none of it the gate's colour.** (1) Neither prior R6 shape holds.
+  Both `negative/07` to `positive/11` and `negative/03` to `positive/12` leaked VALUES, and in
+  both the META description was factually FALSE about its own code, which is what let them stand.
+  `negative/08` leaks no value and its META line ("returns sorted env key names without values") is
+  exactly true, so a relabel would have been the first in this corpus performed on an accurate
+  description - not correcting an error, changing a scope rule. (2) The model is not consistent on
+  this input: recording `b8e6785891d5`, dated 2026-07-04, returned `isVulnerable:false @ low` on
+  the identical canonical request, reasoning that the missing guard aids reconnaissance "but does
+  not constitute a direct env-value exposure vulnerability per the defined criteria". A relabel
+  would have promoted one of the model's two readings to ground truth, selected by which one landed
+  inside a paid dispatch. (3) R10 already classified the shape: cross-lane signal is FP-shaped even
+  when the observation is real, and its prescribed remedy is to tighten the lane in the system
+  prompt. (4) The PRODUCTION consequence decided it, not the gate. Under option C all five of
+  `negative/08`'s MEDIUM verdicts were EMITTED - ledger `vuln/medium 20` = positives 03/11/12 x 5
+  plus negative/08 x 5, and "20 emitted warnings all of category env-exposure-medium-emitted" - so
+  the shipped detector was emitting a customer-visible finding on an endpoint that leaks no secret
+  value.
+
+  **THE AMENDMENT, branch `fix/env-exposure-lane-scope`.** Five changes in
+  `env-exposure.detector.ts`, all in the prompt and none in the corpus: the opening definition now
+  says VALUES; a SCOPE paragraph states the lane and hands the out-of-lane case to auth-bypass; an
+  IN-LANE paragraph restates that guards remain load-bearing for in-lane cases; the MEDIUM rung
+  says "subset of values"; the names-only reject clause is DELETED as fully subsumed (names-only is
+  a strict subset of no-value-leaves, so deleting it removes no coverage, and leaving a redundant
+  conjunction standing is the exact artifact that caused this). **The same conjunction existed a
+  SECOND time in `buildUserMessage` question 4 and was rewritten with it** - amending SYSTEM_PROMPT
+  alone would have left the contradiction one layer down, in the message that carries the code. A
+  free-standing lane handoff was drafted and REJECTED before it shipped: it would have contradicted
+  the admin-auth-AND-production-check reject clause and destroyed `positive/04`'s only
+  discriminator against `negative/01`. `SYSTEM_PROMPT_FINGERPRINT` moves `d2ca2f022d99` to
+  `0872c970ef2f`.
+
+  **BY CODE, NO OTHER FIXTURE'S VERDICT CHANGES.** All 12 positives leak values, so the scope
+  paragraph never fires on them (`positive/10-go-env-dump.go` splits on `=` and stores the value;
+  `positive/04` returns `env: process.env`). Negatives 01/02/05/09/10 return curated or allowlisted
+  VALUES and are rejected by unchanged clauses; `negative/06` routes values to a redacting logger
+  and is rejected by its unchanged clause. `negative/04` changes GROUND without changing verdict:
+  from the deleted names-only clause to the scope paragraph. This is an analysis of which TEXT
+  applies, read from code. It is NOT a prediction of model output, which the transferable rule in
+  `docs/measurements/auth-bypass-stage3-2026-08-08.json` forbids.
+
+  **WHAT THE AMENDMENT DOES NOT ESTABLISH: that the words move the model. That is UNTESTED.** No
+  live call has been made. The recorder's class assertion (`record-env-exposure-fixtures.ts` step 5)
+  is what will test it: `negative/08` remains in `negative/`, so a re-record that still flags it
+  FAILS rather than freezing a wrong verdict. **A re-record cannot launder a failed amendment.**
+
+  **THE GATE FAILS WITH THE DRIFT MESSAGE, NOT A MISSING RECORDING, and the difference was measured
+  rather than assumed.** `loadRecordings` indexes by `meta.sourceFixture`, not by request key, so
+  all 17 recordings are FOUND and the fingerprint guard at `replay-harness.ts:884` fires first and
+  `continue`s; the key-based lookup inside `callClaude` is never reached. Measured on the branch:
+  `test:replay-env-exposure` exit 1, `RESULT: FAIL (17)`, every line reading
+  `systemPromptFingerprint d2ca2f022d99 != detector 0872c970ef2f (prompt drift; re-record)`. A
+  GREEN baseline was measured on `main` immediately before the edit (exit 0, all 17 PASS), so the
+  red is attributable to the amendment alone and to nothing else.
+
+  **ORPHANED RECORDINGS CANNOT ACCUMULATE SILENTLY, and the answer was checked rather than
+  deferred.** Nothing in `replay-harness.ts` deletes a recording - it imports only `readFileSync`,
+  `readdirSync` and `writeFileSync` - so a re-record writes 17 NEW files at new keys and leaves the
+  17 old ones, reaching 34. Two keyless gates refuse that state: `loadRecordings` fails
+  `duplicate recording for sourceFixture` (`replay-harness.ts:802-805`), and
+  `test:recorded-medium-census` asserts `env-exposure-multi: 17` recordings AND exactly one prompt
+  fingerprint across them. **The superseded 17 must be deleted in the same commit as the
+  re-record.** A partial re-record of one fixture also breaks the one-fingerprint assertion until
+  the set is completed.
+
+  **RECORD SELECTION: the recorder CAN take one named fixture, and an earlier report in this thread
+  said it could not.** `record-env-exposure-fixtures.ts` delegates `process.argv.slice(2)` to
+  `recordFixtures` and documents "shorthand selectors (`positive/04`) and `all`". The CLAUDE.md
+  cell "Record all fixtures in ONE process" is a COST-REPORTING discipline - do not sum printed
+  projections across processes - not a capability limit. **The consequence: the earlier pricing of
+  the rejected "give negative/08 a production guard" option was wrong by about 17x.** That edit
+  moves ONE key, so it needed ONE call (~$0.008), not a 17-call re-record (~$0.13). The option
+  remains rejected, on grounds that never depended on its price: it deletes the only input in the
+  corpus that discriminates the scope question and leaves the shipped prompt emitting on that shape
+  in customer code.
+
+- **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
+  free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
+  with a PARKED structural gap of exactly that shape, and nothing has been measured to confirm the
+  handoff has a receiver.** The L-016 ruling says a missing auth or production guard is
+  auth-bypass's concern. `docs/detector-test-rules.md` parks
+  `auth-bypass/positive/05-missing-middleware.js` as **R5-structural**: "absence of `requireAuth`
+  middleware on a route. Regex cannot express 'no middleware applied.'" That is this shape. After
+  the amendment an unguarded `/internal/env-keys` produces no finding from env-exposure, and
+  whether auth-bypass's prefilter reaches a Flask Blueprint route carrying no decorator is
+  UNTESTED. **This is a recall consequence of a CORRECT scope ruling, recorded before it is
+  discovered rather than after.** Measuring it costs nothing: the prefilter gates are keyless. Do
+  NOT read this as a reason to reopen L-016 - the ruling settles which lane owns the shape, and a
+  gap in the receiving lane is an argument for fixing that lane, never for putting the shape back
+  in the wrong one.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
