@@ -3577,7 +3577,8 @@ so, and the item below is a property of a shipped DETECTOR and its corpus. Filin
 be filing it under a header its content contradicts, which 1g's own lead names as the defect class
 this tracker keeps correcting.
 
-- **L-016 (CLOSED BY OWNER RULING 2026-08-12; resolution at the end of this entry; a property of
+- **L-016 (CLOSED BY OWNER RULING 2026-08-12 AND VERIFIED GREEN BY RUN 31649593669 THE SAME DAY;
+  resolution at the end of this entry; a property of
   the env-exposure DETECTOR and its CORPUS, not of the harness) - the detector's rejection clause
   and the corpus disagreed on exactly one fixture, and nothing in the repo had the standing to
   settle it except a scope decision, which the owner has now made.** Surfaced by run `31435865020` (env-exposure alone, 2026-08-10, ref
@@ -3875,6 +3876,53 @@ this tracker keeps correcting.
   change, that the fixture now fully satisfies a written reject clause and so joins the class of
   seven negatives that scored clean 5/5 live across 35 samples. That remains an inference.
 
+  **HOW IT ACTUALLY LANDED, and the two prompts that did not.** The first amendment (`0872c970ef2f`,
+  +837 chars of lane-scope prose) and Variant A (`1ad63c16bd58`, +11 chars asserting unconditionality
+  with "whether or not") BOTH cost a true positive: `positive/11` flipped to `isVulnerable:false @ low`
+  under each, resting on the mere PRESENCE of a redaction regex. **Variant C ships**: it makes the same
+  clause unconditional by DELETING the guard conjunct instead of asserting anything, leaving the prompt
+  49 characters SHORTER than main. `SYSTEM_PROMPT_FINGERPRINT` `d2ca2f022d99` -> `ef92d1311a1e`. Seven
+  paid outputs across four prompts on one day are transcribed verbatim above; they group by whether the
+  prompt asserts that rejection clauses apply unconditionally, and NOT by edit size.
+
+  **WHAT LANDED, in order.** #160 (`1041ae79`) amended the prompt and re-recorded all 17 replay
+  fixtures under `ef92d1311a1e` (15 calls, $0.11490 against a $0.15 ceiling, run in three risk-ordered
+  batches because the record path has NO `haltAboveUsd` and cannot stop itself). #161 (`763bebf2`)
+  filed L-019, L-020 and the assertion-4 counterfactual. #162 (`907cb59a`) landed the dispatch
+  pre-registration, single-purpose, introducing one file and nothing else -- verified by its
+  three-dot diff, and rebased rather than merge-updated so that property is inspectable rather than
+  derivable. **#161 was merged BEFORE #162 deliberately**: the dispatch runs at `main`, so the
+  pre-registration had to be main's TIP when it fired or the coupling between the ref and the
+  predictions would have been broken by any later merge.
+
+  **THE RESULT: GREEN, 20/20, $0.6457 over 85 priced calls, run `31649593669` at `907cb59a`.**
+  Positives 12/12 at >= 4/5, negatives 8/8 at 5/5. `negative/08` clean 5/5, where it had flagged
+  `vuln/medium` 5/5 and was the sole cause of the 19/20. Stage-3 cumulative **$7.1694**. Full
+  resolution, classification evidence and per-fixture counts in
+  `docs/measurements/env-exposure-stage3-2026-08-12.json` under `RESOLUTION_2026_08_12`; the
+  pre-registered values there are asserted byte-identical, 22 keys checked and 0 edited.
+
+  **DO NOT CITE 20/20 WITHOUT THIS.** `positive/11-redacted-diagnostics.js` scored **4/5, not 5/5** --
+  `vuln/medium` on runs 1-4 and `safe/low` on run 5. It passed ONLY because `perPositiveThreshold` is
+  4. The identical flake on any NEGATIVE, where the threshold is 5 with zero slack, would have RED the
+  run. The pre-registration named sixteen n=1 fixtures as the exception surface and predicted the
+  aggregate only; **the exception materialised, on a named fixture, and an asymmetric threshold
+  absorbed it** -- and it landed on the very fixture that flipped under both rejected variants. The
+  green is real and it is one sample away from not being green.
+
+  **NO COST MODEL IS CORROBORATED, and the number was flattering.** Measured $0.6457 sits 1.0% from
+  the pre-registered decomposition and 8.3% under the flat constant. The pre-registration refused that
+  inference BEFORE the number existed, because the only cross-window noise evidence is n=1 and moves
+  an 85-call total by 6.6-9.0%, straddling the 7.9% gap between candidates. **A flattering answer is
+  not a licensed inference and a noise floor does not move because the result came out well.**
+
+  **#148's live spend-ceiling path REMAINS UNEXERCISED.** The abort did not fire, the ceiling was never
+  approached at $0.6457 against $1.00, and none was engineered to obtain it.
+
+  **F-004: env-exposure is the SIXTH per-detector green, which is not a proven F-004.** The standing
+  residual travels with the claim: six greens at six different SHAs do not prove the six pass
+  SIMULTANEOUSLY at one SHA, and three of them predate #152 and transfer on an argument, not a run.
+
 - **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
   free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
   with a PARKED structural gap of exactly that shape, and nothing has been measured to confirm the
@@ -3889,6 +3937,48 @@ this tracker keeps correcting.
   NOT read this as a reason to reopen L-016 - the ruling settles which lane owns the shape, and a
   gap in the receiving lane is an argument for fixing that lane, never for putting the shape back
   in the wrong one.
+
+- **L-021 (OPEN; MEASURED in a live paid run; a property of the env-exposure DETECTOR and its corpus;
+  the most likely cause of the NEXT env-exposure red) - the MEDIUM-ceiling positives are not stable at
+  n=5, and the gate survived only because the positive threshold tolerates one flake while the negative
+  threshold tolerates none.**
+
+  **THE DATUM, quoted verbatim from the run's own artifact and NOT from any parse of it.** Run
+  `31649593669`, `stage3-detector-logs/stage3-env-exposure.log`, stated INDEPENDENTLY TWICE by the
+  harness:
+
+  > `  -> 11-redacted-diagnostics.js: flagged 4/5`  (line 199, run-loop summary)
+  > `    pos 11-redacted-diagnostics.js: flagged 4/5 PASS`  (line 338, STABILITY REPORT)
+
+  The five runs behind it: `vuln/medium` on runs 1-4, `safe/low` on run 5. **The artifact reports the
+  count directly; 4/5 is not a derivation.** This matters because an earlier parse of the same log was
+  wrong twice - it spanned newlines through ANSI-coded WARN blocks and produced 34 phantom fixtures,
+  then silently dropped the three pre-filtered fixtures whose verdict field is multi-word - so the
+  number is taken from the harness's own summary lines rather than from any tallying of run lines.
+
+  **THE COMPLETE TALLY, from the STABILITY REPORT.** Positives: ELEVEN at `flagged 5/5 PASS`, ONE at
+  `flagged 4/5 PASS`. Negatives: ALL EIGHT at `clean 5/5 PASS`, including
+  `neg 08-flask-env-keys-only.py: clean 5/5 PASS`. **`positive/11` is the ONLY fixture below its
+  maximum in the entire run.** There was no second flake.
+
+  **WHAT IS MEASURED.** One flake in five samples on `positive/11` under `ef92d1311a1e`, absorbed
+  ONLY because `perPositiveThreshold` is 4. Across the run that is 1 of 15 MEDIUM-positive runs and 1
+  of 85 model-reaching runs - small n, one serving window, and not a rate to quote as if it were one.
+  The fixture is also the one that flipped to `isVulnerable:false` under BOTH rejected prompt variants
+  and is the reason Variant C exists, so it has now shown instability under three different prompts.
+
+  **WHAT IS NOT MEASURED, AND IS THE WHOLE RISK.** Whether a NEGATIVE can flake. `perNegativeThreshold`
+  is 5 with ZERO slack: one false positive on any one of the eight negatives is a full RED, where the
+  identical event on a positive is absorbed. This run observed 40 clean negative runs in one window,
+  which is evidence and not a bound. **The gate's asymmetry means the class that CAN flake is protected
+  and the class that CANNOT is not.**
+
+  **THE CHEAPEST INSTRUMENT, already proven this beat.** Five `record` invocations against one fixture,
+  each with a distinct `FIXOR_REPLAY_ROOT` so `fixtures/replay` is never touched, cost **$0.03137**
+  for five genuine re-samples - genuine because all five carried one request key yet produced three
+  distinct reasoning texts. That is 4.8% of an 85-call dispatch and it answers a per-fixture stability
+  question directly. Do NOT read a green dispatch as having answered it: this run's green is one sample
+  away from not being green, and the aggregate hides which sample.
 
 ### Priority 2 - MEDIUM findings (precision and coverage-integrity)
 
