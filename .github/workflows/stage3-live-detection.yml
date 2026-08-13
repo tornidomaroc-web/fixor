@@ -250,7 +250,15 @@ jobs:
           # Deliberately mapped in, unlike the guard-2 flags which are asserted
           # unset and never exposed. Validated by guard 3 above; the harness
           # throws again on a set-but-unusable value rather than trusting it.
-          FIXOR_HALT_USD: ${{ inputs.max_spend_usd }}
+          #
+          # RENAMED FROM FIXOR_HALT_USD, AND THE RENAME IS THE FIX. As a step env
+          # var it reached all six `npm run` invocations below, each a fresh
+          # process whose SpendGuard starts at zero, so it bounded EACH detector
+          # and never the run: a compliant $10 ceiling authorised up to $60 on
+          # `all`. It is now the RUN budget. FIXOR_HALT_USD is computed per
+          # invocation as the unspent remainder, so the six in-process guards
+          # compose into one run-level bound. NEVER set FIXOR_HALT_USD here.
+          RUN_CEILING_USD: ${{ inputs.max_spend_usd }}
         run: |
           set -euo pipefail
           case "$SELECTION" in
@@ -275,6 +283,15 @@ jobs:
           n_nocalls=0
           n_noline=0
           n_unrecognized=0
+          n_failed=0
+          failed_detectors=""
+          budget_stop=""
+          accounting_stop=""
+          last_cost_mode=""
+          # Below roughly one call's cost a detector can only overshoot its
+          # ceiling, so refuse to start rather than burn a call to discover it.
+          # Safety comes from the remainder arithmetic, not from this threshold.
+          MIN_HEADROOM_USD="0.01"
           reported=0
           expected=0
           for d in $DETECTORS; do expected=$((expected + 1)); done
@@ -306,12 +323,17 @@ jobs:
             reported=$((reported + 1))
             if [ -z "$rc_line" ]; then
               n_noline=$((n_noline + 1))
+              # Set on THIS path too. These assignments are not `local`, so they
+              # reach the loop; leaving it unset here would leak the PREVIOUS
+              # detector's mode into the accounting gate below.
+              last_cost_mode="NO LINE"
               echo "| $rc_d | NO LINE | - | (no \`cost:\` line found; spend UNKNOWN, not zero) |" >> "$GITHUB_STEP_SUMMARY"
               return 0
             fi
             rc_parsed="$(classify "$rc_line")"
             rc_mode="${rc_parsed%%|*}"
             rc_amt="${rc_parsed#*|}"
+            last_cost_mode="$rc_mode"
             case "$rc_mode" in
               MEASURED)     n_measured=$((n_measured + 1)) ;;
               MIXED)        n_mixed=$((n_mixed + 1)) ;;
@@ -345,8 +367,11 @@ jobs:
             set +e
             {
               echo ""
-              if [ "$rc" -ne 0 ]; then
+              if [ "$rc" -ne 0 ] && [ "$reported" -lt "$expected" ]; then
                 echo "> **RUN ABORTED (exit $rc).** Figures below cover only the $reported of $expected selected detector(s) that reported before the abort. Spend for the remainder is UNKNOWN."
+                echo ""
+              elif [ "$rc" -ne 0 ]; then
+                echo "> **RUN RED (exit $rc), but COMPLETE.** All $expected selected detector(s) ran and reported. A red no longer truncates the run, so these figures are the whole bill and the verdicts above are the whole result."
                 echo ""
               fi
               echo "**MEASURED total across reporting detector(s): \$$measured_total**"
@@ -384,22 +409,67 @@ jobs:
           trap emit_footer EXIT
 
           for d in $DETECTORS; do
+            # BUDGET GATE. FIXOR_HALT_USD is handed the REMAINDER, never the run
+            # budget: detector k may spend at most (budget - everything measured
+            # before it), enforced inside its own process by SpendGuard. That is
+            # what makes six per-process ceilings compose into one run bound.
+            remaining="$(awk -v c="$RUN_CEILING_USD" -v s="$measured_total" \
+              'BEGIN { printf "%.4f", c - s }')"
+            if awk -v r="$remaining" -v m="$MIN_HEADROOM_USD" \
+                 'BEGIN { exit !(r <= m) }'; then
+              echo "::error::BUDGET EXHAUSTED before test:$d. Run budget \$$RUN_CEILING_USD, measured so far \$$measured_total, remainder \$$remaining. NOT STARTED: $d and every detector after it. This is a budget stop, not a verdict." >&2
+              budget_stop=1
+              break
+            fi
+
             log="stage3-$d.log"
-            echo "===== running test:$d ====="
+            echo "===== running test:$d (ceiling for this invocation: \$$remaining) ====="
             set +e
-            npm run "test:$d" 2>&1 | tee "$log"
+            FIXOR_HALT_USD="$remaining" npm run "test:$d" 2>&1 | tee "$log"
             status="${PIPESTATUS[0]}"
             set -e
             record_cost "$d" "$log"
-            if [ "$status" -ne 0 ]; then
-              echo "::error::test:$d exited $status (a FAIL verdict or a hard error). See the log above." >&2
-              exit "$status"
-            fi
             if grep -q '^SKIPPED:' "$log"; then
               echo "::error::test:$d printed a SKIPPED marker: the key guard was bypassed and this detector tested nothing. Failing." >&2
               exit 1
             fi
+            # RECORD THE FAILURE BEFORE EVALUATING THE ACCOUNTING STOP. A hard
+            # crash prints no cost: line, so it is BOTH a failed detector and an
+            # accounting stop. Evaluating accounting first would break out before
+            # the name was recorded, and the summary would report zero failures
+            # beside a detector that plainly died. The exit code stays non-zero
+            # either way, so this is about the run's account of itself.
+            if [ "$status" -ne 0 ]; then
+              # CONTINUE, DELIBERATELY. A red here is a detector's verdict or a
+              # hard error; either way the OTHER detectors' results at this SHA
+              # are exactly what an `all` run exists to produce. The old
+              # first-failure exit made a red nearly uninformative for its price
+              # and forced a re-dispatch that paid for the early detectors twice.
+              # Exposure is bounded by the budget gate above, not by stopping.
+              echo "::error::test:$d exited $status (a FAIL verdict or a hard error). See the log above. Continuing to the remaining detectors; the run WILL exit non-zero." >&2
+              failed_detectors="${failed_detectors}${failed_detectors:+ }$d"
+              n_failed=$((n_failed + 1))
+            fi
+            # ACCOUNTING SOUNDNESS, CHECKED BEFORE THE NEXT REMAINDER IS TRUSTED.
+            # measured_total sums only MEASURED and MIXED; MIXED is a stated lower
+            # bound, and NO LINE / NOT MEASURED / UNRECOGNIZED contribute zero
+            # against unknown real spend. Handing the next detector a remainder
+            # computed from an under-count would break the run bound silently -
+            # the same shape as treating an unreadable store as a verified-empty
+            # one. Stop instead of guessing.
+            if [ "$last_cost_mode" != "MEASURED" ] && [ "$last_cost_mode" != "NOCALLS" ]; then
+              echo "::error::test:$d reported cost mode '$last_cost_mode'. Spend is NOT fully accounted, so the remaining budget cannot be computed soundly. Stopping before its successors rather than handing them an under-counted remainder." >&2
+              accounting_stop=1
+              break
+            fi
           done
+
+          if [ "$n_failed" -gt 0 ]; then
+            echo "::error::$n_failed detector(s) FAILED: $failed_detectors" >&2
+          fi
+          if [ "$n_failed" -gt 0 ] || [ -n "$budget_stop" ] || [ -n "$accounting_stop" ]; then
+            exit 1
+          fi
 
           echo "All selected detectors passed. Measured total: \$$measured_total"
 
