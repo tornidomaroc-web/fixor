@@ -236,12 +236,34 @@ describes code it sits beside.
   surface it swept`, which is about a surface a sweep MISSED: this is about a surface no sweep can
   REACH, so the remedy is not to sweep wider but to refuse the surface as evidence.
 
-  **The remedy's hole, stated here so it is not met as a surprise.** `docs/measurements/` holds
-  stage-3 artifacts for three of the six runs only: `admin-check`, `webhook-unverified` and
-  `auth-bypass`. The `idor-tenant`, `idor` and `env-exposure` runs predate the artifact practice
-  and survive only in this file and in the Actions run history. A glob over that directory would
-  report three of six while carrying the authority of a command, which is this bullet's own defect
-  mechanised. No such script exists and the absence is deliberate, not an omission.
+  **UPDATE 2026-08-09 (PR #155, squash `ee15ebca`): the CASE above records one occurrence, not a
+  count.** The claim that PR falsified went on to mislead a second session on 2026-08-13, which
+  read the same in-flight section and proposed the auth-bypass dispatch itself rather than a
+  duplicate pre-registration. Two sessions, three days apart, one stale claim, both caught by the
+  owner and neither by any mechanism. Nothing here asserts that the untracked surface has since
+  been corrected: no reader of this file can verify that, which is the bullet's own point.
+
+  **The remedy's hole, stated here so it is not met as a surprise.** `docs/measurements/` does not
+  hold a stage-3 artifact for every stage-3 run, and a file in it is not evidence that a run
+  happened: a pre-registration lands before the run and a resolution lands after. As of
+  `4602f59d`, `idor-tenant` and `idor` have no stage-3 artifact; those runs predate the artifact
+  practice and survive only in this file and in the Actions run history. Re-read that set at HEAD
+  rather than trusting this sentence. The directory does hold `idor`-prefixed files from unrelated
+  measurements, neither carrying a `runId`, so a name-matching glob returns two hits for a
+  detector with no stage-3 record at all. A glob answers how many FILES match, never how many
+  detectors have RUN, while carrying the authority of a command, which is this bullet's own defect
+  mechanised. Enumerate detectors from the `detector` selector in `stage3-live-detection.yml`. No
+  such script exists and the absence is deliberate, not an omission.
+
+  **CORRECTION of this paragraph's own enumeration, stale from `907cb59a` (PR #162, 2026-08-12)
+  until this entry.** It gave a tally of three of six and named the `env-exposure` run as
+  surviving only in this file and in the Actions run history. #162 added the env-exposure artifact
+  as a pre-registration, which made the tally wrong at once; `b8e7c317` (PR #163, 2026-08-13) then
+  added that run's resolution, which made the survival half wrong too. The two halves failed one
+  PR apart, for exactly the reason the paragraph now states: a glob cannot tell a pre-registration
+  from a run record, and the old wording could not either. Corrected to a named set at a named SHA
+  rather than to a fresh tally, because a tally inside the sentence that warns against tallying
+  this directory is this bullet's defect written into its own remedy.
 
   **A provenance field inside the pre-registration schema was weighed and REJECTED, recorded so a
   later reader knows it was decided rather than missed.** The proposal was one key naming where a
