@@ -1883,7 +1883,10 @@ the READY gate, which is still F-004 alone.
   run, all of them in the field no threshold reads.
 
   **THE RETIRED NUMBER, AND THE COUNTERFACTUAL THAT MAKES IT MATTER.** See the 2026-08-14 annotation
-  above for the alert; the figures are here. Across all six detectors: **37 `vuln/medium` in 710
+  above for the alert; the figures are here. The confidence drift named in this paragraph is now
+  OPEN WORK as **L-022** in Priority 1g, widened there from these three corpora to all six
+  fingerprint-matched pairs; a reader wanting the drift as a live item, rather than as this run's
+  history, should go there. Across all six detectors: **37 `vuln/medium` in 710
   calls**. Across the three pre-#152 corpora alone, re-measured at unchanged fingerprints: **5 in
   270 where there were 0**, `admin-check` moving 0-in-150 to 5-in-150 at `ed52ebe3db91`. **The SIGN
   is exactly unmoved** - 115 vulnerable and 155 safe across those 270 calls, both times - and all
@@ -3748,6 +3751,136 @@ content contradicts is the defect class this tracker keeps correcting.
   from `app_id=8329` that is green and is NOT a required context. Never infer it from local gate
   output, in either direction.
 
+- **L-022 (OPEN; MEASURED across six fingerprint-matched run pairs; a property of the MODEL AS
+  SERVED, observed through the apparatus; NON-gating, but it bounds every "verified live" claim in
+  this file) - the CUSTOMER-VISIBLE half of the verdict drifts between serving windows at unchanged
+  prompts and unchanged corpora, and NO INSTRUMENT IN THIS REPOSITORY CAN SEE IT.**
+
+  Filed in 1g rather than 1h because it is the sibling of L-018, not a detector-scope finding: L-018
+  records a guard that reports NO drift while every replay key moves; this records a guard that
+  reports no drift while the emitted output moves. Both are blind spots in the measuring apparatus.
+
+  **THE HOLE, DERIVED FROM THE CODE AND NOT FROM THE RUNS.** Four facts, each readable at zero
+  spend, and it is their COMPOSITION that is the finding:
+
+  1. All six detectors emit `verdict.confidence` to the customer. Option C is shipped; the
+     `review-queue` branch now sets `emitConfidence = "medium"` and emits instead of returning `[]`.
+  2. `scoreNegative` **ignores confidence entirely**. A negative recorded `safe/high` that comes back
+     `safe/medium` still scores `clean 5/5` and seeds no declaration.
+  3. `perPositiveThreshold` reads `flagged N/5`, which is computed from `isVulnerable`. It never
+     reads confidence either.
+  4. `SYSTEM_PROMPT_FINGERPRINT` hashes the PROMPT. It is the only human-legible drift guard, and
+     all six matched across every pair below.
+
+  **Compose them and a WHOLESALE `high` -> `medium` DOWNGRADE ACROSS THE ENTIRE CORPUS LEAVES ALL
+  SIX GATES GREEN, ALL SIX FINGERPRINTS MATCHING, AND EVERY CUSTOMER-VISIBLE FINDING DEGRADED.**
+  Nothing in the repository fires. This is not a hypothesis about the future; the mechanism was
+  measured running, at a smaller amplitude, in the census below.
+
+  **"CUSTOMER-VISIBLE" IS TRACED, NOT ASSERTED, because the whole item rests on that word.** The
+  chain is unbroken from the model's answer to the customer's screen: the detector sets
+  `confidence: emitConfidence` on the emitted `Finding`; `Confidence` is `"high" | "medium" | "low"`
+  in `detector.types.ts` with no remapping; and `buildComment` in
+  `src/integrations/github/comment-builder.ts` renders it THREE times on the PR comment, which is
+  the product's primary surface. One of the three is the finding's own TITLE line
+  (``**${fix.confidence}** confidence``), so it is read WITHOUT expanding the row, and a second is
+  the `Detection confidence:` field inside it. **The drift is therefore not cosmetic and not
+  internal**: the same fixture, on the same prompt, in a different window, headlines differently to
+  the customer. Verified by reading the emit site and the render site rather than by assuming the
+  field survives the path.
+
+  **THE CENSUS, BY NAMED RUN.** Built by hand from named runs and never from a glob over
+  `docs/measurements/` (§8 forbids it, and that directory holds no artifact for the earliest runs).
+  Every "now" figure is run `31711397888` (2026-08-13, the `all` dispatch). Each pair is
+  fingerprint-matched, so the prompt is held constant.
+
+  | detector | earlier run | interval | `vuln/high` | `vuln/medium` | `safe/high` | `safe/low` | `safe/medium` | class moves |
+  |---|---|---|---|---|---|---|---|---|
+  | env-exposure | `31649593669` 08-12 | 15 h | 45 -> 45 | 14 -> 15 | - | 26 -> 25 | - | 1, a SIGN move |
+  | webhook-unverified | `31208881040` 08-07 | 5 d 19 h | 80 -> 80 | 15 -> 15 | - | 75 -> 75 | - | **0** |
+  | auth-bypass | `31277606806` 08-08 | 4 d 17 h | 106 -> 108 | 4 -> 2 | 70 -> 72 | 5 -> 3 | - | >= 4 |
+  | admin-check | `30821994020` 08-03 | 10 d 0 h | 60 -> 55 | 0 -> 5 | 40 -> 60 | 50 -> 30 | - | **>= 25** |
+  | idor | `30769713479` 08-02 | 10 d 16 h | 45 -> 45 | 0 -> 0 | 17 -> 18 | 28 -> 27 | - | >= 1 |
+  | idor-tenant | `30754480093` 08-02 | 10 d 23 h | 10 -> 10 | 0 -> 0 | 6 -> 6 | 12 -> 11 | 2 -> 3 | >= 1 |
+
+  **WHAT IT SHOWS: 710 calls on each side, ONE sign move, and AT LEAST 31 confidence-class moves.**
+  The single sign move is `env-exposure/positive/11-redacted-diagnostics.js` run 5 going `safe/low`
+  to `vuln/medium`, which is L-021's flake failing to reproduce. Everything else that moved, moved
+  in the field no gate reads. **The counts are LOWER BOUNDS and must be cited as such**: these are
+  aggregate deltas, offsetting moves cancel inside them, so the true number of runs whose class
+  changed is at least 31 and could be higher. Counting aggregate movement as per-run movement is the
+  lines-are-not-occurrences error.
+
+  **AND IT IS NOT A FUNCTION OF ELAPSED TIME, which is the result that surprised the census.**
+  `webhook-unverified` was **bit-identical class for class across 5 d 19 h**, all 175 runs, while
+  `admin-check` moved 25 of 150 across 10 d and `idor` and `idor-tenant` moved 1 each across nearly
+  11 d. The two longest intervals produced the least movement. **Drift is DETECTOR-SPECIFIC in this
+  data, not a global model shift**, and a reader must not convert "eleven days" into an expected
+  drift rate. Two detectors, one at 6 days and one at 11, are the counter-examples.
+
+  **THE COMPARISON IS CONTROLLED, and the control is checkable.** Prompt held constant: all six
+  fingerprints match, `ef92d1311a1e`, `c2c5deba87c9`, `45a17ae07c26`, `ed52ebe3db91` and
+  `5f5129f12b11` twice. Corpus held constant: the PRE-FILTERED run counts are identical in every
+  pair (15, 5, 40, 75, 0, 0), and those are deterministic regex outcomes, so an unchanged
+  pre-filtered count is evidence the fixture set did not move. What differs is the serving window.
+
+  **PROVENANCE, AND THE TWO EVIDENTIARY STANDARDS IT SPANS.** The 2026-08-07 and later figures are
+  the harness's own printed `VERDICT CENSUS` blocks. The three earliest runs PREDATE that renderer
+  and print no census block at all, so their class counts are a HAND census. Those were re-derived
+  here from the runs' own per-iteration `LLM:<class>` lines and match
+  `docs/measurements/admin-check-stage3-2026-08-03.json` exactly, including which two runs of
+  `idor-tenant/negative/02` carried the mediums. `webhook-unverified`'s 2026-08-07 census is in NO
+  artifact - that file records aggregates and named exceptions but no counts by class - and was
+  censused here from `stage3-detector-logs`. **Read the COUNT and not the LABEL on that one**: its
+  `vuln/medium` row carries the hardcoded `SUPPRESSED (not emitted)` text that PR #153 removed. The
+  label was the defect; the count never was.
+
+  **A NAMED WEAKEST LINK IS RETIRED IN PASSING.** The `all` pre-registration recorded that `idor`
+  and `idor-tenant` fingerprint continuity "rests on this tracker's prose rather than on a run's own
+  machine-written record". Both runs' retained logs print `SYSTEM_PROMPT fingerprint: 5f5129f12b11`
+  themselves. That key in `docs/measurements/all-stage3-2026-08-13.json` is left as written, because
+  its values are protected byte-identical by its own instruction and the correction belongs here.
+
+  **THE CONSEQUENCE, and it is the reason this item exists rather than the numbers.** **No claim
+  about what a customer sees may be transferred across serving windows on a fingerprint match alone,
+  and every "verified live" claim in this tracker currently carries that transfer implicitly.** A
+  green stage-3 run establishes what the detectors decided in ONE window. The sign half of that
+  transfers well on the evidence here, 709 of 710. The confidence half is what the customer reads,
+  and it moved at least 31 times in the same span with every guard green.
+
+  **HONEST LIMIT: NO KEYLESS TEST CAN CATCH THIS, AND THE BLIND SPOT IS STRUCTURAL.** The repo does
+  own an instrument that reads confidence - `confidenceParity` and `verdictLaneOutcome` in
+  `replay-harness.ts`, which assert the emit VALUE and the emit DECISION separately. It cannot help.
+  It compares against `fixtures/replay/**`, frozen recordings that BY CONSTRUCTION cannot drift, so
+  it measures the code against a fixed reference and is silent when the reference is what went
+  stale. The only way to refresh that reference is `record:*`, which §3 forbids for exactly this
+  shape of reason, spends real money and overwrites the frozen evidence. **So the blind spot is not
+  an oversight to be closed for free; it follows from the design.**
+
+  **WHAT WOULD CATCH IT AND WHAT THAT COSTS, recorded so a later session does not rediscover the
+  question.** Only a repeated LIVE run of an unchanged corpus at an unchanged prompt, censused
+  against its own prior run - which is precisely what this item's table is. A full six-detector
+  sample is **$5.8273** (measured, run `31711397888`). The cheapest instrument that would have
+  caught the drift actually observed is an **`admin-check` canary at $1.2023 per sample** (measured,
+  150 calls), since admin-check is the highest-drift detector in the table and its 0 -> 5 move is
+  the one with a scoring consequence. **Neither is proposed here.** A canary is a recurring cost
+  against a NON-gating finding, and this item's job is to price the question, not to authorise it.
+
+  **RE-DERIVATION HAS A DEADLINE.** Every figure above is re-derivable at zero spend from the
+  `stage3-detector-logs` artifact of the run named beside it; all nine paid runs still carry one,
+  unexpired. **They expire from 2026-10-31** (run `30754480093`) **through 2026-11-11**. After the
+  first of those dates the earliest runs' per-iteration lines are gone and only the hand census in
+  `admin-check-stage3-2026-08-03.json` survives, at a weaker standard than the check performed here.
+
+  **WHAT THIS DOES NOT LICENSE.** It does not say any detector got worse: every verdict in run
+  `31711397888` was correct on its designed class and all six passed. It does not say the model
+  changed; two samples per detector with no control over the serving window cannot support that, and
+  `webhook-unverified` moving zero is the reason to be careful. It does not license reopening option
+  C, which is shipped and whose alternatives are rejected on the record. It does not gate F-004,
+  which is a separate owner ruling. And it does not license a drift script that globs
+  `docs/measurements/`; §8 forbids that and this census is why - two of the six pairs could not have
+  been built from that directory at all.
+
 ### Priority 1h - OPEN: detector-scope findings surfaced by the PAID stage-3 runs
 
 Same `L-` namespace as 1d, 1e, 1f and 1g (found by RUNNING the detector), and a separate
@@ -4099,12 +4232,12 @@ this tracker keeps correcting.
   **#148's live spend-ceiling path REMAINS UNEXERCISED.** The abort did not fire, the ceiling was never
   approached at $0.6457 against $1.00, and none was engineered to obtain it.
 
+  *Pointer: run `31711397888` (2026-08-13) CLOSED the residual stated below and FALSIFIED the
+  argument it names. See the 2026-08-14 annotation under the ruling's stated residual in DONE.*
+
   **F-004: env-exposure is the SIXTH per-detector green, which is not a proven F-004.** The standing
   residual travels with the claim: six greens at six different SHAs do not prove the six pass
   SIMULTANEOUSLY at one SHA, and three of them predate #152 and transfer on an argument, not a run.
-
-  *Pointer: run `31711397888` (2026-08-13) CLOSED that residual and FALSIFIED that argument. See the
-  2026-08-14 annotation under the ruling's stated residual in DONE.*
 
 - **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
   free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
