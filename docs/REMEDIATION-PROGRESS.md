@@ -3777,6 +3777,18 @@ content contradicts is the defect class this tracker keeps correcting.
   Nothing in the repository fires. This is not a hypothesis about the future; the mechanism was
   measured running, at a smaller amplitude, in the census below.
 
+  **"CUSTOMER-VISIBLE" IS TRACED, NOT ASSERTED, because the whole item rests on that word.** The
+  chain is unbroken from the model's answer to the customer's screen: the detector sets
+  `confidence: emitConfidence` on the emitted `Finding`; `Confidence` is `"high" | "medium" | "low"`
+  in `detector.types.ts` with no remapping; and `buildComment` in
+  `src/integrations/github/comment-builder.ts` renders it THREE times on the PR comment, which is
+  the product's primary surface. One of the three is the finding's own TITLE line
+  (``**${fix.confidence}** confidence``), so it is read WITHOUT expanding the row, and a second is
+  the `Detection confidence:` field inside it. **The drift is therefore not cosmetic and not
+  internal**: the same fixture, on the same prompt, in a different window, headlines differently to
+  the customer. Verified by reading the emit site and the render site rather than by assuming the
+  field survives the path.
+
   **THE CENSUS, BY NAMED RUN.** Built by hand from named runs and never from a glob over
   `docs/measurements/` (§8 forbids it, and that directory holds no artifact for the earliest runs).
   Every "now" figure is run `31711397888` (2026-08-13, the `all` dispatch). Each pair is
