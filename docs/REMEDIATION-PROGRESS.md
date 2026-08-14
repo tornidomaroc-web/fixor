@@ -1666,6 +1666,38 @@ the READY gate, which is still F-004 alone.
   about $3.4 and returns nothing about `admin-check`, `idor` or `idor-tenant`. Remaining bill $2.20
   against $7.34, and the difference buys tidiness rather than information.
 
+  **ANNOTATION (2026-08-14): THE RESIDUAL BELOW IS CLOSED, AND THE ARGUMENT IT LEANS ON IS BOTH
+  SUPERSEDED AND FALSE.** Cause: run `31711397888`, the single `all` stage-3 dispatch at `main`
+  `6a4c1373`, whose pre-registration landed as PR #167 and is resolved in
+  `docs/measurements/all-stage3-2026-08-13.json` under `RESOLUTION_2026_08_13`. All six detectors
+  passed their aggregate gates SIMULTANEOUSLY at one SHA, 169/169, at the same six fingerprints the
+  per-detector greens were obtained at, so **the simultaneity residual is CLOSED as worded**. The
+  transfer argument is a separate matter and it did not survive. Its premise - that the three
+  pre-#152 corpora show zero `vuln/medium` in 270 calls, so option C cannot have changed them - was
+  re-measured on those same three corpora at those same fingerprints and came back **5 in 270**, all
+  five on `admin-check/positive/14-app-router-with-route-on-admin-action.ts` at 5/5. Discard those
+  five as the pre-#152 policy did and `admin-check` scores 23/24 positives and **RED at 44/45**:
+  option C is the whole difference between green and red on the one detector the argument was
+  invoked to carry. The three no longer NEED the argument, since all six now rest on a run at
+  post-#152 code; it is recorded as FALSE rather than merely retired because it was cited as sound.
+  **This annotation covers FIVE passages moved by the same cause** and they are named here rather
+  than corrected separately: this paragraph; "three of them predate #152 and transfer on an
+  argument, not a run" in the L-016 entry under Priority 1h; L-014's scope line "across three
+  corpora and 270 live calls", which is EXTENDED and not falsified; L-015's "zero `vuln/medium`
+  verdicts in 270 calls", whose census table stays a correct DATED record of runs `30754480093`,
+  `30769713479` and `30821994020` and whose GENERALISATION is the part that falls; and L-021, whose
+  named flake did not reproduce. Each carries a one-line pointer back here. The same argument also
+  appears in
+  `docs/measurements/webhook-unverified-stage3-2026-08-07.json` under `statedResidual`; that is a
+  dated artifact of 2026-08-07 and is left as written.
+
+  **WHY THIS BLOCK IS THE URGENT HALF OF THE RUN'S RECORD.** The two failures pull in opposite
+  directions, so neither one covers for the other. A reader arriving here finds a residual that is
+  now closed, which makes F-004's evidence look weaker than it is, sitting beside an argument the
+  same run refuted, which makes it look better founded than it was. Landing the resolution without
+  this block would leave the tracker asserting, on the strength of a run, a premise that run
+  measured to be false.
+
   **THE RULING'S STATED RESIDUAL, recorded as a LIMIT and explicitly NOT as a reason to spend the
   difference.** Six greens at six different SHAs do NOT prove the six pass SIMULTANEOUSLY at one
   SHA. Three of them (`idor-tenant`, `idor`, `admin-check`) predate #152 and transfer to the
@@ -1776,6 +1808,123 @@ the READY gate, which is still F-004 alone.
   rate. Full record: `docs/measurements/auth-bypass-stage3-2026-08-08.json`; the pre-registration
   is resolved in place under `preRegisteredAuthBypass_2026_08_08.RESOLUTION_2026_08_08` in
   `docs/measurements/webhook-unverified-stage3-2026-08-07.json`, values preserved unedited.
+
+  **THE `all` DISPATCH - run `31711397888`, 2026-08-13, ALL SIX detectors in one run, conclusion
+  `success` in 1h16m at `main` `6a4c1373`, the squash SHA of the commit that landed this run's own
+  pre-registration. MEASURED $5.8273 over 710 priced calls; 0 no-verdict, 0 transport failures, 0
+  warnings and 0 errors emitted. Aggregates 169/169 - env-exposure 20/20, webhook-unverified 35/35,
+  auth-bypass 45/45, admin-check 45/45, idor 18/18, idor-tenant 6/6 - every one against a gate
+  demanding 100% of its corpus, so there was no slack anywhere to absorb a miss. All six
+  `SYSTEM_PROMPT` fingerprints matched the per-detector runs the predictions were read from.** Every
+  verdict census RECONCILED and the ledger's call count matched the model-reaching run count in all
+  six. **Single dispatch proven by ENUMERATION, not by the printed link**: the workflow's run list
+  holds 11 runs and exactly one at `6a4c1373`, `run_attempt` 1. Stage-3 cumulative **$12.9967**,
+  of which this run is 45%. Full resolution in `docs/measurements/all-stage3-2026-08-13.json` under
+  `RESOLUTION_2026_08_13`; the 36 pre-registered keys there are asserted byte-identical by a
+  NEGATIVE CONTROL that deletes the resolution and compares the remainder against the git blob
+  rather than by inspecting them, and the file's diff is 90 additions and 0 deletions.
+
+  **WHAT IT CLOSES AND WHAT IT DOES NOT.** It closes the simultaneity residual as pre-registered and
+  narrows nothing else; the smaller residual that now travels with the claim is that one
+  simultaneous green is ONE SAMPLE at ONE MOMENT and binds no future run. **IT DOES NOT LIFT
+  F-004.** That gate is six per-detector greens under the owner's 2026-08-08 ruling, the ruling is
+  Abo Jad's, this run did not reopen it and this entry does not re-argue it. It calibrates nothing
+  (R3, printed by the harness itself six times in this run), shows nothing about whether the
+  thresholds discriminate, and says nothing about `secrets-exposure`, `idor-multi`, the two lane
+  tests or the h8 escalation test.
+
+  **THE RUN-BUDGET MECHANISM'S FIRST LIVE EXERCISE, AND EXACTLY WHAT IT VALIDATED.** #166's
+  remainder handoff had never run against a real detector; it was merged the same day as the
+  pre-registration and verified only against a stub. The pre-registration named the identity to
+  check - `ceiling_k == run budget - sum(measured 1..k-1)` at every k - and **it holds EXACTLY at
+  all six k**, to the four decimals the workflow prints: $8.0000, $7.3500, $6.1471, $4.5560,
+  $3.3537, $2.4332 against measured $0.6500, $1.2029, $1.5911, $1.2023, $0.9205, $0.2605 summing to
+  the $5.8273 the loop printed, so the arithmetic closes at both ends. **THE VALIDATION IS SCOPED TO
+  THE REMAINDER HANDOFF AND NOTHING ELSE.** Three mechanisms remain unexercised and this run is not
+  evidence about any of them: the BUDGET STOP never fired (the smallest remainder handed out was
+  $2.4332); the ACCOUNTING STOP never fired (all six reported MEASURED, extending the clean
+  cost-line record from 590 priced calls to 1300 without testing the branch); and
+  **CONTINUE-PAST-FAILURE never fired**, because no detector went red. A green run cannot test the
+  failure path, so the thing #166 was actually bought for is still unresolved.
+
+  **THE BAND MISSED, LOW, AND IT IS RECORDED AS A MISS.** Pre-registered band $5.84 to $6.41;
+  measured $5.8273, below the floor. Sized both ways deliberately: **0.17% under candidate (A)**,
+  the unrounded empirical sum $5.8374 the floor was rounded from, and **0.22% under the floor as
+  stated**. Quoting only the first understates the miss against the number actually pre-registered.
+  It is not rounded into a hit, and it missed on the same side `webhook-unverified`'s band did on
+  2026-08-08, which is n=2 on a property nobody pre-registered and is a note about band-setting, not
+  a cost finding. **NO COST MODEL IS CORROBORATED AND THE PRE-COMMITMENT BINDS HARDEST HERE**: the
+  number is flattering, sitting 0.17% from (A) and 0.88% from (B), and the tempting move is to
+  revise the 6.6-9.0% noise floor downward because this run's per-detector agreement is so tight.
+  **That is circular** - it uses this run's numbers to license reading this run's numbers, and one
+  sample cannot establish its own noise floor. Candidate (C), the $6.41 upper bound, was NOT
+  falsified, and not-falsified is not corroborated. The one inference the cost does support is that
+  the corpus-drift tripwire did not fire: the largest per-detector miss is 3.98%.
+
+  **THE TWO NAMED EXCEPTION FIXTURES, REPORTED ON THEIR OWN BEHAVIOUR.**
+  `env-exposure/positive/11-redacted-diagnostics.js` flagged **5/5**, all five `vuln/medium`, so it
+  did not need the `perPositiveThreshold` slack that carried it at 4/5 on 2026-08-12. **L-021's
+  flake did not reproduce**, which is one repeat in a different window on a fixture whose documented
+  property is instability, and does not retire L-021.
+  `idor-tenant/negative/02-express-prisma-membership.ts` passed clean 5/5 **and wavered again**:
+  `safe/medium` on runs 1, 3 and 4 and `safe/low` on runs 2 and 5, so MEDIUM on **3 of 5**, up from
+  2 of 5 on 2026-08-02, with its SIGN holding all five times. **The pre-registration's claim that a
+  single flake there would RED the run outright was overstated**: that is true of a sign flake and
+  false of what happened, because `scoreNegative` ignores confidence and a `safe/medium` never
+  reaches `resolveMediumVerdict`. A defect in the pre-registration, not in the run.
+
+  **ZERO NON-MAXIMAL SCORES ANYWHERE, so L-014's pattern holds across another 710 calls.** All 169
+  fixtures scored at ceiling - 87 positives `flagged 5/5`, 82 negatives `clean 5/5` - checked over
+  every STABILITY REPORT line rather than sampled. At `perPositiveThreshold` 5 this run returns an
+  identical verdict, and at 3 likewise. L-014 is now evidenced by 169 fixtures and 710 calls at one
+  SHA on top of the 69 fixtures and 270 calls it opened on, and remains entirely unverified as
+  discriminating. The qualification it owes itself holds again and harder: "zero non-maximal SCORES"
+  is not "zero variance", and 37 `vuln/medium` plus 3 `safe/medium` verdicts occurred in the same
+  run, all of them in the field no threshold reads.
+
+  **THE RETIRED NUMBER, AND THE COUNTERFACTUAL THAT MAKES IT MATTER.** See the 2026-08-14 annotation
+  above for the alert; the figures are here. Across all six detectors: **37 `vuln/medium` in 710
+  calls**. Across the three pre-#152 corpora alone, re-measured at unchanged fingerprints: **5 in
+  270 where there were 0**, `admin-check` moving 0-in-150 to 5-in-150 at `ed52ebe3db91`. **The SIGN
+  is exactly unmoved** - 115 vulnerable and 155 safe across those 270 calls, both times - and all
+  five new mediums came out of the `vuln/high` column, which fell 115 to 110. That is **live
+  confidence drift on identical prompts and identical corpora with `isVulnerable` unmoved**. Summing
+  the positive column deltas gives **AT LEAST 27 of 270 runs** changing confidence class
+  (`admin-check` `safe/high` +20 and `vuln/medium` +5, `idor` `safe/high` +1, `idor-tenant`
+  `safe/medium` +1); **it is a LOWER BOUND and must be cited as one**, because offsetting moves
+  cancel inside an aggregate delta and counting aggregate movement as per-run movement is the
+  lines-are-not-occurrences error. **DERIVED FREE from the run's own verdict lines: under the
+  pre-#152 emit policy this exact run scores FOUR OF SIX RED.** Discard every `vuln/medium` and
+  re-score positives, holding negative scoring fixed: `env-exposure` positives 9/12, **RED at
+  17/20** (positives 03, 11 and 12 each 5/5 medium); `webhook-unverified` 16/17, **RED at 34/35**,
+  reproducing this corpus's documented 16/17; `auth-bypass` 21/22, **RED at 44/45**, reproducing its
+  documented 44/45; `admin-check` 23/24, **RED at 44/45**; `idor` and `idor-tenant` carry no
+  `vuln/medium` and stay green. Combined **163/169**. **This does not say any detector got worse** -
+  every verdict was correct on its designed class and all six passed - and it does not license
+  reopening option C, which is shipped. What it does is make L-014's explanation (a) much weaker
+  than the two `safe/medium` verdicts already made it: the line runs between `isVulnerable` and
+  `confidence`, both structured, and the confidence side is now measurably mobile ACROSS TIME and
+  not merely across runs inside one window.
+
+  **THE SCRIPT-ECHO ARTIFACT, recorded in its general form because it inflates any count taken off
+  an Actions log.** A job log echoes the SOURCE of every `run:` block inside its
+  `##[group]Run ... ##[endgroup]` region before that step emits anything, so a grep matches the
+  script's text as well as its output. On this log (3121 lines; paid-step source 229-447, output
+  448-3065) whole-log versus output-only counts run `cost:` 16 vs 6, a 167% inflation;
+  `===== running test:` 7 vs 6; `MEASURED` 41 vs 13. **The sharper case is false positives for
+  events that never happened**: `BUDGET EXHAUSTED`, `HALT`, `SKIPPED:`, `accounting` and
+  `::warning::` appear ONLY in echoed source and never in output, and `::error::` appears 14 times
+  whole and 0 times in output, 8 of those 14 belonging to the three guard steps rather than the paid
+  one. A whole-log grep for any of them reports a hit on a run where the event did not occur. Every
+  count in the resolution was taken from lines 448-3065 only. **General form: an instrument reading
+  a transcript that contains its own subject's source cannot separate description from occurrence**,
+  which is the lines-are-not-occurrences rule one level up.
+
+  **#148's LIVE ABORT PATH REMAINS UNEXERCISED AND NONE WAS ENGINEERED.** `SpendCeilingExceeded`
+  appears nowhere in the log, in echoed source or in output, and neither does `ceiling exceeded`.
+  The closest approach was `auth-bypass` spending $1.5911 against a handed ceiling of $6.1471, about
+  26% of it. The pre-registration committed that the $8.00 ceiling was set so it would not fire and
+  would not be lowered to obtain the observation; that commitment was kept.
 
   **WHAT THE FALSIFICATION ESTABLISHES, stated narrowly.** The bias-corrected calibration does not
   transfer across prompt size. It does NOT establish that the flat constant is correct — env-exposure
@@ -3305,6 +3454,10 @@ content contradicts is the defect class this tracker keeps correcting.
   `perPositiveThreshold: 4` has never once been the operative constraint, across three corpora and
   270 live calls.**
 
+  *Pointer: EXTENDED, not falsified, by run `31711397888` - 169 fixtures and 710 further calls at
+  one SHA, again with zero non-maximal scores. Explanation (a) is weakened further. See the
+  2026-08-14 annotation under the ruling's stated residual in DONE.*
+
   MEASURED over all three paid stage-3 runs: `idor-tenant` (6 fixtures, 30 calls, run
   `30754480093`), `idor` (18 fixtures, 90 calls, run `30769713479`) and `admin-check` (45 fixtures,
   150 calls, run `30821994020`). **69 fixtures scored, of which 54 are model-reaching, 270 model
@@ -3455,6 +3608,11 @@ content contradicts is the defect class this tracker keeps correcting.
   taking that silent path. **That silent path, not the adjudicator mapping, is the H7 mechanism**,
   so C must target the flag-off path; testing the mapping again would re-cover ground h8 already
   holds.
+
+  *Pointer: the census below stays a correct DATED record of those three runs. What run
+  `31711397888` falsified is the GENERALISATION drawn from it elsewhere - the same three corpora at
+  the same fingerprints returned 5 `vuln/medium` in 270 calls, not 0. See the 2026-08-14 annotation
+  under the ruling's stated residual in DONE.*
 
   **THE PRECISE CLAIM, because the loose version is false.** `resolveMediumVerdict` is reached only
   by a verdict that is `isVulnerable: true` AND `confidence: medium`; a `safe/medium` is
@@ -3945,6 +4103,9 @@ this tracker keeps correcting.
   residual travels with the claim: six greens at six different SHAs do not prove the six pass
   SIMULTANEOUSLY at one SHA, and three of them predate #152 and transfer on an argument, not a run.
 
+  *Pointer: run `31711397888` (2026-08-13) CLOSED that residual and FALSIFIED that argument. See the
+  2026-08-14 annotation under the ruling's stated residual in DONE.*
+
 - **L-017 (OPEN; a property of the auth-bypass DETECTOR and its corpus; opened BY the L-016 ruling;
   free to open and free to measure) - the ruling hands the unguarded names-only shape to a lane
   with a PARKED structural gap of exactly that shape, and nothing has been measured to confirm the
@@ -3964,6 +4125,11 @@ this tracker keeps correcting.
   the most likely cause of the NEXT env-exposure red) - the MEDIUM-ceiling positives are not stable at
   n=5, and the gate survived only because the positive threshold tolerates one flake while the negative
   threshold tolerates none.**
+
+  *Pointer: STILL OPEN. In run `31711397888` (2026-08-13) `positive/11` came back `flagged 5/5`, all
+  five `vuln/medium`, so the flake did not reproduce in a second window. One non-recurrence is not a
+  refutation of instability. See the 2026-08-14 annotation under the ruling's stated residual in
+  DONE.*
 
   **THE DATUM, quoted verbatim from the run's own artifact and NOT from any parse of it.** Run
   `31649593669`, `stage3-detector-logs/stage3-env-exposure.log`, stated INDEPENDENTLY TWICE by the
