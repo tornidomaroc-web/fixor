@@ -680,6 +680,9 @@ as the record of why the lists diverged while they did.
   never run closes nothing. F-004 stays OPEN pending a green RUN.**
   (Pointer, 2026-08-02: stage 3 HAS since executed and one detector passed live; "a green RUN"
   means across all six. See the UPDATE at the Priority 1 F-004 header.)
+  *Pointer, 2026-08-14: the six named just above is the SHIPPING DETECTOR set and is correct here.
+  Stage 3's six is a different set, swapping `secrets-exposure` for `idor-tenant`. Do not carry this
+  referent into a stage-3 sentence. See the 2026-08-14 "WHAT THE SIX ARE" annotation in DONE.*
 
   Six of six detectors gated is progress, not readiness. Every gate landed so far is a
   wiring-and-parsing gate: none of them verifies detection quality. Stage 3 (live) has now
@@ -1659,6 +1662,58 @@ the READY gate, which is still F-004 alone.
   carried three of them in its own output within hours of being built to catch that class
   elsewhere.**
 
+  **ANNOTATION (2026-08-14): WHAT THE SIX ARE. THIS FILE USES "ALL SIX" FOR TWO DIFFERENT SIXES,
+  AND THEY DIFFER BY EXACTLY ONE MEMBER ON EACH SIDE.** Cause: assembling F-004's evidence for a
+  ruling, 2026-08-14, which required naming the six and found the unit did not survive being named.
+  **This changes no result, closes nothing, and is not progress toward a closure.** It makes the
+  gate say what it counts. The ruling below is untouched and is not restated here.
+
+  - **Stage 2's six is the SHIPPING DETECTOR SET.** `SHIPPING_DETECTOR_IDS` in
+    `detectors/registry.ts` holds `auth-bypass-multi`, `admin-check-multi`, `idor-multi`,
+    `env-exposure-multi`, `secrets-exposure-multi` and `webhook-unverified-multi`.
+  - **Stage 3's six is the GATE SET**, read from the `detector` selector in
+    `stage3-live-detection.yml`, which §8 already names as the authority for it: `env-exposure`,
+    `webhook-unverified`, `auth-bypass`, `admin-check`, `idor`, `idor-tenant`.
+  - **THE SWAP IS ONE-FOR-ONE.** Stage 3 carries `idor-tenant` where stage 2 carries
+    `secrets-exposure`. Everything else is common. A reader who carries the referent from a stage-2
+    sentence into a stage-3 sentence carries the wrong set, and the counts match, so nothing about
+    the arithmetic warns them.
+
+  **`idor-tenant` IS NOT A DETECTOR.** No `idor-tenant.detector.ts` exists, and `DETECTORS` in
+  `registry.ts` instantiates one class per shipping detector with no tenant variant among them. It
+  is a SECOND CORPUS run against the idor detector through its own entry point, which is why the two
+  report the same `SYSTEM_PROMPT_FINGERPRINT`. **So the gate set covers FIVE shipping detectors, one
+  of them against two corpora.**
+
+  **`secrets-exposure` HAS NO STAGE-3 GATE, BY DESIGN AND NOT BY OMISSION. DO NOT ADD ONE.**
+  `FIXOR_SECRETS_LLM_OPT_IN` defaults false, so the shipped path is regex-only and makes no model
+  call. A stage-3 gate measures MODEL JUDGMENT, and on that path there is none to measure; a gate
+  that flipped the flag to create some would be measuring a configuration that does not ship, which
+  is the same defect as validating a detector under `FIXOR_ESCALATE_MEDIUM`. Its appropriate
+  instrument is the free prefilter gate, `test:secrets-exposure-prefilter`, which exists and runs
+  keyless.
+
+  **CONSEQUENCE FOR ANY SENTENCE WRITTEN FROM THIS GATE.** "All six detectors verified live" is
+  FALSE on the shipping-detector reading and true only of the gate set. Whoever writes such a
+  sentence must name which six it means. **This annotation covers TWO further passages**, named here
+  rather than corrected separately: the stage-2 completion note, whose six is the shipping set and
+  is CORRECT as written, carrying a pointer only so its referent is not walked forward; and the
+  Priority 1 header's 2026-08-02 UPDATE, whose "ACROSS ALL SIX DETECTORS" is the phrase most likely
+  to be read with the wrong set. Each carries a one-line pointer back here.
+
+  **RECORDED SEPARATELY, AND DELIBERATELY NOT AN ITEM (2026-08-14): THE PRIMARY EVIDENCE BEHIND THE
+  EARLIEST GREENS EXPIRES FROM 2026-10-31.** Every figure behind F-004's greens is re-derivable at
+  zero spend from the `stage3-detector-logs` artifact of its own run, and all nine paid runs still
+  carry one, unexpired. Those are **Actions artifacts, not tracked in this repository**, and they
+  expire from **2026-10-31** through 2026-11-11. After the first of those dates the three earliest
+  runs rest on TRANSCRIPTION ALONE, with no primary source left to check the transcription against -
+  and those three are exactly the weakest-provenance rows: the two with no `docs/measurements/`
+  artifact of their own, and the one whose verdict-class census had to be hand-derived because it
+  predates the census renderer. **THIS CARRIES NO IDENTIFIER AND IS NOT FILED AS WORK.** It is not a
+  defect in the tree and no action completes it; the only thing that happens to it is that the date
+  passes. Filing it as an L-item would invite a later session to mark it done. L-022 records the
+  same expiry for its own census and is where the per-run dates are kept.
+
   **F-004's "a green RUN across all six" IS DECIDED (owner's ruling, 2026-08-08): SIX PER-DETECTOR
   GREENS, not one green `all` run. Do not reopen.** Grounds: the single-detector selector exists and
   has been used five times, and the `all` loop exits on first failure, so it spends without
@@ -2248,6 +2303,10 @@ the READY gate, which is still F-004 alone.
 ## NOT-DONE / DEFERRED (ordered worklist)
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
+
+*Pointer, 2026-08-14: "ACROSS ALL SIX DETECTORS" below means the stage-3 GATE set, which swaps
+`secrets-exposure` for `idor-tenant` and so is not the shipping-detector set of the same size. See
+the 2026-08-14 "WHAT THE SIX ARE" annotation in DONE.*
 
 **UPDATE 2026-08-02 (run `30754480093`): stage 3 HAS now executed and one detector has passed
 live. F-004 REMAINS OPEN. Read the phrase "pending a green RUN" below as "pending a green run
