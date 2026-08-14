@@ -1833,6 +1833,69 @@ the READY gate, which is still F-004 alone.
   thresholds discriminate, and says nothing about `secrets-exposure`, `idor-multi`, the two lane
   tests or the h8 escalation test.
 
+  **ANNOTATION (2026-08-14): THE SHELL HALF IS NOW CLOSED, AND THE PARAGRAPH BELOW IS SUPERSEDED IN
+  ITS LAST CLAUSE ONLY.** Cause: a zero-spend replay of this step's own `run:` block with `npm`
+  stubbed, executed 2026-08-14. **There is no causing PR to name, because the cause is a measurement
+  and not a merge**; the annotated claim was asserted by PR #168, cited here for provenance rather
+  than as the cause. **Everything below about THE RUN remains correct** - none of those mechanisms
+  fired in run `31711397888`, and that run is still not evidence about any of them. What is
+  superseded is the forward-looking clause alone: the branches are no longer unresolved, because a
+  different instrument reached them. **This is the SHELL HALF and not #166**; the sentence "#166 is
+  validated" must not be written from it.
+
+  **WHAT WAS VALIDATED, AND AGAINST WHAT INPUT.** Driven by the six VERBATIM `cost:` lines run
+  `31711397888` emitted, plus the real `NOT MEASURED` line from run `30467532167`'s retained log,
+  plus `cost: no calls made` copied as a literal from `stability-harness.ts`. Only the MIXED shape
+  was synthesised, from the harness's own template, because no MIXED line exists anywhere in the
+  retained history - searched for rather than assumed, which corroborates this file's "historical
+  rate ZERO" from a second direction. Nine cases, 49 mechanical assertions, every branch carrying an
+  inversion, and the assertion harness itself negative-controlled until it failed.
+
+  - **THE RIG REPRODUCED REALITY BEFORE ANYTHING WAS READ FROM IT.** Replaying the six real lines at
+    $8.00 returned all six ceilings and $5.8273 identically. A rig that cannot reproduce the run it
+    models is worthless, so this was asserted first. The stub was also confirmed to SHADOW a working
+    `npm` rather than to pass because `npm` was absent, and to have executed rather than merely
+    resolved.
+  - **CONTINUE-PAST-FAILURE.** A red injected at detector 3 left all six INVOKED, counted from the
+    stub's own invocation record, which measures invocation rather than the loop printing a line
+    about it. Exit 1, the failed detector named, footer reporting COMPLETE and not ABORTED.
+  - **THE REMAINDER ACROSS A FAILURE.** k=4 received $4.5560, so a failed detector's spend is still
+    debited. The inversion is what makes that a property rather than a coincidence: substituting
+    $0.5000 for the failed detector's cost moved k=4 to $5.6471. A constant would not have moved.
+  - **THE ORDERING FIX THIS FILE ALREADY RECORDS.** A red emitting NO cost line printed BOTH the
+    named failure AND the accounting stop, which is precisely the defect that change was made for.
+  - **THE BUDGET STOP IS THRESHOLD-SENSITIVE**, on three points: at $8.00 it never fires; at $1.86
+    the remainder after two detectors is $0.0071 and it refuses to start the third; at $1.88 it is
+    $0.0271, the third STARTS, and the stop fires one iteration later. A stop that fired
+    unconditionally would not be a stop.
+  - **THE ACCOUNTING STOP KEYS ON COST MODE**, not on the line looking unusual. The decisive control
+    is `cost: no calls made`, equally unusual and an ALLOWED mode: it did not halt, all six ran, and
+    the total correctly did not advance. MIXED halted while still contributing its amount as a
+    stated lower bound.
+  - **W-004's PIPE ESCAPING**, exercised for free because the real `NOT MEASURED` line contains a
+    pipe, and **THE EXIT TRAP**, which wrote its footer on all nine exits and preserved every status.
+
+  **AND THE SEAM IS NOT VALIDATED, WHICH IS THE WHOLE REASON THIS SAYS SHELL HALF.** This step's own
+  comment claims the six in-process guards compose into one run-level bound. **That is TWO claims.**
+  The outer one, that the shell computes and hands the correct remainder at every k, is closed above,
+  including across a failure and down to a NEGATIVE remainder. The inner one, that a detector honours
+  the ceiling it was handed, is untouched and is unreachable by any stub, because it needs a real
+  ledger accumulating real cost inside `runStabilityHarness`.
+
+  **THE RESIDUAL IS NOW CONCRETE RATHER THAN A CATEGORY.** In the $1.88 case the shell handed
+  detector 3 a ceiling of **$0.0271** against a detector whose measured cost is **$1.5911**, and the
+  run continued. The budget gate's own comment says safety comes from the remainder arithmetic and
+  not from `MIN_HEADROOM_USD`, so at that point the ENTIRE protection is the in-process guard that
+  has never fired. This is the standing #148 residual, unchanged in substance and now carrying a
+  number. A live exercise of it has a known price; **that figure is the owner's to weigh and is
+  deliberately not argued here.**
+
+  **REPRODUCING IT.** The rig is not tracked, so the METHOD is what transfers and not the artefact:
+  extract this step's `run:` block by INDENTATION rather than by line range, put a stub `npm` first
+  on `PATH`, and drive it with the lines named above. The trap worth stating is that resolution is
+  not execution - assert the stub both shadows a working `npm` and actually ran, or a green from a
+  rig that never ran reads exactly like a real one.
+
   **THE RUN-BUDGET MECHANISM'S FIRST LIVE EXERCISE, AND EXACTLY WHAT IT VALIDATED.** #166's
   remainder handoff had never run against a real detector; it was merged the same day as the
   pre-registration and verified only against a stub. The pre-registration named the identity to
