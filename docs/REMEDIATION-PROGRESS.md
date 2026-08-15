@@ -2264,6 +2264,90 @@ the READY gate, which is still F-004 alone.
   the registry reads; a ledger row for an unreachable hypothetical would be noise, on the same
   reasoning that rejected a duplicate guardrail two stages earlier.
 
+**ANNOTATION (2026-08-15): ASSERTION 4 FAILED AT #171, IN THE ARM THE BLOCK BELOW RECORDS AS THE
+GREEN ONE, AND THE MECHANISM THAT BLOCK NAMES DID NOT OPERATE.** Cause: the merge of PR #171
+(squash `6c7d9842`), executed from the merged branch exactly as the Mechanism paragraph below
+describes. **Placed above rather than below because the block's interior is misleading on contact** —
+a reader reaching "Only assertion 4 tests the client half" would carry it forward as a live
+guarantee. The block is a dated record of what was measured at #143 and **nothing in it is
+rewritten**. Recorded here because this tracker records instrument failures.
+
+**WHAT WAS OBSERVED.** Observations only; the one reading drawn from them is separated out below.
+
+- `gh pr merge 171 --squash --delete-branch --match-head-commit 4d66ff54c999e10dfd1b2a113fa0d4ee1a8bc8a1`
+  **exited 0 and printed nothing**, on stdout or stderr.
+- **HEAD remained on `docs/f004-coverage-unit`**, at `4d66ff54c999e10dfd1b2a113fa0d4ee1a8bc8a1`,
+  after the command returned.
+- **The local ref survived.** `git branch --list docs/f004-coverage-unit` returned it.
+- **The remote ref is gone.** `GET /repos/tornidomaroc-web/fixor/git/ref/heads/docs/f004-coverage-unit`
+  returned a real `HTTP/2.0 404 Not Found`, gh exit 1.
+- **The working tree was clean and local `main` existed**, at `a8cf7065`.
+- **Local `main` was not fast-forwarded by gh.** The manual `git pull --ff-only origin main` that
+  followed reported `Updating a8cf706..6c7d984`.
+- **`origin/main` was not updated by gh either.** That same pull reported
+  `a8cf706..6c7d984  main -> origin/main`, and `git fetch --prune origin` had been run immediately
+  BEFORE the merge, so the remote-tracking ref was current when gh was invoked.
+- Environment: gh 2.91.0, Windows; repo `delete_branch_on_merge` read `true` at the time.
+
+**THE EVIDENCE IS LIVE, AND ONE COMMAND DESTROYS IT.** `docs/f004-coverage-unit` is still present in
+the executor's clone at `4d66ff54c999e10dfd1b2a113fa0d4ee1a8bc8a1`, with
+`origin/docs/f004-coverage-unit` still present as a stale remote-tracking ref. **A single
+`git fetch --prune` removes the tracking ref; a single `git branch -d`/`-D` removes the local one.**
+It was deliberately not tidied. Read it before running either.
+
+**THE ONE READING, STATED SEPARATELY FROM THE OBSERVATIONS.** The Mechanism paragraph below records
+gh doing four things at #143: fetch, fast-forward local `main`, switch HEAD, then delete the local
+branch. At #171 **none of the four occurred**. gh took no client-side action at all.
+
+**CONSEQUENCE FOR THE PROTOCOL, AT ITS TRUE STRENGTH.** Assertion 3 is satisfied by the server-side
+`delete_branch_on_merge` setting alone and is not evidence about the client — that is the block
+below's own finding, and it is unchanged. Assertion 4 is now **observed to fail in the configuration
+previously recorded as green**. Assertions 1 and 2 read the server. **So no assertion in §5
+currently speaks to the client at all**, and the summary that "only assertion 4 is" evidence about
+the client is now a claim about an assertion that has failed while gh reported success. **Assertion
+2 remains the only strong one**, and its strength is unchanged: at #171 the PR-head tree and `main`'s
+tree were both `c3ca7761462710f77840f6d076c9ecb6b8686006`, and because that value was captured
+BEFORE the merge it also establishes that nothing was added between the capture and the squash.
+
+**WHAT THIS DOES TO THE EARLIER OBSERVATIONS: NOTHING IS DELETED.** They stand as dated records of
+what was seen. The assertion-4 ledger now reads, by arm:
+
+| arm | observations | outcome |
+|---|---|---|
+| invoked FROM the merged branch | #143, #160, **#171** | green, green, **RED** |
+| invoked from an already-checked-out base | #141, #153, #154 | red, red, red |
+
+**Whether the greens still mean anything.** They remain valid observations that on two occasions the
+local branch was absent afterwards, and #143's record of the fast-forward SHAs is a positive
+observation of gh performing the work — so this does NOT license the reverse claim that gh never
+cleans up. What they no longer support is the INFERENCE the block below draws from them: that
+invocation from the merged branch is what CAUSES the deletion. That arm now has a counterexample,
+so the on-branch/off-branch split no longer predicts the outcome and **no cause is currently
+known**. Three observations on one arm with a mixed result licenses "sometimes" and nothing
+stronger.
+
+**A REPLACEMENT ASSERTION IS NOT PROPOSED HERE, DELIBERATELY.** Whether one is possible: yes in
+principle, and not by adding a fifth read of the same kind. What it would have to measure is **gh's
+own actions rather than their residue** — at minimum whether HEAD moved, whether local `main`
+advanced, and whether `origin/main` advanced, each read immediately before and immediately after the
+merge command within one execution. The reason a fifth post-hoc read cannot repair the set is the
+defect this block already records for assertion 3, one level up: a state read AFTER the fact cannot
+distinguish the client having acted from the server setting having acted. **Naming what it would
+have to measure is as far as this goes.** Designing or adopting one is separate work, is not filed
+as an item, and no identifier is created for it here.
+
+**CLAUDE.md §8 CARRIES THE SAME CLAIM, AND NO PR CAN REACH IT.** §8 states that assertion 4's
+counterfactual "has two observations, both green". That is a DERIVED FACT living in §8, which §8's
+own first rule forbids, on a file gitignored in whole (`/CLAUDE.md`) — so no sweep reaches it and
+nothing invalidates it once stale, which is the precise failure mode that rule predicts. **§5's own
+merge-read-back bullet is in that same gitignored file**, so this entry cannot rewrite §5 either;
+what it reaches is this block, which §5 points at by heading. Replacement text for both bullets was
+handed to the owner separately, and **neither is edited until he has read it**.
+
+**THIS ANNOTATION COVERS ONE FURTHER PASSAGE**, named here rather than corrected separately: the
+"THE ASSERTION-4 COUNTERFACTUAL HAS NOW BEEN RUN ONCE, AT #160" entry under
+"Priority 1 - F-004 remaining stages", which carries a one-line pointer back.
+
 - **Merge read-back: the four assertions are NOT four independent proofs.** CLAUDE.md §5 requires
   asserting all four after any merge — squash SHA on `main`, PR-head tree == `main` tree, head ref
   404, local branch absent — and flagged the case as owed here. Recorded now, measured at #143
@@ -2341,6 +2425,12 @@ Stage 3 bullet below); merging it did NOT lift F-004, because a workflow that ha
 closes nothing. F-004 stays OPEN pending a green RUN.** The model-judgment gate (stage 3) is only ever
 exercised by opt-in live runs, never free-in-CI, so completing stage 2 does not lift F-004 and
 the READY verdict is unchanged.
+
+  *Pointer, 2026-08-15: the headline below is a dated record of #160 and is correct as a record.
+  Assertion 4 has since FAILED at #171 in that same on-branch arm, and the mechanism is
+  disconfirmed. Placed BEFORE the headline because "CAME OUT CONSISTENT WITH THE HYPOTHESIS" is
+  misleading on contact. See the 2026-08-15 assertion-4 annotation above the "Merge read-back"
+  block in DONE.*
 
   **THE ASSERTION-4 COUNTERFACTUAL HAS NOW BEEN RUN ONCE, AT #160, AND IT CAME OUT CONSISTENT WITH
   THE HYPOTHESIS.** #153 and #154 were merged from an already-checked-out base and assertion 4
