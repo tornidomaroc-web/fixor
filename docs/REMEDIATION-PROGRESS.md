@@ -2348,6 +2348,45 @@ handed to the owner separately, and **neither is edited until he has read it**.
 "THE ASSERTION-4 COUNTERFACTUAL HAS NOW BEEN RUN ONCE, AT #160" entry under
 "Priority 1 - F-004 remaining stages", which carries a one-line pointer back.
 
+**COUNT UPDATE 2026-08-15 (merge of #173, squash `6dddaeab`): the arm invoked FROM the merged branch
+is now FOUR observations, two green and two red. THE COUNT MOVES HERE AND NOWHERE ELSE.**
+
+**Read the count from this table and from nothing else. Every prose count for this arm elsewhere in
+this file is a DATED RECORD of what was known when it was written, and is not current state** — the
+same rule this file already applies to the 2026-08-02 "one detector" wording, where only the count
+moves and it moves in one place. Nothing dated is rewritten to match this table.
+
+| observation | arm | assertion 4 | environment recorded |
+|---|---|---|---|
+| #141 | already-checked-out base | RED | none |
+| #143 | FROM the merged branch | green | gh 2.91.0, git 2.53.0, Windows |
+| #153 | already-checked-out base | RED | none |
+| #154 | already-checked-out base | RED | none |
+| #160 | FROM the merged branch | green | none |
+| #171 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #173 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+
+**Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
+already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
+firmer than it is: **#141's arm is not separately recorded anywhere.** It sits in the
+already-checked-out arm on the #143 block's own framing, which cites #141 as the case a merge NOT
+driven from the branch produces. Every other row's arm is recorded at the observation itself.
+
+**VERSION CONSTANCY, AND WHAT IT EXCLUDES.** Across #143, #171 and #173 the recorded environment is
+the same — gh 2.91.0, git 2.53.0, Windows — and those three span one green and two reds, so **the
+tool version does not account for the split**. **#160 is excluded from that comparison because its
+environment was never recorded**: its own entry states that gh version, repo settings and network
+state were not controlled. This removes one candidate and narrows what is left to look at. **It
+names no cause, and no cause is named here.**
+
+**PASSAGES CARRYING A COUNT FOR THIS ARM, NAMED RATHER THAN CORRECTED.** Each is dated prose, each is
+left exactly as written, and each is superseded as to COUNT ONLY by the table above: the 2026-08-15
+annotation's "Three observations on one arm with a mixed result"; and, under "Priority 1 - F-004
+remaining stages", the #160 entry's headline "HAS NOW BEEN RUN ONCE" together with its "n=1 on each
+arm, nothing else held constant" — the second of which also names gh version as uncontrolled, which
+is the very thing the table above now holds constant across three observations. **No identifier is
+created, nothing is filed as work, and nothing is proposed.**
+
 - **Merge read-back: the four assertions are NOT four independent proofs.** CLAUDE.md §5 requires
   asserting all four after any merge — squash SHA on `main`, PR-head tree == `main` tree, head ref
   404, local branch absent — and flagged the case as owed here. Recorded now, measured at #143
