@@ -2365,6 +2365,8 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #160 | FROM the merged branch | green | none |
 | #171 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #173 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #174 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #172 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
 already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
@@ -2386,6 +2388,45 @@ remaining stages", the #160 entry's headline "HAS NOW BEEN RUN ONCE" together wi
 arm, nothing else held constant" — the second of which also names gh version as uncontrolled, which
 is the very thing the table above now holds constant across three observations. **No identifier is
 created, nothing is filed as work, and nothing is proposed.**
+
+**COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
+above, #174 and #172. This entry does not restate the count — the register carries it.**
+
+**THE CONVENTION, WHICH HAD TO LAND WITH THESE ROWS OR THE GAP REOPENS ON THIS ENTRY'S OWN MERGE.**
+Under the corrected §5 every merge requires the read-back, and every read-back on this arm IS an
+observation. So **the register is current as of the merge immediately preceding it, never as of the
+merge that lands it.** The merge of this entry is itself the next observation and is not in the table
+above. That is stated rather than fixed, because it cannot be fixed: a register maintained by merges
+cannot contain its own.
+
+**ORDERING, so it does not read as a sorting error.** Rows are in OBSERVATION order, not by number:
+#172 sits last despite its lower number because it merged last. `git log main` reads `e400e3b7` (#172),
+`9a946ded` (#174), `6dddaea` (#173), `6c7d984` (#171).
+
+**A DEFECT IN THE ENTRY ABOVE, RECORDED BECAUSE IT IS THE CLASS THAT ENTRY WAS BUILT TO END.** The
+#173 COUNT UPDATE states a count in its HEADLINE and again in its **Totals** sentence — two prose
+counts inside the block whose stated purpose was to stop prose counts. Both are dated to the #173
+merge, **both are left exactly as written**, and both are superseded as to count by the register.
+
+**FOUR OF FOUR ON ONE SIGNATURE, WHICH IS A DIFFERENT STATEMENT FROM "MIXED".** Across #171, #173,
+#174 and #172 — four different branches, four consecutive merges — the observed signature is
+identical every time: **no fetch, local `main` not advanced, `origin/main` not advanced, HEAD not
+switched, ref not deleted**, with `gh` exiting 0 and printing nothing on all four. Reporting this arm
+as merely mixed with no cause known understates it: the reds are not scattered, they are one repeated
+behaviour. **No cause is named.** #143's green sits under the SAME gh and git versions, so whatever
+separates the arms is not the tool version, and it remains unidentified.
+
+**WHAT WOULD IDENTIFY A CAUSE, AND WHETHER ANYTHING FREE CAN DO IT.** Two things are needed and they
+are not equally available. **(1) An observation of what `gh` DOES rather than what it leaves** — HEAD,
+local `main`, `origin/main` and the ref read immediately before and immediately after the merge
+command, within one execution, on a merge that was going to happen anyway. That costs nothing, but it
+is not unconditioned: it can only ride along on a commanded merge, and it characterises the RED arm
+only. **(2) A controlled comparison against a green, and this one cannot be bought.** #143 and #160
+are historical, and beyond gh and git versions **their conditions were never recorded** — #160's own
+entry states that repo settings and network state were not controlled. **No amount of money
+reconstructs them, so what made those two green is not answerable from this record at any price.**
+That is the answer rather than an open question: (1) is free and partial, (2) is impossible, and
+nothing further is proposed. **No identifier is created and nothing is filed as work.**
 
 - **Merge read-back: the four assertions are NOT four independent proofs.** CLAUDE.md §5 requires
   asserting all four after any merge — squash SHA on `main`, PR-head tree == `main` tree, head ref
