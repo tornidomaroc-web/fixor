@@ -1,25 +1,4 @@
 // ASSUMED-PATH: src/routes/policies.ts
-// ── HELD OUT OF THE CORPUS. DELETE THIS BLOCK BEFORE ENABLING (F1). ──
-// This file is NOT in fixtures/auth-bypass/ and NOT in the manifest in
-// src/test/specs/auth-bypass.replay-spec.ts. Nothing reads this directory:
-// test-auth-bypass-prefilter.ts hardcodes fixtures/auth-bypass/{positive,
-// negative}; stability-harness.ts is driven by sourceDir "fixtures/auth-bypass";
-// run-fixture-tests.ts reads only *.json directly under fixtures/.
-//
-// A `.disabled` suffix inside fixtures/auth-bypass/negative/ was considered and
-// rejected: isFixtureFile (stability-harness.ts:356-366) honours it, but
-// test-auth-bypass-prefilter.ts:98-100 filters only ".md" and dotfiles, and that
-// test is in the test:ci chain. Two readers, no auto-sync.
-//
-// Entering the gate is a SEPARATE, PAID decision, not a file move. runReplayGate
-// fails on "missing recordings for: ..." (replay-harness.ts:870), and the only
-// way to produce a recording is `record:auth-bypass`, which spends real money AND
-// overwrites frozen evidence (CLAUDE.md §3).
-//
-// This block is model context. It must not travel into a recording.
-// Paired anchor: ../positive/01-blanket-use-inverted-claims-guard.ts — the code
-// below is byte-identical to that file except for one negation operator.
-// ── END HOLD-OUT BLOCK ──
 import { Router } from "express";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 import { db } from "../db";

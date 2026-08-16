@@ -6,7 +6,7 @@
  * the only per-detector differences are the detector chain, the fixture set,
  * and the manifest of MODEL-REACHING fixtures.
  *
- * MANIFEST = 37 MODEL-REACHING fixtures: all 22 positives + 15 of the 23
+ * MANIFEST = 41 MODEL-REACHING fixtures: all 24 positives + 17 of the 25
  * negatives. Eight negatives are EXCLUDED because the auth-bypass detector
  * drops them BEFORE the model (in detect(), so no verdict is ever recorded and
  * they cannot be part of a replay round-trip), exactly as webhook-unverified
@@ -22,7 +22,7 @@
  *
  *   SKIP_PATH_RE (detect() drops on path before the prefilter even runs; these
  *   DO trigger the regex, so a naive prefilter-only count over-includes them -
- *   the reason the recordable count is 37, not 39):
+ *   the reason the recordable count is 41, not 43):
  *     - negative/05 (scripts/seed/seed-uploads.js)
  *     - negative/07 (tests/conftest.py)
  *
@@ -69,7 +69,7 @@ const REPLAY_DIR = "fixtures/replay/auth-bypass-multi";
 
 /**
  * Expected END-TO-END flagged outcome per model-reaching fixture, per the
- * corpus's DESIGNED intent: the 22 positives flag (real auth bypasses), the 15
+ * corpus's DESIGNED intent: the 24 positives flag (real auth bypasses), the 17
  * model-reaching negatives do not. The 8 pre-model negatives are absent (see
  * the exclusion note in the header); they never reach the model so they cannot
  * record and are not part of the round-trip.
@@ -98,6 +98,8 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   "positive/20-fastapi-bare-delete-getdb.py": true,
   "positive/21-fastapi-noauth-tier-change.py": true,
   "positive/22-flask-bare-route-no-auth.py": true,
+  "positive/23-blanket-use-inverted-claims-guard.ts": true,
+  "positive/24-subscribers-app-no-identity-anywhere.js": true,
   // --- negatives (look similar, actually safe): none FLAG ---
   "negative/01-anon-public-data.ts": false,
   "negative/04-jwt-verify-rethrows.js": false,
@@ -114,6 +116,8 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   "negative/21-fastapi-security-current-user.py": false,
   "negative/22-flask-login-required.py": false,
   "negative/23-flask-shorthand-login-required.py": false,
+  "negative/24-blanket-use-all-covered.ts": false,
+  "negative/25-members-app-handler-internal-auth.js": false,
   // --- EXCLUDED (pre-model; never reach callClaude, so never record) ---
   // Zero-prefilter (prefilterRegex -> 0, analyzeFile short-circuits):
   //   negative/02-internal-dev-tool.ts   (0 hits; also SKIP_PATH_RE scripts/dev/)
@@ -148,10 +152,10 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
 const EXPECTED_LANE: Record<string, ExpectedLane> = {};
 
 /**
- * Completeness manifest: the 37 model-reaching source fixtures that MUST each
+ * Completeness manifest: the 41 model-reaching source fixtures that MUST each
  * have a recording. The 8 pre-model negatives are intentionally absent. The
  * expectedFlagged VALUE is read from each recording's meta at replay time; this
- * list only guarantees all 37 are present.
+ * list only guarantees all 41 are present.
  */
 const SOURCE_MANIFEST: readonly string[] = Object.keys(EXPECTED_FLAGGED);
 

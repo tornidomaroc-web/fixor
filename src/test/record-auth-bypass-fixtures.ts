@@ -28,7 +28,7 @@
  * Usage (from repo root, after build):
  *   ANTHROPIC_API_KEY=... node dist/test/record-auth-bypass-fixtures.js \
  *     positive/01 negative/01
- * Shorthand selectors and "all" (all 37 model-reaching) work too.
+ * Shorthand selectors and "all" (all 41 model-reaching) work too.
  */
 
 const out = process.stdout;

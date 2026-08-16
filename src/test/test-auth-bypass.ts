@@ -50,9 +50,9 @@ async function main(): Promise<void> {
     nRuns: 5,
     perPositiveThreshold: 4,
     perNegativeThreshold: 5,
-    positivesMinPassing: 22,
-    negativesMinPassing: 23,
-    combinedMinPassing: 45,
+    positivesMinPassing: 24,
+    negativesMinPassing: 25,
+    combinedMinPassing: 49,
     costPerLlmCallUsd: 0.00828,
     systemPromptFingerprint: SYSTEM_PROMPT_FINGERPRINT,
   });
