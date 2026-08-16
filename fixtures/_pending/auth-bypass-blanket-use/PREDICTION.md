@@ -14,7 +14,9 @@ Authored 2026-08-16, at `main` 81612614, tree clean, zero open PRs.
 | positive | `positive/01-blanket-use-inverted-claims-guard.ts` | `if (isHoldingBroker)` |
 | negative | `negative/01-blanket-use-all-covered.ts` | `if (!isHoldingBroker)` |
 
-94 code lines each. Diffed mechanically: the code regions are identical except that single negation operator. Every other difference is pointer text inside the hold-out comment block.
+**72 code lines each, differing on exactly one line** — the negation operator. Diffed mechanically over the code region alone (hold-out block excluded), so nothing but the operator separates them.
+
+Correction to an earlier figure: this was first reported as "94 code lines, 8 differing lines, 6 of them hold-out pointer text". That split used `[array]::IndexOf` to find the hold-out marker; it returned −1 on the box-drawing characters, so the "code region" was silently the whole file. The conclusion — one negation operator — was right, the numbers were not. Re-measured by locating the marker with `Select-String` line numbers.
 
 Both files: `policiesRouter.use(requireAuth)` once at the top, then eight routes of one shape, none carrying a middleware argument. The eighth (`POST /:id/claims`) creates a claim carrying `amountCents` and `payeeAccount` — money movement — and is the only route with an extra authorization conditional.
 
