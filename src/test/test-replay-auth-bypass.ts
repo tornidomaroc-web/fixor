@@ -2,7 +2,7 @@
  * F-004 stage 2b.2 - auth-bypass deterministic replay round-trip gate
  * (free, keyless). Thin entry point mirroring test-replay-webhook-unverified.ts:
  * forces replay mode, then delegates to runReplayGate() with the auth-bypass
- * spec. All 37 model-reaching fixtures rebuild their synthetic diff, run the
+ * spec. All 41 model-reaching fixtures rebuild their synthetic diff, run the
  * REAL detector end to end in replay mode, and assert the outcome per id -
  * flagged-vs-expected (the only shape used until a case records off-class; see
  * the reconciliation hook in specs/auth-bypass.replay-spec.ts).

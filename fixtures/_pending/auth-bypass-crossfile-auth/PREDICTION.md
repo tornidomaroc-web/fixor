@@ -4,6 +4,13 @@
 
 Authored 2026-08-16, at `main` 81612614. **Written before any measurement. Nothing in this directory has been run.**
 
+> **PATH MAP, added after the enabling change (`deb2c70`). Nothing below this line is edited.**
+> The fixtures have moved into the corpus and been renumbered. Every reference below to
+> `negative/01-members-app-handler-internal-auth.js` now means `fixtures/auth-bypass/negative/25-members-app-handler-internal-auth.js`,
+> and `positive/01-subscribers-app-no-identity-anywhere.js` now means `fixtures/auth-bypass/positive/24-subscribers-app-no-identity-anywhere.js`.
+> Their `ASSUMED-PATH` headers are unchanged, so every route named in the predictions still resolves.
+> Selector form for recording: `negative/25` and `positive/24`.
+
 `.md` is excluded by every fixture reader, so this file cannot reach a model.
 
 ---

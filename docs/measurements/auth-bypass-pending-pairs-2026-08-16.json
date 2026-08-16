@@ -1,0 +1,130 @@
+﻿{
+    "measurement":  "auth-bypass: two held-out fixture pairs recorded at n=1, plus a zero-spend anchoring audit of the 37 pre-existing recordings",
+    "date":  "2026-08-16",
+    "ref":  "feat/auth-bypass-enable-pending-pairs @ 8a14c21 (local, unpushed at run time); main 81612614; PR #176 at 09a46c5",
+    "systemPromptFingerprint":  "45a17ae07c26",
+    "authorization":  "Owner authorized FOUR calls at USD 0.03-0.15. Four were made. None remaining.",
+    "zeroSpend":  false,
+    "totalSpentUsd":  0.0494,
+    "measuredPerCallUsd":  0.01235,
+    "calls":  4,
+    "costNotes":  [
+                      "totalSpentUsd is the MEASURED total from the recorder\u0027s BATCH SUMMARY, not a projection. The recorder also prints a \u0027projected manifest\u0027 line; per CLAUDE.md section 3 that line is not quoted here and must not be cited.",
+                      "The first call cost USD 0.02413 and the other three averaged USD 0.00843. The spread is the system-prompt cache write amortising over three reads instead of 184. Any comparison against the 2026-08-08 per-call figure of USD 0.0086308 must account for that; small-batch per-call cost is structurally higher.",
+                      "NO COST MODEL IS CORROBORATED. These are two measurements, not a model."
+                  ],
+    "procedure":  {
+                      "command":  "node --env-file=.env dist/test/record-auth-bypass-fixtures.js positive/23 positive/24 negative/24 negative/25",
+                      "callCountGuarantee":  "analyzeFile picks ONE trigger (auth-bypass.detector.ts:681) and makes ONE callLlm (:697) regardless of trigger count, so four selected fixtures is exactly four calls. FIXOR_ESCALATE_MEDIUM was unset, so no MEDIUM verdict could trigger a second Opus call.",
+                      "keyPath":  "The key was NOT in the shell and record:auth-bypass does not pass --env-file. Node loaded .env directly; the key was never read by the agent. A session guardrail blocked direct reads of .env and that guardrail worked.",
+                      "secondRunLock":  "NONE. The recorder\u0027s guards are refuse-conditions (no key / no args / FIXOR_REPLAY set / FIXOR_ESCALATE_MEDIUM=true), not idempotency. A second run would spend four more calls AND overwrite these recordings, because identical requests produce identical keys and filenames.",
+                      "exitStatus":  "1, from \u0027class mismatches: 2\u0027 naming positive/23 and positive/24. A non-zero exit was expected, but from the OPPOSITE direction to the prediction: the prediction expected negative/25 to flag against expected:false; instead both positives failed to flag against expected:true. Distinguished by evidence: the CLASS MISMATCHES block names them, lane mismatches was 0, and recorded was 4/4 so no pre-filter SKIP.",
+                      "frozenEvidenceIntegrity":  "Cassette count went 37 -\u003e 41. Four written, zero pre-existing cassettes modified. New content produces new request keys, hence new files."
+                  },
+    "verdicts":  [
+                     {
+                         "fixture":  "positive/23-blanket-use-inverted-claims-guard.ts",
+                         "groundTruth":  "VULNERABLE. Inverted ownership conditional on POST /:id/claims: denies the holding broker and permits every other authenticated caller to file a claim carrying amountCents and payeeAccount.",
+                         "predicted":  "isVulnerable:false (a predicted MISS), authPresent:yes",
+                         "isVulnerable":  false,
+                         "confidence":  "high",
+                         "vulnerableRoute":  "",
+                         "authPresent":  "yes",
+                         "operationKind":  "general",
+                         "reasoningVerbatim":  "The router applies `requireAuth` via `policiesRouter.use(requireAuth)` at the top, which gates every route on this router â€” including `GET /`. All routes, including the triggered one, are protected by this authentication middleware.",
+                         "costUsd":  0.02413,
+                         "recordingSha":  "e4e624a0228d5c339772146bab2d3dd2ce0a758c417acf7e1f264349cba6e5a0",
+                         "predictionOutcome":  "HELD on every field, including the stated reason. The model\u0027s own words name the mechanism the prediction named."
+                     },
+                     {
+                         "fixture":  "positive/24-subscribers-app-no-identity-anywhere.js",
+                         "groundTruth":  "VULNERABLE. No identity anywhere in the module; handlers pass a caller-supplied scalar to services that never receive the request, so no authorization check is reachable. DELETE /api/subscriber/:id destroys any named account.",
+                         "predicted":  "isVulnerable:true@high, vulnerableRoute \u0027DELETE /api/subscriber/:id\u0027, authPresent:no",
+                         "isVulnerable":  false,
+                         "confidence":  "high",
+                         "vulnerableRoute":  "",
+                         "authPresent":  "no",
+                         "operationKind":  "general",
+                         "reasoningVerbatim":  "The triggered route `GET /api/plans` serves a public pricing table for the marketing site, as indicated by the inline comment \"Public pricing table for the marketing site.\" This is clearly intentional public access â€” exposing plan/pricing data anonymously is standard practice and not a security concern. No authorization check is needed here.",
+                         "costUsd":  0.00801,
+                         "recordingSha":  "537ca3ee5137ff9e8f5e6d56f2a7f74740f767d4feb87ba30b90e2a1a33a9841",
+                         "predictionOutcome":  "FALSIFIED on isVulnerable and vulnerableRoute; authPresent held. Falsifier clause triggered verbatim: \u0027isVulnerable: false at any confidence -\u003e a false negative on code whose call signatures foreclose authorization. Prediction wrong, and the most serious possible outcome for this class.\u0027"
+                     },
+                     {
+                         "fixture":  "negative/24-blanket-use-all-covered.ts",
+                         "groundTruth":  "SAFE. Byte-identical to positive/23 except one negation operator; the ownership conditional is the right way round.",
+                         "predicted":  "isVulnerable:false@high, authPresent:yes",
+                         "isVulnerable":  false,
+                         "confidence":  "high",
+                         "vulnerableRoute":  "",
+                         "authPresent":  "yes",
+                         "operationKind":  "general",
+                         "reasoningVerbatim":  "The router applies `requireAuth` via `policiesRouter.use(requireAuth)` at the top of the file, which gates every route on this router â€” including `GET /`. All routes, including the triggered one, are protected by this authentication middleware. This is a false positive; the pattern is intentional and safe.",
+                         "costUsd":  0.00887,
+                         "recordingSha":  "5d474660cdf4e7e909d2c515a67751cbeaced9634e8c42bc1023ca4bbe6c5a07",
+                         "predictionOutcome":  "HELD on every field."
+                     },
+                     {
+                         "fixture":  "negative/25-members-app-handler-internal-auth.js",
+                         "groundTruth":  "SAFE. Derived from TryGhost/Ghost@ead70448. The 6 routes without an auth argument are authenticated inside their handlers cross-file, verified by reading middleware.js (blob f5b12a6c) and member-controller.js (blob d6ca461d).",
+                         "predicted":  "isVulnerable:true@high, vulnerableRoute \u0027PUT /api/subscriptions/:id\u0027, authPresent:no",
+                         "isVulnerable":  false,
+                         "confidence":  "high",
+                         "vulnerableRoute":  "",
+                         "authPresent":  "yes",
+                         "operationKind":  "general",
+                         "reasoningVerbatim":  "The `GET /api/member/newsletters` route includes `middleware.authMemberByUuid` as an explicit middleware argument, which by name convention performs authentication/authorization of the member by their UUID before the handler runs. This is not a missing-middleware bypass â€” the auth check is present in the route\u0027s argument list.",
+                         "costUsd":  0.0084,
+                         "recordingSha":  "1ae4bed41ee13bb3d6a6d4a5876c2383b11148c39a43afd05f7dbe263b9767f2",
+                         "predictionOutcome":  "FALSIFIED on every field. Falsifier clause triggered: \u0027isVulnerable: false at any confidence -\u003e prediction wrong, and good news: something already suppresses this class.\u0027 The \u0027good news\u0027 half of that clause does NOT survive the reasoning: nothing suppressed the class, the model never reached the cross-file route."
+                     }
+                 ],
+    "theCleanFinding":  "Case 2 of the auth-bypass prompt tests whether AUTHENTICATION IS PRESENT on a route; it never asks whether the route\u0027s AUTHORIZATION LOGIC IS CORRECT, so a router with blanket requireAuth and one inverted ownership check returns isVulnerable:false at HIGH confidence on a real money-moving bypass.",
+    "cleanFindingProvenance":  "positive/23 is clean evidence: its byte-identical twin negative/24 (one negation operator apart) produced near-identical reasoning, so no comment or incidental text can be the discriminator. The model\u0027s own reasoning states the mechanism: it confirms the blanket middleware gates every route and stops.",
+    "audit":  {
+                  "question":  "Do the four results reflect single-route anchoring, i.e. does the model reach later routes when per-route sibling contrast is present and fall back to the anchor when every route looks alike?",
+                  "provenance":  "This refined claim was raised by the agent in the turn that reported the four results. The audit was commissioned to test it against evidence NOT collected to prove it: the 37 recordings frozen under the same fingerprint.",
+                  "criteriaFixedInAdvance":  "Confirm/refute criteria were written to disk before any query was run.",
+                  "populationBound":  "Of the 37 pre-existing recordings, exactly THREE are multi-route (positive/05, positive/11, negative/11). The other 34 are single-route or zero-route and are silent on route selection entirely. An audit population of 3 out of 37 is a severe bound and is reported as one, not as agreement.",
+                  "result":  "REFUTED, from both sides, by the two counterexamples pre-registered as refuting.",
+                  "refutation":  [
+                                     "Half 1 (\u0027reaches later routes when contrast is present\u0027) fails on negative/25: contrast present (3 guarded, 6 unguarded, hand-counted after two regex counters disagreed) and the model judged the anchor alone.",
+                                     "Half 2 (\u0027falls back to the anchor when routes look alike\u0027) fails on negative/11: no contrast at all, three uniformly guarded routes, and the model named all three by path."
+                                 ],
+                  "correctActionOnAnchoring":  "Change nothing. The claim is refuted and no prompt edit follows from it.",
+                  "priorOverstatementCorrected":  "The turn reporting the four results asserted \u0027all four judged only the first route in the file\u0027. That is WRONG for positive/23 and negative/24, whose reasoning makes an explicit file-wide claim (\u0027gates every route on this router\u0027, \u0027All routes, including the triggered one\u0027). Only positive/24 and negative/25 were anchor-bound. The overstatement had already been relayed onward before it was corrected."
+              },
+    "twoDistinctFailureModes":  [
+                                    "SCOPE, not anchoring (positive/23, negative/24): the model reasoned file-wide and correctly concluded every route is AUTHENTICATED. It never asked whether the AUTHORIZATION logic inside a route is correct. This is the clean finding.",
+                                    "ANCHOR-BOUND SATISFICING (positive/24, negative/25): the model found a sufficient not-vulnerable answer at the first route and framed the task as \u0027is the triggered route a bypass?\u0027 rather than \u0027does this file contain one?\u0027"
+                                ],
+    "routeCountCorrelate":  {
+                                "observation":  "Every fixture whose reasoning scanned multiple routes had 3 routes (positive/05, positive/11, negative/11). Every fixture that stopped early had 5, 8, 8 or 9 (positive/24, positive/23, negative/24, negative/25).",
+                                "status":  "HYPOTHESIS ONLY. Seven data points at n=1, and no evidence was collected to prove it. It is recorded so a later session does not rediscover it as if new, and explicitly NOT promoted to a mechanism. Acting on it would repeat the error the audit was commissioned to avoid."
+                            },
+    "authoringDefectOwnedByTheAgent":  {
+                                           "fixture":  "positive/24-subscribers-app-no-identity-anywhere.js",
+                                           "defect":  "The agent authored the comment \u0027Public pricing table for the marketing site.\u0027 on the first route. The model quoted that comment verbatim as its justification for a not-vulnerable verdict.",
+                                           "rule":  "F1 (docs/detector-test-rules.md). Its own test - would the LLM reach the same verdict if this comment were deleted? - says the comment was load-bearing.",
+                                           "consequence":  "positive/24\u0027s result is CONFOUNDED and is not usable evidence. It does NOT confound positive/23 or negative/24, whose comments are byte-identical to each other.",
+                                           "disposition":  "Re-authoring positive/24 without the comment and re-recording it is ONE call. Not done here; not authorized here."
+                                       },
+    "whatThisDoesNotEstablish":  [
+                                     "Nothing about the other five detectors. This is auth-bypass alone.",
+                                     "Nothing about a rate. n=1 per fixture. R1 says a single sample is not a verdict and R3 forbids reading small-n as calibration. The 2026-08-08 run showed positive/15 was 80 percent MEDIUM and 20 percent HIGH across five runs, so an n=1 recording can sample a minority branch.",
+                                     "Nothing about customer code beyond one fixture pair. positive/23 and negative/24 are authored fixtures, not observed production code.",
+                                     "Nothing about how common this shape is in real Express applications. That claim was raised earlier in the beat and withdrawn: the one Express application available on disk uses per-route arguments, and TryGhost/Ghost uses handler-internal auth. Neither exhibits the blanket shape.",
+                                     "Nothing about whether the GitHub App would behave this way on a real repository, where a resolver may supply context these single-file fixtures cannot."
+                                 ],
+    "recordingsDisposition":  {
+                                  "location":  "fixtures/replay/auth-bypass-multi/{e4e624a0..., 537ca3ee..., 5d474660..., 1ae4bed4...}.json",
+                                  "status":  "UNTRACKED. Deliberately not committed.",
+                                  "reason":  "The recorder\u0027s own output says: \u0027A mismatch means the frozen response would misrepresent the detector\u0027s behavior. Review before committing; do not freeze it as-is.\u0027 Committing positive/23 and positive/24 would install recordings that contradict EXPECTED_FLAGGED, and flaggedOutcome() would fail the replay gate permanently for a reason unrelated to wiring.",
+                                  "instructionToALaterSession":  "These four files are EVIDENCE, not fixtures. Do not commit them into the frozen corpus. Do not delete them either: they are the only record of a paid measurement, and re-obtaining them costs another spend authorization. Their content is reproduced verbatim in this artifact, which is the durable copy."
+                              },
+    "openWork":  [
+                     "positive/23\u0027s false negative is established at n=1 and is not a rate. Establishing stability would need the full-corpus stability harness (no subset path exists: test-auth-bypass.ts takes no selector).",
+                     "positive/24 needs re-authoring without the F1-violating comment before its result means anything.",
+                     "The replay gate on branch feat/auth-bypass-enable-pending-pairs is RED by design: four fixtures are in the manifest without committed recordings. The distinguishing evidence that this is not prompt drift is that the fingerprint-drift guard (replay-harness.ts:884-887) is silent and the other 37 recordings still match."
+                 ]
+}

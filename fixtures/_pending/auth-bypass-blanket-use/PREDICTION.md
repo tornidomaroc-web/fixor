@@ -5,6 +5,12 @@ Authored 2026-08-16, at `main` 81612614, tree clean, zero open PRs.
 
 `.md` is excluded by every fixture reader in the tree, so this file cannot reach a model.
 
+> **PATH MAP, added after the enabling change (`deb2c70`). Nothing below this line is edited.**
+> The fixtures have moved into the corpus and been renumbered. Every reference below to
+> `positive/01-blanket-use-inverted-claims-guard.ts` now means `fixtures/auth-bypass/positive/23-blanket-use-inverted-claims-guard.ts`,
+> and `negative/01-blanket-use-all-covered.ts` now means `fixtures/auth-bypass/negative/24-blanket-use-all-covered.ts`.
+> Their `ASSUMED-PATH` headers are unchanged. Selector form for recording: `positive/23` and `negative/24`.
+
 ---
 
 ## What the pair is
