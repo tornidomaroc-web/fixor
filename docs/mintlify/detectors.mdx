@@ -252,9 +252,11 @@ image layers.
 What we look for:
 
 - Literal API keys, tokens, and signing secrets: Stripe `sk_live_*`,
-  OpenAI `sk-*`, Anthropic `sk-ant-api03-*`, AWS `AKIA[A-Z0-9]{16}`,
+  Anthropic `sk-ant-api03-*`, AWS `AKIA[A-Z0-9]{16}`,
   Slack webhook URLs, Postgres passwords in connection strings,
-  hardcoded JWT signing secrets in source.
+  hardcoded JWT signing secrets in source. This list is exhaustive —
+  matching is a fixed set of literal patterns, not a general notion of
+  "secret", so a credential shape that is not listed is not detected.
 - `NEXT_PUBLIC_*` env vars that expose server secrets to the client
   bundle.
 - Supabase service-role key reaching client-side code.
