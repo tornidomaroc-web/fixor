@@ -1,0 +1,77 @@
+{
+    "measurement": "IDOR pairs a request-derived id with a DB lookup only inside ONE file's content. Measured against a pinned Open WebUI commit, where three router files yield zero candidate pairs while a model file in the SAME commit yields sixteen.",
+    "date": "2026-08-17",
+    "ref": "docs/idor-single-file-bound, branched from origin/main @ 81612614c448be02dc3a8eb033491179bdf9794d (freshly fetched). Detector source unchanged from main: `git diff --name-only main..HEAD -- src/analysis-engine/` was empty at the time of measurement.",
+    "zeroSpend": true,
+    "totalSpentUsd": 0,
+    "spendNote": "No key path, no model call, no recording. Every number here is produced by regex over downloaded source. The IDOR detector was NOT executed: `IdorDetector.analyzeFile` calls the model whenever it enumerates one or more candidate pairs, so running it across a corpus is a spend path. The pure functions were ported instead (see instruments).",
+
+    "theBound": {
+        "statement": "IDOR is a co-location detector, not a dataflow detector. `findPatternHits` is run twice over a single file's content, once for SOURCE_PATTERNS and once for SINK_PATTERNS. `enumerateSinkPairs` then pairs each sink with its nearest source within PROXIMITY_THRESHOLD lines. Nothing crosses a file boundary and nothing traces a value across a function boundary.",
+        "consequence": "A route handler that delegates data access to a repository / model / service module contains no query for any SINK pattern to match. `IdorDetector.analyzeFile` returns on the `no source/sink co-occurrence` branch, before any candidate site is enumerated and before any LLM call, so the file produces no finding at any confidence.",
+        "epistemicStatus": "The MECHANISM is certain and is read out of the source, not inferred from the sample. The FREQUENCY across real-world codebases is n=1 repository and is NOT asserted anywhere in this artifact or in the scope-contract row it supports.",
+        "whyWideningCannotFixIt": "There is no query at the call site to match. The only token present is the repository method itself, and a pattern matching `Capitalised.method(` would match most lines of most object-oriented code. The remedy is cross-file dataflow, not pattern coverage."
+    },
+
+    "pinnedPopulation": {
+        "repository": "open-webui/open-webui",
+        "commit": "01f4282f1ffe0d6212f58d3afbeae21fffd0c4be",
+        "commitDate": "2026-07-27T10:47:11Z",
+        "commitSubject": "Merge pull request #27590 from open-webui/dev",
+        "guard10Note": "ONE repository commit, not three. An earlier draft of the scope-contract row cited three separate commits (the vulnerable parents of three different advisories) for three files, which does not identify a single state. The measurement below was re-run at one pinned commit specifically to close that.",
+        "abbreviationDefect": "One of those three parents, `9562f1a6`, does NOT resolve through the GitHub commits API at 8 hex characters in a repository this large; it resolves only at full length as 9562f1a67d4296bbbc5bb2163b5929be0ceb6545. An 8-character abbreviation is not an identifier at this repository size. All three parents were confirmed to be COMMITS, not blobs."
+    },
+
+    "results": [
+        { "file": "backend/open_webui/routers/knowledge.py", "blob": "cd98681efd1c", "bytes": 79868, "sources": 29, "sourceTally": { "fastapi_typed_path_param": 29 }, "sinks": 0, "pairs": 0, "inFileQueryIdiom": false, "repositoryStyleCalls": 100, "importsRelativeDot": 0, "importsAbsolutePackage": 17 },
+        { "file": "backend/open_webui/routers/channels.py", "blob": "33472ba1b65e", "bytes": 74276, "sources": 27, "sourceTally": { "fastapi_typed_path_param": 27 }, "sinks": 0, "pairs": 0, "inFileQueryIdiom": false, "repositoryStyleCalls": 140, "importsRelativeDot": 0, "importsAbsolutePackage": 17 },
+        { "file": "backend/open_webui/routers/tools.py", "blob": "f14b89d6ad52", "bytes": 31310, "sources": 10, "sourceTally": { "fastapi_typed_path_param": 10 }, "sinks": 0, "pairs": 0, "inFileQueryIdiom": false, "repositoryStyleCalls": 52, "importsRelativeDot": 0, "importsAbsolutePackage": 14 },
+        { "file": "backend/open_webui/models/messages.py", "blob": "dc43dfe1e922", "bytes": 23050, "sources": 17, "sinks": 16, "sinkTally": { "sqlalchemy_filter_by_id": 12, "sqlalchemy_session_get": 4 }, "pairs": 16, "inFileQueryIdiom": true, "repositoryStyleCalls": 20, "importsRelativeDot": 0, "importsAbsolutePackage": 4 }
+    ],
+
+    "theContrastIsTheControl": "models/messages.py is the load-bearing row. It sits in the SAME pinned commit as the three routers and yields 16 sinks and 16 pairs from the existing SINK_PATTERNS. That is what establishes the pattern list is adequate for this codebase's ORM and that the file boundary, not pattern coverage, is the bound. Without this row the three zeros would be consistent with a merely incomplete sink list.",
+
+    "crossFileRemedyIsAlreadyPriced": "All three routers import 0% relative-dot and 100% absolute-package (`from open_webui...`). That is the exact configuration `docs/detector-capabilities.md` section 'Cross-file guard resolution (H9)' measured at approximately 0% resolver reach and declined, under a reopen trigger that is not met. A relative-only resolver would reach none of this.",
+
+    "independentReproduction": {
+        "note": "Before the pin, the same three files were measured at three earlier repository states, each the vulnerable parent of a different advisory fix. The zeros held at all three. This is recorded as weak evidence of stability over time, NOT as three independent repositories.",
+        "states": [
+            { "file": "backend/open_webui/routers/knowledge.py", "parentCommit": "8710c448a993d4d15897b510b55a99b5c3b55bc2", "advisory": "GHSA-jxc9-xmc4-gr23", "sources": 29, "sinks": 0, "pairs": 0 },
+            { "file": "backend/open_webui/routers/channels.py", "parentCommit": "7b1aa749eb0590a387ab51a12ff126868f7216a0", "advisory": "GHSA-73x5-h92w-xc2j", "sources": 27, "sinks": 0, "pairs": 0 },
+            { "file": "backend/open_webui/routers/tools.py", "parentCommit": "9562f1a67d4296bbbc5bb2163b5929be0ceb6545", "advisory": "GHSA-3r7g-q6cg-q2vx", "sources": 10, "sinks": 0, "pairs": 0 }
+        ]
+    },
+
+    "instruments": {
+        "correct": "Verbatim ports of `findPatternHits` and `enumerateSinkPairs`, with SOURCE_PATTERNS and SINK_PATTERNS extracted programmatically out of `dist/analysis-engine/detectors/idor.detector.js` rather than transcribed by hand. Global `exec` over whole file content, every pattern, every occurrence, no per-line break, lang gate honoured.",
+        "defectiveInstrumentOwnedByTheAgent": {
+            "defect": "The harness used on 2026-08-16 to produce the original finding scanned LINE BY LINE with a break after the first matching pattern per line. That is `auth-bypass.prefilterRegex`'s shape, not IDOR's. IDOR uses `findPatternHits`, which runs a global regex over the whole file content.",
+            "whyItMatters": "`raw_sql_where_id` is /\\bSELECT\\b[\\s\\S]{0,200}?\\bWHERE\\s+\\w*[iI][dD]\\s*=/i and therefore SPANS LINES. A per-line test can never match it. Any codebase placing multi-line raw SQL in its route handlers would have been scored as a confirming 'sources present, zero sinks' by the defective instrument.",
+            "proof": "CONTROL-2, a real multi-line raw-SQL IDOR: the corrected instrument returns sources=1 sinks=1 pairs=1; the 2026-08-16 instrument returns sinks=0.",
+            "didItChangeThisFinding": "No. Open WebUI's routers contain no raw SQL, so the three zeros survive the correction unchanged. The defect did not bite here, and it would have bitten hard on a 20-repository census.",
+            "howItWasFound": "By reading `findPatternHits` against the harness line by line. It did not announce itself and no output would have revealed it. This is recorded because the failure mode -- an instrument reporting a confirming zero while blind for an unrelated reason -- is the one that does not surface on its own."
+        },
+        "positiveControlReEarnedOnThisPopulation": "A minimal FastAPI route (`@router.get(\"/items/{item_id}\")` + `db.get(Item, item_id)`) returns sources=1 sinks=1 pairs=1. The instrument is proven able to report non-zero on the same language and pattern set before its zeros are believed."
+    },
+
+    "retraction": {
+        "originalClaim": "Stated 2026-08-16: 'the sink list is ORM-shaped and appears blind to repository/service-layer indirection.'",
+        "retracted": "The first half is WRONG and is withdrawn. The sink list is not the fault. `models/messages.py` in the pinned commit yields 16 sinks from the unmodified SINK_PATTERNS, so the ORM patterns cover this codebase correctly.",
+        "corrected": "The bound is that pairing is confined to one file's content within PROXIMITY_THRESHOLD lines. It is architectural, not lexical.",
+        "consequenceForTheDecision": "This retraction is what killed the proposed 20-repository census. The census existed to justify widening SINK_PATTERNS, and widening cannot reach a file that contains no query. A measurement whose every branch leaves the action unchanged is not worth taking.",
+        "whatWasApproved": "The owner's approval on 2026-08-17 was explicitly of THIS RETRACTION, not of the original census framing. Recorded here at the owner's instruction so a later reader does not mistake the approval for endorsement of the superseded diagnosis."
+    },
+
+    "whatThisDoesNotEstablish": [
+        "Nothing about how common repository-layer indirection is. n=1 repository. The frequency is unmeasured and is deliberately absent from the scope-contract row.",
+        "Nothing about the other five detectors. Three sibling bounds are named in the pull request body as follow-on work and are NOT claimed here.",
+        "Nothing about whether the LLM stage would judge these routes correctly if it ever saw them. The detector returns before the model is called; this measures reach, not judgment.",
+        "Nothing about detection quality. No fixture was run, no baseline was taken, and no recording was made or read."
+    ],
+
+    "boundToTheCode": {
+        "mechanism": "None. No test binds this artifact or the scope-contract row to the source.",
+        "why": "No test in this repository reads a docs/ file at runtime; there is no precedent for a doc-asserting test. A test binding PROXIMITY_THRESHOLD would bind the constant rather than the claim. The only behavioural binding available routes through `IdorDetector.analyzeFile`, which calls the model when the assertion fails -- a test that bills precisely when it has something to report, inside a test:ci chain that excludes live tests by design.",
+        "insteadOfATest": "The scope-contract row carries an explicit invalidation clause naming `enumerateSinkPairs` and PROXIMITY_THRESHOLD, following the precedent of the H9 decision record, which is bound by a written reopen trigger and not by a test."
+    }
+}
