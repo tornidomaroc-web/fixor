@@ -3624,7 +3624,7 @@ pattern-axis facts and DEFER their ICP rates to E'.
   five points: unsupported language, path filter, server-only marker, no regex match, and the Day
   13 redaction-shape exemption. The first four run before any pattern is consulted. The fifth is
   the only post-match clearing step and is deliberately narrow (asterisk runs, bracketed
-  REDACTED-family tokens, mask/redact/sanitize calls). Nothing else can clear a match. What the
+  REDACTED-family tokens, and mask, redact and sanitize calls). Nothing else can clear a match. What the
   shipped path can and cannot produce as evidence is stated in the §5 paragraph of
   `docs/detector-capabilities.md` (2026-09-10); why the 20/20 baseline is silent on this path is
   stated in the §5 ANNOTATION of 2026-08-17 (Edit C). Neither is restated here.
