@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 
+# Python bytecode. scripts/secrets_scan.py is imported by ad-hoc replays of its
+# rules; any such import writes this directory, and `git add -A` would stage it.
+__pycache__/
+
 # Environment
 .env
 .env.local
