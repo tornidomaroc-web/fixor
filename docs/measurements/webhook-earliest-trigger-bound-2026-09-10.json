@@ -1,0 +1,28 @@
+{
+  "measurement": "webhook-unverified: earliest-match trigger selection sends a 24-line window, not the whole file, for an App Router webhook route whose export sits below an earlier content match",
+  "date": "2026-09-10",
+  "ref": "Fixor main at 4dfa686e; corpus calcom/cal.com@fb0149453e97a047f44ec21e99f9d8af420d8365 (test-output/calcom-smoke/calcom, on disk)",
+  "zeroSpend": true,
+  "spendNote": "callClaude was replaced at the module boundary (dist/analysis-engine/anthropic-client.js export) by a recorder returning {ok:false}; no client constructed, no network, and the instrument refuses to start with ANTHROPIC_API_KEY set.",
+  "theBound": "prefilterRegex returns the single earliest regex match in the file content across all PREFILTER_PATTERNS. buildFunctionCodePayload grants the whole file only when that one trigger is app_router_route_def or remix_handler_def. Any content pattern matching earlier in the file (webhook_lib_import on an import line, a signature compare, a WEBHOOK_VERIFY toggle) takes the trigger and the +/-8/+16 window.",
+  "instrument": {
+    "what": "The shipped WebhookUnverifiedDetector from dist/, fed the real file through detect() as a synthetic whole-file diff built by the shipped src/cli/diff-builder.ts buildSyntheticDiff; the user message handed to callClaude was captured verbatim.",
+    "control": "The same instrument run on fixtures/webhook-unverified/positive/10-go-github-eq-compare.go (ASSUMED-PATH header removed, as the harness does) produced a user message byte-identical to the recorded request fixtures/replay/webhook-unverified-multi/0047e01359be… . PASS.",
+    "controlDefectCaught": "The first version of this instrument used a copied diff builder that kept a trailing blank line; the auth-bypass control then differed from the recorded request by one payload line (18 vs 17). Replacing the copy with the shipped builder made both controls pass. Recorded here because R12 says this family fails silently."
+  },
+  "result": {
+    "file": "apps/web/app/api/recorded-daily-video/route.ts",
+    "totalLines": 239,
+    "routeDefExport": { "line": 239, "text": "export const POST = defaultResponderForAppDir(postHandler);" },
+    "selectedTrigger": { "patternId": "webhook_lib_import", "line": 36, "text": "} from \"@calcom/web/lib/daily-webhook/triggerWebhooks\";" },
+    "payloadSent": { "firstLine": 28, "lastLine": 51, "lines": 24, "wholeFile": false },
+    "outsidePayload": {
+      "handlerStart": { "line": 54, "text": "export async function postHandler(request: NextRequest) {" },
+      "signatureCompare": { "lines": "71-73", "text": "if (headersList.get(\"x-webhook-signature\") !== computed_signature) {" }
+    },
+    "note": "No verdict was obtained and none is claimed; the measurement is of the payload the model would receive, which excludes the handler and its verification."
+  },
+  "whatThisDoesNotEstablish": "How often an App Router webhook file has an earlier content match. One file at one commit. Whether the model, shown lines 28-51 (which include the computeSignature helper), would flag or clear this route is unknown and deliberately not guessed.",
+  "boundToTheCode": "Goes false if prefilterRegex stops selecting the earliest match, if route-def sentinels gain priority over content patterns, or if the non-route-def window changes shape.",
+  "reproduction": "Zero spend. Intercept callClaude, run WebhookUnverifiedDetector.detect on the file at that commit presented at its repository path, read 'Triggered at line' and the Function context block from the captured message."
+}
