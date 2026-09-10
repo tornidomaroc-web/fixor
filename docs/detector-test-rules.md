@@ -6,6 +6,8 @@ Last reviewed: 2026-06-12 (post-audit doc cleanup; previous review 2026-05-14, p
 
 Numbering note (2026-06-12): two rule-number collisions were resolved. "Lane discipline" (formerly a second R5) is now **R10**, and "No prompt iteration on FAIL" (formerly a second R6) is now **R11**. R5 (regex false-negative on positives) and R6 (fixture misclassification surfaced by LLM disagreement) keep their numbers — every external reference (session-close docs, META.md files, baseline reports) uses those meanings. A stray duplicate R8 heading was also removed; R8 is defined once, below.
 
+Numbering note (2026-09-10): R12 and R13 were assigned by sequence after R11, not by position in the file; R12 (control earns belief only for its instrument) and R13 (measurement date in the commit body) both sit under "Harness and measurement".
+
 ---
 
 ## Fixture authoring
@@ -160,6 +162,23 @@ Cross-detector signal is FP-shaped even if the underlying observation is real. E
 - IDOR detector flagging a mass-assignment pattern — same.
 
 The remedy when this happens is to tighten the lane in the detector's system prompt, not to celebrate "two-for-one" findings. Cross-detector noise hurts the customer more than a missed adjacent-class signal helps (we have other detectors for that).
+
+### R12. A control earns belief only for the instrument and the semantics it ran under.
+
+Re-earn it whenever either changes; a control on a sibling instrument transfers nothing. A matcher is not the matcher it resembles — a per-line loop is not a whole-content scan, -SimpleMatch is not a regex, an abbreviated hash is not an identifier. This family fails SILENTLY: it returns a well-formed, plausible result, and no inspection of the output reveals the error. Before believing a zero, ask the same question a second way and compare the answers.
+
+### R13. A commit carrying a dated measurement states the measurement date in its body.
+
+Any commit that adds or changes prose or an artifact stamped with a measurement date
+states that date in the commit message body as `Measured: YYYY-MM-DD`, one line per
+distinct date, even when the commit is authored the same day. This repository
+squash-merges with `squash_merge_commit_message = COMMIT_MESSAGES`, which carries
+constituent commit BODIES into the squash commit on `main` and discards their AUTHOR
+DATES. A PR that spans sessions therefore lands with every stamp inside a commit dated
+the day of the merge, and the body is the only git-side witness a clone carries; the PR
+commit list is a GitHub artifact, not a git one. Case: #179, measured 2026-08-17, merged
+2026-09-10 as `ad22b067`. The repository setting is load-bearing: changing it to
+`PR_BODY` or `BLANK` defeats this rule and is a change to it.
 
 ---
 
