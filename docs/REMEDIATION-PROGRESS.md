@@ -3699,6 +3699,11 @@ pattern-axis facts and DEFER their ICP rates to E'.
   invalidation clause on the §5 DOES NOT CLAIM row applies here too: a change to
   `PREFILTER_PATTERNS` or to the `FIXOR_SECRETS_LLM_OPT_IN` default re-opens this entry.
 
+  **RE-AUDITED 2026-09-10 under this entry's own invalidation clause**, on the addition of
+  `openai_project_key` to `PREFILTER_PATTERNS`: literal-tier, one new emit shape, none of the
+  five exits changed, no clearing step added. The entry stands unchanged and still asserts no
+  rate.
+
 ### Priority 1f - OPEN: reach / market-fit findings surfaced by structural measurement
 
 Same `L-` namespace as Priority 1d and 1e (found by RUNNING the detector), and a DELIBERATELY
