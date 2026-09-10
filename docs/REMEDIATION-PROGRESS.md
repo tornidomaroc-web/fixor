@@ -3272,6 +3272,36 @@ remains OPEN as above.
   whose only change is a fake key in a commit message, red before the step and red after it for
   the right reason.
 
+- **W-006 (OPEN; gate defect, read from the replay directory and proven by one listing; a property
+  of the WEBHOOK REPLAY GATE and not of the detector; fix requires spend to record) -
+  `fixtures/replay/webhook-unverified-multi/` holds ONE recorded request, so the keyless gate
+  `test:replay-webhook-unverified` protects one webhook fixture of 35.**
+
+  Provenance: found 2026-09-10 during the honesty sweep, when the recorded request for
+  `positive/10-go-github-eq-compare.go` was used as the byte-match control for the payload-capture
+  instrument behind #186's evidence file and turned out to be the directory's only file. Every
+  other webhook fixture (16 positives, 18 negatives) is guarded only by paid runs; a prompt or
+  payload change that alters their verdicts passes `test:ci` unseen. Approved for filing by the
+  owner on 2026-09-10, after the sweep closed, not inside it.
+
+  WHAT THE GATE COVERS TODAY, checked rather than assumed: `ls fixtures/replay/webhook-unverified-multi/`
+  returns one JSON. The sibling directories hold 30 (admin-check-multi), 41 (auth-bypass-multi),
+  17 (env-exposure-multi) and 26 (idor-multi) recordings. `package.json` has `record:env-exposure`,
+  `record:auth-bypass`, `record:admin-check` and `record:idor`; there is no `record:webhook-unverified`.
+
+  WHY AN ENTRY RATHER THAN A FOOTNOTE: #186 changed the webhook contract on the strength of a
+  captured payload whose only available control was this single recording, and the gate that would
+  catch a regression in the shipped payload builder has one witness. Filed in the W- namespace
+  (workflow-gate defects) because it is a property of the gate, not of what the detector claims.
+
+  FIX SHAPE, NOT DONE HERE and NOT keyless: build `record-webhook-unverified-fixtures.ts` on the
+  `record-idor-fixtures.ts` shape, under the same record guards (refuses without a key, without
+  explicit selection, with `FIXOR_REPLAY` set, with `FIXOR_ESCALATE_MEDIUM=true`), run it ONCE over
+  all 35 fixtures in one process, and report the MEASURED total. The cost is a derived fact: read the
+  per-call figure from `docs/measurements/webhook-unverified-stage3-2026-08-07.json` before dispatch,
+  never from here. Negative control for the widened gate: delete one recording on a throwaway branch
+  and the gate must go red for that fixture and for nothing else.
+
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
 These items were surfaced by Run 1. See "Live detection-quality measurements / Run 1" for the
