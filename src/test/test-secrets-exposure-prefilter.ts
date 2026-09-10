@@ -8,10 +8,10 @@
  * the corpus therefore terminates on one of exactly two paths:
  *
  *   (a) dropped pre-model by a detect() gate (unsupported language, SKIP_PATH_RE,
- *       server-only marker) or by a zero-trigger prefilter  -> 10 fixtures
+ *       server-only marker) or by a zero-trigger prefilter  -> 13 fixtures
  *   (b) decided by the Option G per-pattern bypass: the earliest surviving regex
  *       trigger emits the finding from its hand-authored explanation, and
- *       callClaude is NEVER invoked                          -> 15 fixtures
+ *       callClaude is NEVER invoked                          -> 16 fixtures
  *
  * THIS GATE IS NOW THE SOLE AUTOMATED GUARD ON THIS DETECTOR. `test-secrets-
  * exposure.ts` was retired (PR C3): it asserted only a per-fixture `flagged`
@@ -53,7 +53,7 @@
  *
  * HONEST SCOPE - WHAT A GREEN RUN HERE DOES *NOT* MEAN:
  *
- * 1. This gate now exercises all 15 of the 15 PREFILTER_PATTERNS, re-measured
+ * 1. This gate now exercises all 16 of the 16 PREFILTER_PATTERNS, re-measured
  *    keylessly (not read) after adding the five fixtures below. The five that
  *    2b.5 measured as guarded by NOTHING are now each covered by a fixture whose
  *    EARLIEST surviving trigger is the intended pattern:
@@ -66,7 +66,13 @@
  *        google_api_key            -> positive/11-google-api-key-hardcoded.ts
  *        stripe_live_publishable   -> positive/12-stripe-publishable-live.ts
  *        private_key_literal       -> positive/13-private-key-hardcoded.ts
- *    A green check now does mean all 15 prefilter patterns emit under their own
+ *      added 2026-09-10 with a near-miss negative control (negative/11, a
+ *      placeholder that fails both lookaheads):
+ *        openai_project_key        -> positive/16-openai-project-key-hardcoded.ts
+ *      near-miss negative controls added the same day for two patterns that had
+ *      only the corpus-wide negatives: negative/12 (google_api_key, body too
+ *      short) and negative/13 (stripe_live_publishable, body broken by '<').
+ *    A green check now does mean all 16 prefilter patterns emit under their own
  *    ruleId. It still says nothing about detection QUALITY; that is stage 3.
  *
  * 2. NO fixture in this corpus is redaction-shaped. The Day 13 redaction-shape
@@ -140,6 +146,7 @@ const BYPASS_EXPECTED: ReadonlyArray<readonly [string, string]> = [
   ["positive/13-private-key-hardcoded.ts", "private_key_literal"],
   ["positive/14-aws-secret-literal.ts", "aws_secret_literal"],
   ["positive/15-postgres-url-password.ts", "postgres_url_password"],
+  ["positive/16-openai-project-key-hardcoded.ts", "openai_project_key"],
 ];
 
 /** Bucket (a): fixture -> the exact preFilterReason detect()/analyzeFile records. */
@@ -154,6 +161,9 @@ const PREMODEL_DROP_EXPECTED: ReadonlyArray<readonly [string, string]> = [
   ["negative/08-secrets-decrypted-from-kms.ts", "server-only marker"],
   ["negative/09-slack-webhook-from-env.py", "no regex match"],
   ["negative/10-jwt-secret-from-env.go", "no regex match"],
+  ["negative/11-openai-project-key-placeholder.ts", "no regex match"],
+  ["negative/12-google-api-key-placeholder.ts", "no regex match"],
+  ["negative/13-stripe-publishable-placeholder.ts", "no regex match"],
 ];
 
 let failures = 0;
@@ -268,7 +278,7 @@ async function main(): Promise<void> {
     }
   }
 
-  process.stdout.write("Bucket (b): Option G deterministic bypass, 15 positives\n");
+  process.stdout.write("Bucket (b): Option G deterministic bypass, 16 positives\n");
   for (const [id, expectedPatternId] of BYPASS_EXPECTED) {
     const r = await runFixture(id);
     recordInvariants(id, r);
@@ -312,7 +322,7 @@ async function main(): Promise<void> {
   }
 
   process.stdout.write(
-    "\nBucket (a): dropped pre-model, 10 negatives (previously guarded by nothing)\n",
+    "\nBucket (a): dropped pre-model, 13 negatives (previously guarded by nothing)\n",
   );
   for (const [id, expectedReason] of PREMODEL_DROP_EXPECTED) {
     const r = await runFixture(id);
@@ -395,7 +405,7 @@ async function main(): Promise<void> {
     `\nRESULT: PASS (${total}/${total} fixtures: ${BYPASS_EXPECTED.length} Option G bypass, ` +
       `${PREMODEL_DROP_EXPECTED.length} pre-model drops)\n` +
       "NOTE: deterministic wiring gate only. Detection quality is not verified here.\n" +
-      "NOTE: guards all 15 prefilter patterns (was 10 of 15 before PR B).\n" +
+      "NOTE: guards all 16 prefilter patterns (was 10 of 15 before PR B; 16th added 2026-09-10).\n" +
       "NOTE: no redaction-shaped fixture exists; that path is pinned absent, not covered.\n",
   );
 }
