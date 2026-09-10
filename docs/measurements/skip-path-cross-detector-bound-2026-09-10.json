@@ -1,0 +1,25 @@
+{
+  "measurement": "SKIP_PATH_RE is one cross-detector rule: identical in all six detectors, applied before any prefilter, disclosed until now only as two secrets-exposure lines; measured on three pinned repositories with the shipped gate",
+  "date": "2026-09-10",
+  "ref": "Fixor main at 4dfa686e",
+  "zeroSpend": true,
+  "spendNote": "The instrument is the shipped SecretsExposureDetector, which has no model-reaching path (registry constructs it with no options; llmValidation false). It refuses to start with ANTHROPIC_API_KEY set. The path gate it runs is the same regex, byte for byte, as the other five detectors' (grep of the six files: identical literal).",
+  "theBound": "Each detector's detect() drops a file with preFilterReason 'path filter' when its path matches /(^|\\/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(\\/|$)/i. Whole path segments, case-insensitive. Neither entry point adds a path rule: src/cli/file-walker.ts DEFAULT_SKIP_DIRS is dependency/build/editor directories only; the GitHub App path (whole-file-scan-input, pr-webhook-handler, auditor-workflow) filters nothing by path.",
+  "instrument": {
+    "what": "SecretsExposureDetector.detect() over a synthetic diff containing every git-tracked file with a supported extension (ts, tsx, js, jsx, py, go) at the pinned commit, one trivial line each; the diag reason per path is the measurement.",
+    "controlsPerRun": {
+      "C1_positive": "tests/a.ts -> 'path filter'. PASS on all three runs.",
+      "C2_negative": "src/routes/a.ts -> 'no regex match' (not filtered). PASS on all three runs.",
+      "C3_second_way": "the instrument's dropped set is SET-EQUAL (not merely count-equal) to an independent regex copy's set. PASS on all three runs.",
+      "extra": "SCRIPTS/x.py -> filtered (case-insensitive confirmed); src/spec.ts -> not filtered (file name is not a segment)."
+    }
+  },
+  "results": [
+    { "repo": "fastapi/full-stack-fastapi-template", "commit": "cd83fc10ca20393e9ee50e3005e170c6929e047e", "supportedFiles": 142, "dropped": 30, "bySegment": { "tests": 29, "scripts": 1 }, "outsideTestSegments": ["scripts/add_latest_release_date.py"] },
+    { "repo": "calcom/cal.com", "commit": "fb0149453e97a047f44ec21e99f9d8af420d8365", "supportedFiles": 5049, "dropped": 264, "bySegment": { "scripts": 20, "test": 85, "__tests__": 101, "tests": 12, "fixtures": 14, "examples": 32 }, "outsideTestSegmentsCount": 61, "outsideTestSegmentsExamples": ["apps/api/v2/scripts/generate-secrets.ts", "packages/platform/examples/base/src/pages/api/managed-user.ts", "packages/platform/examples/base/src/pages/api/oauth2-user.ts", "packages/platform/examples/base/src/pages/api/get-users.ts", "packages/platform/examples/base/src/pages/api/refresh.ts", "apps/web/playwright/fixtures/webhooks.ts"] },
+    { "repo": "growupanand/ConvoForm", "commit": "c011c18b342606fcb2c79d65bd2296aecdf0d64d", "supportedFiles": 550, "dropped": 31, "bySegment": { "scripts": 5, "tests": 26 }, "outsideTestSegments": [".agents/skills/skill-creator/scripts/init_skill.py", ".agents/skills/skill-creator/scripts/package_skill.py", ".agents/skills/skill-creator/scripts/quick_validate.py", "packages/release/src/scripts/generateChangelogs.ts", "packages/release/src/scripts/updateReleaseList.ts"] }
+  ],
+  "whatThisDoesNotEstablish": "The share of any given customer's first-party code under these segments. Three repositories with three different conventions gave 21%, 5% and 6% of supported files; those are three points, not a distribution, and are deliberately not averaged.",
+  "boundToTheCode": "Goes false if any of the six regexes diverges from the others, if a shared constant replaces them, or if either entry point gains a path rule.",
+  "reproduction": "Zero spend. Enumerate git ls-files at the commit, filter to the six extensions, feed as a synthetic diff to SecretsExposureDetector.detect(), count lastDiagnostics with preFilterReason 'path filter'."
+}
