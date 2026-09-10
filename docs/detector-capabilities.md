@@ -127,6 +127,8 @@ The contract has three goals:
 
 **Measured baseline:** 18/20 (log: `test-output/env-exposure-day5-r6-rerun.log`).
 
+**ANNOTATION (2026-09-10) — 18/20 IS THE SCORE OF AN 11+9 SUITE UNDER A DISCARDED POLICY AND A RETIRED PROMPT, AND NO NUMBER EXISTS FOR THE SUITE THAT SHIPS TODAY.** The log records 11 positives and 9 negatives at n=5 (positives 9/11, negatives 9/9), `SYSTEM_PROMPT fingerprint: d2ca2f022d99`, scored under the policy in which a MEDIUM verdict was discarded before it could be reported — the policy #152 ended on 2026-08-07 — and under a prompt the shipping fingerprint has since moved away from. The number is kept because it is still the correct score of that suite under that policy and that prompt. **No number exists for the current 12-positive, 8-negative suite under the shipped policy:** `docs/measurements/env-exposure-stage3-2026-08-12.json` declines one (n=5 on a single fixture, n=1 on sixteen), and nothing since has measured the full suite. **One of the nine negatives in that 9/9 is `03-fastify-redacted-logs.ts`, later reclassified `positive/12` under R6 (`fixtures/env-exposure/META.md`):** its "correctly-skipped 5/5" was the discard policy masking a real miss, so a reader who sees "9 of 9 negatives" reads a cleaner result than the suite produced.
+
 ---
 
 ### 5. secrets-exposure (`secrets-exposure-multi`)
