@@ -6,9 +6,11 @@
  * spec. Same CLI (named selectors + "all"), same class-mismatch /
  * no-fixture-written failures.
  *
- * Records the 30 MODEL-REACHING (bucket-c) fixtures ONLY. The other 12 fixtures
- * never call the model - 9 take the Option G literal-tier bypass and 3 are
- * dropped pre-model - so they have no request to key a recording on. They are
+ * Records the 39 MODEL-REACHING (bucket-c) fixtures ONLY (30 until 2026-09-10,
+ * when seven patterns left the literal tier and negative/22 was added). The
+ * other 7 fixtures never call the model - 4 take the Option G literal-tier
+ * bypass and 3 are dropped pre-model - so they have no request to key a
+ * recording on. They are
  * guarded for free by `test:admin-check-prefilter`. Selecting one of them here
  * would write no fixture and fail loud rather than silently record nothing.
  *
@@ -29,9 +31,9 @@
  *   - Requires ANTHROPIC_API_KEY; refuses (loud) without it.
  *   - Requires an explicit fixture selection; refuses with no args.
  *   - Refuses if FIXOR_REPLAY is set (ambiguous with record mode).
- *   - Refuses if FIXOR_ADMIN_CHECK_LLM_OPT_IN=true: it routes the 9 bucket-(b)
+ *   - Refuses if FIXOR_ADMIN_CHECK_LLM_OPT_IN=true: it routes the 4 bucket-(b)
  *     bypass fixtures onto the model path, which would silently invalidate this
- *     30-id manifest (they would become recordable and `extra` recordings could
+ *     39-id manifest (they would become recordable and `extra` recordings could
  *     appear) rather than fail it.
  *   - Refuses if FIXOR_ESCALATE_MEDIUM=true (invalid Windows colon-path callerId
  *     "escalation:admin-check-multi"); enforced by assertEscalationUnset in the
@@ -41,7 +43,7 @@
  * Usage (from repo root, after build):
  *   ANTHROPIC_API_KEY=... node dist/test/record-admin-check-fixtures.js \
  *     positive/06 negative/01
- * Shorthand selectors and "all" (all 30 model-reaching) work too.
+ * Shorthand selectors and "all" (all 39 model-reaching) work too.
  */
 
 const out = process.stdout;

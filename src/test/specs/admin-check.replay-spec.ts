@@ -112,13 +112,27 @@ const REPLAY_DIR = "fixtures/replay/admin-check-multi";
 
 /**
  * Expected END-TO-END flagged outcome per model-reaching fixture, per the
- * corpus's DESIGNED intent: the 12 recordable positives flag (real missing
- * admin gates), the 18 model-reaching negatives do not. The 15 pre-model
+ * corpus's DESIGNED intent: the 20 recordable positives flag (12 real missing
+ * admin gates + the 8 hardcoded-admin shapes moved to the model on
+ * 2026-09-10), the 19 model-reaching negatives do not. The 7 pre-model
  * fixtures are absent (see the exclusion block below); they never reach the
  * model so they cannot record and are not part of the round-trip.
  */
 const EXPECTED_FLAGGED: Record<string, boolean> = {
   // --- positives (real missing admin gates): all expected to FLAG ---
+  // 2026-09-10: these eight moved from bucket (b) to bucket (c) when their
+  // deciding patterns moved from tier "literal" to "judgment". positive/08 is
+  // Python (`email.endswith`) reaching the model only through the load-bearing
+  // `/i` on `email_endswith_at`; if that flag is removed this id records as a
+  // pre-model drop and the manifest reports it missing.
+  "positive/01-hardcoded-admin-email.ts": true,
+  "positive/02-endswith-company-domain.ts": true,
+  "positive/03-email-includes-admin.ts": true,
+  "positive/05-admin-emails-array.js": true,
+  "positive/08-flask-endswith-domain.py": true,
+  "positive/10-go-admin-domain-suffix.go": true,
+  "positive/22-hardcoded-admin-email-equality.js": true,
+  "positive/24-client-supplied-role-no-route-def.js": true,
   // positive/06 is a route-def trigger despite its literal-tier name; see the
   // earliest-match note in the header.
   "positive/06-client-supplied-role.js": true,
@@ -154,36 +168,27 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
   "negative/19-fastapi-require-admin.py": false,
   "negative/20-fastapi-superuser-inline.py": false,
   "negative/21-flask-admin-required.py": false,
+  // 2026-09-10: real-shape negative. cal.com packages/lib/isSmsCalEmail.ts, the
+  // three-line SMS-address predicate that the literal tier reported as an admin
+  // grant at critical with no model call (the #185 measured case). It reaches
+  // the model now via email_endswith_at (judgment tier) and must stay silent.
+  "negative/22-sms-email-helper.ts": false,
 
   // ======================================================================
   // EXCLUDED (pre-model; never reach callClaude, so never record).
-  // All 15 are guarded for free by `test:admin-check-prefilter` instead.
+  // All 7 are guarded for free by `test:admin-check-prefilter` instead.
+  // (15 until 2026-09-10; the eight bucket-(b) ids that moved are listed
+  // above among the positives.)
   // ======================================================================
   //
   // Bucket (b) - Option G deterministic bypass. The first trigger is a
   // literal-tier pattern with a hand-authored explanation, so analyzeFile emits
   // the finding straight from the regex match and returns before callClaude.
   // Listed with the patternId that actually fires (pinned by the prefilter gate):
-  //   positive/01-hardcoded-admin-email.ts     admin_email_const
-  //   positive/02-endswith-company-domain.ts   email_endswith_at
-  //   positive/03-email-includes-admin.ts      email_includes_admin
   //   positive/04-default-admin-id-fallback.ts default_admin_id
-  //   positive/05-admin-emails-array.js        admin_emails_array
   //   positive/07-default-admin-id-helper.js   default_admin_id
-  //   positive/08-flask-endswith-domain.py     email_endswith_at
-  //                                            (Python spelling, matched via the
-  //                                             load-bearing /i on that pattern;
-  //                                             py_email_endswith_at was deleted
-  //                                             as unreachable in PR C2)
   //   positive/09-flask-default-admin-email.py default_admin_email
-  //   positive/10-go-admin-domain-suffix.go    strings_hassuffix_email
-  //   positive/22-hardcoded-admin-email-equality.js  email_eq_literal
   //   positive/23-role-nullish-fallback-admin.js     role_fallback_admin
-  //   positive/24-client-supplied-role-no-route-def.js  body_role_check
-  //                                            (defines no route, so
-  //                                             express_route_def cannot
-  //                                             pre-empt it as it does in
-  //                                             positive/06)
   //
   // Bucket (a) - dropped pre-model, with the exact preFilterReason recorded:
   //   negative/03-email-match-invite-only.ts          "no regex match"
@@ -220,10 +225,12 @@ const EXPECTED_FLAGGED: Record<string, boolean> = {
 const EXPECTED_LANE: Record<string, ExpectedLane> = {};
 
 /**
- * Completeness manifest: the 30 model-reaching source fixtures that MUST each
- * have a recording. The 15 pre-model fixtures are intentionally absent: 12
- * bucket-(b) bypasses + 3 bucket-(a) drops, matching the exclusion block below
- * and the 3/12/30 split in the header. This line said "12" until 2026-08-03,
+ * Completeness manifest: the 39 model-reaching source fixtures that MUST each
+ * have a recording (30 until 2026-09-10; +8 positives moved from bucket (b)
+ * when seven patterns left the literal tier, +1 real-shape negative/22). The 7
+ * pre-model fixtures are intentionally absent: 4 bucket-(b) bypasses + 3
+ * bucket-(a) drops, matching the exclusion block below. The earlier text of
+ * this paragraph, kept for its lesson: the count line said "12" until 2026-08-03,
  * contradicting both, and 45 - 30 = 15. Corrected while verifying the corpus
  * count BY EXECUTION before the third paid stage-3 run: a wrong count in this
  * file is the one most likely to be trusted downstream. The expectedFlagged
