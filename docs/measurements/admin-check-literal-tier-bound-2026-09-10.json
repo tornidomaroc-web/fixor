@@ -1,0 +1,35 @@
+{
+  "measurement": "admin-check literal tier: the shipped path emits a regex match as a critical admin-grant finding with no model stage, shown on a non-grant helper in a real repository",
+  "date": "2026-09-10",
+  "ref": "Fixor main at 4dfa686e (the detector under test); corpus calcom/cal.com@fb0149453e97a047f44ec21e99f9d8af420d8365 (test-output/calcom-smoke/calcom, on disk)",
+  "zeroSpend": true,
+  "spendNote": "The literal tier constructs no model call by construction. The instrument additionally replaced callClaude at the module boundary with a function that THROWS, and refused to start if ANTHROPIC_API_KEY was set. Model calls attempted: 0.",
+  "theBound": "PREFILTER_PATTERNS entries with tier:'literal' (11 of 17) bypass the model whenever llmValidation is false, which is the shipped default (FIXOR_ADMIN_CHECK_LLM_OPT_IN unset). The finding carries confidence high, severity critical, and the pattern's hand-authored explanation. Nothing distinguishes a privilege decision from any other use of the matched shape.",
+  "instrument": {
+    "what": "The shipped AdminCheckDetector from dist/ (built 2026-09-10 10:59 from the 4dfa686e tree), constructed with no options exactly as registry.ts does, fed a synthetic whole-file diff of the target through detect().",
+    "controls": {
+      "C1_positive": "fixtures/admin-check/positive/02-endswith-company-domain.ts -> 1 finding, diag preFilterReason 'llm-bypass', ruleId admin-check-email_endswith_at. PASS.",
+      "C2_negative": "a two-line pattern-free file -> 0 findings, diag 'no regex match'. PASS.",
+      "C3_second_way": "the diag reason ('llm-bypass') and the finding ruleId both name the pattern; callClaude wrapped to throw and did not fire."
+    }
+  },
+  "result": {
+    "file": "packages/lib/isSmsCalEmail.ts",
+    "lines": 3,
+    "content": "export default function isSmsCalEmail(email: string) {\n  return email.endsWith(\"@sms.cal.com\");\n}",
+    "emitted": {
+      "type": "admin_check_risk",
+      "line": 2,
+      "ruleId": "admin-check-email_endswith_at",
+      "severity": "critical",
+      "confidence": "high",
+      "explanationStartsWith": "Admin grant via hardcoded domain suffix check. The code grants admin or elevated privileges to any user whose email ends with a specific domain.",
+      "modelCallsAttempted": 0
+    },
+    "readingOfTheCode": "An SMS-address predicate used to route notifications; no privilege is granted or checked anywhere in the file. The explanation asserts a grant that does not exist."
+  },
+  "whyTheBaselineNumberStands": "test-output/admin-check-app-router-phase-c-posttune.log carries nine 'llm-bypass' entries, so the 30/30 baseline was measured on the shipped (bypass) path. The number is honest; the mechanism was undisclosed in docs/detector-capabilities.md until this measurement.",
+  "whatThisDoesNotEstablish": "How often a literal-tier pattern matches non-grant code in customer repositories. One file at one commit is a demonstration of the mechanism, not a rate. R3 applies twice over: n=1 repository, n=1 file.",
+  "boundToTheCode": "Goes false if the tier field is removed, if FIXOR_ADMIN_CHECK_LLM_OPT_IN ceases to default false, or if email_endswith_at gains a body discriminator. Re-audit in that commit.",
+  "reproduction": "Zero spend. With no key in the environment: instantiate AdminCheckDetector, call detect() with a synthetic whole-file diff of the file above at path packages/lib/isSmsCalEmail.ts, read lastDiagnostics[0].preFilterReason and the returned finding."
+}
