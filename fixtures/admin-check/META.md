@@ -1,5 +1,17 @@
 # admin-check fixtures
 
+## 2026-09-10 — seven patterns leave the literal tier; negative/22 added (R7: capability extension, no fingerprint bump)
+
+**What changed.** `email_eq_literal`, `email_endswith_at`, `email_includes_admin`, `strings_hassuffix_email`, `admin_emails_array`, `admin_email_const` and `body_role_check` moved from `tier: "literal"` to `tier: "judgment"` and lost their hand-authored explanations. `default_admin_id`, `default_admin_email` and `role_fallback_admin` stay literal. The line: a pattern stays regex-only only when its match IS a privilege fallback; the seven match an email or role STRING SHAPE with no privilege semantics, and on the shipped path a literal match was emitted at `critical` with no adjudication.
+
+**Why (measured).** `docs/measurements/admin-check-literal-tier-bound-2026-09-10.json`: cal.com `packages/lib/isSmsCalEmail.ts`, a three-line SMS-address predicate, emitted `admin_check_risk` at `critical` with zero model calls. That file is now `negative/22-sms-email-helper.ts` (three lines, verbatim, `ASSUMED-PATH` at its cal.com path; cal.com is AGPL-3.0, and this is a three-line predicate reproduced as a test input) so the false positive that motivated the move is measured at n=5 after it.
+
+**R7 classification: CAPABILITY EXTENSION, not calibration.** `SYSTEM_PROMPT` is untouched and `SYSTEM_PROMPT_FINGERPRINT` stays `ed52ebe3db91`; case 1 of the prompt already names every moved shape. What changed is WHICH fixtures reach the prompt (a structural change in what the model is asked to judge), not what the prompt says in response to an observed verdict. The 30 existing recordings keep their keys.
+
+**Bucket movement.** Model-reaching went 30 → 39: positives 01, 02, 03, 05, 08, 10, 22, 24 moved from bucket (b) to (c), and negative/22 joined (c). Bucket (b) is now 04, 07, 09, 23. Thresholds in `test-admin-check.ts` moved 24/21/45 → 24/22/46 for the new negative. The Day 8 "11 literal-tier" count below is historical twice over: PR C2 took it to 10, this change to 3.
+
+**Correction carried in the same PR.** `docs/detector-capabilities.md`'s admin-check CLAIMS annotation, landed in #185 on 2026-09-10, said "Eleven `PREFILTER_PATTERNS` entries carry `tier: "literal"`"; the source held ten. Found while counting the patterns for this move (`grep -c 'tier: "literal"'`); the eleven was the Day 8 figure repeated without re-counting.
+
 ## Day 8 — per-pattern Option G mitigation (2026-05-15)
 
 **Production-default admin-check runs with per-pattern tier bypass.** Literal-tier pattern matches (11 of 12 patterns) emit findings using hand-authored explanations without invoking the LLM. The single judgment-tier pattern (`role_string_compare`) keeps LLM in the loop because the regex cannot distinguish bug cases (hardcoded admin grant) from safe cases (DB-backed role lookup, verified JWT claim).

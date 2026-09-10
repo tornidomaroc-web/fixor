@@ -121,9 +121,13 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
   {
     id: "email_eq_literal",
     re: /\bemail\s*===?\s*['"][^'"@]+@/i,
-    tier: "literal",
-    explanation:
-      "Admin grant via hardcoded email comparison. The code grants admin privileges when the authenticated user's email exactly matches a literal string in source. This trusts the email value (which may come from session, JWT payload, or request body — any of which can be spoofed if not server-signed and verified) instead of consulting an authoritative role store. Move admin role assignment to a database table (`user_roles`, `org_members`, or similar), look up the role from there using the authenticated user ID, and remove the hardcoded comparison.",
+    tier: "judgment",
+    // Moved from tier "literal" on 2026-09-10: this regex matches an email or
+    // role STRING SHAPE, not a privilege decision, and on the shipped path a
+    // literal match was emitted at critical with no adjudication (measured
+    // non-grant false positive: cal.com packages/lib/isSmsCalEmail.ts, see
+    // docs/measurements/admin-check-literal-tier-bound-2026-09-10.json). The
+    // model now reads the file; SYSTEM_PROMPT case 1 already names this shape.
   },
   // THE `/i` FLAG BELOW IS LOAD-BEARING. DO NOT REMOVE IT.
   //
@@ -154,23 +158,35 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
   {
     id: "email_endswith_at",
     re: /\bemail\.endsWith\s*\(\s*['"]\s*@/i,
-    tier: "literal",
-    explanation:
-      "Admin grant via hardcoded domain suffix check. The code grants admin or elevated privileges to any user whose email ends with a specific domain. This is trivially bypassable: an attacker who can register an email on that domain (any public provider with the matching suffix, or any subdomain the attacker controls) is granted admin, and the email value itself may be spoofable if not from a verified source. Replace with a database-backed role lookup keyed on the authenticated user ID, or with a verified JWT claim from a trusted issuer.",
+    tier: "judgment",
+    // Moved from tier "literal" on 2026-09-10: this regex matches an email or
+    // role STRING SHAPE, not a privilege decision, and on the shipped path a
+    // literal match was emitted at critical with no adjudication (measured
+    // non-grant false positive: cal.com packages/lib/isSmsCalEmail.ts, see
+    // docs/measurements/admin-check-literal-tier-bound-2026-09-10.json). The
+    // model now reads the file; SYSTEM_PROMPT case 1 already names this shape.
   },
   {
     id: "email_includes_admin",
     re: /\bemail\.includes\s*\(\s*['"](?:admin|owner|founder|root|superuser)/i,
-    tier: "literal",
-    explanation:
-      "Admin grant via email substring match on privileged keywords ('admin', 'owner', 'founder', 'root', 'superuser'). Trivially bypassable — any user can register an email like 'notanadmin@evil.com' or 'realfounder@attacker.com' and pass the check. Replace with a database-backed role lookup keyed on authenticated user ID, or with a verified JWT claim. (Note: if this `includes` check is used for non-grant purposes such as blocking admin-themed signups or audit logging, the regex over-fired; review and reclassify the pattern.)",
+    tier: "judgment",
+    // Moved from tier "literal" on 2026-09-10: this regex matches an email or
+    // role STRING SHAPE, not a privilege decision, and on the shipped path a
+    // literal match was emitted at critical with no adjudication (measured
+    // non-grant false positive: cal.com packages/lib/isSmsCalEmail.ts, see
+    // docs/measurements/admin-check-literal-tier-bound-2026-09-10.json). The
+    // model now reads the file; SYSTEM_PROMPT case 1 already names this shape.
   },
   {
     id: "strings_hassuffix_email",
     re: /strings\.HasSuffix\s*\(\s*\w*email\w*\s*,\s*['"]@/i,
-    tier: "literal",
-    explanation:
-      "Admin grant via hardcoded domain suffix check (Go `strings.HasSuffix`). The code grants admin privileges to any user whose email ends with a specific domain. Bypassable by registering or spoofing an email on the matching domain. Replace with a database-backed role lookup keyed on authenticated user ID, or with a verified JWT claim from a trusted issuer.",
+    tier: "judgment",
+    // Moved from tier "literal" on 2026-09-10: this regex matches an email or
+    // role STRING SHAPE, not a privilege decision, and on the shipped path a
+    // literal match was emitted at critical with no adjudication (measured
+    // non-grant false positive: cal.com packages/lib/isSmsCalEmail.ts, see
+    // docs/measurements/admin-check-literal-tier-bound-2026-09-10.json). The
+    // model now reads the file; SYSTEM_PROMPT case 1 already names this shape.
   },
   {
     id: "default_admin_id",
@@ -189,9 +205,13 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
   {
     id: "admin_emails_array",
     re: /\b(?:ADMIN_EMAILS|admin_emails)\s*=\s*\[/,
-    tier: "literal",
-    explanation:
-      "Admin grant via hardcoded email allowlist (`ADMIN_EMAILS` array or similar). Membership in a literal array of email strings determines admin privileges. Hardcoded admin identity in source code is visible to anyone with repository access, requires a redeploy to revoke or add admins, is invisible to runtime configuration audits, and bypasses any standard audit-log-of-admin-changes pattern. Move admin role assignment to a database table managed via admin UI or migration, and look up the role at request time.",
+    tier: "judgment",
+    // Moved from tier "literal" on 2026-09-10: this regex matches an email or
+    // role STRING SHAPE, not a privilege decision, and on the shipped path a
+    // literal match was emitted at critical with no adjudication (measured
+    // non-grant false positive: cal.com packages/lib/isSmsCalEmail.ts, see
+    // docs/measurements/admin-check-literal-tier-bound-2026-09-10.json). The
+    // model now reads the file; SYSTEM_PROMPT case 1 already names this shape.
   },
   {
     id: "role_string_compare",
@@ -215,16 +235,24 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
   {
     id: "body_role_check",
     re: /req\.(?:body|query|params)\.\w*[Rr]ole\b/,
-    tier: "literal",
-    explanation:
-      "Admin grant via client-supplied role from request body, query string, or path params. The code reads `role` directly from the HTTP request and uses it for an authorization decision. The request is fully attacker-controlled — any client can supply `{ \"role\": \"admin\" }` to bypass the check. Replace with a server-side role lookup keyed on the authenticated session or JWT user ID; never trust role values supplied by the client.",
+    tier: "judgment",
+    // Moved from tier "literal" on 2026-09-10: this regex matches an email or
+    // role STRING SHAPE, not a privilege decision, and on the shipped path a
+    // literal match was emitted at critical with no adjudication (measured
+    // non-grant false positive: cal.com packages/lib/isSmsCalEmail.ts, see
+    // docs/measurements/admin-check-literal-tier-bound-2026-09-10.json). The
+    // model now reads the file; SYSTEM_PROMPT case 1 already names this shape.
   },
   {
     id: "admin_email_const",
     re: /\b(?:ADMIN_EMAIL|admin_email)\s*=\s*['"][^'"]*@/i,
-    tier: "literal",
-    explanation:
-      "Admin grant via hardcoded `ADMIN_EMAIL` constant compared to user email. Admin identity is determined by string equality with a single email literal embedded in source. Same problems as hardcoded admin arrays: source-embedded admin identity is hard to revoke (requires redeploy), invisible to runtime audits, exposed to anyone with repository access. Move admin role assignment to a database table managed via admin UI or migration, and look up the role at request time.",
+    tier: "judgment",
+    // Moved from tier "literal" on 2026-09-10: this regex matches an email or
+    // role STRING SHAPE, not a privilege decision, and on the shipped path a
+    // literal match was emitted at critical with no adjudication (measured
+    // non-grant false positive: cal.com packages/lib/isSmsCalEmail.ts, see
+    // docs/measurements/admin-check-literal-tier-bound-2026-09-10.json). The
+    // model now reads the file; SYSTEM_PROMPT case 1 already names this shape.
   },
   // Express-family route definition (Phase 2 missing-admin-gate
   // remediation, mirrors the Phase 1 auth-bypass broadening). The
@@ -826,12 +854,14 @@ export class AdminCheckDetector implements Detector {
     );
 
     // Per-pattern Option G bypass (Day 8): literal-tier patterns with
-    // hand-authored explanations skip the LLM call. All six judgment-tier
-    // patterns (role_string_compare plus the five route-def sentinels) stay
+    // hand-authored explanations skip the LLM call. Since 2026-09-10 only
+    // THREE patterns are literal - default_admin_id, default_admin_email,
+    // role_fallback_admin - because only there the regex match IS a privilege
+    // fallback. The other thirteen (role_string_compare, the five route-def
+    // sentinels, and the seven email/role string shapes moved that day) stay
     // on the LLM path regardless of llmValidation, because the regex cannot
-    // disambiguate bug vs safe usage. The route-def five were added after
-    // this comment first claimed role_string_compare was the only one.
-    // See D8 "Detector ≠ pattern set" in detector-test-rules.md.
+    // disambiguate bug vs safe usage. See D8 "Detector ≠ pattern set" in
+    // detector-test-rules.md and fixtures/admin-check/META.md (2026-09-10).
     if (
       !this.llmValidation &&
       matchedPattern?.tier === "literal" &&
