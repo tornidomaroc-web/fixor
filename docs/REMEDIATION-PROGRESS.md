@@ -3242,6 +3242,36 @@ remains OPEN as above.
   calls / 1 priced / $0.0100`, and test B falsification (old inferred 142, new observed 304, 166
   escalation calls) all still pass, and the model-reaching total is still 144. No API spend.
 
+- **W-005 (OPEN; gate defect, read from the workflow and proven by one commit; a property of the
+  SECRETS GATE and not of any detector; deterministic fix, no spend) - a secret pasted into a
+  commit MESSAGE passes every gate this repository runs, and the squash setting copies every
+  message onto `main`.**
+
+  Provenance: found 2026-09-10 while clearing a gitleaks false positive in PR #180. The rewording
+  commit on that branch quoted the offending phrase in its own message and the gate produced no
+  finding, while the same phrase in the first commit's diff did. That is the proof: the gate scans
+  diffs and not messages. Filed in the W- namespace (workflow-gate defects, W-001 to W-004) and in
+  1c because the fix is small, deterministic and spends nothing.
+
+  WHAT COVERS COMMIT MESSAGES TODAY, checked rather than assumed. (1) `.github/workflows/secrets.yml`
+  runs gitleaks over the PR commit range's diffs; messages are not scanned, proven above.
+  (2) `scripts/secrets_scan.py` walks tree files and the staged file list; it never reads a
+  message. (3) GitHub secret scanning and push protection are both enabled on this public
+  repository, non-provider patterns disabled; GitHub's documented scanned surfaces are git history
+  file contents, issues, pull requests, discussions, wikis and gists, and commit messages are not
+  on that list. Nothing verifiable reads a commit message.
+
+  WHY AN ENTRY RATHER THAN A FOOTNOTE. `squash_merge_commit_message = COMMIT_MESSAGES` copies every
+  constituent message into the squash commit on `main`, so a message on any branch becomes
+  permanent public history. R13 in `docs/detector-test-rules.md` makes commit bodies load-bearing,
+  which invites more writing in them.
+
+  FIX SHAPE, deterministic and keyless, NOT DONE HERE: one step in `secrets.yml` that pipes
+  `git log --format=%B <base>..<head>` through gitleaks in its no-git (stdin) mode under the same
+  `.gitleaks.toml`, failing the job on a finding. Its own negative control: a throwaway branch
+  whose only change is a fake key in a commit message, red before the step and red after it for
+  the right reason.
+
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
 These items were surfaced by Run 1. See "Live detection-quality measurements / Run 1" for the
