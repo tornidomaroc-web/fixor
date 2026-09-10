@@ -3272,8 +3272,8 @@ remains OPEN as above.
   whose only change is a fake key in a commit message, red before the step and red after it for
   the right reason.
 
-- **W-006 (OPEN; gate defect, read from the replay directory and proven by one listing; a property
-  of the WEBHOOK REPLAY GATE and not of the detector; fix requires spend to record) -
+- **W-006 (RETRACTED 2026-09-11; the premise below is FALSE. The entry is kept verbatim as the
+  case for R12; the fact, the cause and the rule are in the RETRACTION paragraph at its end) -
   `fixtures/replay/webhook-unverified-multi/` holds ONE recorded request, so the keyless gate
   `test:replay-webhook-unverified` protects one webhook fixture of 35.**
 
@@ -3301,6 +3301,25 @@ remains OPEN as above.
   per-call figure from `docs/measurements/webhook-unverified-stage3-2026-08-07.json` before dispatch,
   never from here. Negative control for the widened gate: delete one recording on a throwaway branch
   and the gate must go red for that fixture and for nothing else.
+
+  RETRACTION (2026-09-11; counted 2026-09-10). THE FACT: `fixtures/replay/webhook-unverified-multi/`
+  holds 34 tracked recordings, one per model-reaching webhook fixture (17 positives + 17 negatives;
+  `negative/18-remix-action-factory-utility-module.ts` is a pre-model drop and cannot record).
+  `src/test/test-recorded-medium-census.ts` has pinned that count at 34 since it was written and
+  passed on every `test:ci` run of 2026-09-10. The keyless webhook gate protects 34 of 35 fixtures,
+  not 1 of 35; the "one recorded request" above, the provenance built on it, and the fix shape are
+  void. THE CAUSE: the listing of every replay directory that produced this entry was piped through
+  a display limit (`head -120`); the webhook directory printed last and was cut after its first
+  entry, and one line was read as one file. `ls | wc -l` and the census pin were both on disk and
+  neither was consulted. The number then travelled, without a re-count, into #186's PR body, #192's
+  commit message, and the 2026-09-10 truth table's remainder. THE RULE: R12 - a truncated instrument
+  output is a well-formed, plausible result whose error no inspection of the output reveals; before
+  believing a count, ask the same question a second way. This entry is retracted by that rule, which
+  is the rule that should have caught it, and it was caught by that rule's second way (the census
+  pin) the second time in one day that an instrument's number and the second way disagreed (the
+  first: `git check-ignore` pointing at a blank line, settled by a dry-run `git add`). Nothing in the
+  webhook contract (#186) depended on the count: its earliest-trigger case used the `positive/10`
+  recording as a byte-match control, and that recording exists. Corrections posted on #186 and #192.
 
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
