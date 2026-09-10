@@ -3604,6 +3604,71 @@ pattern-axis facts and DEFER their ICP rates to E'.
   **REACH context (added 2026-07-17).** On the ICP sample this pattern dominates the detector's
   reach surface (see L-012), which raises this fix's PRIORITY without changing its status.
 
+- **L-023 (OPEN; STRUCTURAL, read from source and from a pattern replay at zero spend; a property
+  of the secrets-exposure DETECTOR on its SHIPPED path; NON-gating; NO RATE ASSERTED) - every
+  prefilter match that survives the five deflection points is emitted at high/critical with no
+  adjudication, the rate at which that happens on innocuous code is UNMEASURED, and the missing
+  artifact is a MEASUREMENT CORPUS, not a negative fixture.**
+
+  Filed in 1e on provenance: surfaced while pricing the CLAIMS row for #179 by reading
+  `secrets-exposure.detector.ts` and replaying `PREFILTER_PATTERNS` under the detector's own scan
+  semantics. No model call, no dispatch, no rig run. Promised as a worklist entry by the body of
+  PR #179, merged 2026-09-10 as `ad22b067`. Dates, because `git log main` cannot recover them: the
+  measurement and the OpenAI correction were authored 2026-08-17 (branch commit `9236b39`, the same
+  day as #178); the §5 evidence paragraph was authored 2026-09-10 (branch commit `925e64a`); the
+  squash collapsed both into `ad22b067`, dated 2026-09-10, so on `main` prose measured on
+  2026-08-17 sits in a commit 24 days younger. The 2026-08-17 stamps inside the merged text are
+  true; the artifact's own `date` field and the PR's commit list are the surviving witnesses.
+
+  **THE GAP, as it actually is.** On the shipped path a file leaves without a finding at exactly
+  five points: unsupported language, path filter, server-only marker, no regex match, and the Day
+  13 redaction-shape exemption. The first four run before any pattern is consulted. The fifth is
+  the only post-match clearing step and is deliberately narrow (asterisk runs, bracketed
+  REDACTED-family tokens, and mask, redact and sanitize calls). Nothing else can clear a match. What the
+  shipped path can and cannot produce as evidence is stated in the §5 paragraph of
+  `docs/detector-capabilities.md` (2026-09-10); why the 20/20 baseline is silent on this path is
+  stated in the §5 ANNOTATION of 2026-08-17 (Edit C). Neither is restated here.
+
+  **WHAT THE CORPUS CANNOT SAY.** Every negative fixture in `fixtures/secrets-exposure/negative/`
+  is deflected before a pattern fires or before the model would be consulted (Edit C gives the
+  split). The corpus therefore contains no file that trips a pattern, survives all five exits, and
+  should not be reported, and the gate's own corpus invariants record the redaction path as
+  unexercised.
+
+  **WHY THAT IS NOT "MISSING NEGATIVE FIXTURES", stated so the next reader does not write one.**
+  A gate fixture asserting "trips a pattern, survives the five exits, correctly not flagged" is
+  UNWRITABLE on this path, not merely unwritten: with no adjudication step the detector emits by
+  construction, and the fixture would be a permanently red test that says nothing about the
+  detector. Do not write it. The one writable, absent negative is the redaction-shape class, which
+  the gate invariants would detect on arrival and which requires its own manifest entry; that is a
+  separate small item and must not be counted as closing this one.
+
+  **THE RIGHT OBJECT IS A MEASUREMENT.** A corpus of innocuous source that survives the path filter
+  (documentation strings, example configuration, test doubles outside path-filtered directories,
+  placeholder defaults the detector deliberately errs toward emitting), run keyless through the
+  shipped detector, with every `llm-bypass` emit tallied per `patternId` and classified by hand as
+  a real credential or not. Output: a per-pattern count of non-credential emits on a NAMED corpus.
+  It produces a number, not a pass, and lives in `docs/measurements/`. Cost: $0.00 in spend; the
+  shipped path makes no model call. Time cost is the human classification of each emit.
+  A first named instance of the shape, on a third party's rule and not on one of the fifteen: on
+  2026-09-10 the gitleaks `generic-api-key` rule (8.24.3; credential keyword, comma separator,
+  base64-shaped value, entropy floor 3.5) fired on this entry's own prose describing the redaction
+  exemption, at entropy 3.584, with nothing downstream to clear it but a human reading the string;
+  it was cleared by rewording (PR #180). That rule carries two clearing steps the shipped bypass
+  lacks, an entropy floor and a stopword allowlist, and still emitted, so the instance shows the
+  class is real and those two steps are not sufficient on their own. It says nothing about the
+  rate on the fifteen patterns, which remains unasserted.
+
+  **NO FREQUENCY IS ASSERTED HERE.** The mechanism is certain and read from source. Whether the
+  rate is negligible or dominant is unknown until the corpus is measured, and this entry must not
+  be cited as evidence in either direction.
+
+  **SEQUENCING.** A clearing mechanism (per-pattern bypass gating, which the bypass comment in the
+  detector already names as the shape for non-literal patterns; or a demotion of specific
+  patterns below critical) is a decision that needs the number first. Measure, then rule. The
+  invalidation clause on the §5 DOES NOT CLAIM row applies here too: a change to
+  `PREFILTER_PATTERNS` or to the `FIXOR_SECRETS_LLM_OPT_IN` default re-opens this entry.
+
 ### Priority 1f - OPEN: reach / market-fit findings surfaced by structural measurement
 
 Same `L-` namespace as Priority 1d and 1e (found by RUNNING the detector), and a DELIBERATELY
