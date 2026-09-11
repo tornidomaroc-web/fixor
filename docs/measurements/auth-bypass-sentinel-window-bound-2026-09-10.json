@@ -1,0 +1,37 @@
+{
+  "measurement": "auth-bypass: a sentinel trigger is judged on a 24-line window, and a same-file defect outside that window never reaches the prompt; shown on express-jwt at the last commit carrying the algorithm-confusion shape",
+  "date": "2026-09-10",
+  "ref": "Fixor main at 4dfa686e; corpus auth0/express-jwt@e9ed6d240d945fca8f8911c1f1d743dfe3f1f8e3 (fetched into the session scratchpad, not into the repository); second shape on calcom/cal.com@fb0149453e97a047f44ec21e99f9d8af420d8365",
+  "zeroSpend": true,
+  "spendNote": "callClaude replaced at the module boundary by a recorder returning {ok:false}; no client, no network; instrument refuses to start with ANTHROPIC_API_KEY set.",
+  "theBound": "AuthBypassDetector.analyzeFile selects routeDefTrigger ?? triggers[0]. Only a route-def trigger earns the whole-file payload; every sentinel trigger is sent through extractContextWindow as lines trigger-8 .. trigger+16.",
+  "instrument": {
+    "what": "The shipped AuthBypassDetector from dist/, fed the real file through detect() as a synthetic whole-file diff built by the shipped src/cli/diff-builder.ts buildSyntheticDiff; the user message handed to callClaude captured verbatim.",
+    "control": "Run on fixtures/auth-bypass/positive/03-jwt-verify-swallowed.ts (ASSUMED-PATH header removed, as the harness does), the captured message is byte-identical to the recorded request fixtures/replay/auth-bypass-multi/fede2b0f63e1… . PASS.",
+    "controlDefectCaught": "First version used a copied diff builder that kept a trailing blank line; this control FAILED by one payload line (18 vs 17) until the shipped builder replaced the copy. Recorded per R12."
+  },
+  "result": {
+    "file": "lib/index.js",
+    "totalLines": 138,
+    "selectedTrigger": { "patternId": "jwt_verify", "line": 100, "text": "jwt.verify(token, secret, options, function(err, decoded) {" },
+    "payloadSent": { "firstLine": 92, "lastLine": 115, "lines": 24, "wholeFile": false },
+    "defectOutsidePayload": {
+      "line": 20,
+      "text": "if (!options || !options.secret) throw new Error('secret should be set');",
+      "reading": "The only validation the options object receives. No algorithms requirement; options is then passed verbatim to jwt.verify at line 100, so the token's own alg header selects the verification algorithm. This is the shape fixed in express-jwt 6.0.0 by requiring options.algorithms (CVE-2020-15084).",
+      "distanceAboveWindowFirstLine": 72
+    },
+    "note": "No verdict was obtained and none is claimed. What is measured is that the payload the model receives contains the verify call and not the option handling that makes it unsafe."
+  },
+  "secondShape": {
+    "file": "packages/features/oauth/services/OAuthService.ts",
+    "commit": "fb0149453e97a047f44ec21e99f9d8af420d8365",
+    "totalLines": 523,
+    "selectedTrigger": { "patternId": "jwt_verify", "line": 480 },
+    "payloadSent": { "firstLine": 472, "lastLine": 495, "lines": 24, "wholeFile": false, "derivation": "source formula; the instrument's text-search window locator misreported 426 on this file because the payload's first line repeats earlier in the file, and is not to be believed on files with repeated lines" },
+    "defectAsserted": false
+  },
+  "whatThisDoesNotEstablish": "How often a sentinel file's decisive context lies outside the window. Two files, two repositories, one with a known defect. Not a rate.",
+  "boundToTheCode": "Goes false if sentinel triggers gain the whole-file payload, if triggers[0] selection changes, or if the window changes shape.",
+  "reproduction": "Zero spend. Intercept callClaude, run AuthBypassDetector.detect on lib/index.js at that commit presented as lib/index.js, read 'Triggered at line' and the Function context block."
+}

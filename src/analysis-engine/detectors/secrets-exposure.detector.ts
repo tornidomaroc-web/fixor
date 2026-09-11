@@ -124,6 +124,18 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
       "Anthropic API key hardcoded in source. This key authorizes API calls billed to your account. Rotate the key in the Anthropic console, move to an env var, and check recent usage in the Anthropic dashboard for anomalies.",
   },
   {
+    id: "openai_project_key",
+    // sk-proj- in the marker-bearing format only. Two lookaheads bound the
+    // shape: a minimum body length and the T3BlbkFJ marker (base64 "OpenAI")
+    // that every project key on record carries, so a placeholder or a
+    // truncated paste does not fire. The marker is read from third-party
+    // scanner rules, not from an OpenAI specification; see the CLAIMS row
+    // annotation for the invalidation trigger. Bare legacy sk- is absent.
+    re: /\bsk-proj-(?=[A-Za-z0-9_-]{48,})(?=[A-Za-z0-9_-]*T3BlbkFJ)[A-Za-z0-9_-]+/,
+    explanation:
+      "OpenAI project API key (sk-proj-*) hardcoded in source. This key authorizes API calls billed to the project. Rotate it in the OpenAI dashboard, move it to a server-only env var, and check the project's usage for calls you did not make.",
+  },
+  {
     id: "google_api_key",
     re: /\bAIza[A-Za-z0-9_-]{30,}/,
     explanation:

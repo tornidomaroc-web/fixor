@@ -60,7 +60,9 @@ const EXPECTED_MEDIUM: Record<string, string[]> = {
 // `measure:stage3-calls`. If these drift apart the census is no longer complete
 // coverage and must not be cited as such.
 const EXPECTED_RECORDINGS: Record<string, number> = {
-  "admin-check-multi": 30,
+  // 39 since 2026-09-10: seven patterns left the literal tier (8 positives
+  // became model-reaching) and negative/22-sms-email-helper.ts was added.
+  "admin-check-multi": 39,
   "auth-bypass-multi": 37,
   "idor-multi": 26,
   "env-exposure-multi": 17,

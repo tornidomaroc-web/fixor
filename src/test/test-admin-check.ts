@@ -25,12 +25,14 @@
  * (zero false-positive tolerance; false positives are what made F-001
  * ship-blocking). Aggregate: every fixture must clear its per-fixture bar.
  *
- * NOTE on cost shape: 15 of this corpus's 45 fixtures terminate BEFORE the
- * model (3 pre-model drops and 12 Option G literal-tier bypasses, measured in
- * F-004 sub-step 2b.3). Those cost nothing here and are covered for free by
- * `test:admin-check-prefilter`. Only the 30 model-reaching fixtures spend —
- * unchanged by positives 22-24, which are all Option G bypasses, so this
- * corpus grew by three fixtures at no additional cost per run.
+ * NOTE on cost shape (updated 2026-09-10): 7 of this corpus's 46 fixtures
+ * terminate BEFORE the model (3 pre-model drops and 4 Option G literal-tier
+ * bypasses). Those cost nothing here and are covered for free by
+ * `test:admin-check-prefilter`. The 39 model-reaching fixtures spend. Until
+ * 2026-09-10 the split was 15 pre-model / 30 model-reaching of 45; the move of
+ * seven patterns to the judgment tier sent 8 positives to the model, and
+ * negative/22 (real-shape) was added in the same change, so the bar moved to
+ * 24/22/46 in that commit for the reason item 2 above gives.
  *
  * SCOPE: this is a detection-quality gate, the only kind in this repo. It is
  * the opposite of the deterministic replay and prefilter gates, which verify
@@ -60,8 +62,8 @@ async function main(): Promise<void> {
     perPositiveThreshold: 4,
     perNegativeThreshold: 5,
     positivesMinPassing: 24,
-    negativesMinPassing: 21,
-    combinedMinPassing: 45,
+    negativesMinPassing: 22,
+    combinedMinPassing: 46,
     costPerLlmCallUsd: 0.00828,
     systemPromptFingerprint: SYSTEM_PROMPT_FINGERPRINT,
   });

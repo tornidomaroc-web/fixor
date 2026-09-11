@@ -90,28 +90,21 @@ import {
 const FIXTURES_DIR = "fixtures/admin-check";
 
 /** Bucket (b): fixture -> the patternId whose regex match MUST produce the finding. */
+// 2026-09-10: seven patterns moved from tier "literal" to "judgment"
+// (email_eq_literal, email_endswith_at, email_includes_admin,
+// strings_hassuffix_email, admin_emails_array, admin_email_const,
+// body_role_check). The eight fixtures they decided (positive/01, 02, 03, 05,
+// 08, 10, 22, 24) now reach the model and live in the replay manifest
+// (specs/admin-check.replay-spec.ts). The load-bearing `/i` pin on
+// positive/08 moved there with it. Only the three privilege-fallback patterns
+// remain literal.
 const BYPASS_EXPECTED: ReadonlyArray<readonly [string, string]> = [
-  ["positive/01-hardcoded-admin-email.ts", "admin_email_const"],
-  ["positive/02-endswith-company-domain.ts", "email_endswith_at"],
-  ["positive/03-email-includes-admin.ts", "email_includes_admin"],
   ["positive/04-default-admin-id-fallback.ts", "default_admin_id"],
-  ["positive/05-admin-emails-array.js", "admin_emails_array"],
   ["positive/07-default-admin-id-helper.js", "default_admin_id"],
-  // LOAD-BEARING PIN. This fixture is Python (`email.endswith`) matched by a
-  // camelCase regex; only the `/i` on `email_endswith_at` bridges the spellings.
-  // If that flag is ever removed this line fails first. Do not "fix" it by
-  // relaxing the expected id - restore the flag.
-  ["positive/08-flask-endswith-domain.py", "email_endswith_at"],
   ["positive/09-flask-default-admin-email.py", "default_admin_email"],
-  ["positive/10-go-admin-domain-suffix.go", "strings_hassuffix_email"],
-  // Added by PR C1 to reach three literal-tier patterns the corpus had never
-  // exercised. Each fixture is SHAPED so the intended pattern is the earliest
-  // match: 22 carries no ADMIN_EMAIL constant before the comparison, 23 uses no
-  // `role ===` compare, and 24 defines no route so `express_route_def` cannot
-  // pre-empt `body_role_check` the way it does in positive/06.
-  ["positive/22-hardcoded-admin-email-equality.js", "email_eq_literal"],
+  // Added by PR C1; shaped so the intended pattern is the earliest match (23
+  // uses no `role ===` compare).
   ["positive/23-role-nullish-fallback-admin.js", "role_fallback_admin"],
-  ["positive/24-client-supplied-role-no-route-def.js", "body_role_check"],
 ];
 
 /** Bucket (a): fixture -> the exact preFilterReason detect()/analyzeFile records. */
@@ -297,11 +290,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   process.stdout.write(
-    `\nRESULT: PASS (${total}/${total} fixtures: 12 Option G bypass, 3 pre-model drops)\n` +
+    `\nRESULT: PASS (${total}/${total} fixtures: 4 Option G bypass, 3 pre-model drops)\n` +
       "NOTE: deterministic wiring gate only. Detection quality is not verified here.\n" +
-      "NOTE: guards 10 of 10 literal-tier patterns (full literal-tier coverage).\n" +
-      "      The old 11th, py_email_endswith_at, was deleted as unreachable dead\n" +
-      "      code rather than counted; see the header.\n",
+      "NOTE: guards 3 of 3 literal-tier patterns (full literal-tier coverage since\n" +
+      "      the 2026-09-10 move of seven patterns to the judgment tier).\n",
   );
 }
 

@@ -3242,6 +3242,85 @@ remains OPEN as above.
   calls / 1 priced / $0.0100`, and test B falsification (old inferred 142, new observed 304, 166
   escalation calls) all still pass, and the model-reaching total is still 144. No API spend.
 
+- **W-005 (OPEN; gate defect, read from the workflow and proven by one commit; a property of the
+  SECRETS GATE and not of any detector; deterministic fix, no spend) - a secret pasted into a
+  commit MESSAGE passes every gate this repository runs, and the squash setting copies every
+  message onto `main`.**
+
+  Provenance: found 2026-09-10 while clearing a gitleaks false positive in PR #180. The rewording
+  commit on that branch quoted the offending phrase in its own message and the gate produced no
+  finding, while the same phrase in the first commit's diff did. That is the proof: the gate scans
+  diffs and not messages. Filed in the W- namespace (workflow-gate defects, W-001 to W-004) and in
+  1c because the fix is small, deterministic and spends nothing.
+
+  WHAT COVERS COMMIT MESSAGES TODAY, checked rather than assumed. (1) `.github/workflows/secrets.yml`
+  runs gitleaks over the PR commit range's diffs; messages are not scanned, proven above.
+  (2) `scripts/secrets_scan.py` walks tree files and the staged file list; it never reads a
+  message. (3) GitHub secret scanning and push protection are both enabled on this public
+  repository, non-provider patterns disabled; GitHub's documented scanned surfaces are git history
+  file contents, issues, pull requests, discussions, wikis and gists, and commit messages are not
+  on that list. Nothing verifiable reads a commit message.
+
+  WHY AN ENTRY RATHER THAN A FOOTNOTE. `squash_merge_commit_message = COMMIT_MESSAGES` copies every
+  constituent message into the squash commit on `main`, so a message on any branch becomes
+  permanent public history. R13 in `docs/detector-test-rules.md` makes commit bodies load-bearing,
+  which invites more writing in them.
+
+  FIX SHAPE, deterministic and keyless, NOT DONE HERE: one step in `secrets.yml` that pipes
+  `git log --format=%B <base>..<head>` through gitleaks in its no-git (stdin) mode under the same
+  `.gitleaks.toml`, failing the job on a finding. Its own negative control: a throwaway branch
+  whose only change is a fake key in a commit message, red before the step and red after it for
+  the right reason.
+
+- **W-006 (RETRACTED 2026-09-11; the premise below is FALSE. The entry is kept verbatim as the
+  case for R12; the fact, the cause and the rule are in the RETRACTION paragraph at its end) -
+  `fixtures/replay/webhook-unverified-multi/` holds ONE recorded request, so the keyless gate
+  `test:replay-webhook-unverified` protects one webhook fixture of 35.**
+
+  Provenance: found 2026-09-10 during the honesty sweep, when the recorded request for
+  `positive/10-go-github-eq-compare.go` was used as the byte-match control for the payload-capture
+  instrument behind #186's evidence file and turned out to be the directory's only file. Every
+  other webhook fixture (16 positives, 18 negatives) is guarded only by paid runs; a prompt or
+  payload change that alters their verdicts passes `test:ci` unseen. Approved for filing by the
+  owner on 2026-09-10, after the sweep closed, not inside it.
+
+  WHAT THE GATE COVERS TODAY, checked rather than assumed: `ls fixtures/replay/webhook-unverified-multi/`
+  returns one JSON. The sibling directories hold 30 (admin-check-multi), 41 (auth-bypass-multi),
+  17 (env-exposure-multi) and 26 (idor-multi) recordings. `package.json` has `record:env-exposure`,
+  `record:auth-bypass`, `record:admin-check` and `record:idor`; there is no `record:webhook-unverified`.
+
+  WHY AN ENTRY RATHER THAN A FOOTNOTE: #186 changed the webhook contract on the strength of a
+  captured payload whose only available control was this single recording, and the gate that would
+  catch a regression in the shipped payload builder has one witness. Filed in the W- namespace
+  (workflow-gate defects) because it is a property of the gate, not of what the detector claims.
+
+  FIX SHAPE, NOT DONE HERE and NOT keyless: build `record-webhook-unverified-fixtures.ts` on the
+  `record-idor-fixtures.ts` shape, under the same record guards (refuses without a key, without
+  explicit selection, with `FIXOR_REPLAY` set, with `FIXOR_ESCALATE_MEDIUM=true`), run it ONCE over
+  all 35 fixtures in one process, and report the MEASURED total. The cost is a derived fact: read the
+  per-call figure from `docs/measurements/webhook-unverified-stage3-2026-08-07.json` before dispatch,
+  never from here. Negative control for the widened gate: delete one recording on a throwaway branch
+  and the gate must go red for that fixture and for nothing else.
+
+  RETRACTION (2026-09-11; counted 2026-09-10). THE FACT: `fixtures/replay/webhook-unverified-multi/`
+  holds 34 tracked recordings, one per model-reaching webhook fixture (17 positives + 17 negatives;
+  `negative/18-remix-action-factory-utility-module.ts` is a pre-model drop and cannot record).
+  `src/test/test-recorded-medium-census.ts` has pinned that count at 34 since it was written and
+  passed on every `test:ci` run of 2026-09-10. The keyless webhook gate protects 34 of 35 fixtures,
+  not 1 of 35; the "one recorded request" above, the provenance built on it, and the fix shape are
+  void. THE CAUSE: the listing of every replay directory that produced this entry was piped through
+  a display limit (`head -120`); the webhook directory printed last and was cut after its first
+  entry, and one line was read as one file. `ls | wc -l` and the census pin were both on disk and
+  neither was consulted. The number then travelled, without a re-count, into #186's PR body, #192's
+  commit message, and the 2026-09-10 truth table's remainder. THE RULE: R12 - a truncated instrument
+  output is a well-formed, plausible result whose error no inspection of the output reveals; before
+  believing a count, ask the same question a second way. This entry is retracted by that rule, which
+  is the rule that should have caught it, and it was caught by that rule's second way (the census
+  pin) the second time in one day that an instrument's number and the second way disagreed (the
+  first: `git check-ignore` pointing at a blank line, settled by a dry-run `git add`). Nothing in the
+  webhook contract (#186) depended on the count: its earliest-trigger case used the `positive/10`
+  recording as a byte-match control, and that recording exists. Corrections posted on #186 and #192.
+
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
 These items were surfaced by Run 1. See "Live detection-quality measurements / Run 1" for the
@@ -3603,6 +3682,76 @@ pattern-axis facts and DEFER their ICP rates to E'.
 
   **REACH context (added 2026-07-17).** On the ICP sample this pattern dominates the detector's
   reach surface (see L-012), which raises this fix's PRIORITY without changing its status.
+
+- **L-023 (OPEN; STRUCTURAL, read from source and from a pattern replay at zero spend; a property
+  of the secrets-exposure DETECTOR on its SHIPPED path; NON-gating; NO RATE ASSERTED) - every
+  prefilter match that survives the five deflection points is emitted at high/critical with no
+  adjudication, the rate at which that happens on innocuous code is UNMEASURED, and the missing
+  artifact is a MEASUREMENT CORPUS, not a negative fixture.**
+
+  Filed in 1e on provenance: surfaced while pricing the CLAIMS row for #179 by reading
+  `secrets-exposure.detector.ts` and replaying `PREFILTER_PATTERNS` under the detector's own scan
+  semantics. No model call, no dispatch, no rig run. Promised as a worklist entry by the body of
+  PR #179, merged 2026-09-10 as `ad22b067`. Dates, because `git log main` cannot recover them: the
+  measurement and the OpenAI correction were authored 2026-08-17 (branch commit `9236b39`, the same
+  day as #178); the §5 evidence paragraph was authored 2026-09-10 (branch commit `925e64a`); the
+  squash collapsed both into `ad22b067`, dated 2026-09-10, so on `main` prose measured on
+  2026-08-17 sits in a commit 24 days younger. The 2026-08-17 stamps inside the merged text are
+  true; the artifact's own `date` field and the PR's commit list are the surviving witnesses.
+
+  **THE GAP, as it actually is.** On the shipped path a file leaves without a finding at exactly
+  five points: unsupported language, path filter, server-only marker, no regex match, and the Day
+  13 redaction-shape exemption. The first four run before any pattern is consulted. The fifth is
+  the only post-match clearing step and is deliberately narrow (asterisk runs, bracketed
+  REDACTED-family tokens, and mask, redact and sanitize calls). Nothing else can clear a match. What the
+  shipped path can and cannot produce as evidence is stated in the §5 paragraph of
+  `docs/detector-capabilities.md` (2026-09-10); why the 20/20 baseline is silent on this path is
+  stated in the §5 ANNOTATION of 2026-08-17 (Edit C). Neither is restated here.
+
+  **WHAT THE CORPUS CANNOT SAY.** Every negative fixture in `fixtures/secrets-exposure/negative/`
+  is deflected before a pattern fires or before the model would be consulted (Edit C gives the
+  split). The corpus therefore contains no file that trips a pattern, survives all five exits, and
+  should not be reported, and the gate's own corpus invariants record the redaction path as
+  unexercised.
+
+  **WHY THAT IS NOT "MISSING NEGATIVE FIXTURES", stated so the next reader does not write one.**
+  A gate fixture asserting "trips a pattern, survives the five exits, correctly not flagged" is
+  UNWRITABLE on this path, not merely unwritten: with no adjudication step the detector emits by
+  construction, and the fixture would be a permanently red test that says nothing about the
+  detector. Do not write it. The one writable, absent negative is the redaction-shape class, which
+  the gate invariants would detect on arrival and which requires its own manifest entry; that is a
+  separate small item and must not be counted as closing this one.
+
+  **THE RIGHT OBJECT IS A MEASUREMENT.** A corpus of innocuous source that survives the path filter
+  (documentation strings, example configuration, test doubles outside path-filtered directories,
+  placeholder defaults the detector deliberately errs toward emitting), run keyless through the
+  shipped detector, with every `llm-bypass` emit tallied per `patternId` and classified by hand as
+  a real credential or not. Output: a per-pattern count of non-credential emits on a NAMED corpus.
+  It produces a number, not a pass, and lives in `docs/measurements/`. Cost: $0.00 in spend; the
+  shipped path makes no model call. Time cost is the human classification of each emit.
+  A first named instance of the shape, on a third party's rule and not on one of the fifteen: on
+  2026-09-10 the gitleaks `generic-api-key` rule (8.24.3; credential keyword, comma separator,
+  base64-shaped value, entropy floor 3.5) fired on this entry's own prose describing the redaction
+  exemption, at entropy 3.584, with nothing downstream to clear it but a human reading the string;
+  it was cleared by rewording (PR #180). That rule carries two clearing steps the shipped bypass
+  lacks, an entropy floor and a stopword allowlist, and still emitted, so the instance shows the
+  class is real and those two steps are not sufficient on their own. It says nothing about the
+  rate on the fifteen patterns, which remains unasserted.
+
+  **NO FREQUENCY IS ASSERTED HERE.** The mechanism is certain and read from source. Whether the
+  rate is negligible or dominant is unknown until the corpus is measured, and this entry must not
+  be cited as evidence in either direction.
+
+  **SEQUENCING.** A clearing mechanism (per-pattern bypass gating, which the bypass comment in the
+  detector already names as the shape for non-literal patterns; or a demotion of specific
+  patterns below critical) is a decision that needs the number first. Measure, then rule. The
+  invalidation clause on the §5 DOES NOT CLAIM row applies here too: a change to
+  `PREFILTER_PATTERNS` or to the `FIXOR_SECRETS_LLM_OPT_IN` default re-opens this entry.
+
+  **RE-AUDITED 2026-09-10 under this entry's own invalidation clause**, on the addition of
+  `openai_project_key` to `PREFILTER_PATTERNS`: literal-tier, one new emit shape, none of the
+  five exits changed, no clearing step added. The entry stands unchanged and still asserts no
+  rate.
 
 ### Priority 1f - OPEN: reach / market-fit findings surfaced by structural measurement
 
