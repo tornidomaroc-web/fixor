@@ -1,0 +1,147 @@
+{
+ "measurement": "shape sample on twenty: how many class fixes the message-and-path selector misses",
+ "date": "2026-09-11",
+ "recordedAt": "2026-09-11",
+ "zeroSpend": true,
+ "apiKeyPresent": false,
+ "preRegistration": {
+  "file": "shape-sample-twenty.md",
+  "commit": "11fdccef8438bd356dde84fdb5bdb022378f0ae7",
+  "note": "committed and pushed to origin before the draw; thresholds and consequences unchanged since"
+ },
+ "isA": "one 500-commit draw from one repository, scored blind against pre-registered thresholds",
+ "isNot": "a rate for any repository, a measurement of the pre-screen negatives (unread by design), or a verdict on the keyword list for the other eleven repositories",
+ "instrument": {
+  "population": "non-merge commits reachable from twenty HEAD 2badd5da7db126e9b8e41c90bfa9617486205866 touching accepted-extension files under packages/twenty-server/src outside SKIP_PATH_RE",
+  "populationSize": 5689,
+  "populationSizeStatedInPreRegistration": 5688,
+  "discrepancy": "the pre-registration counted lines with wc -l over a file whose last line has no newline; the list holds 5,689 identifiers; thresholds on M are unaffected",
+  "seed": 732812762,
+  "sample": 500,
+  "diffCapChangedLines": 600,
+  "prescreenPositives": 224,
+  "prescreenByClass": {
+   "auth-bypass": 75,
+   "admin-check": 111,
+   "idor": 185,
+   "env-exposure": 0,
+   "secrets-exposure": 4,
+   "webhook-unverified": 23
+  },
+  "generatedLocaleFilesAmongPrescreenPositives": 47,
+  "readers": "four fresh subagents, 56 diffs each, blind to keyword status and to detector source",
+  "blobFetchGrowthMB": 22
+ },
+ "quantities": {
+  "S": 500,
+  "L": 79,
+  "K": 11,
+  "P": 5,
+  "M": 5,
+  "E": 67.6
+ },
+ "thresholds": {
+  "MISSES A LOT": "M >= 5",
+  "MISSES LITTLE": "M <= 2 and P >= 1",
+  "UNINFORMATIVE": "M = 3 or 4, or P = 0, or L >= 100"
+ },
+ "verdict": "MISSES A LOT",
+ "verdictNote": "M = 5 sits exactly on the MISSES A LOT threshold; the band below it (3 or 4) was pre-registered as refused, so this result is stated as the threshold outcome and nothing stronger. E = 67.6 implied undescribed fixes against 53 keyword candidates in the same population.",
+ "secondFinding": "every one of the 11 keyword candidates that fell in the sample was labelled none by the blind reader, and every one of the 5 fixes found was outside the keyword selector. In this sample the selector and the class fixes did not overlap at all. This was not pre-registered and carries no threshold; it is recorded, not concluded from.",
+ "fixesFound": [
+  {
+   "sha": "0edc3a385c0cf35aa5b587e674ca4faa669246a2",
+   "class": "admin-check",
+   "keyword_candidate": false,
+   "subject": "fix: prevent anonymous users from bypassing workspace creation restriction (#17635)",
+   "reason": "Workspace creation restricted to server admins could be bypassed by any user with no workspaces yet; fix limits the bypass to system bootstrap and adds an explicit canAccessFullAdminPanel check on sign-up.",
+   "answer_lines_hint": "-    if (await this.isFirstWorkspaceForUser(currentUser.id)) return; / +    if (await this.isFirstWorkspaceInSystem()) return; / +      if (!isExistingAdmin) { throw new AuthException('Workspace creation is restricted to admins'"
+  },
+  {
+   "sha": "23aa859502a802e7c116bfb6d5586ce5379338a7",
+   "class": "idor",
+   "keyword_candidate": false,
+   "subject": "refactor: scope ApplicationRegistrationService findOneById to tenant rows (#20408)",
+   "reason": "findOneById scoped by ownerWorkspaceId also matched registrations with a NULL owner, letting any workspace act on registrations it does not own; fix removes the IsNull fallback so the lookup is strictly tenant-scoped.",
+   "answer_lines_hint": "-      where: [ { id, ownerWorkspaceId }, { id, ownerWorkspaceId: IsNull() } ], / +      where: { id, ownerWorkspaceId },"
+  },
+  {
+   "sha": "77574594f2d652d9204f2aaef874a660bd16b197",
+   "class": "admin-check",
+   "keyword_candidate": false,
+   "subject": "admin panel fast follows (#10723)",
+   "reason": "Admin-panel queries exposing environment variables, system health and queue metrics were gated only by ImpersonateGuard (canImpersonate), not by an admin-panel authorization check; the commit swaps in a new AdminPanelGuard requiring canAccessFullAdminPanel.",
+   "answer_lines_hint": "-  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, ImpersonateGuard) / +  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, AdminPanelGuard) on getEnvironmentVariablesGrouped; +return request.user.canAccessFullAdminPanel === true;"
+  },
+  {
+   "sha": "921a0f01c8a9c78dd56ca0b237855cf5190c3ff5",
+   "class": "idor",
+   "keyword_candidate": false,
+   "subject": "Forbid permissions update cross app role retarget (#19982)",
+   "reason": "Update validators for fieldPermission, objectPermission and permissionFlag only checked that the referenced role existed and was editable, never that the role belonged to the calling application; the commit adds validateRoleBelongsToCallerApplication to each update path so one application cannot target another application's role.",
+   "answer_lines_hint": "-    } else if (!referencedRole.isEditable) { / +    } else { validationResult.errors.push(...validateRoleBelongsToCallerApplication({ referencedRole, buildOptions })); (in flat-field-permission, flat-object-permission, flat-permission-flag validators)"
+  },
+  {
+   "sha": "cdd667b1066e96e52352fdc1d100e4d1af67ca00",
+   "class": "auth-bypass",
+   "keyword_candidate": false,
+   "subject": "fix(server): restrict /webhooks/server dispatch to server-route-exposed functions (#22469)",
+   "reason": "The public (unauthenticated) server-route trigger could dispatch resolver logic functions flagged isAuthRequired; the commit adds a check that rejects them with RESOLVER_REQUIRES_AUTHENTICATION (403).",
+   "answer_lines_hint": "+    if (resolver.httpRouteTriggerSettings?.isAuthRequired === true) { throw new ServerRouteTriggerException(`... requires authentication and cannot be dispatched through the public server route`, ServerRouteTriggerExceptionCode.RESOLVER_REQUIRES_AUTHENTICATION)"
+  }
+ ],
+ "keywordCandidatesInSampleLabelledNone": [
+  {
+   "sha": "8e039213726fa84c6e7dcd9f40280bb54615c81b",
+   "subject": "Add CREATED workspace activation status (read path + enum migration) (#22904)"
+  },
+  {
+   "sha": "0b77edf8ebbb00ee4147cd20cee860ad1373f5e8",
+   "subject": "fix(server): validate row level permission predicate values at write time (#23999)"
+  },
+  {
+   "sha": "a159a68e2ce0a3de9135a306d2a96e8833bcb6b2",
+   "subject": "`[twenty-server]` no floating promises lint rule (#20499)"
+  },
+  {
+   "sha": "c1da7be6d782cbd17a96dd6031c3946706e0a199",
+   "subject": "Billing for self-hosts (#18075)"
+  },
+  {
+   "sha": "11d244194fb42bdca459621864071b3241d07aba",
+   "subject": "Add billing tables  (#8772)"
+  },
+  {
+   "sha": "f59bda1dbf13d09a323fce6de64bf0b4940b79e0",
+   "subject": "feat(server): queued-only server-route dispatch (#23134)"
+  },
+  {
+   "sha": "6e4b3041e56bfa05a264a3f31c4caa60cd72e507",
+   "subject": "Serialize a workspace's entitlement transition (#25660)"
+  },
+  {
+   "sha": "610c0ebc9d465692557bd6d07a2853bfc5302cda",
+   "subject": "Move secure HTTP client IP validation to connection level (#18006)"
+  },
+  {
+   "sha": "df12ba6e9841de4f652a2c8ebc8750fd61e95ca3",
+   "subject": "Webhook Secret Field Implementation and Security Enhancements (#9187) (#9219)"
+  },
+  {
+   "sha": "2ebff5f4d7699162de62cf8e6349da68d718bff2",
+   "subject": "fix: harden token renewal and soften refresh token revocation (#19175)"
+  },
+  {
+   "sha": "9e20e2222a6b867567f49ddc2c16ea07db54cca7",
+   "subject": "Fix front-component serving on Safari, kill stale presigned caching, and cache built bundles client-side (#22672)"
+  }
+ ],
+ "consequence": "per the pre-registration: selector B is committed (the pre-screen shapes, run by path over all twelve repositories, with its own candidate counts and rejection records; every pair record names the selector that found it). The keyword list stays byte-identical. The corpus source does not change.",
+ "limits": [
+  "pre-screen negatives (197 readable commits) were not read; a fix with none of the pre-screen tokens is invisible here",
+  "79 commits over the diff cap were not read",
+  "one repository; nothing here transfers to the other eleven by itself",
+  "47 of 224 pre-screen positives were generated locale .ts files, which the path population admits; the pre-screen tokens are broad by design and this is the cost",
+  "the readers verdicts are one reading each; the five fixes have not yet been read by the measuring session and are not admitted pairs"
+ ]
+}
