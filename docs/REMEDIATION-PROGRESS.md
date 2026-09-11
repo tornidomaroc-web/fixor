@@ -3321,6 +3321,62 @@ remains OPEN as above.
   webhook contract (#186) depended on the count: its earliest-trigger case used the `positive/10`
   recording as a byte-match control, and that recording exists. Corrections posted on #186 and #192.
 
+- **W-007 (OPEN; FILED, NOT BUILT; gate hardening, no spend; a property of the secrets GATE, not
+  of any detector) - the `.gitleaks.toml` allowlist has no check that any entry still earns its
+  place, and its oldest entry is already dead: a dead-entry step that removes each `regexes`
+  entry in turn and requires a pre-registered number of extra findings, run on the CI
+  instrument.**
+
+  Provenance: the next-stage ruling after R14 (#200, 2026-09-11), accepted by the owner on
+  2026-09-11 with the order "land R14 first, then build it, not bundled". R14 asks an author to
+  run the both-ways control and write down that it ran; that is the same instrument as a green
+  range scan over a tree nobody read (#198's four months). This step turns the R14 control into a
+  gate. Filed rather than built so the pre-registration below survives whoever picks it up.
+
+  DESIGN. One step in `.github/workflows/secrets.yml`, after the whole-tree scan, same binary
+  (the pinned release, `dir` mode, `--config`): for each entry under `regexes`, write a copy of
+  the config with that one entry removed, scan the tree, and compare the count of findings
+  against the number pre-registered for that entry. Any other count fails the job. Path entries
+  are out of scope by R14 (no value to remove). An entry whose removal changes nothing is DEAD;
+  the step names it and fails, and NOBODY deletes it in the same breath: an entry that matches
+  nothing may mean the literal moved, not that the entry is surplus. Deleting a dead entry is a
+  separate commit with its own reading of where the literal went.
+
+  PRE-REGISTERED, 2026-09-11, before the step exists, read from the tree at `c285ccd` with
+  gitleaks 8.24.3 windows_x64 (the build behind #198's controls) in `dir` mode:
+
+    entry removed                       | expected extra findings | grounds
+    AWS documentation example key       | 0 (DEAD)                | see below
+    blog illustrative signing key       | 1                       | one line of the post; the HTML comment beside it does not repeat the value
+    replay-recording `"key"` line shape | 4                       | four recordings under docs/measurements/, each with the line; assumes one match per file
+
+  THE AWS ENTRY IS DEAD UNDER THIS INSTRUMENT, found while pre-registering, not by the step.
+  With the entry removed, `docs/STEP4-PRODUCTION-VALIDATION.md` (two lines carrying the key)
+  reports nothing, because the default ruleset that `useDefault = true` extends already exempts
+  the canonical example key on its own. Negative control, same config: the same document with
+  the key's last letter changed reports `aws-access-token` on both lines (179 and 228), and a
+  two-file scratch directory under the default rules alone reports the altered key and not the
+  canonical one. So the rule is alive and the zero is the default allowlist, not a moved
+  literal: the key is still on `main` in that document and in `fixtures/secrets-exposure/`
+  and `scripts/secrets_scan.py` (both path-exempt). Per the stop rule above, the entry is NAMED
+  here and NOT deleted; whether to keep it as documentation of intent or remove it is the
+  owner's call, and either way the step must expect 0 for it, or the first run is red on a
+  known fact. The entry was landed with no recorded control (`.gitleaks.toml`, the comment
+  names only the file); this is the first number ever stated for it.
+
+  THE FIFTH FILE under `docs/measurements/auth-bypass-pending-pairs-2026-08-16/recordings/` is
+  not a recording. It is `README.md`, the index for the four recordings (their request keys,
+  sha256 at copy time, verdicts). It has no `"key"` line and no credential shape; the whole-tree
+  scan under the current config is clean over it. So the count is four recordings, not five,
+  and the number 4 stands; the earlier "five recordings" was a file count, not a recording
+  count (R12: a count is not the thing counted).
+
+  FIRST RUN IS ALSO THE FIRST AUDIT of every pre-existing entry. Whoever builds the step states
+  the three numbers above in the commit body before the first CI run, runs it, and reports where
+  expectation and result differ. A difference on the blog or recording entries is a finding
+  about the tree, not about the step, and is resolved by reading, not by editing the number.
+  Sequencing: after #200 (merged), in its own pull request, reviewed as a gate change.
+
 ### Priority 1d - OPEN: defects surfaced by the first live detection-quality run
 
 These items were surfaced by Run 1. See "Live detection-quality measurements / Run 1" for the
