@@ -1,0 +1,43 @@
+{
+ "repository": "twentyhq/twenty",
+ "parentCommit": "773245fa655d82b41d223588e58dd97f31784868",
+ "childCommit": "23aa859502a802e7c116bfb6d5586ce5379338a7",
+ "childDate": "2026-05-08",
+ "file": "packages/twenty-server/src/engine/core-modules/application/application-registration/application-registration.service.ts",
+ "language": "ts",
+ "class": "idor",
+ "answerLineRange": {
+  "file": "parent",
+  "start": 64,
+  "end": 67,
+  "primaryLine": 64,
+  "note": "parent-file line numbers from the hunk headers; for an absent check the range covers where the check was missing"
+ },
+ "candidateSource": {
+  "selector": "shape-sample-twenty",
+  "how": "path-only population, mechanical pre-screen, blind read; NOT the keyword selector",
+  "keywordCandidate": false
+ },
+ "measuringSessionReading": {
+  "class": "idor",
+  "grounds": "findOneById took an ownerWorkspaceId scope but the where clause also accepted rows whose ownerWorkspaceId is NULL, so a caller from any workspace could act on an unowned registration by id; the fix removes the IsNull alternative so only the caller's tenant rows match.",
+  "reader": "Claude Fable 5.1, session_01KS9wkmjZvHSWk8jNdHb4BE",
+  "date": "2026-09-11"
+ },
+ "secondReader": {
+  "class": "idor",
+  "sentence": "findOneById scoped by ownerWorkspaceId also matched registrations with a NULL owner, letting any workspace act on registrations it does not own; fix removes the IsNull fallback so the lookup is strictly tenant-scoped.",
+  "answerLinesHint": "-      where: [ { id, ownerWorkspaceId }, { id, ownerWorkspaceId: IsNull() } ], / +      where: { id, ownerWorkspaceId },",
+  "blind": true,
+  "sawDetectorSource": false
+ },
+ "contested": false,
+ "childSafetyAssertingComment": {
+  "present": false,
+  "quotes": []
+ },
+ "sameCommitSiblings": [],
+ "admission": "ADMITTED",
+ "exclusionReason": null,
+ "diffHunk": "diff --git a/packages/twenty-server/src/engine/core-modules/application/application-registration/application-registration.service.ts b/packages/twenty-server/src/engine/core-modules/application/application-registration/application-registration.service.ts\nindex d4baeb818a..7c92c806be 100644\n--- a/packages/twenty-server/src/engine/core-modules/application/application-registration/application-registration.service.ts\n+++ b/packages/twenty-server/src/engine/core-modules/application/application-registration/application-registration.service.ts\n@@ -6,7 +6,7 @@ import crypto from 'crypto';\n import * as bcrypt from 'bcrypt';\n import { type Manifest } from 'twenty-shared/application';\n import { isDefined } from 'twenty-shared/utils';\n-import { IsNull, type Repository } from 'typeorm';\n+import { type Repository } from 'typeorm';\n import { v4 } from 'uuid';\n \n import { ALL_OAUTH_SCOPES } from 'src/engine/core-modules/application/application-oauth/constants/oauth-scopes';\n@@ -61,10 +61,7 @@ export class ApplicationRegistrationService {\n     ownerWorkspaceId: string,\n   ): Promise<ApplicationRegistrationEntity> {\n     const registration = await this.applicationRegistrationRepository.findOne({\n-      where: [\n-        { id, ownerWorkspaceId },\n-        { id, ownerWorkspaceId: IsNull() },\n-      ],\n+      where: { id, ownerWorkspaceId },\n     });\n \n     if (!registration) {"
+}

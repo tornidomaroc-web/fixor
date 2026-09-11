@@ -1,0 +1,45 @@
+{
+ "repository": "twentyhq/twenty",
+ "parentCommit": "29093fdbf127005a94ae611c8b267c19e6c4c6e1",
+ "childCommit": "0edc3a385c0cf35aa5b587e674ca4faa669246a2",
+ "childDate": "2026-02-04",
+ "file": "packages/twenty-server/src/engine/core-modules/auth/services/sign-in-up.service.ts",
+ "language": "ts",
+ "class": "admin-check",
+ "answerLineRange": {
+  "file": "parent",
+  "start": 417,
+  "end": 448,
+  "primaryLine": 417,
+  "note": "parent-file line numbers from the hunk headers; for an absent check the range covers where the check was missing"
+ },
+ "candidateSource": {
+  "selector": "shape-sample-twenty",
+  "how": "path-only population, mechanical pre-screen, blind read; NOT the keyword selector",
+  "keywordCandidate": false
+ },
+ "measuringSessionReading": {
+  "class": "admin-check",
+  "grounds": "With workspace creation limited to server admins, the parent let any user with no workspaces yet (isFirstWorkspaceForUser) skip the canAccessFullAdminPanel check, and the sign-up path had no admin check at all; the fix narrows the bypass to an empty system and adds the explicit admin check on sign-up.",
+  "reader": "Claude Fable 5.1, session_01KS9wkmjZvHSWk8jNdHb4BE",
+  "date": "2026-09-11"
+ },
+ "secondReader": {
+  "class": "admin-check",
+  "sentence": "Workspace creation restricted to server admins could be bypassed by any user with no workspaces yet; fix limits the bypass to system bootstrap and adds an explicit canAccessFullAdminPanel check on sign-up.",
+  "answerLinesHint": "-    if (await this.isFirstWorkspaceForUser(currentUser.id)) return; / +    if (await this.isFirstWorkspaceInSystem()) return; / +      if (!isExistingAdmin) { throw new AuthException('Workspace creation is restricted to admins'",
+  "blind": true,
+  "sawDetectorSource": false
+ },
+ "contested": false,
+ "childSafetyAssertingComment": {
+  "present": true,
+  "quotes": [
+   "// Only allow bypass during initial system bootstrap (no workspaces exist yet)"
+  ]
+ },
+ "sameCommitSiblings": [],
+ "admission": "ADMITTED",
+ "exclusionReason": null,
+ "diffHunk": "diff --git a/packages/twenty-server/src/engine/core-modules/auth/services/sign-in-up.service.ts b/packages/twenty-server/src/engine/core-modules/auth/services/sign-in-up.service.ts\nindex e8ed4a1553..794e6a8174 100644\n--- a/packages/twenty-server/src/engine/core-modules/auth/services/sign-in-up.service.ts\n+++ b/packages/twenty-server/src/engine/core-modules/auth/services/sign-in-up.service.ts\n@@ -403,8 +403,8 @@ export class SignInUpService {\n     );\n   }\n \n-  private async isFirstWorkspaceForUser(userId: string): Promise<boolean> {\n-    const count = await this.userWorkspaceService.countUserWorkspaces(userId);\n+  private async isFirstWorkspaceInSystem(): Promise<boolean> {\n+    const count = await this.workspaceRepository.count();\n \n     return count === 0;\n   }\n@@ -414,7 +414,8 @@ export class SignInUpService {\n   ): Promise<void> {\n     if (!this.isWorkspaceCreationLimitedToServerAdmins()) return;\n \n-    if (await this.isFirstWorkspaceForUser(currentUser.id)) return;\n+    // Only allow bypass during initial system bootstrap (no workspaces exist yet)\n+    if (await this.isFirstWorkspaceInSystem()) return;\n \n     if (!currentUser.canAccessFullAdminPanel) {\n       throw new AuthException(\n@@ -445,6 +446,25 @@ export class SignInUpService {\n       );\n     }\n \n+    if (\n+      this.isWorkspaceCreationLimitedToServerAdmins() &&\n+      !(await this.isFirstWorkspaceInSystem())\n+    ) {\n+      const isExistingAdmin =\n+        userData.type === 'existingUser' &&\n+        userData.existingUser.canAccessFullAdminPanel;\n+\n+      if (!isExistingAdmin) {\n+        throw new AuthException(\n+          'Workspace creation is restricted to admins',\n+          AuthExceptionCode.FORBIDDEN_EXCEPTION,\n+          {\n+            userFriendlyMessage: msg`Workspace creation is restricted to admins`,\n+          },\n+        );\n+      }\n+    }\n+\n     const { canImpersonate, canAccessFullAdminPanel } =\n       await this.setDefaultImpersonateAndAccessFullAdminPanel();\n "
+}
