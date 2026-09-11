@@ -12,14 +12,21 @@ useDefault = true
 description = "Detector test corpus and pattern-bearing tooling"
 paths = [
   '''fixtures/.*''',
-  # Replay recordings landed as measurement evidence (docs/measurements/<name>/recordings/).
-  # Same file format as fixtures/replay/: line 2 is `"key": "<sha256 of the request>"`,
-  # which generic-api-key matches. The hash is also the file name; it is not a credential.
-  '''docs/measurements/[^/]+/recordings/.*''',
   '''docs/APP-ROUTER-COVERAGE-PLAN\.md''',
   '''scripts/secrets_scan\.py''',
 ]
+# regexes are matched against the WHOLE LINE of a finding (regexTarget = "line"), so the
+# request-key entry below can be anchored to one exact line shape.
+regexTarget = "line"
 regexes = [
   # AWS canonical documentation example key (docs/STEP4-PRODUCTION-VALIDATION.md)
   '''AKIAIOSFODNN7EXAMPLE''',
+  # Replay recordings landed as measurement evidence (docs/measurements/<name>/recordings/)
+  # share fixtures/replay/'s format: line 2 is `"key": "<sha256 of the request>"`, the hash
+  # that is also the file name, and generic-api-key matches it. Exempt ONLY a line that is
+  # exactly that JSON field with a 64-hex value. Bound to the line shape, not to a path or a
+  # rule: a real credential in that recorder-written directory is still caught by every rule
+  # (negative control 2026-09-11: a planted AWS key there, on its own line and inside a
+  # "key" field, is reported; a global path entry for the directory let it pass).
+  '''^\s*"key": "[0-9a-f]{64}",?\s*$''',
 ]
