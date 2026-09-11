@@ -1,0 +1,97 @@
+{
+  "measurement": "fix-pairs-2026-09-11 candidate selector: commit-message keywords per detector class",
+  "date": "2026-09-11",
+  "fixedBefore": "any clone in ../fix-pairs-corpus was read; see README.md",
+  "provenance": {
+    "derivedBy": "a fresh reader (subagent) permitted to read ONLY docs/detector-capabilities.md; it never opened detector source, fixtures, or scripts",
+    "notASource": "PREFILTER_PATTERNS and every detector .ts file",
+    "addedByMeasuringSession": "none; every keyword below is the reader's, verbatim",
+    "patternAdjacent": "marked by the measuring session AFTER the list was fixed: the capabilities document itself quotes recognized tokens (requireAuth, constructEvent, timingSafeEqual, SECRET_KEY, NEXT_PUBLIC_, AKIA), so a keyword derived from such a sentence is definitions-derived by provenance and pattern-shaped by content. The mark makes the bias visible; it does not remove the keyword.",
+    "matching": "case-insensitive fixed-string match anywhere in the full commit message; a commit is a candidate for a class if any keyword of that class matches AND the diff touches an accepted-extension file outside SKIP_PATH_RE segments"
+  },
+  "classes": {
+    "auth-bypass": [
+      {"keyword": "missing auth check", "derived_from": "a destructive route declaration ... with no authentication middleware in the argument list", "line": 27},
+      {"keyword": "missing auth middleware", "derived_from": "Missing-middleware bypasses on router-style frameworks", "line": 27},
+      {"keyword": "unauthenticated endpoint", "derived_from": "Case 2 of the prompt asks one question of an Express route: whether an access check is present", "line": 42},
+      {"keyword": "unauthenticated route", "derived_from": "shape #1 general missing-auth fires 5/5 and a clean authenticated route stays silent", "line": 52},
+      {"keyword": "require auth", "derived_from": "recognized as gated: withAuth, withAdmin, requireAuth, requireAdmin, protect, secure", "line": 28, "pattern_adjacent": true},
+      {"keyword": "require login", "derived_from": "no @login_required (or auth-named decorator) and no inline current_user/g.user/session check", "line": 32, "pattern_adjacent": true},
+      {"keyword": "add login_required", "derived_from": "an @login_required decorator ... = gated", "line": 31, "pattern_adjacent": true},
+      {"keyword": "protect route", "derived_from": "recognized as gated: withAuth, withAdmin, requireAuth, requireAdmin, protect, secure", "line": 28, "pattern_adjacent": true},
+      {"keyword": "auth bypass", "derived_from": "### 1. auth-bypass (`auth-bypass-multi`)", "line": 23},
+      {"keyword": "jwt verify", "derived_from": "JWT verification swallowed inside try/catch", "line": 26, "pattern_adjacent": true},
+      {"keyword": "verify token", "derived_from": "reader's own word", "line": null},
+      {"keyword": "hardcoded admin default", "derived_from": "hardcoded \"anonymous\"/\"admin\"/\"public\" defaults, || true, || \"admin\", ?? \"admin\"", "line": 26, "pattern_adjacent": true}
+    ],
+    "admin-check": [
+      {"keyword": "missing admin check", "derived_from": "a privileged route ... with no admin authorization check anywhere", "line": 60},
+      {"keyword": "admin only", "derived_from": "neither requireAdmin/isAdmin/adminOnly/verifyAdmin middleware in the route arglist", "line": 60, "pattern_adjacent": true},
+      {"keyword": "require admin", "derived_from": "neither requireAdmin/isAdmin/adminOnly/verifyAdmin middleware in the route arglist", "line": 60, "pattern_adjacent": true},
+      {"keyword": "admin role check", "derived_from": "whose body does not perform an admin role check ships unguarded", "line": 75},
+      {"keyword": "privilege escalation", "derived_from": "on those three the regex match IS the privilege fallback", "line": 59},
+      {"keyword": "hardcoded admin email", "derived_from": "Hardcoded-admin shapes in TS/JS/Python/Go: email === \"x@y.z\", email.endsWith(\"@domain\")", "line": 59, "pattern_adjacent": true},
+      {"keyword": "role from request", "derived_from": "role === \"admin\" string compare on a client-controlled value", "line": 59, "pattern_adjacent": true},
+      {"keyword": "superuser check", "derived_from": "an inline is_superuser/role/RBAC check = gated", "line": 64, "pattern_adjacent": true},
+      {"keyword": "admin_required", "derived_from": "no @admin_required and no inline current_user.is_admin/g.user.is_admin/role check", "line": 65, "pattern_adjacent": true},
+      {"keyword": "authorization check", "derived_from": "General auth HOCs ... are NOT sufficient — they enforce authentication, not admin authorization", "line": 61},
+      {"keyword": "rbac", "derived_from": "an inline is_superuser/role/RBAC check = gated", "line": 64, "pattern_adjacent": true},
+      {"keyword": "restrict admin endpoint", "derived_from": "reader's own word", "line": null}
+    ],
+    "idor": [
+      {"keyword": "idor", "derived_from": "### 3. IDOR (`idor-multi`)", "line": 85},
+      {"keyword": "ownership check", "derived_from": "with no ownership filter ... in the where clause and no post-fetch ownership check", "line": 88},
+      {"keyword": "ownership filter", "derived_from": "no ownership filter (userId: ctx.session.user.id or equivalent) in the where clause", "line": 88, "pattern_adjacent": true},
+      {"keyword": "scope to user", "derived_from": "the correct fix is org-scoping, not user-scoping", "line": 91},
+      {"keyword": "scope by organization", "derived_from": "the correct fix is org-scoping, not user-scoping", "line": 91},
+      {"keyword": "tenant isolation", "derived_from": "Cross-file tenant scoping — org isolation enforced where the diff can't see it", "line": 96},
+      {"keyword": "tenant scoping", "derived_from": "Tenant-scoping (orgId / tenantId across users) IDOR", "line": 91},
+      {"keyword": "insecure direct object reference", "derived_from": "reader's own word", "line": null},
+      {"keyword": "access another user's", "derived_from": "a user in org A reads org B's data", "line": 91},
+      {"keyword": "check owner", "derived_from": "negative (post-fetch owner_id != current_user.id check) 5/5 clear", "line": 90},
+      {"keyword": "filter by user id", "derived_from": "no ownership filter (userId: ctx.session.user.id or equivalent) in the where clause", "line": 88, "pattern_adjacent": true},
+      {"keyword": "verify user owns", "derived_from": "reader's own word", "line": null}
+    ],
+    "env-exposure": [
+      {"keyword": "process.env leak", "derived_from": "process.env serialized into HTTP response body (Express res.json(process.env)", "line": 114, "pattern_adjacent": true},
+      {"keyword": "env dump", "derived_from": "Env-dump shapes outside the literal pattern enumeration", "line": 120},
+      {"keyword": "expose environment variables", "derived_from": "### 4. env-exposure (`env-exposure-multi`)", "line": 111},
+      {"keyword": "leak env", "derived_from": "Env vars leaking via error stack traces", "line": 122},
+      {"keyword": "environment in response", "derived_from": "Go os.Environ() echoed in handler response", "line": 116, "pattern_adjacent": true},
+      {"keyword": "logging env", "derived_from": "JSON.stringify(process.env) in logger payload", "line": 115, "pattern_adjacent": true},
+      {"keyword": "redact env", "derived_from": "Partial-redaction patterns with allowlist gaps", "line": 117},
+      {"keyword": "redact secrets from logs", "derived_from": "03-fastify-redacted-logs.ts, later reclassified positive/12", "line": 131},
+      {"keyword": "debug endpoint", "derived_from": "reader's own word", "line": null},
+      {"keyword": "remove config dump", "derived_from": "reader's own word", "line": null}
+    ],
+    "secrets-exposure": [
+      {"keyword": "hardcoded api key", "derived_from": "Hardcoded API key / token / signing-secret literals", "line": 138},
+      {"keyword": "hardcoded secret", "derived_from": "Hardcoded API key / token / signing-secret literals", "line": 138},
+      {"keyword": "leaked secret", "derived_from": "reader's own word", "line": null},
+      {"keyword": "remove api key", "derived_from": "reader's own word", "line": null},
+      {"keyword": "hardcoded credentials", "derived_from": "no general credential-shape recognition", "line": 144},
+      {"keyword": "move to env", "derived_from": "reader's own word", "line": null},
+      {"keyword": "jwt secret", "derived_from": "hardcoded JWT signing secrets in source", "line": 138},
+      {"keyword": "secret_key", "derived_from": "Flask app.config[\"SECRET_KEY\"] = \"…\", Django SECRET_KEY = \"…\"", "line": 144, "pattern_adjacent": true},
+      {"keyword": "stripe key", "derived_from": "Stripe sk_live_* and publishable pk_live_*", "line": 138, "pattern_adjacent": true},
+      {"keyword": "aws key", "derived_from": "AWS AKIA[A-Z0-9]{16}", "line": 138, "pattern_adjacent": true},
+      {"keyword": "database password", "derived_from": "Postgres passwords in connection strings", "line": 138, "pattern_adjacent": true},
+      {"keyword": "next_public", "derived_from": "NEXT_PUBLIC_* exposing server secrets to client bundle", "line": 139, "pattern_adjacent": true},
+      {"keyword": "service role key", "derived_from": "Supabase service-role key reaching client-side code", "line": 140, "pattern_adjacent": true}
+    ],
+    "webhook-unverified": [
+      {"keyword": "verify signature", "derived_from": "Detects: no signature verification at all", "line": 164},
+      {"keyword": "webhook signature", "derived_from": "signature-header reads (stripe-signature, x-hub-signature, x-webhook-signature, etc.)", "line": 167, "pattern_adjacent": true},
+      {"keyword": "signature verification", "derived_from": "Detects: no signature verification at all", "line": 164},
+      {"keyword": "verify webhook", "derived_from": "### 6. webhook-unverified (`webhook-unverified-multi`)", "line": 160},
+      {"keyword": "unverified webhook", "derived_from": "### 6. webhook-unverified (`webhook-unverified-multi`)", "line": 160},
+      {"keyword": "hmac", "derived_from": "Providers covered by fixtures (positive AND negative): Stripe, GitHub, Twilio, Lemon Squeezy, custom HMAC", "line": 166},
+      {"keyword": "timing safe compare", "derived_from": "raw string-compare of signatures (sig != expected), classified MEDIUM as a timing-leak", "line": 164},
+      {"keyword": "timingsafeequal", "derived_from": "crypto.timingSafeEqual, Python hmac.compare_digest, Go subtle.ConstantTimeCompare", "line": 165, "pattern_adjacent": true},
+      {"keyword": "constant time comparison", "derived_from": "Go subtle.ConstantTimeCompare, Go hmac.Equal", "line": 165, "pattern_adjacent": true},
+      {"keyword": "constructevent", "derived_from": "stripe.webhooks.constructEvent / stripe.Webhook.construct_event", "line": 165, "pattern_adjacent": true},
+      {"keyword": "stripe webhook", "derived_from": "will Fixor flag a Stripe handler that toggles signature verification on/off via an env flag", "line": 187},
+      {"keyword": "validate webhook payload", "derived_from": "reader's own word", "line": null}
+    ]
+  }
+}
