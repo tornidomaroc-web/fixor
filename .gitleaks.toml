@@ -11,7 +11,17 @@ useDefault = true
 [allowlist]
 description = "Detector test corpus and pattern-bearing tooling"
 paths = [
-  '''fixtures/.*''',
+  # Only the secrets-exposure corpus is authored fake credentials on purpose (its files carry
+  # sk_live_/AKIA/generic-key shapes by design). Measured 2026-09-11 with gitleaks 8.24.3, the
+  # CI binary, over all of fixtures/ with the former blanket '''fixtures/.*''' entry removed:
+  # 4 findings, every one under fixtures/secrets-exposure/, across 3 files. The five replay
+  # corpora (153 recordings) and every other corpus were clean. fixtures/replay/ is
+  # recorder-written and carries the full request payload of whatever file was scanned, so it
+  # gets NO path exemption; its request-key line is covered by the line-shape regex below.
+  # Control: a planted AWS key under fixtures/replay/ passed unchallenged under the blanket
+  # entry and is reported under this one. scripts/secrets_scan.py SKIP_PREFIXES is narrowed
+  # identically in the same commit.
+  '''fixtures/secrets-exposure/.*''',
   '''docs/APP-ROUTER-COVERAGE-PLAN\.md''',
   '''scripts/secrets_scan\.py''',
 ]

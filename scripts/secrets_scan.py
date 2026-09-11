@@ -34,7 +34,12 @@ SKIP_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".woff", ".woff2", ".ico", ".z
 # This scanner and its docs legitimately contain pattern text.
 SKIP_FILES = {"scripts/secrets_scan.py", "docs/APP-ROUTER-COVERAGE-PLAN.md"}
 # Fixor's own detector test corpus intentionally contains fake credentials.
-SKIP_PREFIXES = ("fixtures/",)
+# Only fixtures/secrets-exposure/ is authored fake credentials by design. Measured 2026-09-11
+# with this prefix narrowed from "fixtures/": the whole tree scans clean (735 files), including
+# fixtures/replay/ (153 recorder-written recordings that carry the scanned file verbatim), and
+# a planted AWS key under fixtures/replay/ that the blanket prefix could not see is reported.
+# Mirrors the same split in .gitleaks.toml, made in the same commit.
+SKIP_PREFIXES = ("fixtures/secrets-exposure/",)
 
 
 def staged_files() -> list[Path]:
