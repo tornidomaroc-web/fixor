@@ -8,6 +8,8 @@ Numbering note (2026-06-12): two rule-number collisions were resolved. "Lane dis
 
 Numbering note (2026-09-10): R12 and R13 were assigned by sequence after R11, not by position in the file; R12 (control earns belief only for its instrument) and R13 (measurement date in the commit body) both sit under "Harness and measurement".
 
+Numbering note (2026-09-11): R14 (a scanner finding on non-credential content is cleared by an exact-value or line-shape entry only) was assigned by sequence after R13 and sits under "Harness and measurement" beside R12.
+
 ---
 
 ## Fixture authoring
@@ -179,6 +181,52 @@ the day of the merge, and the body is the only git-side witness a clone carries;
 commit list is a GitHub artifact, not a git one. Case: #179, measured 2026-08-17, merged
 2026-09-10 as `ad22b067`. The repository setting is load-bearing: changing it to
 `PR_BODY` or `BLANK` defeats this rule and is a change to it.
+
+### R14. A scanner finding on non-credential content is cleared by one entry bound to the exact value or the line shape, never by a path or a disabled rule.
+
+When a secret-scanning rule fires on content that is not a credential, and the content
+must stay as written, the only permitted allowlist response is ONE entry in
+`.gitleaks.toml` under `regexes` (regexTarget = "line"), bound to the exact value or to
+the exact line shape. The entry carries a comment that names the file, the date, and the
+reason the content is not a credential, and it lands with the both-ways control, run on
+the instrument CI runs (the gitleaks release pinned in `.github/workflows/secrets.yml`,
+`dir` mode, this config): the finding is reported with the entry absent, and absent with
+the entry present, and a credential planted in the same file is still reported with the
+entry present. The three results, the instrument and the date go in the entry's comment
+and in the commit body (R13). A path entry is not permitted. Disabling a rule is not
+permitted. Widening an existing entry is a new entry and needs its own control.
+
+Why: the fastest exit for an author facing a red on a documentation-only change is a
+broad allowlist, and a broad allowlist blinds the whole-tree gate (#198) for every
+literal that later lands under that path or that rule. A path entry also has no
+both-ways control: there is no value to remove, so nothing proves the entry is narrow.
+
+Rewording is outside this rule and comes first. When the content is prose and not
+load-bearing, reword it and add nothing. An entry is for content that must keep its exact
+bytes, and only for that.
+
+Case: `6a1f05c3` (2026-09-10). gitleaks `generic-api-key` fired on prose in
+`docs/REMEDIATION-PROGRESS.md`, the L-023 entry's own description of the redaction
+exemption, at entropy 3.584. It was cleared by rewording: #180 was closed the same day
+and the entry relanded from a second branch as #181 (squash `4f5cb1e`), so `main` never
+carried the string; the branch commit stays the one whole-history hit under the current
+config (#198 body). The tempting exits were a path entry for the whole remediation log,
+which quotes credential shapes by design, or dropping the rule. The first would hide the
+next literal landed in that log; the second would have hidden the blog literal below.
+
+Worked example of the permitted form: the blog-literal entry landed by #198
+(2026-09-11). One exact-value regex under `regexes`; the comment names the file
+(`landing/blog/llm-security-tools-leak-secrets/index.html`), the date the literal
+reached `main` (d41e3db, 2026-05-19), and the reason (authored for the post, never
+issued); an HTML comment beside the code block points back at the entry. Control, gitleaks
+8.24.3 `dir` mode: entry absent, the tree scan of `main` reports exactly that line and
+nothing else; entry present, no leaks; entry present with an AWS key planted in the same
+file, the planted key is reported. The line-shape form has its own precedent in the same
+file: the `"key": "<64 hex>"` entry for recorder-written replay recordings (#197), whose
+control planted a key in that directory on its own line and inside a `"key"` field and
+saw both reported. The three path entries that exist predate this rule and cover corpora
+and tooling whose whole content is credential-shaped on purpose; a fourth reopens this
+rule rather than citing them.
 
 ---
 
