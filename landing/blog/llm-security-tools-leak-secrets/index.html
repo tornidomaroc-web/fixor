@@ -205,6 +205,12 @@
         color: inherit;
       }
 
+      .post .code-note {
+        margin: -0.6rem 0 1.15rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
       .divider {
         border: none;
         border-top: 1px solid var(--border);
@@ -289,7 +295,14 @@
           key. The value is synthetic, a string we wrote for the fixture, not a
           real credential:
         </p>
+        <!-- Illustrative value, authored for this post, never issued anywhere. Allowlisted by
+             exact value in .gitleaks.toml (regexes); the whole-tree secrets scan reports any
+             other credential-shaped literal in this file. -->
         <pre><code>const jwtSigningKey = "PROD-jwt-acme-9d8f7a6c5b4e3d2f1a0b9c8d7e6f5a4b"</code></pre>
+        <p class="code-note">
+          This value is synthetic. We wrote it for the fixture; it has never signed
+          a token anywhere.
+        </p>
         <p>
           Our <code>secrets-exposure</code> detector flagged it correctly. That
           was the expected result. What was not expected was the explanation
