@@ -38,7 +38,6 @@ regexes = [
   # is still reported (negative control 2026-09-11, gitleaks 8.24.3 dir mode: a planted AWS
   # key appended to the same file is reported under this entry; with the entry removed the
   # tree scan of main reports exactly this line and nothing else).
-  '''PROD-jwt-acme-9d8f7a6c5b4e3d2f1a0b9c8d7e6f5a4b''',
   # Replay recordings landed as measurement evidence (docs/measurements/<name>/recordings/)
   # share fixtures/replay/'s format: line 2 is `"key": "<sha256 of the request>"`, the hash
   # that is also the file name, and generic-api-key matches it. Exempt ONLY a line that is
