@@ -235,6 +235,14 @@ export function buildPullRequestCommentMarkdown(
           `- **Parameter expressions:** \`${(meta.parameterValues ?? []).join("`, `")}\``
         );
       }
+    } else if (fix.detectorId === "secrets-exposure-multi") {
+      // The secrets check never calls a model on its shipped path: the finding is a
+      // fixed-pattern match and its `confidence` field is a constant, not a judgment.
+      // Printing it as "Detection confidence: high" told the customer something that
+      // was never measured (landing audit, 2026-09-12). Say what it is instead.
+      lines.push(
+        `- **Detection:** pattern match (fixed credential shape; no model judgment)`
+      );
     } else {
       lines.push(`- **Detection confidence:** \`${fix.confidence}\``);
     }

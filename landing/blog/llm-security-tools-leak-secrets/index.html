@@ -557,6 +557,23 @@
 
         <hr class="divider" />
 
+        <p>
+          <strong>Addendum, 2026-09-12.</strong> The separate measurement this post
+          promised has now been run, with counts and denominators rather than rates, on
+          the shipped path and with no model call. On 65,566 files across 13 mature
+          open-source repositories the secrets check raised 15 flags, all 15 not
+          credentials. On 4,772 files across 43 public TypeScript and JavaScript
+          repositories of the size and age of a typical customer it raised 5 flags, 2 of
+          them not credentials and 3 of them real API keys. So the sentence above about
+          mature projects holds for the mature corpus and does not hold for the
+          customer-shaped one. The check does not read files under test, e2e, spec, script
+          or fixture paths or Go test files, so a credential committed there is not seen.
+          The measurement artifacts are in the repository under
+          <code>docs/measurements/fix-pairs-2026-09-11/</code>.
+        </p>
+
+        <hr class="divider" />
+
         <div class="reply">
           <strong>Questions or corrections.</strong> If something here is wrong,
           we want to know. The post, the competitor survey, and the validation

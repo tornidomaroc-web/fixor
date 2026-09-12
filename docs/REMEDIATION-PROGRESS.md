@@ -3828,6 +3828,28 @@ pattern-axis facts and DEFER their ICP rates to E'.
   change to `SKIP_PATH_RE` re-opens the measured numbers exactly as the invalidation clause
   above says for `PREFILTER_PATTERNS`.
 
+- **L-024 (OPEN; STRUCTURAL, read from source during the 2026-09-12 landing audit; a
+  CUSTOMER-FACING INDISTINGUISHABILITY in the PR comment; NON-gating) - admin-check's three
+  literal-tier patterns print the same `Detection confidence: high` as the model-judged
+  findings, and the comment builder cannot tell them apart.**
+
+  `admin-check.detector.ts` emits `default_admin_email`, `default_admin_id` and
+  `role_fallback_admin` from the regex alone (the per-pattern Option G bypass), with
+  `confidence: "high"` as a constant. `comment-builder.ts` prints `fix.confidence` and the
+  `NormalizedFixSuggestion` it receives carries `detectorId` and `findingType` but no rule
+  id, so a customer reads "high" on those three and on the model-judged findings alike and
+  cannot know which findings a model looked at. The secrets check had the same shape and
+  was fixed by detector id in #216 ("Detection: pattern match (fixed credential shape; no
+  model judgment)"); admin-check cannot be fixed the same way because most of its findings
+  ARE model-judged. The fix is to carry the emit path (bypass or model) or the rule id on
+  the fix suggestion and print it, with the gate pinning it per fixture.
+
+  **SEQUENCING (owner's lean 2026-09-12, concurred): filed and not ahead of the draw.** It
+  is one detector, three patterns, and the published secrets sentence does not depend on
+  it; the draw (stage P) opens the next row and every remaining row waits on it. This is
+  not cosmetics: it is a customer reading a judgment that was never made, the same defect
+  class as the secrets line, and it lands as the first product fix after the draw.
+
 ### Priority 1f - OPEN: reach / market-fit findings surfaced by structural measurement
 
 Same `L-` namespace as Priority 1d and 1e (found by RUNNING the detector), and a DELIBERATELY
