@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (thirteenth revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (fourteenth revision)
 
 ## The published sentence, and the two edits that withdraw it
 
@@ -346,6 +346,55 @@ perturbation. Choosing between them after seeing the number is fitting a rule to
 which is the thing this witness exists to prevent. NO SESSION MAY PICK ONE WITHOUT A NEW
 PREDICTION COMMITTED FIRST.
 
+## The GEN segment census: the W2-twenty null explained (2026-09-12)
+
+Branch `measure/gen-segment-census-2026-09-12`, based on `measure/path-population-2026-09-12`
+and NOT on main, because the instrument it imports and the handoff text it edits both exist
+only there; branching off main would have forked the constants, which is the six-copies
+divergence #212 demonstrated. #221's ref, commits and head tree 674d0ca0 are untouched and
+nothing was rebased. Disclosed cost: this repository squash-merges, so once #221 lands the
+census branch needs a rebase onto the new main. That rebase moves the census branch's own
+identifiers and does not touch 674d0ca0.
+
+DESCRIPTIVE, NOT A WITNESS: a complete enumeration of every non-merge commit reachable from
+each clone HEAD, ten segments by twelve repositories, three figures each. It carries no
+prediction and no pre-registration because it predicts nothing. All twelve sizing-table rows
+reproduced, both columns, and the ten-segment decomposition disagreed with the tracked `GEN`
+on 0 files of every file examined. 38 seconds for the corpus, trees only, zero bytes fetched.
+Artifact: `gen-segment-census-2026-09-12.json`; instrument `tools/gen_segment_census.py`.
+
+THE ANSWER IS NEITHER (a) NOR (b). The two-way question did not contain the state the corpus
+is actually in. On twenty, of `path_population` 12,759 with `removed_by_full_GEN` 1,012:
+`locales` touches 1,072 commits and would remove 995 of them ON ITS OWN, but its UNIQUE
+contribution is 0. Every commit `locales` would remove is also removed by another segment,
+so dropping it alone cannot move the column by one commit. `locales` on twenty is REDUNDANT,
+not idle. The prediction was wrong; the reason (a) gave for it was also wrong.
+
+THE CHECK'S POWER ON TWENTY IS INTACT AND QUANTIFIED: drop-one-out uniques are `build` 11,
+`generated` 4, `i18n` 1, `translations` 1. Only `build` is at or above ten; the rest are raw
+figures from which no conclusion is drawn. A W2-style perturbation of `build` on twenty must
+move the excluding-generated column from 11,747 to exactly 11,758.
+
+THE RATIONALE QUESTION DID NOT FIRE. `selector-b.md` point 2 justifies the ten segments by
+citing 47 of 224 pre-screen positives as generated locale files. The condition under which
+that rationale and its mechanism would have parted company was the locale segments measuring
+ZERO on twenty. They do not: 1,072 touches, 995 removes_alone. The rationale stands on its
+own terms and NO EDIT TO `selector-b.md` IS OWED. What is new is only that the contribution
+of `locales` on twenty is wholly redundant with another segment.
+
+READ THE TABLE WITH THESE BOUNDS. Uniques are NOT additive: one commit can be unique to
+several segments at once, so per-repository uniques may sum above the denominator (discourse
+sums to 312 against 307). `unique` can exceed `removes_alone`, which requires EVERY
+qualifying file to be under the segment while `unique` requires only one file under that
+segment and no other. The blind region is now a census fact rather than an inference from
+equal columns: caddy, full-stack-fastapi-template, hoppscotch and langchain have
+`removed_by_full_GEN` 0 and every segment at 0/0/0. R12: every figure is earned for the
+repository it was measured on and transfers to none other.
+
+WHAT IS STILL TRUE: W2-twenty REMAINS A FAILED ARM. The census explains it; it does not
+un-fail it. The twelve-repository walk has still not run and stage P still has no draw
+universe.
+
 ## Next actions, in order (owner's order 2026-09-12)
 
 1. SECRETS FALSE-ALARM READING: DONE 2026-09-12, `secrets-false-alarms-2026-09-12.json`
@@ -421,7 +470,13 @@ PREDICTION COMMITTED FIRST.
    did not follow. THE NEXT COMMANDABLE STEP is the owner's ruling on the W2-twenty
    ambiguity, followed by a NEW pre-registered prediction committed before any arm re-runs.
    Do not re-run W2 under a re-chosen segment without committing the prediction first, and
-   do not proceed to the twelve-repository run while any arm stands failed.
+   do not proceed to the twelve-repository run while any arm stands failed. RESOLVED SO FAR
+   (2026-09-12): the census above establishes that the null came from a REDUNDANT segment,
+   not an idle one and not a blind check. THE NEXT COMMANDABLE STEP is the owner's choice
+   between accepting the census as the resolution and leaving the witness at five holding
+   arms with one explained failure, or committing W2' on twenty/`build` as an EXACT point
+   prediction, 11,747 to 11,758, and re-running it. The session recommends the second. Only
+   after that does the twelve-repository walk run, and only then can stage P draw.
 5. Stage 1 reach instrument (keyless, on the IDOR rig's triple lock): not built.
 6. Stage 2 (spend): only on the owner's approval by detector, against a computed number.
 
