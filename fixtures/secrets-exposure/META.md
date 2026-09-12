@@ -1,5 +1,13 @@
 # secrets-exposure fixtures
 
+## 2026-09-12, second step: `negative/19`, a Go `*_test.go` file (35 fixtures now)
+
+Same control shape as 14 to 18: `pkg/services/sqlstore/database_config_test.go` by
+`ASSUMED-PATH`, a `password = "..."` literal that fires `password_literal` under a neutral
+path, dropped at `path filter` under its own. Pre-registered and measured in
+`secrets-skip-go-tests-prereg-2026-09-12.md` and
+`secrets-false-alarms-remeasure-go-tests-2026-09-12.json`.
+
 ## 2026-09-12: five negatives for the widened secrets copy of SKIP_PATH_RE (34 fixtures now)
 
 `negative/14` to `negative/18` each sit, by `ASSUMED-PATH`, under one path class the
