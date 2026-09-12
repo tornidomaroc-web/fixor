@@ -2367,12 +2367,31 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #173 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #174 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #172 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #221 | from a THIRD branch, a descendant of the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
 already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
 firmer than it is: **#141's arm is not separately recorded anywhere.** It sits in the
 already-checked-out arm on the #143 block's own framing, which cites #141 as the case a merge NOT
 driven from the branch produces. Every other row's arm is recorded at the observation itself.
+
+**#221 ADDS A THIRD ARM, AND THE TOTALS ABOVE ARE THEREFORE UNCHANGED (2026-09-12).** The row is
+filed under neither existing arm because it belongs to neither. `gh pr merge 221 --squash` was
+invoked while HEAD sat on `measure/gen-segment-census-2026-09-12`, a branch stacked ON the merged
+branch rather than the merged branch itself, and not on the base either. The reflog records the
+checkout of that branch before the merge and the move to main only after it, so the arm is
+established at the observation and not inferred. Assertion 4 was **RED**: `git branch --list`
+still returned `measure/path-population-2026-09-12` while `gh` exited 0 and printed nothing.
+Assertion 2, the only strong one, held: main's tree equalled the head tree captured before the
+merge, `674d0ca0`. The two-arm totals in the paragraph above are left exactly as they were,
+because adding an observation in a third arm cannot change either of them, and this entry is
+dated rather than folded into the split it does not belong to.
+
+A FOURTH GATE LEG was used at #221 and is recorded here because it bears on the read-back rather
+than on the handoff: the merge gate as stated carries no leg for "main has not moved", yet the
+strong assertion depends on it entirely. main was read from the remote as equal to the branch
+point before merging, so the squash tree had to equal the captured tree. Without that leg, a
+moved main forces a STOP for something that is not a defect in the pull request.
 
 **VERSION CONSTANCY, AND WHAT IT EXCLUDES.** Across #143, #171 and #173 the recorded environment is
 the same — gh 2.91.0, git 2.53.0, Windows — and those three span one green and two reds, so **the
