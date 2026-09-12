@@ -108,6 +108,28 @@ below and no shorter one, in sales copy included.
   Forbidden: any rate; anything about catch; anything about the ICP corpus or cal.com;
   reading these shapes as a change request (the skip list is a detector decision, not a
   measurement result).
+- WEBHOOK 97, done 2026-09-12 (`webhook-keyword-97-2026-09-12.json`, #207). All 97 webhook
+  keyword candidates across the twelve clones read blind as source-file diffs without the
+  commit message, two fresh readers each (one protocol, one skeptic of a zero told to name a
+  class whenever the diff could not rule it out), a third fresh reader on the five
+  disagreements, three planted controls all called correctly. Result: 3 webhook-unverified
+  fixes among the 97, all three agreed by both lenses, all three in discourse, three
+  distinct commits (0442741f8cbb Patreon signature compared with `==` and computed on a
+  blank secret; e1d4b1637cff Mailpace webhook processed with no signature check while every
+  sibling verified; c3070288ea05 five email-provider webhooks processed with no verification
+  at all). Three is NOT under three: the pre-registered absence consequence does not fire,
+  by one commit. Also found, other classes: 2 auth-bypass (strapi a4723b48c348 JWT verify
+  with no algorithm restriction; twenty 40d7e740ef58 token type unchecked), 1 idor
+  (discourse 4459742becdb modal resume unbound from its target user). The five A/B
+  disagreements all settled to none. Two defect removals were recorded as none because they
+  sit outside every class scope (a timing-safe compare in a password-reset code check and
+  in an SSO signature check). Forbidden: any rate; treating 3 of 97 as a property of the
+  class rather than of this selector; anything about webhook fixes described without the
+  keyword vocabulary (stage P, not drawn, is the instrument for those). The reading was
+  interrupted by a session limit at 05:17 with nine batches complete and three never
+  written; the artifact records the single-write property that made the surviving files
+  whole, the re-run of the three in the next window, and the caveat that a tool call proves
+  a packet was requested, not absorbed.
 
 ## The redefinition for secrets-exposure (adopted 2026-09-12)
 
@@ -132,7 +154,7 @@ slack_webhook_hardcoded (`PREFILTER_PATTERNS` in `secrets-exposure.detector.ts`)
 | auth-bypass | same, about 12 commits, borderline for the floor | same if the floor holds; a case list and no number if not |
 | secrets-exposure | false alarms on the 13 step-4 clones MEASURED 2026-09-12: 58 flags on 65,566 files, 58 not credentials by three blind readers, 0 real (`secrets-false-alarms-2026-09-12.json`); the ICP corpus not yet read; shape coverage against the gitleaks default rules and fixture catch on the shipped path not yet measured; no spend | "Recognises these shapes; on 65,566 real files in 13 mature open-source repositories it raised 58 flags, of which 58 were wrong; never calls a model", the corpus named every time; the ICP corpus's own M, F, W added when read, never merged into these |
 | env-exposure | keyless reach count; false alarms on reaching files only with approved spend; no catch on real code by any selector we have | "Catches the authored shapes; on M real files it would have judged R and raised F flags"; no catch rate on real code, said plainly |
-| webhook-unverified | decided by reading the 97 keyword candidates blind; otherwise as env-exposure, with the 34 replay recordings behind the fixture claim | conditional on the 97 |
+| webhook-unverified | the 97 read 2026-09-12: 3 fixes, 3 distinct commits, all discourse (Ruby); the absence consequence did not fire, by one commit; whether the three are admitted as pairs is decided under README.md's admission rules, not here, and 3 is under the 10-commit floor either way | until the floor is met: a case list and no number; the fixture claim stands on the 34 replay recordings; no catch rate on real code, said plainly |
 
 ## The records
 
@@ -179,15 +201,35 @@ stated beside every verdict count.
    this same instrument and protocol (redefinition part 2, second half); shape coverage
    against the gitleaks 8.24.3 default rules (part 1); fixture catch rerun on the shipped
    path, since the 20/20 log was recorded with the LLM path on (part 3).
-2. WEBHOOK 97. Read all 97 webhook keyword candidates blind (their sha lists are in the
-   drafts directory, `fix-pairs-candidate-counts.<repo>.webhook-unverified.shas`); this is
-   the webhook slice of the keyword arm, the arm's 150 otherwise unchanged. Under three
-   fixes: the class is absent from this corpus by the only selector with vocabulary for it.
-3. STAGE P of selector B: NOT DRAWN. 300 pre-screen positives, 25 per repository, seeds per
+2. WEBHOOK 97: DONE 2026-09-12, `webhook-keyword-97-2026-09-12.json` (#207), summarised
+   under "What was found": 3 fixes of 97, the absence consequence did not fire. The keyword
+   arm's 150 are otherwise unchanged. Owed from it: the admission decision for the three
+   webhook fixes and the three other-class fixes under README.md's admission rules (the
+   parent answer range, blind verdict, sibling rule), and pair records for those admitted;
+   `make_pairs.py` is twenty-specific and needs its repository and path assumptions lifted
+   before a discourse or strapi record can be written with it.
+3. SECRETS ICP READING (owner's order 2026-09-12, before stage P): the same instrument
+   (`production-scan.ts` unmodified, the 16 patterns, the replay triple lock, environment
+   built from scratch) over the 43 ICP clones (`test-output/icp-corpus/`, manifest
+   `icp-corpus-2026-07-17.json`), every flag read blind by the flag protocol, written here
+   as `secrets-false-alarms-icp-<date>.json`; its M, F, W stated beside the mature-code
+   numbers and never merged into them. Owner's reason: a noise number on mature code
+   flatters the detector; the ICP corpus is the code the customer actually has, so that is
+   the number he has to stand behind. Runs BEFORE any skip-list change (standing ruling
+   below).
+4. STAGE P of selector B: NOT DRAWN. 300 pre-screen positives, 25 per repository, seeds per
    repository HEAD, interleaved with the keyword arm's 150, read blind. Then rounds per
    `selector-b.md`.
-4. Stage 1 reach instrument (keyless, on the IDOR rig's triple lock): not built.
-5. Stage 2 (spend): only on the owner's approval by detector, against a computed number.
+5. Stage 1 reach instrument (keyless, on the IDOR rig's triple lock): not built.
+6. Stage 2 (spend): only on the owner's approval by detector, against a computed number.
+
+Standing ruling (owner, 2026-09-12) on the 19 addressable secrets flags, ten discourse
+operator placeholders under `script/` and nine under test paths the skip list does not
+name: NOT fixed yet. A skip-list change before the measurements are done would leave the 58
+measured on a corpus-and-list pair that no longer ships. Order: measure (mature code done,
+ICP next, both on this instrument), then fix, then re-measure both corpora on the new
+instrument, each instrument's numbers kept side by side and never merged. The same entry
+in `docs/REMEDIATION-PROGRESS.md` under L-023 carries the ruling for detector work.
 
 Process rules that bind every step: branch, pull request, merge only on the owner's explicit
 command through the three-condition gate (required checks from app_id 15368, MERGEABLE OPEN,

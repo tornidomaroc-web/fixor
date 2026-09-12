@@ -1,0 +1,3354 @@
+{
+  "measurement": "Item 2 of the handoff: the webhook slice of the keyword arm. All 97 webhook-unverified keyword candidates across the twelve fix-pair clones read blind by two independent readers each (a third on any disagreement), as commit diffs of source files without the commit message. Count of fixes with its denominator, never a rate.",
+  "date": "2026-09-12",
+  "measuredDate": "2026-09-12",
+  "ref": "branch measure/webhook-97-2026-09-12 from main bffc0c7f096f01454712e8c8aff40214ecc15e9b",
+  "preRegisteredConsequence": "HANDOFF.md item 2: under three fixes, the class is absent from this corpus by the only selector with vocabulary for it. The keyword arm's 150-read status test is unchanged by this reading.",
+  "population": {
+    "name": "the 97 webhook-unverified keyword candidates of the keyword selector (keywords.json, byte-identical since #202), commit-message matches across the twelve fix-pair clones",
+    "shaLists": "../drafts-2026-09-11-tree-scan/fix-pairs-candidate-counts.<repo>.webhook-unverified.shas (CRLF line endings)",
+    "clones": "../fix-pairs-corpus/<name>, blobless (blob:none) promisor clones; blobs fetched on demand by git show, no API key, no model call",
+    "perRepository": {
+      "mastodon": {
+        "candidates": 21,
+        "webhookFixes": 0,
+        "otherClassFixes": 0
+      },
+      "twenty": {
+        "candidates": 32,
+        "webhookFixes": 0,
+        "otherClassFixes": 1
+      },
+      "gitea": {
+        "candidates": 9,
+        "webhookFixes": 0,
+        "otherClassFixes": 0
+      },
+      "discourse": {
+        "candidates": 13,
+        "webhookFixes": 3,
+        "otherClassFixes": 1
+      },
+      "caddy": {
+        "candidates": 2,
+        "webhookFixes": 0,
+        "otherClassFixes": 0
+      },
+      "strapi": {
+        "candidates": 4,
+        "webhookFixes": 0,
+        "otherClassFixes": 1
+      },
+      "grafana": {
+        "candidates": 11,
+        "webhookFixes": 0,
+        "otherClassFixes": 0
+      },
+      "documenso": {
+        "candidates": 3,
+        "webhookFixes": 0,
+        "otherClassFixes": 0
+      },
+      "plane": {
+        "candidates": 2,
+        "webhookFixes": 0,
+        "otherClassFixes": 0
+      }
+    },
+    "candidates": 97,
+    "candidatesOver600ChangedLines": 17,
+    "note": "the shape sample excluded commits over 600 changed lines as too_large before reading; this reading excluded nothing, and readers recorded what they examined on long diffs"
+  },
+  "instrument": {
+    "diffs": "tools/webhook_97.py: same EXT and SKIP filters as shape_sample.py, no twenty-server PREFIX, git show --format= --no-color <sha> -- <source files>; records.json (sha, repo, files, changed_lines, subject) kept out of every reader's view",
+    "packets": {
+      "total": 100,
+      "candidates": 97,
+      "plantedControls": 3,
+      "naming": "P001..P100 in a seeded shuffle, seed webhook-97-2026-09-12; neither sha nor repository in a file name"
+    },
+    "readers": {
+      "lensA": "protocol reader, six batches balanced by bytes (1 to 24 packets)",
+      "lensB": "skeptic of a zero: told to assume a defect fix until the diff shows otherwise and to search each diff for the six classes before answering none; six batches on a different partition",
+      "lensC": "fresh reader on any A/B disagreement",
+      "batchCap": "at most 56 per batch (largest used: 33)"
+    },
+    "permittedReading": "only the packet files and docs/detector-capabilities.md; never detector source, fixtures, scripts, repository files, the web or git; never told selector, arm or repository",
+    "verdict": "one of the six classes or none; one sentence; the defect lines quoted; fix means the parent state had the defect and the commit removes it; feature work, refactors, renames, new permission features, tests, and anything where the defect is not evident from the diff alone are none",
+    "verdictsSavedBeforeComputation": "each reader wrote verdicts-<lens>-<batch>.json to ../drafts-2026-09-11-tree-scan/webhook-97-2026-09-12-verdicts/ before replying; verdicts-aggregate.json was written there before any count was computed",
+    "zeroSpend": {
+      "modelCalls": 0,
+      "apiKeyInEnvironment": false,
+      "network": "git blob fetches from the promisor remotes only",
+      "totalSpentUsd": 0
+    },
+    "batches": [
+      {
+        "batch": "A1",
+        "packets": 1,
+        "bytes": 794968
+      },
+      {
+        "batch": "A2",
+        "packets": 13,
+        "bytes": 516263
+      },
+      {
+        "batch": "A3",
+        "packets": 18,
+        "bytes": 516212
+      },
+      {
+        "batch": "A4",
+        "packets": 21,
+        "bytes": 516173
+      },
+      {
+        "batch": "A5",
+        "packets": 24,
+        "bytes": 516502
+      },
+      {
+        "batch": "A6",
+        "packets": 23,
+        "bytes": 516271
+      },
+      {
+        "batch": "B1",
+        "packets": 7,
+        "bytes": 457154
+      },
+      {
+        "batch": "B2",
+        "packets": 5,
+        "bytes": 812814
+      },
+      {
+        "batch": "B3",
+        "packets": 9,
+        "bytes": 602454
+      },
+      {
+        "batch": "B4",
+        "packets": 25,
+        "bytes": 642837
+      },
+      {
+        "batch": "B5",
+        "packets": 21,
+        "bytes": 440908
+      },
+      {
+        "batch": "B6",
+        "packets": 33,
+        "bytes": 420222
+      }
+    ],
+    "interruption": {
+      "what": "A session limit (the subscription's, not a spend event) killed six of the twelve first-wave readers at about 05:17 local on 2026-09-12. Nine batches had already written their complete verdict file; three (A5, B4, B5) had written nothing.",
+      "singleWriteProperty": "Each reader writes its batch file in ONE Write call after its last packet is read. This is a property of the instrument, not luck: an interrupted reader leaves nothing rather than a partial file that looks complete. Evidence read from the readers' own transcripts: each surviving file came from exactly one Write call placed after the last packet-reading tool call; the three empty batches made zero Write calls; every packet id of every batch appears in that reader's Read, Grep or Bash calls before its write (130 of 130 in the first wave).",
+      "caveat": "A tool call proves a packet was requested, not absorbed; the examined field in each verdict is the reader's own statement of what it read. This does not weaken the verdicts and is kept on the record.",
+      "ruling": "Owner's ruling 2026-09-12: keep the nine complete batches, including the three whose readers were killed after writing; re-read the three empty batches whole with fresh readers, never resumed.",
+      "rerun": {
+        "note": "re-run after the 05:17 session limit; window 2 begins after the 06:00 Africa/Casablanca reset",
+        "batches": [
+          {
+            "batch": "A5a",
+            "window": "2 (after the 06:00 reset)",
+            "startedLocal": "06:25:38",
+            "finishedLocal": "06:28:07",
+            "verdicts": 12
+          },
+          {
+            "batch": "A5b",
+            "window": "2 (after the 06:00 reset)",
+            "startedLocal": "06:25:38",
+            "finishedLocal": "06:28:08",
+            "verdicts": 12
+          },
+          {
+            "batch": "B4a",
+            "window": "2 (after the 06:00 reset)",
+            "startedLocal": "06:28:34",
+            "finishedLocal": "06:30:47",
+            "verdicts": 13
+          },
+          {
+            "batch": "B4b",
+            "window": "2 (after the 06:00 reset)",
+            "startedLocal": "06:28:34",
+            "finishedLocal": "06:30:47",
+            "verdicts": 12
+          },
+          {
+            "batch": "B5a",
+            "window": "2 (after the 06:00 reset)",
+            "startedLocal": "06:31:00",
+            "finishedLocal": "06:33:14",
+            "verdicts": 11
+          },
+          {
+            "batch": "B5b",
+            "window": "2 (after the 06:00 reset)",
+            "startedLocal": "06:31:00",
+            "finishedLocal": "06:33:43",
+            "verdicts": 10
+          },
+          {
+            "batch": "C1",
+            "window": "2 (after the 06:00 reset)",
+            "finishedLocal": "06:35:13",
+            "verdicts": 5
+          }
+        ]
+      },
+      "firstWaveFinishTimesLocal": {
+        "A1": "05:09:58",
+        "A2": "05:15:25",
+        "A3": "05:12:54",
+        "A4": "05:13:49",
+        "A6": "05:13:40",
+        "B1": "05:13:47",
+        "B2": "05:12:14",
+        "B3": "05:14:55",
+        "B6": "05:17:54"
+      }
+    }
+  },
+  "readerControlsR12": {
+    "rule": "The reader is an instrument. Three planted packets, indistinguishable in form, at seeded positions: a recorded auth-bypass fix from the shape sample (must be called a class fix), a recorded none from the shape sample (must be called none), and a synthetic webhook-unverified fix authored 2026-09-12 and never committed (must be called webhook-unverified, proving the reader can say the class this reading counts). Excluded from every count.",
+    "results": [
+      {
+        "id": "P001",
+        "repo": "twenty (shape sample, recorded verdict auth-bypass)",
+        "sha": "cdd667b1066e96e52352fdc1d100e4d1af67ca00",
+        "changedLines": 45,
+        "bytes": 5044,
+        "readers": {
+          "A": {
+            "class": "auth-bypass",
+            "reason": "The public server-route dispatcher looked up any logic function by universal identifier and dispatched it with no check of its isAuthRequired setting; the commit adds a guard that refuses auth-required resolvers on the public route and narrows the lookup to functions that actually carry serverRouteTriggerSettings.",
+            "defect_lines": [
+              "+    if (resolver.httpRouteTriggerSettings?.isAuthRequired === true) {",
+              "+      throw new ServerRouteTriggerException(",
+              "+        `Server resolver function ${resolverLogicFunctionUniversalIdentifier} requires authentication and cannot be dispatched through the public server route`,",
+              "+        ServerRouteTriggerExceptionCode.RESOLVER_REQUIRES_AUTHENTICATION,",
+              "-    const candidates = await this.logicFunctionRepository.find({",
+              "-      where: { universalIdentifier: logicFunctionUniversalIdentifier },",
+              "+        .andWhere('logicFunction.serverRouteTriggerSettings IS NOT NULL')"
+            ],
+            "batch": "A6"
+          },
+          "B": {
+            "class": "auth-bypass",
+            "reason": "The public server-route dispatcher (ServerRouteTriggerService) dispatched any logic function matched by universal identifier, including resolvers whose pre-existing httpRouteTriggerSettings.isAuthRequired === true, with no authentication check in front of the dispatch; the commit adds the refusal (RESOLVER_REQUIRES_AUTHENTICATION, mapped to 403 in the exception filter) and additionally narrows the lookup to functions with serverRouteTriggerSettings IS NOT NULL, so in the parent an unauthenticated caller of the public server route could invoke auth-required and non-server-route functions.",
+            "defect_lines": [
+              "+    if (resolver.httpRouteTriggerSettings?.isAuthRequired === true) {",
+              "+      throw new ServerRouteTriggerException(",
+              "+        `Server resolver function ${resolverLogicFunctionUniversalIdentifier} requires authentication and cannot be dispatched through the public server route`,",
+              "+        ServerRouteTriggerExceptionCode.RESOLVER_REQUIRES_AUTHENTICATION,",
+              "+      );",
+              "+    }",
+              "-    const candidates = await this.logicFunctionRepository.find({",
+              "-      where: { universalIdentifier: logicFunctionUniversalIdentifier },",
+              "-      relations: { application: { applicationRegistration: true } },",
+              "-    });",
+              "+        .andWhere('logicFunction.serverRouteTriggerSettings IS NOT NULL')",
+              "+      case ServerRouteTriggerExceptionCode.RESOLVER_REQUIRES_AUTHENTICATION:",
+              "+          403,"
+            ],
+            "batch": "B1"
+          },
+          "C": null
+        },
+        "final": "auth-bypass",
+        "control": "positive-class-fix",
+        "expected": "auth-bypass",
+        "passed": true
+      },
+      {
+        "id": "P036",
+        "repo": "twenty (shape sample, recorded verdict none)",
+        "sha": "00e970bdf4ff3675af3ccad6757d225ff68b8ca0",
+        "changedLines": 224,
+        "bytes": 10977,
+        "readers": {
+          "A": {
+            "class": "none",
+            "reason": "New upgrade-version command that drops empty-string defaults on TEXT columns and nulls empty strings; data migration with no auth, secret, env or webhook semantics.",
+            "defect_lines": [],
+            "batch": "A3"
+          },
+          "B": {
+            "class": "none",
+            "reason": "Searched for gates, scoping, secrets and env; the commit is a v1.13 upgrade migration command that drops empty-string TEXT defaults and nulls empty strings (running with `shouldBypassPermissionChecks` as a system migration), with no defect of the six classes removed.",
+            "defect_lines": [],
+            "batch": "B6"
+          },
+          "C": null
+        },
+        "final": "none",
+        "control": "negative-none",
+        "expected": "none",
+        "passed": true
+      },
+      {
+        "id": "P068",
+        "repo": "(synthetic, authored 2026-09-12, never committed)",
+        "sha": null,
+        "changedLines": 26,
+        "bytes": 2485,
+        "readers": {
+          "A": {
+            "class": "webhook-unverified",
+            "reason": "The /webhooks/github handler took req.body as parsed JSON with no signature check at all; the commit switches the route to express.raw, computes the sha256 HMAC over the raw body with GITHUB_WEBHOOK_SECRET, compares it to x-hub-signature-256 with timingSafeEqual, and returns 401 on mismatch or missing secret.",
+            "defect_lines": [
+              "-  const payload = req.body as Record<string, unknown>;",
+              "-  app.post(\"/webhooks/github\", express.json({ limit: \"2mb\" }), handleGithubWebhook);",
+              "+  if (!signatureMatches(rawBody, req.header(\"x-hub-signature-256\"))) {",
+              "+    res.status(401).json({ error: \"invalid signature\" });",
+              "+  return a.length === b.length && timingSafeEqual(a, b);",
+              "+    express.raw({ type: \"application/json\", limit: \"2mb\" }),"
+            ],
+            "batch": "A3"
+          },
+          "B": {
+            "class": "webhook-unverified",
+            "reason": "The pre-existing GitHub webhook handler consumed req.body parsed by express.json() with no signature check at all; the commit switches the existing route to express.raw, computes HMAC-SHA256 over the raw body with GITHUB_WEBHOOK_SECRET, compares it to x-hub-signature-256 with timingSafeEqual, and rejects with 401 on a bad or missing signature (failing closed when the secret is unset), so the parent defect and its removal are both in the diff and this is not a newly added endpoint.",
+            "defect_lines": [
+              "-  const payload = req.body as Record<string, unknown>;",
+              "-  app.post(\"/webhooks/github\", express.json({ limit: \"2mb\" }), handleGithubWebhook);",
+              "+  if (!signatureMatches(rawBody, req.header(\"x-hub-signature-256\"))) {",
+              "+    res.status(401).json({ error: \"invalid signature\" });",
+              "+  return a.length === b.length && timingSafeEqual(a, b);",
+              "+    express.raw({ type: \"application/json\", limit: \"2mb\" }),"
+            ],
+            "batch": "B3"
+          },
+          "C": null
+        },
+        "final": "webhook-unverified",
+        "control": "positive-webhook-fix",
+        "expected": "webhook-unverified",
+        "passed": true
+      }
+    ]
+  },
+  "result": {
+    "webhookUnverifiedFixes": {
+      "count": 3,
+      "of": 97,
+      "statement": "3 webhook-unverified fixes among the 97 webhook keyword candidates"
+    },
+    "finalByClass": {
+      "auth-bypass": 2,
+      "admin-check": 0,
+      "idor": 1,
+      "secrets-exposure": 0,
+      "env-exposure": 0,
+      "webhook-unverified": 3,
+      "none": 91,
+      "unresolved": 0
+    },
+    "otherClassFixes": [
+      {
+        "id": "P051",
+        "repo": "strapi",
+        "sha": "a4723b48c348aa8a55192dd4d6538ad6a5098719",
+        "A": "auth-bypass",
+        "B": "auth-bypass",
+        "C": null,
+        "final": "auth-bypass"
+      },
+      {
+        "id": "P069",
+        "repo": "twenty",
+        "sha": "40d7e740ef58051329fa9583e3a2124561540f20",
+        "A": "auth-bypass",
+        "B": "auth-bypass",
+        "C": null,
+        "final": "auth-bypass"
+      },
+      {
+        "id": "P071",
+        "repo": "discourse",
+        "sha": "4459742becdbcaea518c2d3ef52b3fc013e963b3",
+        "A": "idor",
+        "B": "idor",
+        "C": null,
+        "final": "idor"
+      }
+    ],
+    "packetsWhereAnyReaderNamedAClass": [
+      {
+        "id": "P029",
+        "repo": "plane",
+        "sha": "30527927d7db7f4f7bf4a3c4632233a199fc8eb1",
+        "A": "none",
+        "B": "secrets-exposure",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P030",
+        "repo": "discourse",
+        "sha": "890d06ac04dde336abe670d559e6ea89007c9884",
+        "A": "none",
+        "B": "auth-bypass",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P037",
+        "repo": "plane",
+        "sha": "edf247541301e482f2688c63481464b671ec579d",
+        "A": "none",
+        "B": "secrets-exposure",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P051",
+        "repo": "strapi",
+        "sha": "a4723b48c348aa8a55192dd4d6538ad6a5098719",
+        "A": "auth-bypass",
+        "B": "auth-bypass",
+        "C": null,
+        "final": "auth-bypass"
+      },
+      {
+        "id": "P057",
+        "repo": "discourse",
+        "sha": "0442741f8cbbfe43fad4b94ed47e2b8fae037948",
+        "A": "webhook-unverified",
+        "B": "webhook-unverified",
+        "C": null,
+        "final": "webhook-unverified"
+      },
+      {
+        "id": "P058",
+        "repo": "discourse",
+        "sha": "abb64e8b113f8dd9a9b6559a5a400a8e4e127703",
+        "A": "none",
+        "B": "webhook-unverified",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P061",
+        "repo": "discourse",
+        "sha": "e1d4b1637cff07d4a26e6101ff37aea124fc00f1",
+        "A": "webhook-unverified",
+        "B": "webhook-unverified",
+        "C": null,
+        "final": "webhook-unverified"
+      },
+      {
+        "id": "P063",
+        "repo": "discourse",
+        "sha": "1ff8a8cc1299383fc3cb33347ce72adb506bb924",
+        "A": "webhook-unverified",
+        "B": "none",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P069",
+        "repo": "twenty",
+        "sha": "40d7e740ef58051329fa9583e3a2124561540f20",
+        "A": "auth-bypass",
+        "B": "auth-bypass",
+        "C": null,
+        "final": "auth-bypass"
+      },
+      {
+        "id": "P071",
+        "repo": "discourse",
+        "sha": "4459742becdbcaea518c2d3ef52b3fc013e963b3",
+        "A": "idor",
+        "B": "idor",
+        "C": null,
+        "final": "idor"
+      },
+      {
+        "id": "P075",
+        "repo": "discourse",
+        "sha": "c3070288ea05019b5f5f14451abdee9ab963e8de",
+        "A": "webhook-unverified",
+        "B": "webhook-unverified",
+        "C": null,
+        "final": "webhook-unverified"
+      }
+    ],
+    "disagreements": [
+      {
+        "id": "P029",
+        "A": "none",
+        "B": "secrets-exposure",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P030",
+        "A": "none",
+        "B": "auth-bypass",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P037",
+        "A": "none",
+        "B": "secrets-exposure",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P058",
+        "A": "none",
+        "B": "webhook-unverified",
+        "C": "none",
+        "final": "none"
+      },
+      {
+        "id": "P063",
+        "A": "webhook-unverified",
+        "B": "none",
+        "C": "none",
+        "final": "none"
+      }
+    ],
+    "consequence": "THREE OR MORE: the pre-registered absence consequence does not fire; the fixes go to pair records under the README admission rules.",
+    "aggregateProblems": [],
+    "missing": []
+  },
+  "knownLimit": "A packet carries relative paths, and a path or an import path can name the repository even though the reader is never told it; recorded in HANDOFF.md as a limit of the protocol, not closable by path masking without destroying the judgement.",
+  "whatThisDoesNotShow": [
+    "Nothing about webhook fixes described without the keyword vocabulary: the keyword selector finds commits that talk about signatures and webhooks, and stage P (not drawn) is the instrument for the rest.",
+    "Nothing about catch or false alarms of the webhook detector: no detector ran here.",
+    "Long diffs were read by search-then-read where noted in a reader's examined field; a none on such a diff means no defect removal was evident in what was examined.",
+    "No rate."
+  ],
+  "verdicts": [
+    {
+      "id": "P002",
+      "repo": "mastodon",
+      "sha": "68dcbcb7bf2cceb181a9b82d604d2c2829c0c78b",
+      "date": "2023-01-18",
+      "sourceFiles": 2,
+      "allFiles": 3,
+      "changedLines": 17,
+      "bytes": 3491,
+      "subject": "Add more specific error messages to HTTP signature verification (#21617)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Changes the HTTP-signature failure response from plain text to JSON, reworks failure messages, turns an invalid-Date `return false` into a raised SignatureVerificationError, and requires `preferredUsername` on fetched actors; verification already failed closed in the parent, so no defect of the six classes is removed.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the signature-verification concern and the actor-fetch service for removal of a missing or bypassable verification, an authorization gap, tenant/owner scoping, secret handling and env exposure: verification is present in both states (verify_signature / fail_with!), the rescue ArgumentError change only moves from `return false` to raising SignatureVerificationError, which the existing `rescue SignatureVerificationError => e; fail_with! e.message` turns into the same failure, and the remaining changes are error-body format (render plain -> render json, adding the requester's own signed_string and signature to the failure reason) plus a preferredUsername presence check on fetched remote actors, so no defect removal in the six classes is evident.",
+          "defect_lines": [],
+          "batch": "B1"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P003",
+      "repo": "mastodon",
+      "sha": "1bd13af54698b269623f8faa3e2d86fb291fe50c",
+      "date": "2026-06-01",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 4,
+      "bytes": 791,
+      "subject": "Fix error handling for invalid keys in signature verification (#39235)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Renames the raised exception class from Mastodon::SignatureVerification to Mastodon::SignatureVerificationError inside check_keypair_validity!; the revoked/expired checks still raise either way, so no verification defect is removed.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Renames the raised constant from Mastodon::SignatureVerification to Mastodon::SignatureVerificationError inside check_keypair_validity!; both parent and child raise on a revoked/expired key, so I searched the removed lines for a swallowed or skipped verification, an auth/admin/owner gate, a secret literal or an env dump and found only an exception-class rename.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P004",
+      "repo": "twenty",
+      "sha": "16cb768c5c97a158d9b7c920b1b5f4959b660f49",
+      "date": "2025-03-26",
+      "sourceFiles": 9,
+      "allFiles": 9,
+      "changedLines": 229,
+      "bytes": 17912,
+      "subject": "Do not suspend onboarding workspaces after stripe hook and add cron to delete them after 7 days (#11189)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds an activationStatus==ACTIVE precondition to the Stripe-webhook suspension branch and introduces a new onboarding-workspace cleaner command/cron/job; the Stripe event handling is unchanged and no defect of any of the six classes is evident in the removed lines.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched for authorization, admin gating, tenant/owner scoping, secret handling, env exposure and webhook signature handling; the diff only adds an `activationStatus == ACTIVE` precondition before suspending a workspace in the Stripe subscription handler and a new onboarding-workspace cleanup cron/command, with no gate, scope, secret, env or verification defect removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P005",
+      "repo": "twenty",
+      "sha": "2bde5fe9bfef79666d9e0ab44c42cbb0fec6ed18",
+      "date": "2026-08-14",
+      "sourceFiles": 18,
+      "allFiles": 19,
+      "changedLines": 509,
+      "bytes": 46213,
+      "subject": "AI chat: never fail silently on exhausted credits (#24175)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Refactors the billing credits-cap flag to be derived from the live credit balance (new field resolver, removed BillingUsageCapService, front-end hook); feature/refactor work with no defect of the six classes evident.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched for removal of a missing authorization or admin gate, a tenant/owner scoping gap, secret or env exposure, and webhook signature handling: the commit replaces the persisted hasReachedCurrentPeriodCap column with a BillingSubscriptionItemResolver field derived from the live credit balance, deletes BillingUsageCapService and its callers, and drops the cap reset in billing-webhook-invoice.service.ts without touching any guard, scope filter or verification, so no defect removal in the six classes is evident.",
+          "defect_lines": [],
+          "batch": "B1"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P006",
+      "repo": "twenty",
+      "sha": "35f2d7a00403d720791a5d4c83f094ccaeed1857",
+      "date": "2024-11-22",
+      "sourceFiles": 24,
+      "allFiles": 27,
+      "changedLines": 369,
+      "bytes": 35165,
+      "subject": "Add entitlement table and sso stripe feature (#8608)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a BillingEntitlement entity, a new Stripe entitlement-summary webhook event branch and an SSO entitlement gate; this is new billing/permission feature work, not the removal of an evident parent defect.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched for removal of a missing auth or admin check, tenant scoping, secret/env exposure and webhook verification: the commit adds a new BillingEntitlement entity and enums, a new Stripe entitlement-summary event branch in the existing /webhooks controller (the verification path is outside the hunks and unchanged), and a new billing-entitlement licensing gate on SSO (verifyWorkspaceEntitlement in SSOService.isSSOEnabled), which is a new permission/entitlement feature rather than the removal of a missing authorization check; the StripeService early return when billing is disabled neither exposes nor mishandles a secret, so no defect removal in the six classes is evident.",
+          "defect_lines": [],
+          "batch": "B1"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P007",
+      "repo": "gitea",
+      "sha": "e86f18a05a19611c518f6ccb87cc7a1261392666",
+      "date": "2022-06-19",
+      "sourceFiles": 15,
+      "allFiles": 20,
+      "changedLines": 652,
+      "bytes": 24742,
+      "subject": "User keypairs and HTTP signatures for ActivityPub federation using go-ap (#19133)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds brand-new ActivityPub Person and inbox endpoints together with their HTTP-signature verification middleware (ReqHTTPSignature), a signing client, keypair storage and tests; nothing pre-existing is guarded, so there is no parent defect.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the signature/verify/inbox/route hunks; the commit adds brand-new ActivityPub Person and inbox endpoints together with a new `ReqHTTPSignature()` verifier (plus webfinger aliases and a CORS header on public webfinger data), so there is no parent defect being removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P008",
+      "repo": "discourse",
+      "sha": "0cdbd408663de99c20a7d348c8b6b668d25c45e1",
+      "date": "2025-03-20",
+      "sourceFiles": 3,
+      "allFiles": 3,
+      "changedLines": 14,
+      "bytes": 1679,
+      "subject": "FIX: Increase uploads.origin column length to 2000 to accommodate longer S3 pre-signed URLs for user uploads. (#31803)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Widens the uploads `origin` column and its truncation limit from 1000 to 2000 characters; schema change only.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Raises the uploads.origin column limit from 1000 to 2000 (schema annotation, migration, truncation slice); searched for authorization, admin gating, owner scoping, secret handling, env exposure and signature handling and found none of them touched.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P009",
+      "repo": "twenty",
+      "sha": "9a850e2241463823d95d7f3c421a004acbb2b26c",
+      "date": "2026-03-20",
+      "sourceFiles": 5,
+      "allFiles": 5,
+      "changedLines": 172,
+      "bytes": 11800,
+      "subject": "fix - handle invoice.paid webhook to recover unpaid subscriptions (#18770)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds handling of the Stripe `invoice.paid` event (finalizing past-due draft invoices, delaying suspended-workspace cleanup) behind an existing webhook dispatcher; feature work with no verification change in the diff.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched for guards, scoping, secrets, env and signature handling; the commit adds handling of Stripe `invoice.paid` (finalizing past-due draft invoices and delaying suspended-workspace cleanup) behind the existing webhook dispatcher, which is feature work with no defect of the six classes removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P010",
+      "repo": "twenty",
+      "sha": "610c0ebc9d465692557bd6d07a2853bfc5302cda",
+      "date": "2026-02-17",
+      "sourceFiles": 5,
+      "allFiles": 9,
+      "changedLines": 207,
+      "bytes": 10648,
+      "subject": "Move secure HTTP client IP validation to connection level (#18006)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Replaces the DNS-pinning axios adapter with SSRF-safe http/https agents that validate resolved IPs per connection (so redirects are covered) and adds the 0.0.0.0/8 range; an SSRF hardening outside the six classes.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched auth/admin/tenant/secret/env/signature vocabulary; the only defect removed is an SSRF gap (the old axios adapter validated the first hop's resolved IP only, so redirects and 0.0.0.0/8 were unchecked, and the new agents validate every connection), which is outside the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P011",
+      "repo": "twenty",
+      "sha": "11d244194fb42bdca459621864071b3241d07aba",
+      "date": "2024-12-05",
+      "sourceFiles": 28,
+      "allFiles": 103,
+      "changedLines": 596,
+      "bytes": 39784,
+      "subject": "Add billing tables  (#8772)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds billing customer/product/price/meter entities, enums, extra Stripe fields on subscriptions and a billing-gated migration path; feature work with no defect of the six classes evident.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched for gates, scoping, secrets, env and webhook signature handling; the diff adds billing entities/enums, extends the subscription webhook upsert with more Stripe fields, merges `verifyWorkspaceEntitlement` into `hasWorkspaceActiveSubscriptionOrFreeAccessOrEntitlement`, and short-circuits `currentBillingSubscription` when billing is disabled, none of which removes a defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P012",
+      "repo": "gitea",
+      "sha": "eb397c3e631099686f8c11cbd0ca303fd37908ba",
+      "date": "2023-04-10",
+      "sourceFiles": 1,
+      "allFiles": 3,
+      "changedLines": 5,
+      "bytes": 818,
+      "subject": "Allow adding SSH keys even if SSH server is disabled (#24025)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Removes the setting.SSH.Disabled early return from CheckPublicKeyString (and the now-unused db import); a behaviour change to key parsing with no authentication, admin, ownership, secret, env or webhook defect visible in the parent or the change.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The commit removes an `if setting.SSH.Disabled` early-return (and its `models/db` import) from `CheckPublicKeyString`, a public-key format parser rather than an access check; I searched the diff for authorization, admin gating, tenant/owner scoping, secret literals or secret logging, environment exposure and webhook signature handling, and none is present in either the parent or the new state, so no defect of the six classes is removed.",
+          "defect_lines": [],
+          "batch": "B2"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P013",
+      "repo": "twenty",
+      "sha": "bce5be85a398c9c089dabf82aea3de44bdde7153",
+      "date": "2024-12-12",
+      "sourceFiles": 16,
+      "allFiles": 16,
+      "changedLines": 545,
+      "bytes": 38573,
+      "subject": "add info to customer table and stripe customer data (#9004)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Refactor that splits BillingWebhookService into subscription and entitlement services and moves payload transforms into util files; the Stripe controller's event dispatch is unchanged and no verification or authorization logic is added or removed.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Splits a NestJS Stripe billing webhook service into subscription and entitlement services and adds customer.* event enum members; searched the controller hunks for signature/constructEvent changes, the services for workspaceId scoping and the module for guard removal, and found only renames and moved logic with no verification or authorization line removed or newly added around existing code.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P014",
+      "repo": "caddy",
+      "sha": "6e0849d4c2855375b66974f85eb9840d05197694",
+      "date": "2020-11-20",
+      "sourceFiles": 3,
+      "allFiles": 3,
+      "changedLines": 271,
+      "bytes": 19792,
+      "subject": "reverseproxy: Implement cookie hash selection policy (#3809)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a new cookie-hash sticky-session load-balancing policy (HMAC-signed cookie) and threads an http.ResponseWriter through the Selector interface; new feature, no parent defect.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the hmac/secret/cookie hunks; the commit adds a new Caddy `cookie` load-balancing policy (HMAC-SHA256 of the upstream dial address under a configured secret, written into a sticky cookie) and threads a ResponseWriter through `Selector.Select`, which is a new feature, not the removal of any auth, scoping, secret, env or webhook-verification defect.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P015",
+      "repo": "twenty",
+      "sha": "a31d3a68268cca84d4f2598847ce15cdb4052564",
+      "date": "2026-08-12",
+      "sourceFiles": 64,
+      "allFiles": 216,
+      "changedLines": 22469,
+      "bytes": 794968,
+      "subject": "test(server): delete service unit specs (#24094)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "The diff deletes 64 Jest spec files, test utilities and mocks (0 added lines, 19,570 removed lines, every header 'deleted file mode') and touches no route, guard, controller, webhook or other source file, so no parent defect of any class is evident and the tests-only rule applies.",
+          "defect_lines": [],
+          "batch": "A1"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The diff touches only tests: 64 files, every one `deleted file mode`, every path a `.spec.ts` or under `__mocks__/` or `__test__/`, 19,570 removed lines and zero added content lines (the only `+` lines are the 64 `+++ /dev/null` headers); the vocabulary sweep hit only removed test code (spec imports such as `GuardRedirectService`, mock fixtures such as `canAccessFullAdminPanel`, test titles), and with no added lines nothing in source is guarded or removed.",
+          "defect_lines": [],
+          "batch": "B2"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P016",
+      "repo": "strapi",
+      "sha": "305547b9bb86c172b1b0a433489aa96546097055",
+      "date": "2021-09-24",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 4,
+      "bytes": 608,
+      "subject": "use createHmac in favour of createHash for added security",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Changes API-token hashing from SHA-512 over salt+key to HMAC-SHA-512 keyed by the salt; a hashing-construction hardening that is not one of the six classes.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched secret/token/hash handling; the change swaps the API-token hash from salted `createHash('sha512')` to `createHmac('sha512', salt)`, a hashing-construction hardening with no hardcoded secret, gate, scope, env or webhook-verification defect evident in the diff.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P017",
+      "repo": "grafana",
+      "sha": "ef5cc12b331e3cfe5a64f9e3ad2f5898b5ee3c71",
+      "date": "2025-03-14",
+      "sourceFiles": 2,
+      "allFiles": 5,
+      "changedLines": 38,
+      "bytes": 2933,
+      "subject": "Alerting: Add HMAC signature config to the webhook integration (#100960)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds an HMAC-signature configuration subform (secret, header, timestamp header) to the outgoing webhook notifier and marks the secret as a secure field; a new outbound-signing feature, not an inbound-verification fix.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The only source change adds a new 'HMAC Signature' subform (secret, header, timestampHeader) to the outbound webhook contact-point option list, with the secret marked Secure from its introduction, and the test updates its expected secret-field list; I searched for an inbound handler lacking signature verification, an auth or admin gate being added, tenant scoping, a secret literal or leak, and env exposure, and found no parent handler or defect in the diff, only new configuration metadata for a new outbound-signing feature.",
+          "defect_lines": [],
+          "batch": "B3"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P018",
+      "repo": "discourse",
+      "sha": "eee6341054eb5cf84aef2275af495477126e278b",
+      "date": "2026-03-06",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 8,
+      "bytes": 786,
+      "subject": "FIX: passkey authentication fails for EdDSA-based authenticators (#38328)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Swaps the WebAuthn assertion check from pkey.verify(hash, signature, data) to cose_algorithm.verify(cose_key, signature, data) with a rescue that still raises PublicKeyError; signature verification is present and enforced in both parent and child, and WebAuthn assertion handling is outside the six classes.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Swaps a WebAuthn assertion check from cose_key.to_pkey.verify(hash, sig, data) to cose_algorithm.verify(...) with a COSE::Error rescue that still raises PublicKeyError; the parent already verified and failed closed, so no removed auth/admin/owner/secret/env/webhook-signature defect is evident from the diff alone.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P019",
+      "repo": "mastodon",
+      "sha": "25bf6406290f49f87c6ed00474702d6729fc98f2",
+      "date": "2023-08-29",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 2,
+      "bytes": 558,
+      "subject": "Add debug logging on signature verification failure (#26637)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Only adds a Rails.logger.warn line inside fail_with!; logging is added, no verification behaviour changes.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The only change adds a Rails.logger.warn inside fail_with! on signature-verification failure; I searched the hunk for any removed or newly guarded verification, auth, scoping, secret or env handling and the failure path is unchanged, so no defect removal is evident.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P020",
+      "repo": "documenso",
+      "sha": "19e960f5932ce8066cd0abc555c7c38bdaa9a53f",
+      "date": "2023-05-31",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 85,
+      "bytes": 4542,
+      "subject": "fix: improve stripe webhook endpoint",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "The Stripe handler already verified the payload with stripe.webhooks.constructEvent(body, sig, STRIPE_WEBHOOK_SECRET) in the parent (context line); the commit only removes two debug logs, adds a billing_reason filter and wraps each prisma.subscription.update in a findFirst existence check, which is business-logic robustness, not a verification fix.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the Stripe webhook handler for signature handling (stripe.webhooks.constructEvent is unchanged context, present in the parent), auth/admin gating, tenant scoping, secret and env handling; the commit only adds a billing_reason gate and findFirst existence checks before subscription updates, which removes no defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P021",
+      "repo": "mastodon",
+      "sha": "1247fb1d585d798856f76d1a200c58d89a7ca299",
+      "date": "2026-06-22",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 33,
+      "bytes": 2998,
+      "subject": "Refactor incoming activity signature verification (#39552)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Restructures how an ActivityPub collection's LD-signature actor is resolved (verify_account! becomes actor_from_verified_ld_signature and the relayed-actor bookkeeping moves inline); LD-signature verification existed in the parent and no removed line shows a bypass, so any behavioural change is not evident from the diff alone.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the LD-signature/verify/actor hunks; the parent already verified relayed activities via `verify_account!` -> `LinkedDataSignature#verify_actor!`, and the commit re-orders that flow and adds a post-verification `different_actor?` consistency check whose parent behaviour (an activity processed as the LD signer rather than its declared actor) is not evident as an auth or webhook-verification bypass from the diff alone.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P022",
+      "repo": "twenty",
+      "sha": "583d490cd7998e449f42fa4c18690f33e0765466",
+      "date": "2025-11-05",
+      "sourceFiles": 5,
+      "allFiles": 9,
+      "changedLines": 321,
+      "bytes": 35251,
+      "subject": "feat: [Fireflies] log cleanly (#15618)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Replaces console logging with a level-gated logger and fixes participant-name extraction in a Fireflies webhook app whose handler already calls verifySignature in the parent; refactor.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Replaces console.log calls with a leveled logger across a Fireflies webhook serverless function; searched for changes to verifySignature, verifyWebhookSignature, the FIREFLIES_WEBHOOK_SECRET read and the API-key checks, and every one of them is an unchanged context line, so the signature check exists identically in parent and child and no secret or env value is newly exposed or newly removed from a log.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P023",
+      "repo": "mastodon",
+      "sha": "89d600bedb023a9656b98d22deab10f8c051a664",
+      "date": "2019-05-23",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 29,
+      "bytes": 2819,
+      "subject": "Move signature verification stoplight to the requests themselves (#10813)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Refactors the Stoplight circuit-breaker wrapping around remote key fetches into a helper (and keys it on request.remote_ip); robustness refactor, no signature-verification defect removed.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The ActivityPub HTTP-signature verification path is unchanged (`verify_signature(account, signature, compare_signed_string)` is still called in both states); the diff only extracts the Stoplight circuit-breaker into a `stoplight_wrap_request` helper, moves it to wrap the two remote fetches inside `account_from_key_id`, and switches its key from `request.ip` to `request.remote_ip`, a rate-limit/DoS keying change; I searched for signature-verification removal or bypass, authorization, admin gating, tenant/owner scoping, secret and env handling, and found no parent defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B2"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P024",
+      "repo": "grafana",
+      "sha": "af1e2d68dab719539f0e2758b79ad275a41480c6",
+      "date": "2023-01-27",
+      "sourceFiles": 35,
+      "allFiles": 37,
+      "changedLines": 1340,
+      "bytes": 76598,
+      "subject": "Plugins: Allow loading panel plugins from a CDN (#59096)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Introduces the Grafana plugins-CDN feature (asset path service, CDN redirect handler, SystemJS cdn-loader, config); new feature work, and the diff shows no parent defect of the six classes being removed.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Read the whole diff and searched for removal of a missing auth or admin gate, tenant scoping, secret/env exposure and signature handling: the commit adds the plugins-CDN feature (new pluginscdn and assetpath services, a CDN redirect branch in getPluginAssets, SystemJS cdn-loader/css loaders, an $sceDelegateProvider trusted CDN URL), pluginsCDNBaseURL in frontend settings is a public configuration URL rather than a secret or environment dump, path.Clean in the new URLConstructor guards code that did not exist in the parent, and the only signature change gives CDN plugins SignatureValid without checks, which is a plugin-signing relaxation and not a defect removal, so nothing in the six classes is evident.",
+          "defect_lines": [],
+          "batch": "B1"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P025",
+      "repo": "mastodon",
+      "sha": "17cd91c7776281bee68d57d898d598d576c70a0e",
+      "date": "2018-12-26",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 1,
+      "bytes": 563,
+      "subject": "Fix signature verification stoplight triggering on non-timeout errors (#9617)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a circuit-breaker error handler that only trips the stoplight on HTTP::Error while re-raising other errors during actor lookup for signature verification; no verification is added, removed or bypassed.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Adds a Stoplight with_error_handler so only HTTP::Error trips the circuit breaker and other errors re-raise; I searched for removed or newly guarded signature, auth, scoping, secret or env handling and found only circuit-breaker error classification, which is availability behaviour, not one of the six classes.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P026",
+      "repo": "grafana",
+      "sha": "5549cd7a76037a936f5c3195216626ea5f030878",
+      "date": "2023-10-09",
+      "sourceFiles": 2,
+      "allFiles": 2,
+      "changedLines": 48,
+      "bytes": 3560,
+      "subject": "Sandbox: Fix `history.replace` calls inside the sandbox (#76049)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Plugin-sandbox change that distorts react-router history.replace to deep-clone its arguments and reorders static vs live distortions; a client-side sandbox hardening outside the six classes.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Grafana plugin-sandbox refactor that makes distortLiveApis return a runtime distortion for react-router history.replace (cloneDeep of args); searched for auth/admin/owner/secret/env/webhook-signature handling and found only sandbox distortion plumbing.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P027",
+      "repo": "mastodon",
+      "sha": "db704180b2eaeaefef61f6b232ba4c6f57aa3300",
+      "date": "2026-04-01",
+      "sourceFiles": 1,
+      "allFiles": 2,
+      "changedLines": 11,
+      "bytes": 1207,
+      "subject": "Fix signature verification when the key ID is an `acct:` URI (#38516)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Refactors acct: key resolution into fetch_key_from_acct, which resolves the account and picks account.keypairs.first or a legacy keypair (multi-key support); the parent already resolved the account inside the same stoplight wrapper and no verification defect is removed.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Replaces the acct: branch's direct ResolveAccountService call with fetch_key_from_acct that returns account.keypairs.first or a legacy keypair (multi-key support); I searched for a removed verification step, a weakened compare, or a newly guarded auth path and found none, the signature check itself is not in the diff.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P028",
+      "repo": "discourse",
+      "sha": "ab51aa7d81bd10149f8f54a220e855ffde9b42e9",
+      "date": "2026-04-21",
+      "sourceFiles": 8,
+      "allFiles": 17,
+      "changedLines": 2226,
+      "bytes": 87396,
+      "subject": "FEATURE: add crypto utilities to AI tool runner (#39343)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Refactor that splits tool_runner.rb into HTTP/Llm/Index/Upload/Discourse/Crypto modules and adds new HMAC/hash/sign helpers for tool scripts; every guardian and permission check (resolve_guardian, can_create?, can_edit?, can_see?, can_move_topic_to_category?, can_toggle_topic_visibility?) is moved verbatim, so no parent defect in any of the six classes is removed.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Splits tool_runner.rb into crypto/discourse/http/index/llm/upload modules and adds HMAC/sign helpers plus a security-model comment; every removed 'Permission denied' / guardian.can_* check (6) reappears identically on the added side, resolve_guardian and system_guardian are moved verbatim, and no new guard, scoping filter, signature check, secret or env handling is introduced or removed, so no defect removal is evident.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P029",
+      "repo": "plane",
+      "sha": "30527927d7db7f4f7bf4a3c4632233a199fc8eb1",
+      "date": "2026-08-28",
+      "sourceFiles": 2,
+      "allFiles": 3,
+      "changedLines": 31,
+      "bytes": 3315,
+      "subject": "[WEB-8103] fix: stop leaking webhook HMAC secret_key on reads (#9382)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "The commit stops WebhookSerializer from returning the stored HMAC secret_key except on create/regenerate (show_secret_key context), a stored-secret-in-API-response leak that falls outside all six classes: secrets-exposure covers hardcoded credential literals in source, env-exposure covers process.env/os.environ dumps, and no webhook verification or authorization check is involved.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "secrets-exposure",
+          "reason": "The parent serialized the webhook HMAC signing `secret_key` on every representation (list/retrieve/update, the `fields=` allowlists being dead per the added comment), and the commit adds a `to_representation` that pops `secret_key` unless `show_secret_key` is set, which only the create and secret-regenerate views now pass; note this is a stored signing secret leaking through an API response rather than a source literal, the doc's CLAIMS shape.",
+          "defect_lines": [
+            "+        # secret_key is the HMAC signing secret. It is only revealed on creation",
+            "+        # and secret regeneration (opt-in via the show_secret_key context flag),",
+            "+        # never on list/retrieve/update.",
+            "+        if not self.context.get(\"show_secret_key\"):",
+            "+            data.pop(\"secret_key\", None)",
+            "-            serializer = WebhookSerializer(data=request.data, context={\"request\": request})",
+            "+                context={\"request\": request, \"show_secret_key\": True},",
+            "-        serializer = WebhookSerializer(webhook)",
+            "+        serializer = WebhookSerializer(webhook, context={\"show_secret_key\": True})"
+          ],
+          "batch": "B6"
+        },
+        "C": {
+          "class": "none",
+          "reason": "The commit stops a DRF serializer from returning the webhook HMAC secret_key on list/retrieve/update, which is a credential-in-API-response leak; that shape is inside none of the six CLAIMS scopes (secrets-exposure is an exhaustive literal-pattern enumeration in source, env-exposure is process.env/os.environ reaching a response, webhook-unverified is a handler lacking signature verification), and the parent defect is asserted only by the added comment rather than shown by removed lines.",
+          "defect_lines": [],
+          "batch": "C1"
+        }
+      },
+      "final": "none"
+    },
+    {
+      "id": "P030",
+      "repo": "discourse",
+      "sha": "890d06ac04dde336abe670d559e6ea89007c9884",
+      "date": "2014-02-26",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 2,
+      "bytes": 339,
+      "subject": "FEATURE: change SSO to use sha256 HMAC, which is more secure",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Replaces a secret-concatenated SHA2 digest with an HMAC-SHA256 for SSO payload signing; this is a MAC-construction hardening on an SSO signer, not a webhook handler lacking verification and not one of the six classes' defect shapes.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "auth-bypass",
+          "reason": "The removed SSO signer Digest::SHA2.hexdigest(payload + sso_secret) is a secret-suffix hash subject to length-extension forgery of the SSO login payload, and the added line replaces it with a keyed HMAC-SHA256, removing the forgeable-signature authentication defect.",
+          "defect_lines": [
+            "-    Digest::SHA2.hexdigest(payload + sso_secret)",
+            "+    OpenSSL::HMAC.hexdigest(\"sha256\", sso_secret, payload)"
+          ],
+          "batch": "B4a"
+        },
+        "C": {
+          "class": "none",
+          "reason": "Replacing Digest::SHA2.hexdigest(payload + sso_secret) with OpenSSL::HMAC.hexdigest is a weak-MAC-construction (length-extension) fix in an SSO signer, not a webhook handler and not any shape the six CLAIMS scopes cover.",
+          "defect_lines": [],
+          "batch": "C1"
+        }
+      },
+      "final": "none"
+    },
+    {
+      "id": "P031",
+      "repo": "twenty",
+      "sha": "6423c4cd3c00d3c9b62687abcd76304149629556",
+      "date": "2026-06-19",
+      "sourceFiles": 18,
+      "allFiles": 23,
+      "changedLines": 1269,
+      "bytes": 70623,
+      "subject": "Add recall io webhook endpoint (#21879)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a brand-new server-webhook-trigger endpoint and extracts LogicFunctionTriggerService/sendRouteTriggerResponse from the existing route trigger (the response-header allowlist moves intact into the new util); a new endpoint has no parent defect and the rest is refactoring.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched guard/signature/workspaceId hunks; the commit adds a brand-new public `webhooks/server/...` trigger endpoint (PublicEndpointGuard, no signature verification, workspace resolved from body/query/header per manifest), refactors the route-trigger response helper into `sendRouteTriggerResponse`, and reorders generated client schema, so no parent defect is removed (the new endpoint introduces exposure rather than fixing one).",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P032",
+      "repo": "caddy",
+      "sha": "6d03fb48f9189d286733913f189117d3cced3df5",
+      "date": "2020-06-11",
+      "sourceFiles": 1,
+      "allFiles": 3,
+      "changedLines": 13,
+      "bytes": 1263,
+      "subject": "caddytls: Don't decode HMAC",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Changes the ACME external-account-binding HMAC field from a base64-decoded byte slice to a pass-through string; an API/refactor change with no defect shown in the removed lines.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The diff changes the ACME External Account Binding `HMAC` config field from a base64-decoded byte slice (`EncodedHMAC`) to a raw string handed to certmagic, a client-side credential-format change to match the library type; I searched for inbound webhook/signature verification (none, there is no request handler), secret literals or secret logging/return (none), environment exposure (none) and authorization/admin/tenant checks (none), so no defect of the six classes is removed.",
+          "defect_lines": [],
+          "batch": "B2"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P033",
+      "repo": "grafana",
+      "sha": "aaf9036529d75e543a4293e62c8c787ab7c54f79",
+      "date": "2026-06-12",
+      "sourceFiles": 3,
+      "allFiles": 5,
+      "changedLines": 44,
+      "bytes": 4252,
+      "subject": "SQLStore: exponential backoff with jitter for SQLITE_BUSY transaction retries (#126318)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Replaces a fixed 10ms sleep with exponential jittered backoff for SQLite locked-transaction retries and raises the default retry count; not a security change.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Changes SQLite transaction retry from a fixed 10ms sleep to exponential backoff with jitter and raises the default retry count; searched for authorization, admin gating, owner scoping, secrets, env exposure and signature handling and found none.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P034",
+      "repo": "twenty",
+      "sha": "53e284caa5f787cfb1203b7e580a9ef21e84f7e1",
+      "date": "2026-08-28",
+      "sourceFiles": 13,
+      "allFiles": 16,
+      "changedLines": 261,
+      "bytes": 27125,
+      "subject": "chore(billing): drop the creditBalanceMicro and hasReachedCurrentPeriodCap columns (#24969)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Drops the mirrored `creditBalanceMicro` and `hasReachedCurrentPeriodCap` columns together with the reconcile/materialize logic that kept them in sync with the credit-grant ledger; billing refactor.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Drops the creditBalanceMicro mirror column and hasReachedCurrentPeriodCap column plus their backfill/reconcile helpers in favour of the credit-grant ledger; searched the webhook services, admin-panel billing service and credit services for removed authorization, tenant scoping (the workspaceId-scoped repositories are unchanged), secrets or signature handling and found only data-model cleanup.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P035",
+      "repo": "grafana",
+      "sha": "4627641de37c91581f1656cdfd9d9e7a4c9553c1",
+      "date": "2026-05-29",
+      "sourceFiles": 6,
+      "allFiles": 7,
+      "changedLines": 348,
+      "bytes": 17159,
+      "subject": "Provisioning: replay protection for GitHub webhooks (#125550)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a signature-keyed replay cache to a GitHub webhook handler that already rejects invalid signatures (the unchanged context line returns Unauthorized before the new code); replay protection independent of signature verification is outside the webhook-unverified scope.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Adds a signature-keyed replay cache to a Go GitHub webhook handler that already rejects invalid signatures on an unchanged context line (apierrors.NewUnauthorized(\"invalid signature\")); replay protection independent of signature verification is explicitly outside the webhook-unverified class per the capabilities document, and I found no removed auth, admin, scoping or secret-handling defect elsewhere in the diff.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P037",
+      "repo": "plane",
+      "sha": "edf247541301e482f2688c63481464b671ec579d",
+      "date": "2026-05-27",
+      "sourceFiles": 9,
+      "allFiles": 17,
+      "changedLines": 687,
+      "bytes": 34986,
+      "subject": "refactor: logging with retention + API token hardening (#9148)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Removes the MongoDB archival path and stops persisting the raw X-Api-Key and unredacted request headers in API activity logs (HMAC tokenisation plus header redaction); a logged request credential is not a hardcoded literal, an env dump, or any other of the six classes' shapes.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "secrets-exposure",
+          "reason": "The API-token logging middleware persisted the caller's raw API key in plaintext as token_identifier and stored the full request headers (X-Api-Key, Authorization, Cookie included) via str(request.headers) into the activity log; the commit replaces the raw key with a keyed HMAC-SHA256 digest and redacts those sensitive headers before persisting, which removes a secret-handling defect evident in the removed lines (the rest of the diff, MongoDB removal and validated retention settings, is refactor); note this credential-in-logs shape is outside the detector's enumerated literal-pattern scope, but it is a secret-exposure defect removed by the commit.",
+          "defect_lines": [
+            "-                \"token_identifier\": api_key,",
+            "-                \"headers\": str(request.headers),",
+            "+                \"token_identifier\": hmac.new(",
+            "+                    settings.SECRET_KEY.encode(), api_key.encode(), hashlib.sha256",
+            "+                ).hexdigest(),",
+            "+                \"headers\": self._redacted_headers(request),",
+            "+    SENSITIVE_HEADERS = frozenset({\"x-api-key\", \"authorization\", \"cookie\"})"
+          ],
+          "batch": "B3"
+        },
+        "C": {
+          "class": "none",
+          "reason": "The diff is a MongoDB-removal refactor of log persistence plus retention-window settings; the one security-flavoured hunk (middleware/logger.py switching token_identifier from the raw api_key to an HMAC and redacting Authorization/Cookie/X-Api-Key headers before persisting) is credential-logging hygiene, which is not a hardcoded-literal secret, not an env dump reaching a response, and not a webhook verification defect, so it falls outside every CLAIMS scope.",
+          "defect_lines": [],
+          "batch": "C1"
+        }
+      },
+      "final": "none"
+    },
+    {
+      "id": "P038",
+      "repo": "gitea",
+      "sha": "3c91b09c19e23ddc8808cd1e63c8c68783a8f123",
+      "date": "2023-08-10",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 1,
+      "bytes": 573,
+      "subject": "minio: add missing region on client initialization (#26412)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a Region field to the MinIO client options; no authorization, secret, environment, or webhook-verification defect is present or removed.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched key/secret/credential hunks; the change only passes `Region: config.Location` to the MinIO client, a configuration fix with no secret, auth, scope, env or verification defect.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P039",
+      "repo": "mastodon",
+      "sha": "ffcf87e0234a5529652295d2386a8c9c8e43a7ff",
+      "date": "2026-04-02",
+      "sourceFiles": 3,
+      "allFiles": 4,
+      "changedLines": 41,
+      "bytes": 4458,
+      "subject": "Fix refreshing keys from stale actors on signature verification error (#38515)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Reworks remote keypair refresh to look the key up by URI after refreshing the actor and stops `only_key` account processing from falling back to handle lookup or account creation; an ActivityPub key-handling change with no defect of the six classes evident in the diff.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the signature-verification/key-refresh hunks; the commit reworks `keypair_refresh_key!` to return the keypair matching the requested key URI, makes `FetchRemoteKeyService` reuse a fresh known actor, and stops `only_key` refreshes from falling back to handle lookup, which are correctness changes to an existing verifier with no missing-verification, auth, scope, secret or env defect evident from the diff.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P040",
+      "repo": "gitea",
+      "sha": "4979f15c3f44b8e7be46ebce02e25ebd9cc74197",
+      "date": "2020-09-20",
+      "sourceFiles": 21,
+      "allFiles": 29,
+      "changedLines": 471,
+      "bytes": 39062,
+      "subject": "Add configurable Trust Models (#11712)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Introduces repository trust models (committer/collaborator/collaboratorcommitter) and threads a signer identity through commit creation; feature work with no parent defect evident in the removed lines.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched role/permission/trust/signature hunks; the commit introduces per-repository commit-signature trust models (committer/collaborator/collaboratorcommitter), returns a signer `git.Signature`, and sets committer/trailers accordingly, with the default model preserving the parent `CalculateTrustStatus` behaviour, so it is new permission/feature work rather than the removal of a defect in the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P041",
+      "repo": "twenty",
+      "sha": "c01e3af8eec8ebe1982a7d276a39a47fab5173b1",
+      "date": "2025-01-15",
+      "sourceFiles": 2,
+      "allFiles": 3,
+      "changedLines": 55,
+      "bytes": 3945,
+      "subject": "Fix race condition on stripe subscription (#9629)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Front-end onboarding change (PaymentSuccess refetches the current user before navigating, PlanRequiredSuccess path excluded from redirect); UI feature work.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Frontend-only change to onboarding navigation (PlanRequiredSuccess exclusion, refetching currentUser before navigating); I searched for removed or newly guarded auth, admin, tenant scoping, secret or env handling and found only client routing logic.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P042",
+      "repo": "mastodon",
+      "sha": "28b482874ab4393639a77fdd895658096bcbfd57",
+      "date": "2019-01-07",
+      "sourceFiles": 3,
+      "allFiles": 3,
+      "changedLines": 63,
+      "bytes": 5561,
+      "subject": "Improvements to signature verification (#9667)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Refactors HTTP-signature verification into a `verify_signature` helper wrapped in a Stoplight circuit breaker and adds an `only_key` actor refresh path; verification is present before and after.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the verify/refresh hunks; the parent already verified HTTP signatures against the account key and refreshed stale accounts, and the commit only extracts `verify_signature`, adds a Stoplight circuit breaker and an `only_key` lightweight key refresh (which skips webfinger for key-only updates), with no missing-verification or other six-class defect removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P043",
+      "repo": "documenso",
+      "sha": "3887aa67c8c61d9d0b3bb0f7042f91bd5195d4ab",
+      "date": "2026-06-12",
+      "sourceFiles": 19,
+      "allFiles": 19,
+      "changedLines": 1341,
+      "bytes": 60094,
+      "subject": "fix: rework stripe webhooks into idempotent subscription sync (#2977)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Rewrites the Stripe webhook into an idempotent customer-subscription sync (the constructEvent verification is unchanged context), creates organisations before checkout with a pending-payment restriction, and adds a new authenticated tRPC sync route; feature/refactor with no parent defect evident.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Refactors Documenso's Stripe integration to sync subscription state from Stripe by customer ID and adds an authenticated, MANAGE_BILLING-scoped, rate-limited sync route plus pending-payment limits; the webhook handler's stripe.webhooks.constructEvent is an unchanged context line, the new tRPC route is brand-new with its own guard, and the admin route removes a customerId-mismatch consistency check rather than an authorization gate, so no parent defect of any class is evident.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P044",
+      "repo": "twenty",
+      "sha": "6e4b3041e56bfa05a264a3f31c4caa60cd72e507",
+      "date": "2026-09-09",
+      "sourceFiles": 4,
+      "allFiles": 6,
+      "changedLines": 88,
+      "bytes": 9129,
+      "subject": "Serialize a workspace's entitlement transition (#25660)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Serialises the billing entitlement transition under a cache lock and drops the post-upsert re-read; a concurrency fix, not a defect of any of the six classes.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched for authorization, admin gating, workspace scoping, secret handling, env exposure and webhook signature handling; the commit wraps the entitlement transition in a cache lock and drops a re-read guard, a concurrency change on an already workspace-scoped repository with no defect of the six classes removed.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P045",
+      "repo": "grafana",
+      "sha": "0db65d229e36b78802c1e8bd0713ac44e7a7cdc7",
+      "date": "2024-10-04",
+      "sourceFiles": 30,
+      "allFiles": 46,
+      "changedLines": 731,
+      "bytes": 55789,
+      "subject": "Plugins: Add Subresource Integrity checks (#93024)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds Subresource Integrity hashes for plugin module.js behind a new pluginsSriChecks feature flag (ModuleHash service, DTO fields, SystemJS integrity map); a brand-new verification feature with no evident parent defect in the six classes.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The commit adds feature-flagged Subresource Integrity for plugin module.js (moduleHash read from the signed MANIFEST.txt, exposed in the plugin DTOs and injected into the SystemJS import map); I searched for auth or admin gating, tenant scoping, secret literals or exposure, env exposure and inbound webhook signature handling, and the only verification-related change is the refactor of Signature.Calculate into ReadPluginManifestFromFS with the same unsigned/invalid outcomes, so this is a new supply-chain integrity feature with no parent defect in any of the six classes.",
+          "defect_lines": [],
+          "batch": "B3"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P046",
+      "repo": "discourse",
+      "sha": "5516947b753f7119dae6153dfef657a3680e9ff9",
+      "date": "2026-03-05",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 9,
+      "bytes": 1295,
+      "subject": "DEV: Ai bot Signature verification uses different body source than action logic (#38294)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Reads the Discord interaction body once and passes the same bytes to the existing Ed25519 verify_request!; verification was already present and enforced in the parent, so this is a consistency change, not a removal of missing verification.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the Ed25519 verify hunks; verification of `X-Signature-Ed25519` existed in the parent, and the commit only reads `request.raw_post` once and passes it to `verify_request!` so the parsed body is the verified bytes (a body-read ordering bug), not a missing or bypassable verification.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P047",
+      "repo": "mastodon",
+      "sha": "fa929d8b81002c95f729517d3ce3985f090c5980",
+      "date": "2020-11-01",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 16,
+      "bytes": 2980,
+      "subject": "Tweak signature verification (#15069)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "The parent already verified HTTP signatures and bound the body by substituting the server-computed SHA-256 body digest into the signed string; the commit instead verifies the client's Digest header against the computed digest (verify_body_digest!) and signs over the header as sent, and relaxes the Host-header requirement to GET requests, which is protocol-compatibility work with no bypass evident in the removed lines.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the signature/digest hunks; the parent already bound the body to the signature by building the signed string from the locally computed `body_digest`, and the commit moves that to an explicit `verify_body_digest!` over the `Digest` header (multi-algorithm parsing) while relaxing the Host requirement to GET, so no verification defect is removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P048",
+      "repo": "grafana",
+      "sha": "8b22481aecf779a894eda9b3da0c7365cbd71be0",
+      "date": "2022-08-18",
+      "sourceFiles": 4,
+      "allFiles": 4,
+      "changedLines": 207,
+      "bytes": 11653,
+      "subject": "User management: Use HMAC-SHA256 to generate time limit codes (password reset tokens) (#42334)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Replaces a SHA1(data+secret+...) password-reset code with HMAC-SHA256 and a hmac.Equal compare in a Grafana email-code helper; this is a MAC-construction and timing hardening on a reset code, not a webhook handler, sentinel/missing-middleware auth bypass, admin gate, IDOR, env dump, or hardcoded secret, so no class applies.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The removed lines show a password-reset code built from sha1(data+SecretKey+...) and compared with '==', replaced by HMAC-SHA256 and hmac.Equal, but this is a reset-code MAC in a notifications service, not a webhook handler, an auth sentinel/middleware bypass, an admin gate, an id-scoping query, a hardcoded secret literal or an env dump, so it falls outside the six classes as scoped in the capabilities document; searched for webhook routes, auth gating, admin checks, owner scoping, secret literals and env output and found none.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P049",
+      "repo": "discourse",
+      "sha": "0626ec1a294d3c4ea97c767f5f93232ce78ee8f6",
+      "date": "2026-03-05",
+      "sourceFiles": 2,
+      "allFiles": 3,
+      "changedLines": 28,
+      "bytes": 2433,
+      "subject": "FIX: passkey registration failing when extension data included (#38266)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Pins the WebAuthn SUPPORTED_ALGORITHMS to an explicit COSE list and fixes public-key CBOR parsing to ignore trailing extension bytes (plus a new rescue for COSE::MalformedKeyError); registration robustness, not a removal of any six-class defect.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Pins WebAuthn SUPPORTED_ALGORITHMS to an explicit list instead of COSE's registered ids, rescues COSE::MalformedKeyError, and parses the attested public key via a CBOR unpacker instead of slicing to the end of the buffer; these are registration-parsing hardenings, not a removal of an auth-bypass, admin-gate, owner-scoping, secret, env or webhook-signature defect evident in the diff.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P050",
+      "repo": "mastodon",
+      "sha": "1618b68bfa740ed655ac45d7d5f4f46fed6c8c62",
+      "date": "2017-07-14",
+      "sourceFiles": 18,
+      "allFiles": 23,
+      "changedLines": 324,
+      "bytes": 18674,
+      "subject": "HTTP signatures (#4146)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Introduces a brand-new Request class that signs outgoing requests and a new SignatureVerification concern, and migrates services from HttpHelper to Request; the verification is added alongside the feature with no parent handler that lacked it, so there is no evident defect removal.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Introduces a new Request class that signs outgoing HTTP requests and a new SignatureVerification concern that is included in two controllers but only exposes a signed_request_account helper without gating any existing handler; searched for a removed or newly guarded verification, auth or admin check and found feature work only, with hub.secret handling unchanged.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P051",
+      "repo": "strapi",
+      "sha": "a4723b48c348aa8a55192dd4d6538ad6a5098719",
+      "date": "2026-06-29",
+      "sourceFiles": 1,
+      "allFiles": 2,
+      "changedLines": 4,
+      "bytes": 928,
+      "subject": "security(users-permissions): default legacy JWT verify to HS256 (#26752)",
+      "readers": {
+        "A": {
+          "class": "auth-bypass",
+          "reason": "The parent called jwt.verify with no algorithms restriction whenever the plugin config did not name one (algorithms undefined, options {}), the algorithm-confusion shape; the commit pins the verifier to the configured algorithm or HS256 on every call.",
+          "defect_lines": [
+            "-      const algorithms = jwtConfig && jwtConfig.algorithm ? [jwtConfig.algorithm] : undefined;",
+            "+      const algorithms = [jwtConfig?.algorithm || 'HS256'];",
+            "-        algorithms ? { algorithms } : {},",
+            "+        { algorithms },"
+          ],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "auth-bypass",
+          "reason": "When no JWT algorithm was configured the verifier called jwt.verify with an empty options object and no algorithms restriction, leaving the algorithm to the token header (the algorithm-confusion shape the capabilities document names for express-jwt CVE-2020-15084); the commit always pins algorithms to the configured value or HS256.",
+          "defect_lines": [
+            "-      const algorithms = jwtConfig && jwtConfig.algorithm ? [jwtConfig.algorithm] : undefined;",
+            "-        algorithms ? { algorithms } : {},",
+            "+      const algorithms = [jwtConfig?.algorithm || 'HS256'];",
+            "+        { algorithms },"
+          ],
+          "batch": "B3"
+        },
+        "C": null
+      },
+      "final": "auth-bypass"
+    },
+    {
+      "id": "P052",
+      "repo": "twenty",
+      "sha": "3ebeb3a3e881deee8aca4791bd2713fb26640cdc",
+      "date": "2026-04-22",
+      "sourceFiles": 125,
+      "allFiles": 143,
+      "changedLines": 7874,
+      "bytes": 305241,
+      "subject": "feat(community): add github-connector example app (#19961)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "All 125 files are new (0 removed content lines): a brand-new GitHub-connector app whose handle-webhook route ships together with HMAC-SHA256 + timingSafeEqual verification of X-Hub-Signature-256, so there is no parent defect; the hardcoded API-key JWT fallback in vitest.config.ts is added, not removed, and lives in test config.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "All 125 files are new (a brand-new GitHub connector app) and its webhook handler ships together with HMAC-SHA256 timingSafeEqual verification in webhook-signature.ts, so there is no parent state and no defect removed; the secret-unset skip branch is introduced, not fixed.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P053",
+      "repo": "discourse",
+      "sha": "3c95ee01d5def60c5f494e48c828901c292f3143",
+      "date": "2026-08-14",
+      "sourceFiles": 1,
+      "allFiles": 2,
+      "changedLines": 2,
+      "bytes": 418,
+      "subject": "FIX: Hide git signature output when reading commit date (#42613)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Swaps the git command used to read the last commit timestamp; no security-relevant code is touched.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "A one-line change of the git command used to read the last commit timestamp (git log -1 --format=%ct to git rev-list -1 --no-commit-header --format=%ct HEAD) with no request input and no authorization, admin, tenant, secret, environment or webhook code anywhere in the diff; I searched all six vocabularies and found nothing to guard or remove.",
+          "defect_lines": [],
+          "batch": "B3"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P054",
+      "repo": "gitea",
+      "sha": "b82293270c7d2d36d79cb9c5731d07c3f5b33f6b",
+      "date": "2021-07-13",
+      "sourceFiles": 15,
+      "allFiles": 20,
+      "changedLines": 1855,
+      "bytes": 71337,
+      "subject": "Add option to provide signature for a token to verify key ownership (#14054)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds GPG-key ownership verification (signed verification token, Verified flag, new /user/gpg_key_token and /user/gpg_key_verify endpoints, web verify_gpg form) and reorganises the gpg_key model files; a new verification feature about GPG key trust, not a defect of any of the six classes.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "This adds a GPG key token-signature verification feature (new VerificationToken/VerifyGPGKey model code, new /user/gpg_key_token and /user/gpg_key_verify routes, new web verify_gpg form action); the removed lines are a file split of gpg_key.go plus a test that previously accepted a key with an unactivated secondary email, and no removed line shows a missing auth check, admin gate, owner/tenant filter, exposed secret, env dump or unverified webhook.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P055",
+      "repo": "mastodon",
+      "sha": "883099f3c953ee5acb30b308f7f5d985e3126f02",
+      "date": "2022-03-12",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 2,
+      "bytes": 399,
+      "subject": "Fix nil error when trying to fetch key for signature verification (#17747)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a nil guard to `unsupported_uri_scheme?`; nil-safety fix.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Adds a nil guard to unsupported_uri_scheme? so a nil uri is treated as unsupported instead of raising NoMethodError; searched for auth/admin/owner/secret/env/webhook-signature defect removal and found only a nil-safety change.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P056",
+      "repo": "documenso",
+      "sha": "62cd4c019fd1a200d8f0156a37050baf54dac890",
+      "date": "2024-06-24",
+      "sourceFiles": 8,
+      "allFiles": 13,
+      "changedLines": 177,
+      "bytes": 13114,
+      "subject": "feat: force signature fields for document signers (#1139)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a missing-signature-field dialog to the document flow, adjusts e2e tests and reformats Stripe price helpers; the server-side check is added only as commented-out code, so nothing of the six classes is fixed.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Adds a client-side dialog requiring each signer to have a signature field, reformats Stripe price helpers and rewrites an e2e test; searched for authorization, ownership, secret, env and webhook signature changes and found none, and the only server change is a commented-out (never active) validation block.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P057",
+      "repo": "discourse",
+      "sha": "0442741f8cbbfe43fad4b94ed47e2b8fae037948",
+      "date": "2026-02-26",
+      "sourceFiles": 1,
+      "allFiles": 2,
+      "changedLines": 9,
+      "bytes": 958,
+      "subject": "SECURITY: authentication bypass vulnerability",
+      "readers": {
+        "A": {
+          "class": "webhook-unverified",
+          "reason": "The Patreon webhook controller compared the X-Patreon-Signature header to the HMAC with a plain Ruby == (timing-leaking raw string compare) and computed the HMAC even when the site secret was blank; the commit rejects a blank secret and switches to ActiveSupport::SecurityUtils.secure_compare.",
+          "defect_lines": [
+            "-    signature ==",
+            "-      OpenSSL::HMAC.hexdigest(digest, SiteSetting.patreon_webhook_secret, request.raw_post)",
+            "+    secret = SiteSetting.patreon_webhook_secret",
+            "+    return false if secret.blank?",
+            "+    ActiveSupport::SecurityUtils.secure_compare(",
+            "+      signature.to_s,",
+            "+      OpenSSL::HMAC.hexdigest(digest, secret, request.raw_post),",
+            "+    )"
+          ],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "webhook-unverified",
+          "reason": "The parent compared the Patreon `X-Patreon-Signature` header to the HMAC with plain `==` and would compute the HMAC with a blank site secret, and the commit replaces it with `ActiveSupport::SecurityUtils.secure_compare` and rejects when the secret is blank.",
+          "defect_lines": [
+            "-    signature ==",
+            "-      OpenSSL::HMAC.hexdigest(digest, SiteSetting.patreon_webhook_secret, request.raw_post)",
+            "+    secret = SiteSetting.patreon_webhook_secret",
+            "+    return false if secret.blank?",
+            "+    ActiveSupport::SecurityUtils.secure_compare(",
+            "+      signature.to_s,",
+            "+      OpenSSL::HMAC.hexdigest(digest, secret, request.raw_post),",
+            "+    )"
+          ],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "webhook-unverified"
+    },
+    {
+      "id": "P058",
+      "repo": "discourse",
+      "sha": "abb64e8b113f8dd9a9b6559a5a400a8e4e127703",
+      "date": "2026-02-23",
+      "sourceFiles": 1,
+      "allFiles": 2,
+      "changedLines": 10,
+      "bytes": 2689,
+      "subject": "FIX: Add nil guards to webhook signature validation",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Every provider check already existed in the parent (secure_compare token checks, SendGrid signature/timestamp and Mandrill signature verification); the commit adds blank guards so a missing header or t param returns false instead of raising, plus nil-safe error_code&.[] lookups; a defect would require the site token setting itself to be blank, which is not evident from the diff, so this reads as robustness hardening of verification that was present.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "webhook-unverified",
+          "reason": "The inbound webhook controller's provider verifiers fed an absent or blank signature header or t token straight into the HMAC/secure_compare check, so a request carrying no credential was not rejected outright (a blank t compares equal to a blank configured token, a nil one raises instead of failing verification); the commit adds an explicit return false when the SendGrid signature or timestamp, the Mandrill signature, or the Mailjet, Postmark and SparkPost token is blank, while the &.[] edits on error_code are incidental nil-safety.",
+          "defect_lines": [
+            "+    return false if signature.blank? || timestamp.blank?",
+            "+    return false if params[:t].blank?",
+            "     ActiveSupport::SecurityUtils.secure_compare(params[:t], SiteSetting.mailjet_webhook_token)",
+            "+    return false if signature.blank?",
+            "     ActiveSupport::SecurityUtils.secure_compare(params[:t], SiteSetting.postmark_webhook_token)",
+            "     ActiveSupport::SecurityUtils.secure_compare(params[:t], SiteSetting.sparkpost_webhook_token)"
+          ],
+          "batch": "B3"
+        },
+        "C": {
+          "class": "none",
+          "reason": "Every validator already performed signature/token verification in the parent (secure_compare against a site-setting token, header-signature checks); the commit only adds blank-guards so a missing header or params[:t] returns false instead of raising on nil, plus nil-safe error_code indexing, which is robustness work with no verification defect evident in the removed lines.",
+          "defect_lines": [],
+          "batch": "C1"
+        }
+      },
+      "final": "none"
+    },
+    {
+      "id": "P059",
+      "repo": "twenty",
+      "sha": "6367dbd8545a48bc70275c71542242754432d3e3",
+      "date": "2026-09-04",
+      "sourceFiles": 2,
+      "allFiles": 3,
+      "changedLines": 33,
+      "bytes": 2586,
+      "subject": "feat(slack): log Slack event retry deliveries (#25304)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds Slack retry-delivery logging and forwards the retry headers; `verifySlackWebhookRequestOrThrow` is already called in the parent.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Adds retry-delivery logging and forwards two Slack retry headers; verifySlackWebhookRequestOrThrow is already called first in the parent, so the webhook was verified before and after and no auth/admin/owner/secret/env defect is touched.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P060",
+      "repo": "mastodon",
+      "sha": "dfaa219f8820224d37cd060d253a507111c63460",
+      "date": "2017-10-03",
+      "sourceFiles": 3,
+      "allFiles": 4,
+      "changedLines": 19,
+      "bytes": 2884,
+      "subject": "Fix HTTP responses for salmon and ActivityPub inbox processing (#5200)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Changes the ActivityPub inbox and Salmon responses from a silent 202 to a 401 with a failure reason when signature verification fails; in the parent the payload was already processed only inside the signed_request_account / verify_payload? branch, so verification was present and enforced and only the status code and diagnostics change.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the ActivityPub inbox, Salmon controller and SignatureVerification concern for a removed verification defect; in the parent an unsigned or unverified request already fell into the else branch and was not processed (head 202), and the commit only changes the response codes to 401/400 and records failure reasons, so no defect of the six classes is removed.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P061",
+      "repo": "discourse",
+      "sha": "e1d4b1637cff07d4a26e6101ff37aea124fc00f1",
+      "date": "2026-02-24",
+      "sourceFiles": 5,
+      "allFiles": 10,
+      "changedLines": 146,
+      "bytes": 10702,
+      "subject": "DEV: Replace MissingMailgunApiKey check with comprehensive EmailBounceHandling (#38028)",
+      "readers": {
+        "A": {
+          "class": "webhook-unverified",
+          "reason": "The existing mailpace webhook action processed params[\"payload\"] with no signature verification at all while every sibling provider action verified; the commit adds valid_mailpace_signature? (public-key verify of X-MailPace-Signature over the raw body) and rejects on failure when the key is configured.",
+          "defect_lines": [
+            "-    # see https://docs.mailpace.com/guide/webhooks#email-events",
+            "+    if SiteSetting.mailpace_verification_key.present?",
+            "+      return signature_failure if !valid_mailpace_signature?",
+            "+    else",
+            "+      warn_unauthenticated_webhook(\"Mailpace\", \"mailpace_verification_key\")",
+            "+    end",
+            "+  def valid_mailpace_signature?",
+            "+    signature = request.headers[\"X-MailPace-Signature\"]",
+            "+    public_key.verify(nil, decoded_signature, payload)"
+          ],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "webhook-unverified",
+          "reason": "The Mailpace webhook handler in WebhooksController previously processed params[\"payload\"] with no signature check at all while every sibling handler verified a token or signature; the commit adds valid_mailpace_signature? (X-MailPace-Signature verified with the configured public key) and gates the handler on it, so the parent defect (no verification on a webhook route) is evident and removed, with the remaining else-branch matching the siblings' existing deprecation path.",
+          "defect_lines": [
+            "   def mailpace",
+            "-    # see https://docs.mailpace.com/guide/webhooks#email-events",
+            "+    if SiteSetting.mailpace_verification_key.present?",
+            "+      return signature_failure if !valid_mailpace_signature?",
+            "+    else",
+            "+      warn_unauthenticated_webhook(\"Mailpace\", \"mailpace_verification_key\")",
+            "+    end",
+            "     message_id = Email::MessageIdService.message_id_clean(params[\"payload\"][\"message_id\"])",
+            "+  def valid_mailpace_signature?",
+            "+    signature = request.headers[\"X-MailPace-Signature\"]",
+            "+    return false if signature.blank?",
+            "+    public_key.verify(nil, decoded_signature, payload)"
+          ],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "webhook-unverified"
+    },
+    {
+      "id": "P062",
+      "repo": "twenty",
+      "sha": "e0debf87a71be75b5fbed1c24efdd838220d0180",
+      "date": "2026-07-22",
+      "sourceFiles": 3,
+      "allFiles": 5,
+      "changedLines": 3,
+      "bytes": 2458,
+      "subject": "fix(call-recorder): listen proper updated fileds event (#23135)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Removes two comments and adds an updatedFields filter to a database-event trigger in the call-recorder app; no security defect evident.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched webhook/signature/guard vocabulary; the diff removes two comments and adds `updatedFields: PENDING_TRANSITION_FIELDS` to a database-event trigger, with no defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P063",
+      "repo": "discourse",
+      "sha": "1ff8a8cc1299383fc3cb33347ce72adb506bb924",
+      "date": "2026-08-07",
+      "sourceFiles": 2,
+      "allFiles": 2,
+      "changedLines": 13,
+      "bytes": 1609,
+      "subject": "DEV: Use constant-time signature comparison for DiscourseConnect HMAC validation (#42424)",
+      "readers": {
+        "A": {
+          "class": "webhook-unverified",
+          "reason": "The inbound DiscourseConnect signed-payload parser and the provider secret lookup compared the HMAC signature with plain != / == string comparison (the timing-leak raw-compare shape) and the commit replaces both with ActiveSupport::SecurityUtils.secure_compare; note the payload is the SSO exchange rather than a /webhook route.",
+          "defect_lines": [
+            "-    raise SignatureError, <<~MSG if sso.sign(parsed[\"sso\"]) != parsed[\"sig\"]",
+            "+    if !ActiveSupport::SecurityUtils.secure_compare(expected_sig, parsed[\"sig\"].to_s)",
+            "-          sign(parsed_payload[\"sso\"], configured_secret) == parsed_payload[\"sig\"]",
+            "+          ActiveSupport::SecurityUtils.secure_compare(",
+            "+            sign(parsed_payload[\"sso\"], configured_secret),",
+            "+            parsed_payload[\"sig\"].to_s,"
+          ],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The removed line compares a DiscourseConnect SSO payload signature with '!=' and the added lines use ActiveSupport::SecurityUtils.secure_compare, a timing-leak fix on an SSO login payload rather than on a webhook handler; searched for a webhook route, auth sentinel or missing-middleware bypass, admin gate, id scoping, secret literal or env output and found none, so the removed defect falls outside the six classes as scoped in the capabilities document.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": {
+          "class": "none",
+          "reason": "The commit replaces a raw != / == comparison of an HMAC signature with ActiveSupport::SecurityUtils.secure_compare, but the code is DiscourseConnect SSO payload verification (lib/discourse_connect_base.rb, lib/discourse_connect_provider.rb), not a webhook handler route, so the timing-leak shape falls outside the webhook-unverified CLAIMS scope, and no other class covers it.",
+          "defect_lines": [],
+          "batch": "C1"
+        }
+      },
+      "final": "none"
+    },
+    {
+      "id": "P064",
+      "repo": "twenty",
+      "sha": "a7b46d9ee54ac879d99b05b8e0366dd12d379d7f",
+      "date": "2026-08-14",
+      "sourceFiles": 34,
+      "allFiles": 36,
+      "changedLines": 890,
+      "bytes": 52331,
+      "subject": "Extract provider-neutral webhook handlers from SES-specific services (#24200)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Renames/moves the SES webhook router services into drivers and handlers; assertAllowedAndSigned is called before processing in both the deleted routers and the new drivers, so signature verification is preserved and no defect is removed.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the SNS signature/verify hunks; both the removed router services and the new driver services call `snsSignatureVerifierService.assertAllowedAndSigned(payload)` before dispatch, so the commit is a refactor into drivers/handlers (plus narrowing unknown `detail-type`s to a warning) with no verification defect removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P065",
+      "repo": "grafana",
+      "sha": "b80fbe03f0ae84b52048fb3039d6a919475ab9c5",
+      "date": "2021-11-01",
+      "sourceFiles": 127,
+      "allFiles": 138,
+      "changedLines": 9603,
+      "bytes": 475688,
+      "subject": "Plugins: Refactor Plugin Management (#40477)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Large plugin-manager restructuring: plugin scanning and manifest signature validation move from manager.go (validateSignature/allowUnsigned, scan(dir, requireSigned)) into loader.go plus signature.Validator/UnsignedPluginAuthorizer with the same rules (core/bundled skip, Dev env or PluginsAllowUnsigned allow-list, unsigned/invalid/modified rejected), the datasource-proxy ReqRole check is de-nested unchanged, plugin-settings/enabled-plugin queries and ImportDashboard are moved verbatim, and frontend settings still emit plugin JSONData; no defect of any class is evident in what was examined.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "A large plugin-manager refactor (PluginManager replaced by pluginStore/pluginClient, signature code moved into a signature package, loader/finder/initializer split, struct renames) in which every security-relevant check I examined is preserved or moved verbatim: the datasource-proxy ReqRole/HasUserRole check and the app-route Auth/RoleAuth middleware are unchanged, the unsigned-plugin policy (Env == Dev or PluginsAllowUnsigned) moves from PluginScanner.allowUnsigned to UnsignedPluginAuthorizer.CanLoadPlugin, the os.Getenv plugin-settings env builder moves from plugin_settings.go to initializer.go, keepCookies handling moves, and the json:\"-\" tags are on struct definitions being replaced; the private-plugin rootUrl matching change in manifest.go is plugin-signature validation, not one of the six classes; no webhook, HMAC or timing-safe-compare code is touched; no defect removal in any of the six classes was evident in what I examined.",
+          "defect_lines": [],
+          "batch": "B3"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P066",
+      "repo": "twenty",
+      "sha": "f59bda1dbf13d09a323fce6de64bf0b4940b79e0",
+      "date": "2026-07-22",
+      "sourceFiles": 1,
+      "allFiles": 4,
+      "changedLines": 78,
+      "bytes": 5514,
+      "subject": "feat(server): queued-only server-route dispatch (#23134)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Switches the server-route-trigger target function from synchronous execution to a queued job returning 202, with the lookup factored into findLogicFunctionOrFail; a refactor with no defect shown in the removed lines.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Moves target logic-function execution from synchronous runFunction to a queued job and returns 202; the repository lookup keeps the same universalIdentifier/workspaceId/applicationRegistrationId where-clause, so I found no removed or added tenant filter, auth gate, admin check, secret or env handling.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P067",
+      "repo": "gitea",
+      "sha": "fbe80e6df244c1234e0ed5d4ae4c1690b4eb4626",
+      "date": "2025-09-28",
+      "sourceFiles": 6,
+      "allFiles": 8,
+      "changedLines": 81,
+      "bytes": 8289,
+      "subject": "Add proper error message if session provider can not be created (#35520)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Changes session providers' Exist/Count to return errors instead of panicking or swallowing them and makes Sessioner construction fallible; error-handling refactor, no auth defect evident.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Changes Gitea session providers' Exist and Count to return errors instead of panicking or silently returning false, and makes Sessioner construction fallible; searched for a removed auth bypass (a session falsely reported existing), admin gate, scoping or secret change and found only error-propagation plumbing with identical existence semantics on the success path.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P069",
+      "repo": "twenty",
+      "sha": "40d7e740ef58051329fa9583e3a2124561540f20",
+      "date": "2026-02-08",
+      "sourceFiles": 8,
+      "allFiles": 8,
+      "changedLines": 107,
+      "bytes": 10043,
+      "subject": "Add token type validation and remove dead code in JWT verification (#17784)",
+      "readers": {
+        "A": {
+          "class": "auth-bypass",
+          "reason": "verifyLoginToken, verifyRefreshToken and verifyTransientToken returned the decoded JWT after signature verification without checking the token's type claim (transient even discarded it as _type), while JwtWrapperService.verifyJwtToken picks the secret from the token's own type, so a validly signed token of another type was accepted as a login/refresh/transient token; the commit adds type checks throwing INVALID_JWT_TOKEN_TYPE and drops the legacy typeless API-key fallback signed with ACCESS_TOKEN_SECRET.",
+          "defect_lines": [
+            "-    return this.jwtWrapperService.decode(loginToken, {",
+            "-      json: true,",
+            "-    });",
+            "+    if (decoded.type !== JwtTokenTypeEnum.LOGIN) {",
+            "+    if (jwtPayload.type !== JwtTokenTypeEnum.REFRESH) {",
+            "-    const { type: _type, ...payload } =",
+            "+    const { type, ...payload } =",
+            "+    if (type !== JwtTokenTypeEnum.LOGIN) {",
+            "-        !payload.type &&",
+            "-        !('workspaceId' in payload) &&",
+            "-        type === JwtTokenTypeEnum.API_KEY",
+            "-          secret: this.generateAppSecretLegacy(),"
+          ],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "auth-bypass",
+          "reason": "verifyLoginToken, verifyRefreshToken and verifyTransientToken accepted any JWT that verified under the secret derived from its own self-declared type, returning the decoded payload without checking that the type was the one the caller expected, and the commit adds the type equality guards that reject a token of another type presented as a login/refresh/transient token (the legacy untyped API-key path signed with ACCESS_TOKEN_SECRET is removed alongside).",
+          "defect_lines": [
+            "-    return this.jwtWrapperService.decode(loginToken, {",
+            "-      json: true,",
+            "-    });",
+            "+    if (decoded.type !== JwtTokenTypeEnum.LOGIN) {",
+            "+      throw new AuthException(",
+            "+        'Expected a login token',",
+            "+        AuthExceptionCode.INVALID_JWT_TOKEN_TYPE,",
+            "+      );",
+            "+    }",
+            "+    if (jwtPayload.type !== JwtTokenTypeEnum.REFRESH) {",
+            "+      throw new AuthException(",
+            "+        'Expected a refresh token',",
+            "-    const { type: _type, ...payload } =",
+            "+    const { type, ...payload } =",
+            "+    if (type !== JwtTokenTypeEnum.LOGIN) {",
+            "+      throw new AuthException(",
+            "+        'Expected a transient token',",
+            "-      if (",
+            "-        !payload.type &&",
+            "-        !('workspaceId' in payload) &&",
+            "-        type === JwtTokenTypeEnum.API_KEY",
+            "-      ) {",
+            "-        return this.jwtService.verify(token, {",
+            "-          ...options,",
+            "-          secret: this.generateAppSecretLegacy(),",
+            "-        });",
+            "-      }"
+          ],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "auth-bypass"
+    },
+    {
+      "id": "P070",
+      "repo": "strapi",
+      "sha": "494a970df050c668696380b11ddc8a7c012c0b0c",
+      "date": "2018-02-02",
+      "sourceFiles": 3,
+      "allFiles": 5,
+      "changedLines": 50,
+      "bytes": 3401,
+      "subject": "Verify signature of incoming code",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "The parent executed remotely fetched base64 code via vm.runInThisContext with no integrity check and the commit adds an RSA-SHA256 signature verification before executing it, but this is outbound fetch-and-eval telemetry code, not an inbound webhook handler nor any other of the six classes, so it falls outside the vocabulary.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched verify/signature/key/env hunks; the parent executed base64 code fetched from `strapi.io/assets/images/usage.gif` via `vm.runInThisContext` with no integrity check and the commit adds RSA-SHA256 verification of a signed hash against a bundled public key before executing, which is unsigned-remote-code hardening on an outbound telemetry fetch, not an inbound webhook handler or any of the other five classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P071",
+      "repo": "discourse",
+      "sha": "4459742becdbcaea518c2d3ef52b3fc013e963b3",
+      "date": "2026-07-10",
+      "sourceFiles": 5,
+      "allFiles": 8,
+      "changedLines": 63,
+      "bytes": 7947,
+      "subject": "FIX: Bind workflow modal responses to their target user (#41620)",
+      "readers": {
+        "A": {
+          "class": "idor",
+          "reason": "fetch_resume_request looked up the waiting execution by the request-supplied action_id and returned it for resumption with no check that the caller is the user the modal was published to, so any signed-in user holding the action id could resume another user's workflow modal; the commit binds target_user_id into the HMAC-signed action token and rejects the request when it differs from guardian.user&.id.",
+          "defect_lines": [
+            "-    def fetch_resume_request(params:)",
+            "-      DiscourseWorkflows::InteractiveResume.from_action_id(",
+            "-        params.action_id,",
+            "+    def fetch_resume_request(params:, guardian:)",
+            "+      return if resume_request.target_user_id.blank?",
+            "+      return if resume_request.target_user_id != guardian.user&.id",
+            "+          \"action_id\" => exec_ctx.resume_action_id(value, target_user_id: target_user.id),",
+            "+        \"#{execution_id.to_i}:#{target_user_id}:#{action}:#{resume_token}\","
+          ],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "idor",
+          "reason": "In the parent, fetch_resume_request resolved a modal resume request from the request-supplied action_id and returned it with no check of who is responding, so any user holding the action_id could answer a modal addressed to another user; the commit binds target_user_id into the signed token and adds the owner check against guardian.user.",
+          "defect_lines": [
+            "-    def fetch_resume_request(params:)",
+            "-      DiscourseWorkflows::InteractiveResume.from_action_id(",
+            "-        params.action_id,",
+            "-        expected_node_type: NODE_TYPE,",
+            "+    def fetch_resume_request(params:, guardian:)",
+            "+      return if resume_request.target_user_id.blank?",
+            "+      return if resume_request.target_user_id != guardian.user&.id",
+            "+        \"#{execution_id.to_i}:#{target_user_id}:#{action}:#{resume_token}\","
+          ],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "idor"
+    },
+    {
+      "id": "P072",
+      "repo": "grafana",
+      "sha": "facd4eca7eddc4fdd3960dc841b62f6db624a49a",
+      "date": "2023-04-11",
+      "sourceFiles": 2,
+      "allFiles": 2,
+      "changedLines": 141,
+      "bytes": 6058,
+      "subject": "Plugins: Fix plugin signature calculation not working on Windows (#66273)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Normalizes plugin file paths with filepath.ToSlash before comparing them to MANIFEST.txt so signature verification succeeds on Windows; this makes verification less strict on a platform where it wrongly failed, not the removal of a missing or bypassed verification, and most of the diff is tests.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Normalizes plugin file paths with filepath.ToSlash before comparing against MANIFEST.txt so Windows backslash paths are not wrongly reported unsigned; this makes verification succeed where it previously failed closed, so no auth/admin/owner/secret/env/signature-bypass defect is removed.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P073",
+      "repo": "grafana",
+      "sha": "4ddf8028fb2ed349e3d7ce50fbc6d4db8fe61477",
+      "date": "2026-09-11",
+      "sourceFiles": 9,
+      "allFiles": 13,
+      "changedLines": 114,
+      "bytes": 8836,
+      "subject": "Chore: Remove Intercom HMAC sent via Rudderstack (#132384)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Removes the Intercom identity-verification feature: the server-side HMAC of the user identifier (hashUserIdentifier with IntercomSecret), the config key and the frontend plumbing; the removed code sent only the HMAC output, never the secret, so this is feature removal rather than a secrets or env exposure fix.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Removes the Intercom user-hash feature (an HMAC of the analytics identifier keyed by intercom_secret sent to the frontend) from Grafana config, DTOs and Rudderstack backends; searched for a secret literal, env dump or secret reaching the client and found only the HMAC output, not the secret, was ever exposed, so this is feature removal rather than a secrets-exposure or env-exposure fix.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P074",
+      "repo": "mastodon",
+      "sha": "21ad21cb507d7a5f48ef8ee726b2f9308052aa9d",
+      "date": "2018-10-12",
+      "sourceFiles": 2,
+      "allFiles": 3,
+      "changedLines": 34,
+      "bytes": 3843,
+      "subject": "Improve signature verification safeguards (#8959)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Wraps the remote key lookup in a Stoplight circuit breaker and lowers the HTTP connect timeout; availability hardening, not a signature-verification defect.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the signature hunks; verification existed in the parent, and the commit adds a 12-hour Date time-window check (replay protection, explicitly outside webhook-unverified scope), downcases signed-header names, and HTML-escapes emoji/mention/hashtag output in `Formatter` (XSS, out of scope), with no six-class defect removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P075",
+      "repo": "discourse",
+      "sha": "c3070288ea05019b5f5f14451abdee9ab963e8de",
+      "date": "2023-01-16",
+      "sourceFiles": 1,
+      "allFiles": 4,
+      "changedLines": 123,
+      "bytes": 6796,
+      "subject": "FEATURE: Verify email webhook signatures (#19690)",
+      "readers": {
+        "A": {
+          "class": "webhook-unverified",
+          "reason": "The parent WebhooksController processed Sendgrid, Mailjet, Mandrill, Postmark and Sparkpost webhook payloads with no signature or token verification at all (only Mailgun was checked); the commit adds ECDSA/HMAC signature checks and secure_compare token checks that reject the request whenever the provider key is configured (and only warns when it is not).",
+          "defect_lines": [
+            "   def sendgrid",
+            "+    if SiteSetting.sendgrid_verification_key.present?",
+            "+      return signature_failure if !valid_sendgrid_signature?",
+            "   events = params[\"_json\"] || [params]",
+            "   def mailjet",
+            "+      return signature_failure if !valid_mailjet_token?",
+            "   def mandrill",
+            "-    events = JSON.parse(params[\"mandrill_events\"])",
+            "+      return signature_failure if !valid_mandrill_signature?",
+            "   def postmark",
+            "+      return signature_failure if !valid_postmark_token?",
+            "   def sparkpost",
+            "+      return signature_failure if !valid_sparkpost_token?",
+            "+  def valid_sendgrid_signature?",
+            "+    public_key.dsa_verify_asn1(hashed_payload, decoded_signature)",
+            "+    ActiveSupport::SecurityUtils.secure_compare(params[:t], SiteSetting.mailjet_webhook_token)",
+            "+      OpenSSL::HMAC.digest(\"sha1\", SiteSetting.mandrill_authentication_key, payload)"
+          ],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "webhook-unverified",
+          "reason": "The parent `sendgrid`, `mailjet`, `mandrill`, `postmark` and `sparkpost` actions processed bounce events from `params` with no signature or token verification at all, and the commit adds per-provider `valid_*_signature?`/`valid_*_token?` checks (ECDSA for SendGrid, HMAC-SHA1 for Mandrill, `secure_compare` tokens for the rest) that return `signature_failure` when a key is configured.",
+          "defect_lines": [
+            "+    if SiteSetting.sendgrid_verification_key.present?",
+            "+      return signature_failure if !valid_sendgrid_signature?",
+            "+    if SiteSetting.mailjet_webhook_token.present?",
+            "+      return signature_failure if !valid_mailjet_token?",
+            "-    events = JSON.parse(params[\"mandrill_events\"])",
+            "+    if SiteSetting.mandrill_authentication_key.present?",
+            "+      return signature_failure if !valid_mandrill_signature?",
+            "+    if SiteSetting.postmark_webhook_token.present?",
+            "+      return signature_failure if !valid_postmark_token?",
+            "+    if SiteSetting.sparkpost_webhook_token.present?",
+            "+      return signature_failure if !valid_sparkpost_token?",
+            "+    public_key.dsa_verify_asn1(hashed_payload, decoded_signature)",
+            "+    ActiveSupport::SecurityUtils.secure_compare(params[:t], SiteSetting.mailjet_webhook_token)"
+          ],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "webhook-unverified"
+    },
+    {
+      "id": "P076",
+      "repo": "strapi",
+      "sha": "155761d8476fb26b1ca1a9d216d8fcfdbd9226e4",
+      "date": "2026-07-16",
+      "sourceFiles": 8,
+      "allFiles": 11,
+      "changedLines": 1203,
+      "bytes": 45165,
+      "subject": "chore(users-permissions): replace grant/purest/jwk-to-pem with fetch and crypto (#26820)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Replaces the third-party grant OAuth middleware with an in-house oauth-connect implementation (state generation and check, token exchange, JWKS verification moved into a util); the parent behaviour lived inside the grant library and no defect is visible in the removed lines, so this is feature/refactor work with a new endpoint's verification added alongside it.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Replaces the third-party grant/purest OAuth flow with an in-repo oauth-connect middleware, fetch-based provider calls and a JWKS verifier; the new code's state check and callback persistence are brand-new, the parent delegated to grant(grantConfig) whose state handling is not in the diff, the old Cognito path already rejected on jwt.verify error, and I found no removed guard, scoping, secret or env exposure, so no parent defect is evident from the diff alone.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P077",
+      "repo": "twenty",
+      "sha": "9e515afb13a36f2c348fc3a2cae6021513089a2e",
+      "date": "2026-05-12",
+      "sourceFiles": 24,
+      "allFiles": 28,
+      "changedLines": 827,
+      "bytes": 51083,
+      "subject": "feat(server): asymmetric JWT signing with kid + key rotation table (#20467)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Introduces ES256 signing keys with `kid`-based verification-key resolution for ACCESS/REFRESH tokens alongside the legacy HS256 path; a key-rotation feature, not a defect removal.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Migrates Twenty's ACCESS/REFRESH JWTs from HS256 app-secret signing to ES256 with a rotatable DB-stored signing key and adds kid-based key resolution; searched the removed verify path for a swallowed verification, algorithm-confusion or secret-exposure defect and found the old path already pinned HS256 via verifyOptions and converted errors to AuthException, so the change is a key-management feature, not an evident defect removal.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P078",
+      "repo": "twenty",
+      "sha": "3db1af9a1771a87c9b1ff4b8df79036bdad189a3",
+      "date": "2026-04-27",
+      "sourceFiles": 3,
+      "allFiles": 5,
+      "changedLines": 60,
+      "bytes": 5922,
+      "subject": "fix(logic-function): forward raw request body for HMAC signature verification (#20061)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Plumbs the raw request body (RawBodyRequest.rawBody) through the logic-function event and lets getRawBodyForSignature prefer it; the parent behaviour for a parsed body is not shown in the diff, so no defect of the class is evident from the packet alone and the change reads as enabling verification to succeed rather than removing a bypass.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the webhook-signature hunks; GitHub signature verification existed in the parent, and the commit only threads the exact `request.rawBody` into the logic-function event so `getRawBodyForSignature` hashes the original bytes instead of a re-serialised body, a correctness fix rather than the removal of a missing or bypassable verification.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P079",
+      "repo": "mastodon",
+      "sha": "1e67567d8fc07d7830ad1464fd359730106a1357",
+      "date": "2025-12-12",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 3,
+      "bytes": 902,
+      "subject": "Change HTTP Signature verification status from 401 to 503 on temporary failure to get remote actor (#37221)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Sets a 503 failure code when remote key fetching fails during signature verification; status-code change only.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the verification rescue hunks; the change only sets `@signature_verification_failure_code ||= 503` on remote-fetch failures, an HTTP status choice with no defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P080",
+      "repo": "twenty",
+      "sha": "217cf650aa1b4449d3f9dff539cd7bd39697d089",
+      "date": "2026-07-16",
+      "sourceFiles": 4,
+      "allFiles": 5,
+      "changedLines": 237,
+      "bytes": 17323,
+      "subject": "Decide workspace destiny from live data and all sub (#22943)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Decides workspace suspension/reactivation across all live customer subscriptions and turns suspend/reactivate into conditional updates; a billing state-machine fix outside the six classes.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Reworks Stripe subscription webhook processing to evaluate all live customer subscriptions before suspending or reactivating a workspace and makes suspend/reactivate conditional updates; searched for removed signature handling, authorization, workspaceId scoping or secrets and found only business-logic and idempotency changes.",
+          "defect_lines": [],
+          "batch": "B4b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P081",
+      "repo": "twenty",
+      "sha": "abaf2651ece31ffabed027c56b5dd9b9f4680d8b",
+      "date": "2024-12-13",
+      "sourceFiles": 7,
+      "allFiles": 7,
+      "changedLines": 139,
+      "bytes": 12160,
+      "subject": "add product table data in real time (#9055)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds product.created/product.updated handling to the existing Stripe billing webhook plus a product service and date helper; feature work, verification of the webhook is not touched.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the billing webhook controller and new product service for signature handling, auth or admin gating, workspace scoping, secrets and env output; the commit adds product.created/product.updated handling and drops unused customer event enum members without touching any verification or authorization code, so no defect is removed.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P082",
+      "repo": "mastodon",
+      "sha": "eff447a4554e5285f5869432e1ea9e1ca884a806",
+      "date": "2024-02-07",
+      "sourceFiles": 1,
+      "allFiles": 2,
+      "changedLines": 47,
+      "bytes": 2787,
+      "subject": "Rewrite signature verification using regexps and `StringScanner` (#29133)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Rewrites the HTTP Signature header parameter parser from Parslet to StringScanner regexes with equivalent output; parsing only, no verification or authorization logic changes.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the Signature-header parser hunks; the commit replaces the Parslet grammar with a StringScanner/regex parser producing the same params hash, a parser rewrite with no auth, scope, secret, env or verification defect removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P083",
+      "repo": "mastodon",
+      "sha": "46155122859657e674a0fab097c6812349c35274",
+      "date": "2018-11-08",
+      "sourceFiles": 2,
+      "allFiles": 2,
+      "changedLines": 9,
+      "bytes": 1086,
+      "subject": "Reduce connect timeout limit and limit signature failures by source IP (#9236)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a Date-header time-window (replay) check and case-insensitive signed-header names to signature verification, and HTML-encodes formatter output; replay protection is outside the webhook-unverified scope and HTML escaping is outside all six classes.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Wraps account_from_key_id in a per-source-IP Stoplight circuit breaker with nil fallback and lowers the HTTP connect timeout; I searched for removed or newly guarded signature verification, auth, scoping, secret or env handling and found only resilience/rate-limiting behaviour outside the six classes.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P084",
+      "repo": "grafana",
+      "sha": "d21178e348041753b96a7f3c0ffeebd54d3ef2b5",
+      "date": "2025-09-05",
+      "sourceFiles": 1,
+      "allFiles": 3,
+      "changedLines": 4,
+      "bytes": 1431,
+      "subject": "Alerting: Fix field names on webhook HMAC/TLS config HCL export (#110722)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Renames two HCL struct tags (tlsConfig to tls_config, hmacConfig to hmac_config) on the webhook contact-point definition; a serialization tag change with no defect.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the hmac/tls config hunks; the change only renames HCL struct tags (`tls_config`, `hmac_config`) on Grafana webhook contact-point definitions, with no defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P085",
+      "repo": "twenty",
+      "sha": "55dc5983a291bae7e166968d3696ac06baccd2eb",
+      "date": "2024-12-17",
+      "sourceFiles": 17,
+      "allFiles": 18,
+      "changedLines": 311,
+      "bytes": 26538,
+      "subject": "add price and meter dynamically add foreign keys in billing (#9100)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds price.created/price.updated handling, a price/meter service, entity constraint changes and null-handling tweaks to the billing webhook; feature work with no evident defect of the six classes.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The Stripe billing webhook controller gains price.created/price.updated handling through a new BillingWebhookPriceService, alongside entity uniqueness and nullability changes and null-coalescing cleanups; I searched for a signature-verification change on the @Post('/webhooks') handler (none is added or removed in the diff), for auth or admin gating (none present), for tenant scoping (the unique-index and conflictPaths changes on workspaceId are upsert and integrity semantics with no request-derived id crossing a tenant boundary), and for secret or env exposure (none), and found no defect removal in any of the six classes.",
+          "defect_lines": [],
+          "batch": "B3"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P086",
+      "repo": "mastodon",
+      "sha": "5265df0a8a9d66a88cbb45bff5e9316a357e934a",
+      "date": "2020-02-03",
+      "sourceFiles": 1,
+      "allFiles": 2,
+      "changedLines": 2,
+      "bytes": 543,
+      "subject": "Change signature verification to ignore signatures with invalid host (#13033)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a rescue of Mastodon::HostValidationError returning nil from account_from_key_id so a key fetch from an invalid host fails the lookup instead of raising; error handling, no verification defect removed.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Rescues Mastodon::HostValidationError in the signature key-fetch helper and returns nil (no account, verification fails); searched for a swallowed verification, missing gate, owner scoping, secret or env exposure and found only error-handling that still fails closed.",
+          "defect_lines": [],
+          "batch": "B4a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P087",
+      "repo": "gitea",
+      "sha": "2af67f6044af1cad7136ce8c123e37ab090ca9bc",
+      "date": "2019-04-19",
+      "sourceFiles": 41,
+      "allFiles": 44,
+      "changedLines": 1452,
+      "bytes": 78329,
+      "subject": "Improve listing performance by using go-git (#6478)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Migrates Gitea's git module to go-git (blob/tree/commit/branch/tag access, commit-info traversal, signature payload reconstruction); large refactor with no defect of the six classes evident.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Long diff: listed the 41 files, searched hmac, timingSafeEqual, constructEvent, webhook, guard, authenticat, currentUser, req.user, session, unauthorized, 401, admin, role, permission, forbidden, 403, superuser, workspaceId, userId, ownerId, belongsTo, canAccess, process.env, os.environ, secret, token, password, verif, gpg, sign/Signature and the Gitea permission identifiers (Require*, CanWrite, IsWriter, IsOwner, ctx.Repo.*), and read the hunks around every hit plus the models, context, repofiles and routers files; the commit migrates the git module from shelling out to go-git (Blob.Data -> DataAsync, parseCommitData -> convertCommit/convertPGPSignature, Branch and ErrBranchNotExist moved from models to modules/git, show-ref --verify replaced by a go-git reference lookup), the GPG hits are parsing of commit and tag PGP signatures into a struct rather than verification of an inbound request, and no authorization, scoping, secret, env or webhook-verification defect removal was evident in what was examined.",
+          "defect_lines": [],
+          "batch": "B1"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P088",
+      "repo": "twenty",
+      "sha": "a941f6fe01e4ff7d373919a8a89c67d013717c25",
+      "date": "2026-05-14",
+      "sourceFiles": 10,
+      "allFiles": 11,
+      "changedLines": 480,
+      "bytes": 40309,
+      "subject": "feat(server): migrate TOTP secret encryption to SecretEncryptionService (#20577)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Migrates TOTP secrets from AES-CBC keyed off APP_SECRET to the versioned SecretEncryptionService envelope with a backfill command and a CHECK constraint; secret-storage hardening, not a hardcoded-literal secrets-exposure.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Migrates TOTP secret storage from legacy AES-256-CBC (SimpleSecretEncryptionUtil) to the enc:v2 SecretEncryptionService envelope with a backfill command and CHECK constraint; the parent already stored secrets encrypted, no secret literal, env dump, auth gate or scoping filter is removed or added, and encryption-at-rest changes fall outside the six classes.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P089",
+      "repo": "twenty",
+      "sha": "0f5fc0c4ee57972deca03b6b1fba6c7fbe372282",
+      "date": "2026-08-19",
+      "sourceFiles": 41,
+      "allFiles": 46,
+      "changedLines": 1123,
+      "bytes": 75001,
+      "subject": "Add Resend as a community emailing domain driver (#24202)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a Resend emailing-domain driver and a brand-new /webhooks/messaging/resend endpoint together with its Svix HMAC verification (timingSafeEqual, timestamp tolerance); a new endpoint shipped with its verification has no parent defect.",
+          "defect_lines": [],
+          "batch": "A5b"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The Resend inbound webhook endpoint, its Svix signature verifier and the Resend emailing driver are all brand-new files added together, so there is no parent defect; the modified files add a community-driver early return to the enterprise-plan gate in email-group-access.service.ts (a licensing check, not one of the six classes), move getUnsubscribeBaseUrl to a util, and add RESEND_* config variables, with no removed line showing missing auth, admin, owner/tenant scoping, secret or env exposure, or unverified webhook handling.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P090",
+      "repo": "twenty",
+      "sha": "a159a68e2ce0a3de9135a306d2a96e8833bcb6b2",
+      "date": "2026-05-13",
+      "sourceFiles": 37,
+      "allFiles": 43,
+      "changedLines": 241,
+      "bytes": 42341,
+      "subject": "`[twenty-server]` no floating promises lint rule (#20499)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Lint-style sweep adding await/void to floating promises across many files, plus audit-service and metrics error handling; no authorization, verification, secret or env-handling logic changes.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched auth/impersonation/audit/webhook hunks; the commit is a floating-promise cleanup (`void`/`await` on audit, metrics, billing and email calls), makes `AuditService.preventIfDisabled` log-and-return instead of returning an exception object, and types the queue-driver interface, with no gate, scope, secret, env or verification defect removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P091",
+      "repo": "gitea",
+      "sha": "40dec17b5c8fd7e79e7a0a397311d68a0587f095",
+      "date": "2025-06-20",
+      "sourceFiles": 3,
+      "allFiles": 3,
+      "changedLines": 45,
+      "bytes": 4360,
+      "subject": "Fix Feishu webhook signature verification (#34788)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds outbound Feishu bot signing (timestamp plus HMAC-SHA256 sign in the payload when a secret is set) to Gitea's webhook sender and drops the default headers for that provider; this is a feature on the delivering side, not a fix of an unverified inbound handler.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched hmac/secret/signature hunks; the commit adds Feishu outbound-bot signing (`timestamp` plus HMAC-SHA256 `sign` fields when a secret is set) and drops the default `X-Hub-Signature-256` header for Feishu requests, an outbound-delivery feature rather than the removal of an inbound-verification or other six-class defect.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P092",
+      "repo": "twenty",
+      "sha": "df12ba6e9841de4f652a2c8ebc8750fd61e95ca3",
+      "date": "2024-12-28",
+      "sourceFiles": 9,
+      "allFiles": 9,
+      "changedLines": 135,
+      "bytes": 12946,
+      "subject": "Webhook Secret Field Implementation and Security Enhancements (#9187) (#9219)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a new optional per-webhook secret and signs outgoing webhook calls with HMAC-SHA256 timestamp/nonce headers, stripping the new secret field from webhook-object event payloads; a new sender-side signing feature with no pre-existing defect in any of the six classes.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The commit adds a brand-new outbound webhook-signing feature on the sender side: a new `secret` field on the Webhook type, entity, standard-field id and settings UI, HMAC-SHA256 `X-Twenty-Webhook-Signature`/`Timestamp`/`Nonce` headers in `call-webhook.job.ts`, and OpenAPI documentation, with no receiving handler in the diff; the secret-stripping (`removeSecretFromWebhookRecord`, `payloadWithoutSecret`) removes a field this same commit introduces (`+  secret?: string;`, `+  secret: string;`), so the parent had no secret to leak and no unverified handler; I searched for webhook signature handling, secret and env exposure, authorization, admin gating and tenant/owner scoping and found no parent defect, so this is new feature work.",
+          "defect_lines": [],
+          "batch": "B2"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P093",
+      "repo": "mastodon",
+      "sha": "68c797bece0ed0801cfc8718d77841b455bf4d0d",
+      "date": "2019-03-31",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 5,
+      "bytes": 614,
+      "subject": "Ensure request.body isn't emptied out before signature verification (#10432)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Memoizes the inbox request body with defined?(@body) and rewinds request.body after reading so later readers see the body; a correctness fix with no auth, ownership, secret, env or verification defect evident.",
+          "defect_lines": [],
+          "batch": "A2"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the inbox body hunks; the change memoizes the read body and rewinds `request.body` so later readers see it, a request-handling bug fix with no defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P094",
+      "repo": "twenty",
+      "sha": "57c465176a8ea0aa286edfb3504f52bb51465a99",
+      "date": "2023-08-04",
+      "sourceFiles": 16,
+      "allFiles": 17,
+      "changedLines": 245,
+      "bytes": 19477,
+      "subject": "Add support chat (#1066)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a Front support-chat integration: client config exposes the chat driver and front-end key, currentUser gains a server-computed HMAC of the email while SUPPORT_HMAC_KEY stays server-side; new feature, no parent defect removed.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched key/HMAC/env/clientConfig hunks; the commit adds Front support chat, exposing `SUPPORT_DRIVER`/`SUPPORT_FRONTEND_KEY` (the public chat id) via clientConfig and returning an HMAC of the user's email computed server-side from `SUPPORT_HMAC_KEY` on `currentUser`, which is a new feature with no secret, env, auth, scope or verification defect removed.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P095",
+      "repo": "twenty",
+      "sha": "5cb8a091fc506b640ff670b1d6a106daf008e004",
+      "date": "2026-06-16",
+      "sourceFiles": 13,
+      "allFiles": 18,
+      "changedLines": 594,
+      "bytes": 25383,
+      "subject": "Add Recall webhook status handler to the meeting bot app (#21659)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a brand-new /webhook/recall logic function together with its Svix HMAC signature verification (timingSafeEqual, timestamp tolerance) and the RECALL_WEBHOOK_SECRET variable; a new webhook shipped with its verification has no parent defect.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Adds a brand-new Recall.ai webhook logic function (recall-webhook.ts, verify-recall-webhook-signature.util.ts and helpers) together with its Svix HMAC timingSafeEqual verification and secret env-var registration; every touched handler file is new, so there is no parent webhook without verification and no defect removal is evident.",
+          "defect_lines": [],
+          "batch": "B5a"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P096",
+      "repo": "mastodon",
+      "sha": "09ec9c6aa576342099dca1ac1706ad71bf49400b",
+      "date": "2023-09-06",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 2,
+      "bytes": 623,
+      "subject": "Downgrade signature verification debug logging from `warn` to `debug` (#26812)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Lowers the signature-verification failure log line from warn to debug; logging change only.",
+          "defect_lines": [],
+          "batch": "A6"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the single hunk for any verification, authorization, scoping, secret or env change; it only lowers the log level of the signature-verification failure message from warn to debug and removes no defect.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P097",
+      "repo": "twenty",
+      "sha": "45bea6f9910949b02217315df1516e0fce97e98f",
+      "date": "2026-05-15",
+      "sourceFiles": 9,
+      "allFiles": 10,
+      "changedLines": 453,
+      "bytes": 30801,
+      "subject": "feat(secret-encryption): drop APP_SECRET from approved-access-domain validation and session cookies (#20580)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Replaces the approved-access-domain validation token (a deterministic sha256 over id/domain/APP_SECRET compared with ===) with an expiring asymmetric JWT bound to id, domain and workspace, and reworks session-cookie secret derivation with rotation fallbacks; the parent still required knowledge of APP_SECRET to mint a token, so this is hardening and none of the six class shapes (sentinel bypass, missing guard, hardcoded secret, env dump, webhook verification) is evident in the removed lines.",
+          "defect_lines": [],
+          "batch": "A3"
+        },
+        "B": {
+          "class": "none",
+          "reason": "The removed lines show the approved-access-domain validation token was a deterministic sha256 of id, domain and APP_SECRET checked with '===' (no expiry, no timing-safe compare), replaced by a signed JWT with expiry, type and workspace binding, and the session cookie secret derivation moves from sha256(APP_SECRET) to HKDF with key rotation; these are token-hardening and key-derivation changes, not a missing auth check, admin gate, owner/tenant filter (the old hash was already bound to the row id and domain), hardcoded secret literal, env dump or webhook verification, so no defect of the six classes is removed.",
+          "defect_lines": [],
+          "batch": "B5b"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P098",
+      "repo": "twenty",
+      "sha": "8e039213726fa84c6e7dcd9f40280bb54615c81b",
+      "date": "2026-07-15",
+      "sourceFiles": 113,
+      "allFiles": 117,
+      "changedLines": 774,
+      "bytes": 212314,
+      "subject": "Add CREATED workspace activation status (read path + enum migration) (#22904)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Adds a CREATED workspace activation status and renames the active-or-suspended helpers and command runners to 'provisioned' across the codebase; feature/refactor.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Read the whole diff and searched for removal of a missing auth or admin gate, tenant/owner scoping, secret/env exposure and webhook verification: the commit introduces a new CREATED workspace activation status (enum swap migration, PROVISIONED_WORKSPACE_ACTIVATION_STATUSES, ActiveOrSuspendedWorkspaceCommandRunner renamed to ProvisionedWorkspaceCommandRunner across the upgrade commands, activationStatusIn raw parameterized cast replacing In()) and widens the existing status checks in sign-in-up.service.ts, access-token.service.ts, user.service.ts, workspace.service.ts, billing-subscription.service.ts and the billing webhook reactivation to include CREATED; these extend a state machine rather than add a guard the parent lacked, so no defect removal in the six classes is evident.",
+          "defect_lines": [],
+          "batch": "B1"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P099",
+      "repo": "gitea",
+      "sha": "552c29a2592d091830e982a89351859d12b6b887",
+      "date": "2026-05-20",
+      "sourceFiles": 4,
+      "allFiles": 4,
+      "changedLines": 83,
+      "bytes": 4452,
+      "subject": "fix(actions): make artifact signature payloads unambiguous (#37707)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Centralizes artifact-URL HMAC construction into a shared BuildSignature that length-prefixes each input and adds a purpose tag, replacing bare concatenated mac.Write calls; this is a signing-canonicalization hardening on server-issued artifact URLs, not a webhook handler lacking or bypassing verification nor any other of the six classes, and the rest of the diff is tests.",
+          "defect_lines": [],
+          "batch": "A5a"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched hmac/signature/secret hunks; the commit replaces delimiter-less HMAC concatenation of artifact signed-URL fields with a tagged, length-prefixed `BuildSignature`, an HMAC message-canonicalization hardening on signed download URLs that matches none of the six classes' shapes (no route gate, admin gate, ownership query, secret literal, env dump or inbound webhook handler).",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    },
+    {
+      "id": "P100",
+      "repo": "mastodon",
+      "sha": "8fea9cc3112968d90ba4df02a90aa3a031a5f3a9",
+      "date": "2018-06-30",
+      "sourceFiles": 1,
+      "allFiles": 1,
+      "changedLines": 4,
+      "bytes": 1021,
+      "subject": "Typo in signature verification failure logging (#7916)",
+      "readers": {
+        "A": {
+          "class": "none",
+          "reason": "Renames the misspelled `@signed_verification_failure_reason` to `@signature_verification_failure_reason` so the failure message is populated; `@signed_request_account` was already set to nil on failure, so no bypass existed.",
+          "defect_lines": [],
+          "batch": "A4"
+        },
+        "B": {
+          "class": "none",
+          "reason": "Searched the verification hunks; the change renames `@signed_verification_failure_reason` to `@signature_verification_failure_reason` (a typo fix) with no defect of the six classes.",
+          "defect_lines": [],
+          "batch": "B6"
+        },
+        "C": null
+      },
+      "final": "none"
+    }
+  ]
+}
