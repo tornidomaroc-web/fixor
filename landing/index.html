@@ -251,6 +251,17 @@
       /* Below phone width the header row hides and each corpus row becomes a card of
          four labelled figures; the labels come from the cells' data-label attributes. */
       @media (max-width: 599px) {
+        /* The sample report reflows instead of scrolling: a wrapped line in a block
+           labelled illustrative is honest; a severed line looks truncated by accident. */
+        .demo-block pre {
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+          padding: 1rem;
+        }
+        /* Let the headline use the full phone width instead of the 18ch desktop cap. */
+        .hero h1 {
+          max-width: none;
+        }
         .measured-table thead {
           display: none;
         }
@@ -646,7 +657,7 @@
           </article>
           <article class="step">
             <div class="step-num">02</div>
-            <h3>Fixor detects</h3>
+            <h3>Fixor checks</h3>
             <p>
               Checks every pull request for six classes of business-logic vulnerability in Node/TypeScript: auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, and unverified webhooks.
             </p>
@@ -702,7 +713,7 @@ _Report suitable for sharing with your team._
       </section>
 
       <section class="wrap" id="features">
-        <h2 class="section-title">Built for production teams</h2>
+        <h2 class="section-title">What ships with every scan</h2>
         <p class="section-sub">
           A report on the PR, a PDF of it, and a GitHub App to install it.
         </p>
