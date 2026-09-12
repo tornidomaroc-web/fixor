@@ -572,7 +572,7 @@
       <section class="hero wrap" id="top">
         <h1>A second reviewer that reads the diff in your pull request and checks it for six classes of logic defect.</h1>
         <p class="lead">
-          Auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, unverified webhooks, in Node/TypeScript. Four of the six send every candidate to Claude; the admin-check detector does the same except for three literal patterns; the secrets check runs on sixteen fixed patterns and never calls a model.
+          Auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, unverified webhooks.
         </p>
         <a class="btn btn-primary" href="https://github.com/apps/fixor-security/installations/new">Install Fixor on GitHub</a>
         <p class="hero-subnote">Free tier covers 5 scans / month on public repos · no card required</p>
@@ -581,7 +581,7 @@
       <section class="wrap" id="measured">
         <h2 class="section-title">What is measured, and what is not</h2>
         <p class="section-sub">
-          Fixor's secrets check matches sixteen fixed credential shapes and never calls a model. Counts with their denominators; no rate.
+          Fixor runs on Node/TypeScript. Four of the six detectors send every candidate to Claude; the admin-check detector does the same except for three literal patterns; the secrets check matches sixteen fixed credential shapes and never calls a model. The numbers below are the secrets check's: counts with their denominators, no rate.
         </p>
         <table class="measured-table">
           <thead>
@@ -595,7 +595,7 @@
           </thead>
           <tbody>
             <tr>
-              <th scope="row" data-label="Corpus">Customer-shaped code · 43 repos</th>
+              <th scope="row" data-label="Corpus">Customer-shaped · 43 repos</th>
               <td data-label="Files scanned">4,772</td>
               <td data-label="Flags raised">5</td>
               <td data-label="False alarms">2</td>
@@ -611,7 +611,7 @@
           </tbody>
         </table>
         <p class="measured-note">
-          Customer-shaped code means public TypeScript and JavaScript repositories of the size and age of a typical customer, a sample and not a census; mature open source means 13 established projects that do not commit real secrets. Every flag was read blind by three readers, and the three real keys sat in one repository. Measured 2026-09-12 on the version that ships.
+          Customer-shaped means public TypeScript and JavaScript repositories of the size and age of a typical customer, a sample and not a census; mature open source means 13 established projects that do not commit real secrets. Every flag was read blind by three readers, and the three real keys sat in one repository. Measured 2026-09-12 on the version that ships.
         </p>
         <dl class="measured-limits">
           <dt>Paths not read</dt>
@@ -711,7 +711,7 @@ _Report suitable for sharing with your team._
             <div class="step-num">AI</div>
             <h3>Claude-powered analysis</h3>
             <p>
-              Backed by Claude — context-aware analysis, not just regex pattern-matching. Four of the six detectors send every candidate to Claude, which reads the diff the way a reviewer would; the admin-check detector does the same except for three literal patterns; the hardcoded-secrets detector runs on sixteen fixed patterns and never calls a model.
+              Backed by Claude — context-aware analysis, not just regex pattern-matching, with the diff read the way a reviewer would. Which detectors reach the model, and which never do, is stated once, beside the measured numbers above.
             </p>
           </article>
           <article class="step">

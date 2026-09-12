@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (tenth revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (eleventh revision)
 
 ## The published sentence, and the two edits that withdraw it
 
@@ -269,6 +269,23 @@ run on the literal tier over the admitted pairs' parent answer ranges, keyless. 
 second, on the same draw. Webhook stays a case list under the floor. The keyword-arm
 other-class fixes (two auth-bypass, one idor) are admitted toward their rows with the
 selector named, records owed once make_pairs.py is generalised.
+
+## The landing page, done for this stage (2026-09-12, #215 to #219)
+
+`landing/` is inside this repository and passes the same gates. Audited line by line
+against main (`docs/landing-audit-2026-09-12.md`), then: every unmeasured claim deleted or
+narrowed, including the meta and structured data; the hero rewritten to say what runs and
+promise no outcome; the PR comment builder no longer prints a constant as "Detection
+confidence" for secrets findings (admin-check's three literal patterns remain
+indistinguishable, L-024); the measured secrets sentence presented as a numbers section:
+a two-row table with a denominator in every cell, the note, the three limits in the same
+frame, the five unmeasured detectors as their own block, a footer to `docs/measurements/`;
+laid out with the figures as figures and stacked cards below phone width, read at 390 and
+1100 pixels in local frames (the device reading is the owner's). The four / admin-check
+minus three / secrets-never split reads exactly once on the page, beside the numbers.
+Publication is the owner's, after his own phone reading. THE NEXT ACT IS THE DRAW: stage P
+of selector B (item 4 below), on the owner's command; the next session starts there, on
+the measurement, not on the page.
 
 ## Next actions, in order (owner's order 2026-09-12)
 
