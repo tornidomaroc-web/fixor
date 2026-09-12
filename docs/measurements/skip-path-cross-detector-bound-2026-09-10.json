@@ -1,6 +1,15 @@
 {
   "measurement": "SKIP_PATH_RE is one cross-detector rule: identical in all six detectors, applied before any prefilter, disclosed until now only as two secrets-exposure lines; measured on three pinned repositories with the shipped gate",
   "date": "2026-09-10",
+  "divergenceRecorded": {
+    "date": "2026-09-12",
+    "which": "the secrets-exposure copy only; auth-bypass, admin-check, idor, env-exposure and webhook-unverified keep the regex this artifact measured, byte for byte",
+    "deliberate": true,
+    "what": "the secrets copy adds segments script (singular), e2e, e2e-<x>, api_tests, api-tests, app-tests, and a basename rule for *.test.<ext> and *.spec.<ext>",
+    "why": "design (a) of docs/measurements/fix-pairs-2026-09-11/secrets-skip-list-prereg-2026-09-12.md: the other five detectors' fix-pair measurements are in flight on the old rule",
+    "effect": "every number in this artifact still describes the five unchanged copies; the secrets copy's own bound is docs/measurements/fix-pairs-2026-09-11/secrets-false-alarms-remeasure-2026-09-12.json, measured on the two false-alarm corpora; the three pinned repositories here were not re-scanned with the secrets copy",
+    "invalidationClauseFired": "boundToTheCode said this artifact goes false if any of the six regexes diverges; it has, for one of six, and that is what this entry records"
+  },
   "ref": "Fixor main at 4dfa686e",
   "zeroSpend": true,
   "spendNote": "The instrument is the shipped SecretsExposureDetector, which has no model-reaching path (registry constructs it with no options; llmValidation false). It refuses to start with ANTHROPIC_API_KEY set. The path gate it runs is the same regex, byte for byte, as the other five detectors' (grep of the six files: identical literal).",

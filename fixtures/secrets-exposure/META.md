@@ -1,5 +1,17 @@
 # secrets-exposure fixtures
 
+## 2026-09-12: five negatives for the widened secrets copy of SKIP_PATH_RE (34 fixtures now)
+
+`negative/14` to `negative/18` each sit, by `ASSUMED-PATH`, under one path class the
+secrets-exposure copy of `SKIP_PATH_RE` added on 2026-09-12 (`script/`, `e2e/`,
+`api_tests/`, `app-tests/`, and a `*.spec.ts` name outside any test directory), and each
+carries a `password = "..."` literal that fires `password_literal` when the same content is
+handed to the detector under a neutral path. So each is a negative CONTROL on its own
+segment (measured both ways in `secrets-false-alarms-remeasure-2026-09-12.json`), not a
+no-regex-match fixture wearing a test path. The gate pins each at `path filter`. The other
+five detectors' copies of the rule are unchanged; see the re-audited `SKIP_PATH_RE` row in
+`docs/detector-capabilities.md`.
+
 ## F-004 sub-step 2b.5 - this corpus is now a CI gate (2026-07-21)
 
 **All 20 fixtures here are pinned by `src/test/test-secrets-exposure-prefilter.ts`, wired into `test:ci`.** Read this before editing, renaming, or deleting any of them: the gate asserts exact manifest coverage, so a rename fails loud rather than silently shrinking coverage. That is deliberate.

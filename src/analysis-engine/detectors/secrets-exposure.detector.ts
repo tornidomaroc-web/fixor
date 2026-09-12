@@ -191,8 +191,22 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
   },
 ];
 
+/**
+ * DELIBERATE DIVERGENCE (2026-09-12, design (a) of
+ * docs/measurements/fix-pairs-2026-09-11/secrets-skip-list-prereg-2026-09-12.md).
+ * Until this change the six detectors carried byte-identical copies of one
+ * SKIP_PATH_RE (docs/detector-capabilities.md, "Out of scope across the board").
+ * THIS copy alone now adds the segments `script` (singular), `e2e`, `e2e-<x>`,
+ * `api_tests` / `api-tests`, `app-tests`, and a basename rule for `*.test.<ext>`
+ * / `*.spec.<ext>` (SKIP_FILE_RE). The other five copies are unchanged on
+ * purpose: their fix-pair measurements are in flight on the old rule. Measured
+ * effect on the two false-alarm corpora, pre-registered then observed:
+ * secrets-false-alarms-remeasure-2026-09-12.json. Go `*_test.go` is NOT here;
+ * it is pre-registered as its own step.
+ */
 const SKIP_PATH_RE =
-  /(^|\/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(\/|$)/i;
+  /(^|\/)(test|tests|__tests__|spec|fixtures|examples?|scripts?|dev-tools|migrations?|seed|seeds|demo|e2e|e2e-[a-z0-9-]+|api[_-]tests|app-tests)(\/|$)/i;
+const SKIP_FILE_RE = /\.(test|spec)\.[a-z]+$/i;
 
 const SERVER_ONLY_RE = /^\s*import\s+["']server-only["']\s*;?\s*$/m;
 
@@ -671,7 +685,7 @@ export class SecretsExposureDetector implements Detector {
 
   private shouldSkipPath(filePath: string): boolean {
     const normalized = filePath.replace(/\\/g, "/");
-    return SKIP_PATH_RE.test(normalized);
+    return SKIP_PATH_RE.test(normalized) || SKIP_FILE_RE.test(normalized);
   }
 
   private hasServerOnlyMarker(content: string): boolean {
