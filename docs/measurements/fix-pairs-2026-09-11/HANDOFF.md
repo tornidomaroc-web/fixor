@@ -1,4 +1,24 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (ninth revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (tenth revision)
+
+## The published sentence, and the two edits that withdraw it
+
+The secrets-exposure licensed sentence in the table below is PUBLISHABLE as of #213
+(main 88dedca5, detector blob 405c85e8). Two edits make it false and require it to be
+withdrawn before they land, then re-measured on both corpora, then rewritten:
+- a change to `PREFILTER_PATTERNS` in `secrets-exposure.detector.ts` (add, remove or
+  alter any of the 16): the shape-coverage, fixture-catch and both false-alarm numbers all
+  describe exactly those 16. Existing clause: L-023 in `docs/REMEDIATION-PROGRESS.md`
+  ("a change to PREFILTER_PATTERNS ... re-opens this entry") re-opens the entry but did
+  not name the sentence; it is named here and in a comment above the array.
+- a change to the secrets copy of the skip rule (`SKIP_PATH_RE` or `SKIP_FILE_RE` in the
+  same file): the false-alarm numbers and the miss-class clause describe exactly that
+  rule. Existing clause: the cross-detector row in `docs/detector-capabilities.md` fires
+  on divergence between the six copies and asks for a re-audit, but does not name the
+  sentence; it is named here and in the same source comment.
+Neither existing clause covered the published sentence by name; both now do, here.
+The comment added above the array in #214 changes the detector file's blob (405c85e8 at
+measurement) without changing the rule: `PREFILTER_PATTERNS` and both skip regexes were
+extracted from the two blobs and compared byte for byte in that PR, and the gate re-run.
 
 This file is the durable state of the measurement. It lives beside the pre-registrations
 because they are the only tracked, swept surface the measurement has: CLAUDE.md is
@@ -221,6 +241,30 @@ and the reason a packet is present, none of which is inferable from the packet. 
 since the 2026-09-12 readings: packets renamed to opaque ids, batches shuffled across
 repositories, no commit message in a packet, one fresh reader per batch, and this limit
 stated beside every verdict count.
+
+## State after #213 and the next row (2026-09-12, end of day)
+
+The secrets row is CLOSED: three numbers on the shipped path, one instrument, the
+sentence published-ready, both skip-list steps landed as predicted-then-observed, no
+further path step pre-registered. The template it established, to be followed by the next
+row: pre-register the number and the exact paths before the run; the same lock, the same
+harness and the controls re-run on every instrument; verdicts saved before counting; a
+count with its denominator and never a rate; every miss class the change creates stated
+beside the number; the replay gated so a finding halts the chain; nothing merged except
+through the three-condition gate with the head tree captured first.
+
+NEXT ROW: ADMIN-CHECK. Argued from what was measured, not from the order worked: its
+literal tier is keyless, so all three numbers can be taken at $0.00 exactly as secrets'
+were; it has the largest candidate pool of the three fix-pair detectors (about 24 distinct
+commits under the cap, against about 24 for idor and about 12 for auth-bypass, and
+auth-bypass is borderline for the floor); and the shape sample already yielded two admitted
+admin-check records, so it is nearest the 10-commit floor with a zero-spend instrument.
+Its first step is the draw the owner has not yet commanded: STAGE P of selector B (item 4
+below), which feeds admin-check, idor and auth-bypass at once; then the admin-check reach
+run on the literal tier over the admitted pairs' parent answer ranges, keyless. Idor is
+second, on the same draw. Webhook stays a case list under the floor. The keyword-arm
+other-class fixes (two auth-bypass, one idor) are admitted toward their rows with the
+selector named, records owed once make_pairs.py is generalised.
 
 ## Next actions, in order (owner's order 2026-09-12)
 
