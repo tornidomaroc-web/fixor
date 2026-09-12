@@ -1,0 +1,68 @@
+{
+ "note": "one entry per pair record; admission state and selector per pair",
+ "pairs": [
+  {
+   "file": "twenty--0edc3a385c0c--sign-in-up.json",
+   "class": "admin-check",
+   "childCommit": "0edc3a385c0cf35aa5b587e674ca4faa669246a2",
+   "path": "packages/twenty-server/src/engine/core-modules/auth/services/sign-in-up.service.ts",
+   "contested": false,
+   "admission": "ADMITTED",
+   "selector": "shape-sample-twenty"
+  },
+  {
+   "file": "twenty--23aa859502a8--application-registration.json",
+   "class": "idor",
+   "childCommit": "23aa859502a802e7c116bfb6d5586ce5379338a7",
+   "path": "packages/twenty-server/src/engine/core-modules/application/application-registration/application-registration.service.ts",
+   "contested": false,
+   "admission": "ADMITTED",
+   "selector": "shape-sample-twenty"
+  },
+  {
+   "file": "twenty--77574594f2d6--admin-panel.json",
+   "class": "admin-check",
+   "childCommit": "77574594f2d652d9204f2aaef874a660bd16b197",
+   "path": "packages/twenty-server/src/engine/core-modules/admin-panel/admin-panel.resolver.ts",
+   "contested": false,
+   "admission": "ADMITTED",
+   "selector": "shape-sample-twenty"
+  },
+  {
+   "file": "twenty--921a0f01c8a9--flat-field-permission-validator.json",
+   "class": "idor",
+   "childCommit": "921a0f01c8a9c78dd56ca0b237855cf5190c3ff5",
+   "path": "packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-field-permission-validator.service.ts",
+   "contested": false,
+   "admission": "ADMITTED",
+   "selector": "shape-sample-twenty"
+  },
+  {
+   "file": "twenty--921a0f01c8a9--flat-object-permission-validator.json",
+   "class": "idor",
+   "childCommit": "921a0f01c8a9c78dd56ca0b237855cf5190c3ff5",
+   "path": "packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-object-permission-validator.service.ts",
+   "contested": false,
+   "admission": "ADMITTED",
+   "selector": "shape-sample-twenty"
+  },
+  {
+   "file": "twenty--921a0f01c8a9--flat-permission-flag-validator.json",
+   "class": "idor",
+   "childCommit": "921a0f01c8a9c78dd56ca0b237855cf5190c3ff5",
+   "path": "packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-permission-flag-validator.service.ts",
+   "contested": false,
+   "admission": "ADMITTED",
+   "selector": "shape-sample-twenty"
+  },
+  {
+   "file": "twenty--cdd667b1066e--server-route-trigger.json",
+   "class": "auth-bypass",
+   "childCommit": "cdd667b1066e96e52352fdc1d100e4d1af67ca00",
+   "path": "packages/twenty-server/src/engine/core-modules/server-route-trigger/server-route-trigger.service.ts",
+   "contested": false,
+   "admission": "ADMITTED",
+   "selector": "shape-sample-twenty"
+  }
+ ]
+}

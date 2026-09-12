@@ -1,0 +1,43 @@
+{
+ "repository": "twentyhq/twenty",
+ "parentCommit": "1270054d35529bfc9e0bf19a446317cbb49a8097",
+ "childCommit": "cdd667b1066e96e52352fdc1d100e4d1af67ca00",
+ "childDate": "2026-07-03",
+ "file": "packages/twenty-server/src/engine/core-modules/server-route-trigger/server-route-trigger.service.ts",
+ "language": "ts",
+ "class": "auth-bypass",
+ "answerLineRange": {
+  "file": "parent",
+  "start": 57,
+  "end": 119,
+  "primaryLine": 60,
+  "note": "parent-file line numbers from the hunk headers; for an absent check the range covers where the check was missing"
+ },
+ "candidateSource": {
+  "selector": "shape-sample-twenty",
+  "how": "path-only population, mechanical pre-screen, blind read; NOT the keyword selector",
+  "keywordCandidate": false
+ },
+ "measuringSessionReading": {
+  "class": "auth-bypass",
+  "grounds": "The public, unauthenticated /webhooks/server route dispatched any logic function found by universal identifier, including resolvers whose settings flag isAuthRequired, with no authentication check; the fix rejects those with RESOLVER_REQUIRES_AUTHENTICATION and narrows the lookup to functions that expose a server-route trigger.",
+  "reader": "Claude Fable 5.1, session_01KS9wkmjZvHSWk8jNdHb4BE",
+  "date": "2026-09-11"
+ },
+ "secondReader": {
+  "class": "auth-bypass",
+  "sentence": "The public (unauthenticated) server-route trigger could dispatch resolver logic functions flagged isAuthRequired; the commit adds a check that rejects them with RESOLVER_REQUIRES_AUTHENTICATION (403).",
+  "answerLinesHint": "+    if (resolver.httpRouteTriggerSettings?.isAuthRequired === true) { throw new ServerRouteTriggerException(`... requires authentication and cannot be dispatched through the public server route`, ServerRouteTriggerExceptionCode.RESOLVER_REQUIRES_AUTHENTICATION)",
+  "blind": true,
+  "sawDetectorSource": false
+ },
+ "contested": false,
+ "childSafetyAssertingComment": {
+  "present": false,
+  "quotes": []
+ },
+ "sameCommitSiblings": [],
+ "admission": "ADMITTED",
+ "exclusionReason": null,
+ "diffHunk": "diff --git a/packages/twenty-server/src/engine/core-modules/server-route-trigger/server-route-trigger.service.ts b/packages/twenty-server/src/engine/core-modules/server-route-trigger/server-route-trigger.service.ts\nindex 99bb8c0859..6c374d770b 100644\n--- a/packages/twenty-server/src/engine/core-modules/server-route-trigger/server-route-trigger.service.ts\n+++ b/packages/twenty-server/src/engine/core-modules/server-route-trigger/server-route-trigger.service.ts\n@@ -57,6 +57,13 @@ export class ServerRouteTriggerService {\n       );\n     }\n \n+    if (resolver.httpRouteTriggerSettings?.isAuthRequired === true) {\n+      throw new ServerRouteTriggerException(\n+        `Server resolver function ${resolverLogicFunctionUniversalIdentifier} requires authentication and cannot be dispatched through the public server route`,\n+        ServerRouteTriggerExceptionCode.RESOLVER_REQUIRES_AUTHENTICATION,\n+      );\n+    }\n+\n     const applicationRegistrationId =\n       resolver.application?.applicationRegistration?.id;\n \n@@ -105,18 +112,22 @@ export class ServerRouteTriggerService {\n   }: {\n     logicFunctionUniversalIdentifier: string;\n   }): Promise<LogicFunctionEntity | null> {\n-    const candidates = await this.logicFunctionRepository.find({\n-      where: { universalIdentifier: logicFunctionUniversalIdentifier },\n-      relations: { application: { applicationRegistration: true } },\n-    });\n-\n     return (\n-      candidates.find(\n-        (candidate) =>\n-          isDefined(candidate.application?.applicationRegistration) &&\n-          candidate.workspaceId ===\n-            candidate.application.applicationRegistration.ownerWorkspaceId,\n-      ) ?? null\n+      (await this.logicFunctionRepository\n+        .createQueryBuilder('logicFunction')\n+        .innerJoinAndSelect('logicFunction.application', 'application')\n+        .innerJoinAndSelect(\n+          'application.applicationRegistration',\n+          'applicationRegistration',\n+        )\n+        .where('logicFunction.universalIdentifier = :universalIdentifier', {\n+          universalIdentifier: logicFunctionUniversalIdentifier,\n+        })\n+        .andWhere('logicFunction.serverRouteTriggerSettings IS NOT NULL')\n+        .andWhere(\n+          'logicFunction.workspaceId = applicationRegistration.ownerWorkspaceId',\n+        )\n+        .getOne()) ?? null\n     );\n   }\n "
+}

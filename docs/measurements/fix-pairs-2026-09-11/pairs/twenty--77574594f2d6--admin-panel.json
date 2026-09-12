@@ -1,0 +1,43 @@
+{
+ "repository": "twentyhq/twenty",
+ "parentCommit": "a1e0d7b7d791635bebed7db0bd28ce4eb9bdeaca",
+ "childCommit": "77574594f2d652d9204f2aaef874a660bd16b197",
+ "childDate": "2025-03-10",
+ "file": "packages/twenty-server/src/engine/core-modules/admin-panel/admin-panel.resolver.ts",
+ "language": "ts",
+ "class": "admin-check",
+ "answerLineRange": {
+  "file": "parent",
+  "start": 63,
+  "end": 86,
+  "primaryLine": 63,
+  "note": "parent-file line numbers from the hunk headers; for an absent check the range covers where the check was missing"
+ },
+ "candidateSource": {
+  "selector": "shape-sample-twenty",
+  "how": "path-only population, mechanical pre-screen, blind read; NOT the keyword selector",
+  "keywordCandidate": false
+ },
+ "measuringSessionReading": {
+  "class": "admin-check",
+  "grounds": "Four admin-panel queries, including the one that returns grouped environment variables, were guarded by ImpersonateGuard (canImpersonate) rather than by admin-panel access, so a user allowed to impersonate but not to use the admin panel could read them; the fix guards all four with a new AdminPanelGuard requiring canAccessFullAdminPanel. Grounds are moderate: the parent had a guard, the wrong one, and the commit subject reads as feature work.",
+  "reader": "Claude Fable 5.1, session_01KS9wkmjZvHSWk8jNdHb4BE",
+  "date": "2026-09-11"
+ },
+ "secondReader": {
+  "class": "admin-check",
+  "sentence": "Admin-panel queries exposing environment variables, system health and queue metrics were gated only by ImpersonateGuard (canImpersonate), not by an admin-panel authorization check; the commit swaps in a new AdminPanelGuard requiring canAccessFullAdminPanel.",
+  "answerLinesHint": "-  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, ImpersonateGuard) / +  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, AdminPanelGuard) on getEnvironmentVariablesGrouped; +return request.user.canAccessFullAdminPanel === true;",
+  "blind": true,
+  "sawDetectorSource": false
+ },
+ "contested": false,
+ "childSafetyAssertingComment": {
+  "present": false,
+  "quotes": []
+ },
+ "sameCommitSiblings": [],
+ "admission": "ADMITTED",
+ "exclusionReason": null,
+ "diffHunk": "diff --git a/packages/twenty-server/src/engine/core-modules/admin-panel/admin-panel.resolver.ts b/packages/twenty-server/src/engine/core-modules/admin-panel/admin-panel.resolver.ts\nindex 3d628adc6c..a94a0d90e6 100644\n--- a/packages/twenty-server/src/engine/core-modules/admin-panel/admin-panel.resolver.ts\n+++ b/packages/twenty-server/src/engine/core-modules/admin-panel/admin-panel.resolver.ts\n@@ -15,12 +15,14 @@ import { AuthGraphqlApiExceptionFilter } from 'src/engine/core-modules/auth/filt\n import { HealthIndicatorId } from 'src/engine/core-modules/health/enums/health-indicator-id.enum';\n import { WorkerHealthIndicator } from 'src/engine/core-modules/health/indicators/worker.health';\n import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';\n+import { AdminPanelGuard } from 'src/engine/guards/admin-panel-guard';\n import { ImpersonateGuard } from 'src/engine/guards/impersonate-guard';\n import { UserAuthGuard } from 'src/engine/guards/user-auth.guard';\n import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';\n \n import { AdminPanelHealthServiceData } from './dtos/admin-panel-health-service-data.dto';\n import { QueueMetricsData } from './dtos/queue-metrics-data.dto';\n+\n @Resolver()\n @UseFilters(AuthGraphqlApiExceptionFilter)\n export class AdminPanelResolver {\n@@ -60,19 +62,19 @@ export class AdminPanelResolver {\n     return true;\n   }\n \n-  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, ImpersonateGuard)\n+  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, AdminPanelGuard)\n   @Query(() => EnvironmentVariablesOutput)\n   async getEnvironmentVariablesGrouped(): Promise<EnvironmentVariablesOutput> {\n     return this.adminService.getEnvironmentVariablesGrouped();\n   }\n \n-  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, ImpersonateGuard)\n+  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, AdminPanelGuard)\n   @Query(() => SystemHealth)\n   async getSystemHealthStatus(): Promise<SystemHealth> {\n     return this.adminPanelHealthService.getSystemHealthStatus();\n   }\n \n-  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, ImpersonateGuard)\n+  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, AdminPanelGuard)\n   @Query(() => AdminPanelHealthServiceData)\n   async getIndicatorHealthStatus(\n     @Args('indicatorId', {\n@@ -83,7 +85,7 @@ export class AdminPanelResolver {\n     return this.adminPanelHealthService.getIndicatorHealthStatus(indicatorId);\n   }\n \n-  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, ImpersonateGuard)\n+  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, AdminPanelGuard)\n   @Query(() => QueueMetricsData)\n   async getQueueMetrics(\n     @Args('queueName', { type: () => String })"
+}

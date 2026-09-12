@@ -1,0 +1,46 @@
+{
+ "repository": "twentyhq/twenty",
+ "parentCommit": "0696290af4dd8bfa48f78ae0d6d798cbbd35d2a1",
+ "childCommit": "921a0f01c8a9c78dd56ca0b237855cf5190c3ff5",
+ "childDate": "2026-04-22",
+ "file": "packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-object-permission-validator.service.ts",
+ "language": "ts",
+ "class": "idor",
+ "answerLineRange": {
+  "file": "parent",
+  "start": 170,
+  "end": 175,
+  "primaryLine": 170,
+  "note": "parent-file line numbers from the hunk headers; for an absent check the range covers where the check was missing"
+ },
+ "candidateSource": {
+  "selector": "shape-sample-twenty",
+  "how": "path-only population, mechanical pre-screen, blind read; NOT the keyword selector",
+  "keywordCandidate": false
+ },
+ "measuringSessionReading": {
+  "class": "idor",
+  "grounds": "Same shape as the field-permission validator in the same commit: the object-permission update path validated existence and editability of the referenced role but not that it belongs to the caller's application; the fix adds the ownership check.",
+  "reader": "Claude Fable 5.1, session_01KS9wkmjZvHSWk8jNdHb4BE",
+  "date": "2026-09-11"
+ },
+ "secondReader": {
+  "class": "idor",
+  "sentence": "Update validators for fieldPermission, objectPermission and permissionFlag only checked that the referenced role existed and was editable, never that the role belonged to the calling application; the commit adds validateRoleBelongsToCallerApplication to each update path so one application cannot target another application's role.",
+  "answerLinesHint": "-    } else if (!referencedRole.isEditable) { / +    } else { validationResult.errors.push(...validateRoleBelongsToCallerApplication({ referencedRole, buildOptions })); (in flat-field-permission, flat-object-permission, flat-permission-flag validators)",
+  "blind": true,
+  "sawDetectorSource": false
+ },
+ "contested": false,
+ "childSafetyAssertingComment": {
+  "present": false,
+  "quotes": []
+ },
+ "sameCommitSiblings": [
+  "packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-field-permission-validator.service.ts",
+  "packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-permission-flag-validator.service.ts"
+ ],
+ "admission": "ADMITTED",
+ "exclusionReason": null,
+ "diffHunk": "diff --git a/packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-object-permission-validator.service.ts b/packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-object-permission-validator.service.ts\nindex afd24f1b0f..814cc9d923 100644\n--- a/packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-object-permission-validator.service.ts\n+++ b/packages/twenty-server/src/engine/workspace-manager/workspace-migration/workspace-migration-builder/validators/services/flat-object-permission-validator.service.ts\n@@ -125,6 +125,7 @@ export class FlatObjectPermissionValidatorService {\n       flatRoleMaps,\n       flatObjectMetadataMaps,\n     },\n+    buildOptions,\n   }: FlatEntityUpdateValidationArgs<\n     typeof ALL_METADATA_NAME.objectPermission\n   >): FailedFlatEntityValidation<'objectPermission', 'update'> {\n@@ -167,12 +168,21 @@ export class FlatObjectPermissionValidatorService {\n         message: t`Role not found`,\n         userFriendlyMessage: msg`Role not found`,\n       });\n-    } else if (!referencedRole.isEditable) {\n-      validationResult.errors.push({\n-        code: PermissionsExceptionCode.ROLE_NOT_EDITABLE,\n-        message: t`Role is not editable`,\n-        userFriendlyMessage: msg`This role cannot be modified because it is a system role. Only custom roles can be edited.`,\n-      });\n+    } else {\n+      validationResult.errors.push(\n+        ...validateRoleBelongsToCallerApplication({\n+          referencedRole,\n+          buildOptions,\n+        }),\n+      );\n+\n+      if (!referencedRole.isEditable) {\n+        validationResult.errors.push({\n+          code: PermissionsExceptionCode.ROLE_NOT_EDITABLE,\n+          message: t`Role is not editable`,\n+          userFriendlyMessage: msg`This role cannot be modified because it is a system role. Only custom roles can be edited.`,\n+        });\n+      }\n     }\n \n     if (isDefined(flatEntityUpdate.objectMetadataUniversalIdentifier)) {"
+}
