@@ -358,4 +358,11 @@ confirmation; the other three are weak and labelled so); gitleaks replay over th
 files both ways before every commit, raw candidates and findings; Measured date in every
 commit body that carries a measurement; no key in the environment for anything in this
 measurement; no `git fetch --prune`; no touching `feat/auth-bypass-enable-pending-pairs`;
-when a wait goes long, diagnose by process age and file mtime, never by belief in a loop.
+when a wait goes long, diagnose by process age and file mtime, never by belief in a loop;
+and, added 2026-09-12 after two chains ran past a failed check the same day (a replay that
+printed findings and exited 0; a comparison that printed false and was skipped): every
+check that guards a commit runs inside ONE script under `set -euo pipefail`, each check
+exits non-zero on failure, and the commit is the last line of that script, so nothing can
+be joined after a failure with a semicolon. A gate that cannot stop the chain is
+decoration. The session's script is `commit-gated.sh` (extra checks, the both-ways
+replay, staged-blob hash match, then commit, then push).
