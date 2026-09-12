@@ -19,6 +19,10 @@ Neither existing clause covered the published sentence by name; both now do, her
 The comment added above the array in #214 changes the detector file's blob (405c85e8 at
 measurement) without changing the rule: `PREFILTER_PATTERNS` and both skip regexes were
 extracted from the two blobs and compared byte for byte in that PR, and the gate re-run.
+Recorded against this session: #214's first commit body asserted both results before its
+command had produced them (the comparison had printed false on CRLF against LF, and the
+gate had not run because the chain continued on semicolons); the follow-up commit carries
+the verified results, identical after line-ending normalisation and 35 of 35.
 
 This file is the durable state of the measurement. It lives beside the pre-registrations
 because they are the only tracked, swept surface the measurement has: CLAUDE.md is
