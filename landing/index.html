@@ -425,10 +425,51 @@
       <section class="wrap" id="measured">
         <h2 class="section-title">What is measured, and what is not</h2>
         <p class="section-sub">
-          Fixor's secrets check matches sixteen fixed credential shapes and never calls a model: on 4,772 files across 43 public TypeScript and JavaScript repositories of the size and age of a typical customer it raised 5 flags, 2 of them not credentials and 3 of them real API keys; on 65,566 files across 13 mature open-source repositories it raised 15 flags, all 15 not credentials; it flagged 16 of 16 authored positive fixtures and 0 of 19 authored negatives; of the 208 rules in the gitleaks 8.24.3 default set it covers 5 outright and 2 in part, while carrying 7 shapes that set has no rule for, three credential formats and four exposure contexts; and it does not read files under test, e2e, spec, script or fixture paths or Go test files, so a credential committed there is not seen, a trade that removed 50 flags across the two corpora, none of them real.
+          Fixor's secrets check matches sixteen fixed credential shapes and never calls a model. Counts with their denominators; no rate.
         </p>
-        <p class="section-sub">
-          That is the one detector measured on real code. The other five are measured on authored fixtures only; their real-code numbers will be added here as each is measured, and nothing about them is claimed until then. Every number above is a count with its denominator, never a rate, and the artifacts behind it are in the public repository under <a href="https://github.com/tornidomaroc-web/fixor/tree/main/docs/measurements">docs/measurements/</a>.
+        <table class="measured-table">
+          <thead>
+            <tr>
+              <th scope="col">Corpus</th>
+              <th scope="col">Files scanned</th>
+              <th scope="col">Flags raised</th>
+              <th scope="col">False alarms</th>
+              <th scope="col">Real credentials</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row" data-label="Corpus">Customer-shaped code · 43 repos</th>
+              <td data-label="Files scanned">4,772</td>
+              <td data-label="Flags raised">5</td>
+              <td data-label="False alarms">2</td>
+              <td data-label="Real credentials">3</td>
+            </tr>
+            <tr>
+              <th scope="row" data-label="Corpus">Mature open source · 13 repos</th>
+              <td data-label="Files scanned">65,566</td>
+              <td data-label="Flags raised">15</td>
+              <td data-label="False alarms">15</td>
+              <td data-label="Real credentials">0</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="measured-note">
+          Customer-shaped code means public TypeScript and JavaScript repositories of the size and age of a typical customer, a sample and not a census; mature open source means 13 established projects that do not commit real secrets. Every flag was read blind by three readers, and the three real keys sat in one repository. Measured 2026-09-12 on the version that ships.
+        </p>
+        <dl class="measured-limits">
+          <dt>Paths not read</dt>
+          <dd>Files under test, e2e, spec, script or fixture paths, and Go test files, are not read, so a credential committed there is not seen. That rule removed 50 flags across the two corpora above; none of the 50 was a real credential.</dd>
+          <dt>Shape coverage</dt>
+          <dd>Of the 208 rules in the gitleaks 8.24.3 default set: 5 covered outright, 2 in part, 201 not covered. 7 Fixor shapes have no rule in that set: three credential formats, four exposure contexts.</dd>
+          <dt>Fixtures</dt>
+          <dd>16 of 16 authored positive fixtures flagged; 0 of 19 authored negatives flagged.</dd>
+        </dl>
+        <p class="measured-unmeasured">
+          <strong>Not measured.</strong> The other five detectors (auth bypass, missing admin gates, IDOR, environment-variable exposure, unverified webhooks) are measured on authored fixtures only; their real-code numbers will appear here as each is measured, and nothing about them is claimed until then.
+        </p>
+        <p class="measured-footer">
+          Every number above is a count with its denominator, never a rate. The artifacts behind each figure are in the public repository under <a href="https://github.com/tornidomaroc-web/fixor/tree/main/docs/measurements">docs/measurements/</a>.
         </p>
       </section>
 
