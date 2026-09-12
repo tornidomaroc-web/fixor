@@ -448,3 +448,46 @@ exits non-zero on failure, and the commit is the last line of that script, so no
 be joined after a failure with a semicolon. A gate that cannot stop the chain is
 decoration. The session's script is `commit-gated.sh` (extra checks, the both-ways
 replay, staged-blob hash match, then commit, then push).
+
+## PR #221 MERGED (2026-09-12)
+
+New main: 0eb86f59e5028b3ae573079dcb3fdf161e27a615, subject carrying (#221). The four
+assertions, every one read from the API after the merge and none from a local checkout:
+(1) squash sha on main as above; (2) THE STRONG ONE, main's tree equals the head tree
+captured BEFORE the merge, 674d0ca00b54d2ef194df66a49a4fb4585454fad, EQUAL; (3) head ref
+404, which `delete_branch_on_merge` satisfies server-side and which is therefore no
+evidence about the client; (4) the LOCAL ref SURVIVED while `gh` exited 0 and printed
+nothing, the outcome the existing annotation says to expect and to check rather than
+assume. A per-arm ledger entry for that observation is OWED in
+`docs/REMEDIATION-PROGRESS.md` and was NOT written here: no order covered it, and the
+ledger is that file's, not this one's.
+
+A FOURTH GATE LEG was added before merging and is recorded so the next merge keeps it. The
+stated triple gate had no leg for "main has not moved", yet the strong assertion depends on
+it entirely. main read 3bb96c9 from the remote, equal to the branch point, so the squash
+tree had to equal the captured tree. Without that leg a moved main forces a STOP for
+something that is not a defect in the pull request.
+
+MERGED IS NOT DEPLOYED, AND YET A MERGE DEPLOYS. #221 touched only
+`docs/measurements/**`, so `pages.yml`, whose push trigger is path-filtered to `landing/**`,
+did NOT fire and the published landing page is unchanged. Two PRODUCTION deployments were
+nevertheless created against the merge commit, `Production` and `amusing-trust / production`:
+those integrations are configured outside the workflow files and are not path-filtered, so
+ANY merge to main here deploys production, a documentation-only merge included. What
+deployed is byte-identical application behaviour, since no product code changed. `CI` and
+`secrets` re-ran on main.
+
+PR #222 WAS RETARGETED BY THE MERGE, WITHOUT BEING TOUCHED. `delete_branch_on_merge` is
+true, so #221's head branch was deleted and GitHub moved #222's base from
+`measure/path-population-2026-09-12` to `main` on its own. #222 now reads
+`mergeable_state: dirty`, as predicted: this repository squash-merges, so the squash commit
+is not an ancestor of the census branch and its diff no longer applies. Expected, and not a
+defect in #222.
+
+NEXT COMMANDABLE STEP: rebase `measure/gen-segment-census-2026-09-12` onto the new main,
+which also makes its two required checks run for the first time. `ci.yml` triggers only on
+pull requests targeting main, so while #222 was stacked it received `gitleaks + pattern scan`
+alone; `npm test` was run locally on that branch and passed, which is a local witness and not
+the required check. The handoff edit that belongs with the census lands in that same beat.
+Only after that: W2-prime on twenty/`build` as the exact point prediction 11,747 to 11,758,
+then the twelve-repository walk, then stage P.
