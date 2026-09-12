@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (fourth revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (fifth revision)
 
 This file is the durable state of the measurement. It lives beside the pre-registrations
 because they are the only tracked, swept surface the measurement has: CLAUDE.md is
@@ -130,6 +130,21 @@ below and no shorter one, in sales copy included.
   written; the artifact records the single-write property that made the surviving files
   whole, the re-run of the three in the next window, and the caveat that a tool call proves
   a packet was requested, not absorbed.
+- SECRETS ICP READING, done 2026-09-12 (`secrets-false-alarms-icp-2026-09-12.json`, #208).
+  The same instrument as the mature-code reading, unchanged (harness blob 49b9a64c, detector
+  blob e50c7c37, replay triple lock, six controls re-run and passed, second pass identical
+  with 0 throws), over the 43 ICP clones (every HEAD equal to the manifest sha): 12 flags on
+  4,772 files across 43 repositories, 5 repositories carrying a flag. All 12 read blind by
+  three readers each, controls both correct: 9 not a credential, 3 real credential, 0
+  disagreements. THE THREE REAL ONES are all in ONE repository, three full-length Google
+  API key literals (google_api_key) in production command handlers of a bot, each used in a
+  live request. This is the less mature population and therefore the number the owner
+  would have to stand behind with a customer; beside the mature-code number and never
+  merged with it: mature 58 flags on 65,566 files, 58 wrong, 0 real; ICP 12 flags on 4,772
+  files, 9 wrong, 3 real. The artifact omits the repository and file of the three real flags
+  because this repository is public and a locator to a live key is a disclosure; the full
+  record stays in the untracked drafts directory. Forbidden: any rate; anything about
+  catch; treating three keys in one repository as a property of the population.
 
 ## The redefinition for secrets-exposure (adopted 2026-09-12)
 
@@ -152,7 +167,7 @@ slack_webhook_hardcoded (`PREFILTER_PATTERNS` in `secrets-exposure.detector.ts`)
 | admin-check | catch, miss, false alarm on fix pairs, about 24 commits under the cap; literal tier keyless | "On N real fixes in mature open source it caught k and missed m, with f false alarms on the fixed files" |
 | idor | same, about 24 commits | same, with the single-file co-location bound stated beside it |
 | auth-bypass | same, about 12 commits, borderline for the floor | same if the floor holds; a case list and no number if not |
-| secrets-exposure | false alarms on the 13 step-4 clones MEASURED 2026-09-12: 58 flags on 65,566 files, 58 not credentials by three blind readers, 0 real (`secrets-false-alarms-2026-09-12.json`); the ICP corpus not yet read; shape coverage against the gitleaks default rules and fixture catch on the shipped path not yet measured; no spend | "Recognises these shapes; on 65,566 real files in 13 mature open-source repositories it raised 58 flags, of which 58 were wrong; never calls a model", the corpus named every time; the ICP corpus's own M, F, W added when read, never merged into these |
+| secrets-exposure | false alarms MEASURED 2026-09-12 on both corpora with one instrument: 13 step-4 clones 58 flags on 65,566 files, 58 wrong, 0 real (`secrets-false-alarms-2026-09-12.json`); 43 ICP repositories 12 flags on 4,772 files, 9 wrong, 3 real, the three in one repository (`secrets-false-alarms-icp-2026-09-12.json`); shape coverage against the gitleaks default rules and fixture catch on the shipped path not yet measured; no spend | "Recognises these shapes; on 65,566 real files in 13 mature open-source repositories it raised 58 flags, of which 58 were wrong; on 4,772 files in 43 customer-shaped TypeScript and JavaScript repositories it raised 12 flags, of which 9 were wrong; never calls a model", the corpus named every time, the two never merged, and the ICP sentence is the one to stand behind with a customer |
 | env-exposure | keyless reach count; false alarms on reaching files only with approved spend; no catch on real code by any selector we have | "Catches the authored shapes; on M real files it would have judged R and raised F flags"; no catch rate on real code, said plainly |
 | webhook-unverified | the 97 read 2026-09-12: 3 fixes, 3 distinct commits, all discourse (Ruby); the absence consequence did not fire, by one commit; whether the three are admitted as pairs is decided under README.md's admission rules, not here, and 3 is under the 10-commit floor either way | until the floor is met: a case list and no number; the fixture claim stands on the 34 replay recordings; no catch rate on real code, said plainly |
 
@@ -208,15 +223,11 @@ stated beside every verdict count.
    parent answer range, blind verdict, sibling rule), and pair records for those admitted;
    `make_pairs.py` is twenty-specific and needs its repository and path assumptions lifted
    before a discourse or strapi record can be written with it.
-3. SECRETS ICP READING (owner's order 2026-09-12, before stage P): the same instrument
-   (`production-scan.ts` unmodified, the 16 patterns, the replay triple lock, environment
-   built from scratch) over the 43 ICP clones (`test-output/icp-corpus/`, manifest
-   `icp-corpus-2026-07-17.json`), every flag read blind by the flag protocol, written here
-   as `secrets-false-alarms-icp-<date>.json`; its M, F, W stated beside the mature-code
-   numbers and never merged into them. Owner's reason: a noise number on mature code
-   flatters the detector; the ICP corpus is the code the customer actually has, so that is
-   the number he has to stand behind. Runs BEFORE any skip-list change (standing ruling
-   below).
+3. SECRETS ICP READING: DONE 2026-09-12, `secrets-false-alarms-icp-2026-09-12.json` (#208),
+   summarised under "What was found". Both false-alarm numbers now describe one instrument.
+   Owed on the secrets row: shape coverage against the gitleaks 8.24.3 default rules (part
+   1) and the fixture catch rerun on the shipped path (part 3); then, and only then, the
+   skip-list change and the re-measure of both corpora (standing ruling below).
 4. STAGE P of selector B: NOT DRAWN. 300 pre-screen positives, 25 per repository, seeds per
    repository HEAD, interleaved with the keyword arm's 150, read blind. Then rounds per
    `selector-b.md`.
