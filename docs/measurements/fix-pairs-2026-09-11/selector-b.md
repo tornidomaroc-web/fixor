@@ -94,6 +94,8 @@ Sum of the twelve rows, excluding generated segments: 157,996 commits.
 
 GAP FILLED 2026-09-12, before any selector B candidate was drawn: strapi and twenty had not reported when the previous commit was made; the counting job finished both (strapi 1,367 s, twenty 2,072 s) and then crashed on its final JSON write, which came after the twelve rows were printed, so the rows are from the job's own output and nothing here is estimated. This fill changed the two rows and this paragraph only: no threshold, no cap and no rule in this file was touched.
 
+WALL TIMES REMEASURED 2026-09-12, added beside the per-repository seconds in the table above and altering none of them: those seconds are a cold, freshly cloned first pass, not the cost of the walk. Re-run on the same clones with the same command under GIT_NO_LAZY_FETCH=1, caddy takes 0.2 s against the 18 s recorded and documenso 0.6 s against the 178 s recorded, and neither clone grows by a byte, so the walk is tree-only as a measured fact. A session budgeting from the recorded figures will plan hours for work that takes minutes, as one did on 2026-09-12. This addition changed nothing above it: no threshold, no cap, no rule and no figure in the sizing table was touched.
+
 ## The keyword list: comparison arm, not a live selector
 
 Ruling recorded here: the keyword list continues unedited but stops being the source of

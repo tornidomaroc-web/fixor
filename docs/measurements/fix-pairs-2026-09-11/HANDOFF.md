@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (twelfth revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (thirteenth revision)
 
 ## The published sentence, and the two edits that withdraw it
 
@@ -287,6 +287,65 @@ After the owner’s phone reading (#220): every heading swept against the remove
 of selector B (item 4 below), on the owner's command; the next session starts there, on
 the measurement, not on the page.
 
+## Path population for stage P: instrument restored, witness STOPPED (2026-09-12)
+
+Branch `measure/path-population-2026-09-12`, commits c3d5675 and the witness commit that
+follows it. STAGE P STILL CANNOT DRAW: the ordered sha lists do not exist.
+
+THE COUNTING JOB WAS NOT LOST. It ran as a stdin heredoc, wrote no script file, printed all
+twelve rows and died in its final JSON write, a Git-Bash path handed to a Windows Python;
+the untracked `selector-b-population.txt` holds its rows AND its traceback. It was recovered
+from the session transcript of the project directory `D--RAGHAD-JAD-Fixor-Final` and is
+restored verbatim as `tools/path_population.py`, so the rule of record is the rule that
+produced the sizing table. CONSEQUENCE, binding on every future claim: the twelve-row
+reproduction is a test of CORPUS STABILITY and of the implementation, and NOT corroboration
+that the definition of path population is right. Recovering the original spent that
+independence. Two legs only are claimed: `SKIP` is character-identical to `SKIP_PATH_RE` in
+`admin-check.detector.ts` at `134ca122` and `GEN` equals the ten generated-content segments
+`selector-b.md` names in prose; and rebuilding twenty's population reproduces
+`twenty-server-population.shas` identically IN ORDER, 5,689 of 5,689, a witness on a
+different artifact built by a different script.
+
+WHAT LANDED: the restored instrument; `path-population-prereg-2026-09-12.md` and `.json`,
+which name the rule BY CONTENT (pattern plaintext, flags recorded separately from the
+strings, sha256, and the instrument blob oids) because #212 widened the secrets copy of
+`SKIP_PATH_RE` and #213 added `_test.go` to its `SKIP_FILE_RE`, so that symbol now denotes
+two different rules and `selector-b.md`'s phrase no longer resolves; `tools/`
+`path_population_witness.py`; and `tools/commit-gated.sh`, TRACKED this time, carrying the
+both-ways gitleaks replay, the staged-blob hash match, and a check asserting zero deleted
+lines in `selector-b.md` so that "touching no existing figure" is a gate and not a promise.
+Two lines were added to `selector-b.md` recording the remeasured wall times beside the
+existing per-repository seconds: those seconds are a cold, freshly cloned first pass and not
+the cost of the walk (caddy 0.2 s against 18 s recorded, documenso 0.6 s against 178 s, zero
+bytes fetched under `GIT_NO_LAZY_FETCH=1`). No threshold, cap, rule or figure was touched.
+
+THE WITNESS STOPPED THE CHAIN, exactly as pre-registered. Five arms of six held. W1a
+discourse 33,558/33,251 to 32,678/32,370, and W1b grafana 48,805/48,515 to 48,052/47,760 and
+gitea 12,489/12,257 to 12,241/11,998, all falling as predicted; these two arms are the
+REALISTIC DRIFT, the rule a session actually gets by resolving the symbol against
+`secrets-exposure.detector.ts`, not a synthetic break. W3 twenty 11,747 to 10,390, a
+perturbation of the READING rather than of a regex character. W2 caddy unchanged as
+predicted: the recorded blind region, since four repositories (caddy,
+full-stack-fastapi-template, hoppscotch, langchain) have equal columns in the sizing table
+and no perturbation of `GEN` can depart there. W2 TWENTY FAILED: dropping `locales?` from
+`GEN` was predicted to raise the excluding-generated column and left it at 11,747 exactly.
+The `gen=` parameter was then asserted live, a match-everything `GEN` collapsing the column
+to 0, so the null is a property of twenty and not a dead override; that assertion is
+recorded in the artifact as after-the-fact, because it was run after the arms and carries no
+pre-registered prediction.
+
+WHAT THE STOP FORBIDS: the twelve-repository run did not follow, the ordered sha lists do
+not exist, stage P has no draw universe. Nothing was adjusted, re-predicted or re-run to
+make the arm pass.
+
+THE AMBIGUITY IS THE OWNER'S TO RESOLVE AND NOT A SESSION'S. The failure does not
+distinguish (a) a wrong prediction about WHICH `GEN` segment carries twenty's bite from
+(b) a check blind to a `GEN` perturbation on twenty. Both are consistent with 11,747, and
+the instrument's own W3 result shows `GEN` has bite on twenty under a different
+perturbation. Choosing between them after seeing the number is fitting a rule to a result,
+which is the thing this witness exists to prevent. NO SESSION MAY PICK ONE WITHOUT A NEW
+PREDICTION COMMITTED FIRST.
+
 ## Next actions, in order (owner's order 2026-09-12)
 
 1. SECRETS FALSE-ALARM READING: DONE 2026-09-12, `secrets-false-alarms-2026-09-12.json`
@@ -354,9 +413,15 @@ the measurement, not on the page.
    are in source paths (grafana 6, plane 4, hoppscotch 2, twenty 2, mastodon 1) and the
    next reduction, if any, is pattern work, which re-opens L-023's clearing question and
    is not a skip-list matter.
-4. STAGE P of selector B: NOT DRAWN. 300 pre-screen positives, 25 per repository, seeds per
-   repository HEAD, interleaved with the keyword arm's 150, read blind. Then rounds per
-   `selector-b.md`.
+4. STAGE P of selector B: NOT DRAWN, and BLOCKED behind the witness stop recorded above.
+   300 pre-screen positives, 25 per repository, seeds per repository HEAD, interleaved with
+   the keyword arm's 150, read blind. Then rounds per `selector-b.md`. Its draw universe is
+   the excluding-generated list, twelve files that DO NOT EXIST: the walk that writes them
+   is built, pre-registered and gated, and its negative witness failed one arm, so the run
+   did not follow. THE NEXT COMMANDABLE STEP is the owner's ruling on the W2-twenty
+   ambiguity, followed by a NEW pre-registered prediction committed before any arm re-runs.
+   Do not re-run W2 under a re-chosen segment without committing the prediction first, and
+   do not proceed to the twelve-repository run while any arm stands failed.
 5. Stage 1 reach instrument (keyless, on the IDOR rig's triple lock): not built.
 6. Stage 2 (spend): only on the owner's approval by detector, against a computed number.
 
