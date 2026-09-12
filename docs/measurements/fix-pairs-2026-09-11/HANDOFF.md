@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (sixth revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (seventh revision)
 
 This file is the durable state of the measurement. It lives beside the pre-registrations
 because they are the only tracked, swept surface the measurement has: CLAUDE.md is
@@ -184,7 +184,7 @@ slack_webhook_hardcoded (`PREFILTER_PATTERNS` in `secrets-exposure.detector.ts`)
 | admin-check | catch, miss, false alarm on fix pairs, about 24 commits under the cap; literal tier keyless | "On N real fixes in mature open source it caught k and missed m, with f false alarms on the fixed files" |
 | idor | same, about 24 commits | same, with the single-file co-location bound stated beside it |
 | auth-bypass | same, about 12 commits, borderline for the floor | same if the floor holds; a case list and no number if not |
-| secrets-exposure | ROW COMPLETE 2026-09-12, all on the shipped path, one instrument, no spend: shape coverage 5 of 208 gitleaks 8.24.3 default rules covered and 2 partly, 9 of 16 patterns with a counterpart (`secrets-shape-coverage-2026-09-12.json`); false alarms 13 step-4 clones 58 flags on 65,566 files, 58 wrong, 0 real (`secrets-false-alarms-2026-09-12.json`) and 43 ICP repositories 12 flags on 4,772 files, 9 wrong, 3 real in one repository (`secrets-false-alarms-icp-2026-09-12.json`); fixture catch 16 of 16 positives, 0 of 13 negatives flagged (`secrets-fixture-catch-2026-09-12.json`) | "Fixor's secrets check matches sixteen fixed credential shapes and never calls a model: on 4,772 files across 43 public TypeScript and JavaScript repositories of the size and age of a typical customer it raised 12 flags, 9 of them not credentials and 3 of them real API keys; on 65,566 files across 13 mature open-source repositories it raised 58 flags, all 58 not credentials; it flagged 16 of 16 authored positive fixtures and 0 of 13 authored negatives; and of the 208 rules in the gitleaks 8.24.3 default set it covers 5 outright and 2 in part." Every clause measured; the corpora named; no rate; nothing about what it misses on real code, which is unmeasured and must stay unsaid |
+| secrets-exposure | ROW COMPLETE 2026-09-12, all on the shipped path, one instrument, no spend: shape coverage 5 of 208 gitleaks 8.24.3 default rules covered and 2 partly, 9 of 16 patterns with a counterpart (`secrets-shape-coverage-2026-09-12.json`); false alarms 13 step-4 clones 58 flags on 65,566 files, 58 wrong, 0 real (`secrets-false-alarms-2026-09-12.json`) and 43 ICP repositories 12 flags on 4,772 files, 9 wrong, 3 real in one repository (`secrets-false-alarms-icp-2026-09-12.json`); fixture catch 16 of 16 positives, 0 of 13 negatives flagged (`secrets-fixture-catch-2026-09-12.json`) | "Fixor's secrets check matches sixteen fixed credential shapes and never calls a model: on 4,772 files across 43 public TypeScript and JavaScript repositories of the size and age of a typical customer it raised 12 flags, 9 of them not credentials and 3 of them real API keys; on 65,566 files across 13 mature open-source repositories it raised 58 flags, all 58 not credentials; it flagged 16 of 16 authored positive fixtures and 0 of 13 authored negatives; and of the 208 rules in the gitleaks 8.24.3 default set it covers 5 outright and 2 in part, while carrying 7 shapes that set has no rule for, three credential formats and four exposure contexts." Every clause measured (the 7 sample-verified both ways on 2026-09-12, #211); the corpora named; no rate; nothing about what it misses on real code, which is unmeasured and must stay unsaid |
 | env-exposure | keyless reach count; false alarms on reaching files only with approved spend; no catch on real code by any selector we have | "Catches the authored shapes; on M real files it would have judged R and raised F flags"; no catch rate on real code, said plainly |
 | webhook-unverified | the 97 read 2026-09-12: 3 fixes, 3 distinct commits, all discourse (Ruby); the absence consequence did not fire, by one commit; whether the three are admitted as pairs is decided under README.md's admission rules, not here, and 3 is under the 10-commit floor either way | until the floor is met: a case list and no number; the fixture claim stands on the 34 replay recordings; no catch rate on real code, said plainly |
 
@@ -243,10 +243,24 @@ stated beside every verdict count.
 3. SECRETS ICP READING: DONE 2026-09-12, `secrets-false-alarms-icp-2026-09-12.json` (#208).
    SECRETS ROW: COMPLETE 2026-09-12 (#210), shape coverage and shipped-path fixture catch
    landed; the licensed sentence in the table above is the first the owner may publish
-   with every word measured. Next on secrets, in this order: the owner's approval of the
-   upstream notice for the three ICP keys (draft in the drafts directory, not sent); the
-   skip-list change (the 19 addressable flags) as detector work on its own PR; then the
-   re-measure of BOTH false-alarm corpora on the new instrument, side by side with these.
+   with every word measured. UPSTREAM NOTICE: approved by the owner 2026-09-12, NOT SENT.
+   The repository has private vulnerability reporting disabled, no SECURITY.md, and an
+   owner with no public email; the only channels are a public issue, refused because a
+   public issue naming live keys is the disclosure this tree refused to carry, and a
+   WhatsApp number in the README, which this session cannot use. The approved text sits in
+   the drafts directory (`upstream-notice-DRAFT-not-sent.md`) for the owner to send by
+   that channel himself if he judges it appropriate.
+   SKIP-LIST CHANGE: PRE-REGISTERED AND STOPPED 2026-09-12 (#211,
+   `secrets-skip-list-prereg-2026-09-12.md` and `.json`). Computed from the 70 flagged
+   paths before any run: the candidate removes 23 of 58 on the mature corpus (the 19 on
+   record plus four siblings the segment rules sweep) and 7 of 12 on the ICP corpus
+   (every ICP false alarm under `e2e/` or a `*.test.ts` name), leaving ICP at 5 flags,
+   2 wrong and 3 real. The owner's expectation of no ICP change was false on the facts,
+   which under his own instruction is a stop. Also found: the rule is one cross-detector
+   bound in six byte-identical copies with an invalidation clause, so a secrets-only edit
+   diverges it while five rows are mid-measurement; two designs and a ruling are asked in
+   the pre-registration. Twenty kept mature flags are Go `*_test.go` files the candidate
+   does not name. Nothing in the detector changed.
 4. STAGE P of selector B: NOT DRAWN. 300 pre-screen positives, 25 per repository, seeds per
    repository HEAD, interleaved with the keyword arm's 150, read blind. Then rounds per
    `selector-b.md`.
