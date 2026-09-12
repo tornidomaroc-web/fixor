@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (second revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (third revision)
 
 This file is the durable state of the measurement. It lives beside the pre-registrations
 because they are the only tracked, swept surface the measurement has: CLAUDE.md is
@@ -31,7 +31,11 @@ below and no shorter one, in sales copy included.
   `icp-corpus-2026-07-17.json`. Customer-shaped code; short histories.
 - Working files (untracked, on disk): `../drafts-2026-09-11-tree-scan/` beside the checkout:
   keyword candidate counts and per-repository sha lists, `selector-b-population.txt`, the
-  shape-sample draw with its 224 diffs and four verdict files.
+  shape-sample draw with its 224 diffs and four verdict files;
+  `secrets-rerun-2026-09-12/` (the 13 per-repository harness outputs of the secrets
+  false-alarm rerun, snippets redacted by the harness) and
+  `secrets-false-alarms-2026-09-12-verdicts/` (the seven blind reader files and the
+  aggregate with the three grounds audits, written before any count was computed).
 - Instruments, tracked in `tools/` here: `shape_sample.py` (the seeded draw, pre-screen and
   diff fetch; the selector B draw reuses it with the generated-segment exclusion added) and
   `make_pairs.py` (pair records from patches plus blind verdicts).
@@ -42,7 +46,8 @@ below and no shorter one, in sales copy included.
   28 `pattern_adjacent` marks), `shape-sample-twenty.md` and its result, verdicts and draw
   list (#203), `selector-b.md` (pre-registration, #204, sizing table complete, twelve rows,
   157,996 path-population commits excluding generated segments), `pairs/` (seven records,
-  `MANIFEST.json`).
+  `MANIFEST.json`), `secrets-false-alarms-2026-09-12.json` (the secrets false-alarm
+  reading, #206: corpus, instrument, locks, controls, every flag with its three verdicts).
 
 ## What is fixed and may not be edited
 
@@ -69,8 +74,31 @@ below and no shorter one, in sales copy included.
   for secrets-exposure across 421 readable diffs, and 23 times for webhook with 0 fixes. A
   pre-screen that never fires cannot tell absence from blindness, so for env-exposure and
   secrets the fix-pair route is UNINFORMATIVE, not "the class is absent". "The class is
-  absent from mature code" is a hypothesis, measured only for secrets (step 4: 80 flags on
-  14 repositories, 0 real secrets).
+  absent from mature code" is a hypothesis, measured only for secrets (step 4, May: 72
+  secrets flags on the worklist, 74 in the scan output, 14 repositories, 0 real; the "80"
+  the earlier revisions quoted is the worklist total for BOTH detectors, secrets 72 plus
+  admin-check 8, and was never a secrets number).
+- SECRETS FALSE-ALARM READING, done 2026-09-12 (`secrets-false-alarms-2026-09-12.json`,
+  #206). The 16-pattern shipped path, the step-4 harness unmodified (blob 49b9a64c), keyless
+  under the replay triple lock in an environment built from scratch, over the 13 step-4
+  clones: 58 flags on 65,566 files. May on the same 13 clones: 59 flags on the same 65,566
+  (per-repository file counts identical). The one difference is twenty's
+  `url.password = '********'` line, removed by the redaction-shape exemption that landed
+  after May's scan; the sixteenth pattern (openai_project_key) fired 0 times. A second pass
+  calling only `SecretsExposureDetector.detect()` gave the same 58 by file, line and pattern
+  with 0 throws. All 58 read blind, three readers each (two protocol, one adversarial told
+  to answer "real credential" whenever the packet could not rule it out): 58 not a
+  credential, 0 real credential, 0 disagreements; every grounds sentence audited, 0
+  failures; a planted live-key packet was called real by all three and a planted placeholder
+  not, so the reader instrument can say "real". By shape: password_literal 42 (33 in source
+  paths, 9 under test paths the detector's skip list does not name: `api_tests/`,
+  `app-tests/`, `e2e-playwright/`, `*.spec.ts`, `*.test.tsx`), private_key_literal 7 (three
+  are empty strings), aws_access_key 3, postgres_url_password 3, jwt_secret_literal 2,
+  slack_webhook_hardcoded 1. Ten of the 33 source-path password flags are discourse
+  `script/import_scripts/` operator placeholders (singular `script/`, outside `SKIP_PATH_RE`).
+  Forbidden: any rate; anything about catch; anything about the ICP corpus or cal.com;
+  reading these shapes as a change request (the skip list is a detector decision, not a
+  measurement result).
 
 ## The redefinition for secrets-exposure (adopted 2026-09-12)
 
@@ -93,7 +121,7 @@ slack_webhook_hardcoded (`PREFILTER_PATTERNS` in `secrets-exposure.detector.ts`)
 | admin-check | catch, miss, false alarm on fix pairs, about 24 commits under the cap; literal tier keyless | "On N real fixes in mature open source it caught k and missed m, with f false alarms on the fixed files" |
 | idor | same, about 24 commits | same, with the single-file co-location bound stated beside it |
 | auth-bypass | same, about 12 commits, borderline for the floor | same if the floor holds; a case list and no number if not |
-| secrets-exposure | shape coverage; false alarms on 13 mature repos and on the ICP corpus; fixture catch; no spend | "Recognises these shapes; on M real files it raised F flags, of which W were wrong; never calls a model" |
+| secrets-exposure | false alarms on the 13 step-4 clones MEASURED 2026-09-12: 58 flags on 65,566 files, 58 not credentials by three blind readers, 0 real (`secrets-false-alarms-2026-09-12.json`); the ICP corpus not yet read; shape coverage against the gitleaks default rules and fixture catch on the shipped path not yet measured; no spend | "Recognises these shapes; on 65,566 real files in 13 mature open-source repositories it raised 58 flags, of which 58 were wrong; never calls a model", the corpus named every time; the ICP corpus's own M, F, W added when read, never merged into these |
 | env-exposure | keyless reach count; false alarms on reaching files only with approved spend; no catch on real code by any selector we have | "Catches the authored shapes; on M real files it would have judged R and raised F flags"; no catch rate on real code, said plainly |
 | webhook-unverified | decided by reading the 97 keyword candidates blind; otherwise as env-exposure, with the 34 replay recordings behind the fixture claim | conditional on the 97 |
 
@@ -119,14 +147,15 @@ with its file context and answer "real credential" or "not a credential" with on
 
 ## Next actions, in order (owner's order 2026-09-12)
 
-1. SECRETS FALSE-ALARM READING. Rerun the 16-pattern list keyless over the 13 step-4 clones
-   (the step-4 harness is `src/test/lib/production-scan.ts`, walker to synthetic diff per
-   file to `SecretsExposureDetector.detect()`; May's run reported 80 findings on 71,611
-   files across 14 repositories). Report today's flag count against May's 80 with the
-   denominator of files scanned, then read every flag blind. Write
-   `secrets-false-alarms-<date>.json` here with the corpus named and the readers' verdicts.
-   Counts with denominators, never a rate. This touches no key: the shipped path has no
-   model call and `FIXOR_SECRETS_LLM_OPT_IN` stays unset.
+1. SECRETS FALSE-ALARM READING: DONE 2026-09-12, `secrets-false-alarms-2026-09-12.json`
+   (#206), summarised under "What was found". The item as first written compared against
+   "May's 80"; that figure was both detectors' worklist total, and the secrets comparison is
+   59 on the same 13 clones (74 across all 16 May sub-scans on 71,611 files). No key was in
+   the environment; the shipped path made no model call; `FIXOR_SECRETS_LLM_OPT_IN` stayed
+   unset. Still owed on the secrets row, in no owner-set order: the ICP corpus reading with
+   this same instrument and protocol (redefinition part 2, second half); shape coverage
+   against the gitleaks 8.24.3 default rules (part 1); fixture catch rerun on the shipped
+   path, since the 20/20 log was recorded with the LLM path on (part 3).
 2. WEBHOOK 97. Read all 97 webhook keyword candidates blind (their sha lists are in the
    drafts directory, `fix-pairs-candidate-counts.<repo>.webhook-unverified.shas`); this is
    the webhook slice of the keyword arm, the arm's 150 otherwise unchanged. Under three
