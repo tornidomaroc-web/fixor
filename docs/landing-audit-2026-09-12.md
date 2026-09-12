@@ -66,6 +66,20 @@ What main can prove, in one place (all measured 2026-09-12 unless dated otherwis
 | security.html, subprocessor table | "Anthropic: Diff analysis (Claude API)" | True for five detectors; the secrets check sends nothing to Anthropic on its shipped path. | Optional precision, not a contradiction. Leave in this pass. |
 | blog post (2026-05-19) | "We then ran both detectors ... across fourteen open-source repositories. The corpus was 71,611 files ... The run found zero true positives ... We have dropped any false-positive-rate claim that depended on that run. A separate experiment ... is what will produce an honest precision number." | The May run happened as described. The post's own discipline (counts, no rate, the flaw named) matches today's. Superseded in one respect: the "separate experiment" now exists as the 2026-09-12 readings, and it found real credentials on customer-shaped code (3 of 5 flags), so "mature open-source projects do not commit real secrets" stays true of the mature corpus and is not true of the ICP sample. | A dated ADDENDUM at the end of the post pointing at the measured sentence; no rewrite of a dated post. |
 
+## Correction to this audit (2026-09-12, before the content PR)
+
+Row #14 above says the compliance sentence "appears verbatim in the comment builder". It
+does not: a grep of `src/` for "suitable for sharing" and "compliance review" returns
+nothing; the sentence is page-only, and the "in the product and on the page together"
+remedy in that row collapses to the page. The product-side finding that DOES hold is row
+#12: the comment builder prints `Detection confidence: <confidence>` for every finding,
+and on the secrets check that field is the constant "high", never a judgment. #216 changes
+that line in the product to "Detection: pattern match (fixed credential shape; no model
+judgment)" for secrets findings and marks the page sample the same way. Admin-check's
+three literal-tier patterns carry the same constant and are NOT distinguishable in the
+comment builder today, because the fix suggestion carries no rule id; that is a product
+follow-up, named here rather than silently left.
+
 ## The remedy shape, ruled
 
 Deletions (nothing measured can stand behind them): the hero's catch promise (#4); "for
