@@ -54,6 +54,14 @@ SKIP_FILE_GO_TEST = re.compile(r'_test\.go$', re.I)
 GEN_NO_LOCALES = re.compile(
     r'(^|/)(generated|i18n|translations?|vendor|node_modules|dist|build)(/|$)', re.I)
 
+# W2' (2026-09-13): GEN with `build` dropped. Unlike W2's `locales?`, this segment has
+# MEASURED UNIQUE BITE on twenty - the census counted 11 commits that leave the removed set
+# when `build` alone is dropped - so the expected departure is an EXACT INTEGER rather than a
+# direction, and it can therefore fail. W2 stays in ARMS exactly as it was: a failed arm is
+# recorded, never removed.
+GEN_NO_BUILD = re.compile(
+    r'(^|/)(generated|locales?|i18n|translations?|vendor|node_modules|dist)(/|$)', re.I)
+
 
 def skip_plus_basename(base, basename_rx):
     """SKIP, plus a basename rule, as one callable with a .search the walker can use."""
@@ -64,6 +72,13 @@ def skip_plus_basename(base, basename_rx):
             return base.search(path) or basename_rx.search(path)
     return _Combined
 
+
+# Exact point expectations, keyed by (arm, repository). An arm without an entry here is
+# judged on direction alone. An arm WITH one must also land on the integer: a direction can
+# barely fail, an integer can.
+EXACT = {
+    ('W2prime', 'twenty'): 11758,
+}
 
 ARMS = [
     # id, repository, kwargs for the perturbed run, prediction
@@ -94,6 +109,15 @@ ARMS = [
      'The READING, not a regex character: "drop the commit if any qualifying file is '
      'generated" instead of "keep it if any qualifying file is not". Strictly stronger '
      'exclusion, so the column can only fall.'),
+    ('W2prime', 'twenty', dict(gen=GEN_NO_BUILD),
+     {'path_population': 'unchanged', 'excluding_generated': 'increase'},
+     'GEN with `build` dropped, the segment the census measured at unique 11 on twenty and '
+     'the only one there at or above ten. The expectation is the exact integer 11,758, '
+     'entailed by the census through a different code path: the census derives `unique` from '
+     'per-file segment bitmasks and a drop-one-out test, while this arm derives the column '
+     'from the conjunction over a perturbed GEN inside walk(). Agreement to the unit '
+     'cross-checks the IMPLEMENTATION, not the rule - the same limit the twelve-row match '
+     'carries. Any other value is a stop, a larger increase included.'),
 ]
 
 
@@ -128,7 +152,10 @@ def main(corpus, out_json):
                 base['path_population_excluding_generated_segments'],
                 p['path_population_excluding_generated_segments']),
         }
-        holds = observed == prediction
+        exact_expected = EXACT.get((arm_id, repo_name))
+        exact_holds = (exact_expected is None
+                       or p['path_population_excluding_generated_segments'] == exact_expected)
+        holds = observed == prediction and exact_holds
         # The bound on W2's increase: it can never exceed the path-population column.
         bound_ok = (p['path_population_excluding_generated_segments']
                     <= p['path_population'])
@@ -143,6 +170,9 @@ def main(corpus, out_json):
                           'excluding_generated':
                               p['path_population_excluding_generated_segments']},
             'predicted': prediction, 'observed': observed,
+            'exact_expected': exact_expected,
+            'exact_observed': p['path_population_excluding_generated_segments'],
+            'exact_holds': exact_holds,
             'prediction_holds': holds, 'bound_holds': bound_ok,
         })
         print(arm_id + ' ' + repo_name.ljust(12)
@@ -150,6 +180,9 @@ def main(corpus, out_json):
               + str(base['path_population_excluding_generated_segments'])
               + '  perturbed ' + str(p['path_population']) + '/'
               + str(p['path_population_excluding_generated_segments'])
+              + ('  EXACT expected ' + str(exact_expected) + ' observed '
+                 + str(p['path_population_excluding_generated_segments'])
+                 if exact_expected is not None else '')
               + '  predicted ' + json.dumps(prediction)
               + '  observed ' + json.dumps(observed)
               + ('  HOLDS' if holds and bound_ok else '  FAILED'), flush=True)

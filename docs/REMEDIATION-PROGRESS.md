@@ -2370,6 +2370,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #221 | from a THIRD branch, a descendant of the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #223 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #222 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #224 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
 already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
@@ -2443,6 +2444,23 @@ greens AND reds under those same versions, so nothing in the recorded environmen
 the arms either. And this measurement publishes no count under ten, which a two-observation arm
 is not. The arm predicts the outcome no better than the tool version does - the same sentence
 this ledger already carries about the other arm, and it is repeated rather than softened.
+
+**#224 IS A THIRD OBSERVATION IN THE THIRD ARM (2026-09-13).** `gh pr merge 224 --squash` was
+invoked while HEAD sat on `docs/assertion4-223-record-2026-09-12`, neither the merged branch nor
+the base, read with `git branch --show-current` at merge time rather than inferred. Assertion 4
+was **RED**: the local ref survived while `gh` exited 0 and printed nothing. Assertion 2 held:
+main's tree equalled `868774ac`, the head tree captured before the merge, and the dated
+2026-08-15 COUNT UPDATE sentence hashed byte-identical on main after the squash to its value
+before the branch existed, which was the whole point of that merge.
+
+As of this entry the third arm holds three observations, all RED. Stated as a dated record; the
+table remains the only place to read a count from, and no dated figure is rewritten.
+
+This adds nothing the previous two did not. Against the table's own base rate RED is now 11 of
+13 observations, so an all-RED arm of three still does not separate "this arm produces RED" from
+"RED is simply the common outcome", and all three carry identical recorded tool versions while
+the other arm holds greens and reds under those same versions. Three is not ten, and this
+measurement publishes no count under ten.
 
 **VERSION CONSTANCY, AND WHAT IT EXCLUDES.** Across #143, #171 and #173 the recorded environment is
 the same — gh 2.91.0, git 2.53.0, Windows — and those three span one green and two reds, so **the
