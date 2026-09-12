@@ -2368,9 +2368,10 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #174 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #172 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #221 | from a THIRD branch, a descendant of the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #223 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
-**Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
-already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
+**Totals, amended 2026-09-12 for #223: the arm invoked FROM the merged branch is 5
+observations, 2 green and 3 red; the already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
 firmer than it is: **#141's arm is not separately recorded anywhere.** It sits in the
 already-checked-out arm on the #143 block's own framing, which cites #141 as the case a merge NOT
 driven from the branch produces. Every other row's arm is recorded at the observation itself.
@@ -2392,6 +2393,26 @@ than on the handoff: the merge gate as stated carries no leg for "main has not m
 strong assertion depends on it entirely. main was read from the remote as equal to the branch
 point before merging, so the squash tree had to equal the captured tree. Without that leg, a
 moved main forces a STOP for something that is not a defect in the pull request.
+
+**#223 MOVES THE "FROM THE MERGED BRANCH" TOTALS, AND #221's ROW STILL DOES NOT (2026-09-12).**
+`gh pr merge 223 --squash` was invoked while HEAD sat on `docs/handoff-221-merged-2026-09-12`,
+which is #223's own head branch, so this observation is squarely in the FROM-the-merged-branch
+arm and the totals sentence above is amended deliberately: that arm goes from 4 observations, 2
+green and 2 red, to 5 observations, 2 green and 3 red. Assertion 4 was **RED** — `git branch
+--show-current` still returned the merged branch while `gh` exited 0 and printed nothing.
+Assertion 2, the only strong one, held: main's tree equalled `a7008fd8`, the head tree captured
+before the merge, and main moved to `17fd02df`.
+
+Nothing about the #221 row changes, and the sentence in its own entry that the totals were left
+untouched remains correct as written. The two claims do not conflict: #221 sits in a third arm,
+where an observation cannot move either two-arm total by construction, while #223 sits inside
+one of the two arms and therefore must move it. The distinction is the reason the third arm was
+filed separately rather than folded into the nearest bucket.
+
+What the two observations together do NOT establish: any cause. The FROM-the-merged-branch arm
+now holds both greens and reds under the same recorded tool versions, so the arm does not
+predict the outcome any more than the tool version does. This entry adds an observation to the
+ledger and no explanation to it.
 
 **VERSION CONSTANCY, AND WHAT IT EXCLUDES.** Across #143, #171 and #173 the recorded environment is
 the same — gh 2.91.0, git 2.53.0, Windows — and those three span one green and two reds, so **the

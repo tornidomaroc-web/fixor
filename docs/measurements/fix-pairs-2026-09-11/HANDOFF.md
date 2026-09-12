@@ -562,3 +562,43 @@ twelve-repository walk, then stage P.
 RESIDUAL ON THIS ENTRY: the step that produced it forbade pushing, so the commit carrying this
 block is LOCAL ONLY at the time of writing and is not yet a durable record. It reaches the
 remote with the next push of `docs/handoff-221-merged-2026-09-12`.
+
+## PR #223 MERGED, and #222 updated (2026-09-12)
+
+New main `17fd02df375cc2d7e7327bd4dc7b08c1cf59ca5e`. **Tree verdict: EQUAL** — main's tree reads
+`a7008fd82f42be3ebc24d9e7d3a4a3da1474133c`, the head tree captured before any merge, which is
+the only strong certificate. Head ref 404, satisfied server-side by `delete_branch_on_merge` and
+therefore no evidence about the client. Assertion 4 RED again, this time in the
+FROM-the-merged-branch arm; its ledger entry is in `docs/REMEDIATION-PROGRESS.md` and moves that
+arm's totals to 5 observations, 2 green and 3 red.
+
+THE DEPLOY PATTERN REPEATED, SECOND MEASURED INSTANCE, IDENTICAL IN SHAPE. Against the merge
+commit: `CI` and `secrets` started 22:09:30; `amusing-trust / production` deployment created
+22:09:33, three seconds later; `Production` created 22:10:06; `CI` concluded 22:13:07. Both
+production deployments were created while the required checks were still running, and
+`Production` landed more than three minutes before `CI` concluded. Nothing was changed or
+proposed about it; it is recorded twice now and remains unordered work.
+
+WHY #222 READ `behind`, AND THE PREDICTION THAT WAS WRONG. main's branch protection carries
+`strict: true` with `enforce_admins: true`, so a branch must be up to date with main before it
+can merge and nobody can bypass that. The earlier statement here that #222 "needs nothing before
+it can land" was wrong: the `git merge-tree` simulation was right about CONTENT (zero conflicting
+files) and was mistaken for a statement about MERGEABILITY. Conflict-freedom and up-to-dateness
+are different gates and only one of them was read.
+
+#222 WAS UPDATED, NOT REBASED. `gh pr update-branch 222` merged main into the branch, needing no
+force-push after the previous one cost a round trip through the owner's own shell. New head
+`1be7d8f3947b592036dfd309915a92d0648d4ceb`, a merge commit with parents `29b67aab` and
+`17fd02df`, and its tree is `8a13bf1da7c1e687477f61e23ebe72efd545174b` — exactly the tree the
+merge-tree simulation predicted before the update was run. `behind_by` is now 0. Content
+preserved on the server: the three measured blobs still read `cd295633`, `8c96433a`, `2526845a`.
+Recorded because it nearly misled: `gh` printed "PR branch updated" and the PR object still
+returned the OLD head for a moment afterwards. The branch ref is the authoritative read; the PR
+object's cached head is not.
+
+NEXT COMMANDABLE STEP: merge #222 once its re-run required checks conclude green under app id
+15368, and merge this records pull request after it rather than before. Order matters only
+because `strict: true` makes whichever lands second go `behind` and need another
+`update-branch` plus a full check re-run; putting the measurement first spends that cost on the
+smaller change. Only after both: W2-prime on twenty/`build` as the exact point prediction 11,747
+to 11,758, then the twelve-repository walk, then stage P.
