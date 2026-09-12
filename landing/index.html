@@ -414,12 +414,22 @@
 
     <main>
       <section class="hero wrap" id="top">
-        <h1>Catch security bugs before they ship.</h1>
+        <h1>A second reviewer that reads the diff in your pull request and checks it for six classes of logic defect.</h1>
         <p class="lead">
-          Checks every pull request for six classes of business-logic vulnerability in Node/TypeScript: auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, and unverified webhooks.
+          Auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, unverified webhooks, in Node/TypeScript. Four of the six send every candidate to Claude; the admin-check detector does the same except for three literal patterns; the secrets check runs on sixteen fixed patterns and never calls a model.
         </p>
         <a class="btn btn-primary" href="https://github.com/apps/fixor-security/installations/new">Install Fixor on GitHub</a>
         <p class="hero-subnote">Free tier covers 5 scans / month on public repos · no card required</p>
+      </section>
+
+      <section class="wrap" id="measured">
+        <h2 class="section-title">What is measured, and what is not</h2>
+        <p class="section-sub">
+          Fixor's secrets check matches sixteen fixed credential shapes and never calls a model: on 4,772 files across 43 public TypeScript and JavaScript repositories of the size and age of a typical customer it raised 5 flags, 2 of them not credentials and 3 of them real API keys; on 65,566 files across 13 mature open-source repositories it raised 15 flags, all 15 not credentials; it flagged 16 of 16 authored positive fixtures and 0 of 19 authored negatives; of the 208 rules in the gitleaks 8.24.3 default set it covers 5 outright and 2 in part, while carrying 7 shapes that set has no rule for, three credential formats and four exposure contexts; and it does not read files under test, e2e, spec, script or fixture paths or Go test files, so a credential committed there is not seen, a trade that removed 50 flags across the two corpora, none of them real.
+        </p>
+        <p class="section-sub">
+          That is the one detector measured on real code. The other five are measured on authored fixtures only; their real-code numbers will be added here as each is measured, and nothing about them is claimed until then. Every number above is a count with its denominator, never a rate, and the artifacts behind it are in the public repository under <a href="https://github.com/tornidomaroc-web/fixor/tree/main/docs/measurements">docs/measurements/</a>.
+        </p>
       </section>
 
       <section class="wrap" id="how">
