@@ -1,0 +1,845 @@
+{
+ "measurement": "census of the ten generated-content segments, per repository",
+ "date": "2026-09-12",
+ "zeroSpend": true,
+ "apiKeyPresent": false,
+ "isA": "a complete enumeration of every non-merge commit reachable from each clone HEAD, per repository, with every figure a count of commits out of that repository's path_population",
+ "isNot": "a sample, a rate, a witness, or a result transferable between repositories (R12)",
+ "settles": "whether the W2-twenty null is explained by a segment with no bite on twenty, or by the conjunction in the semantics blinding the check",
+ "figures": {
+  "touches": "commits with at least one qualifying file under the segment",
+  "removes_alone": "commits where every qualifying file is under the segment",
+  "unique": "commits removed by the full GEN that stop being removed when this segment alone is dropped",
+  "denominator": "removed_by_full_GEN = path_population - excluding_generated"
+ },
+ "constants_before": {
+  "EXT": {
+   "pattern": "\\.(js|jsx|ts|tsx|py|go|rb|java|kt)$",
+   "flags": "IGNORECASE",
+   "sha256": "8685bb027fc2a5bba06b453ee5ea9c1746c07036db2a6b83b3182aa20852a577"
+  },
+  "SKIP": {
+   "pattern": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "20506ff8246d8c64d3ea5fa465f058069083fb0bc070cda24536fdcf4e3d2652"
+  },
+  "GEN": {
+   "pattern": "(^|/)(generated|locales?|i18n|translations?|vendor|node_modules|dist|build)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "1e7ac9af47308900eaff62980110adc9a4920ab12785940118e33ef810fa5aa4"
+  }
+ },
+ "constants_after": {
+  "EXT": {
+   "pattern": "\\.(js|jsx|ts|tsx|py|go|rb|java|kt)$",
+   "flags": "IGNORECASE",
+   "sha256": "8685bb027fc2a5bba06b453ee5ea9c1746c07036db2a6b83b3182aa20852a577"
+  },
+  "SKIP": {
+   "pattern": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "20506ff8246d8c64d3ea5fa465f058069083fb0bc070cda24536fdcf4e3d2652"
+  },
+  "GEN": {
+   "pattern": "(^|/)(generated|locales?|i18n|translations?|vendor|node_modules|dist|build)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "1e7ac9af47308900eaff62980110adc9a4920ab12785940118e33ef810fa5aa4"
+  }
+ },
+ "tracked_constants_untouched": true,
+ "decomposition_check": "union_mismatch_files counts files where \"matches one of the ten\" and \"matches the tracked GEN\" disagree; any non-zero count invalidates the table",
+ "git": "git version 2.53.0.windows.2",
+ "repositories": [
+  {
+   "repository": "caddy",
+   "head": "425a3381fdf65c826dd991c92e78eaf6ef24941e",
+   "nonmerge_commits": 2663,
+   "path_population": 2234,
+   "excluding_generated_segments": 2234,
+   "removed_by_full_GEN": 0,
+   "union_mismatch_files": 0,
+   "seconds": 0.2,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    }
+   }
+  },
+  {
+   "repository": "discourse",
+   "head": "9cccc5837dc83a7af376dd40d4cb709cd25b0228",
+   "nonmerge_commits": 64257,
+   "path_population": 33558,
+   "excluding_generated_segments": 33251,
+   "removed_by_full_GEN": 307,
+   "union_mismatch_files": 0,
+   "seconds": 5.6,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 17,
+     "removes_alone": 9,
+     "unique": 14
+    },
+    "locales": {
+     "touches": 69,
+     "removes_alone": 33,
+     "unique": 38
+    },
+    "i18n": {
+     "touches": 64,
+     "removes_alone": 26,
+     "unique": 26
+    },
+    "translation": {
+     "touches": 63,
+     "removes_alone": 19,
+     "unique": 19
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 443,
+     "removes_alone": 215,
+     "unique": 215
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    }
+   }
+  },
+  {
+   "repository": "documenso",
+   "head": "5603a9e59da2ae770edcc822ac08a5e3df02ad82",
+   "nonmerge_commits": 3696,
+   "path_population": 2621,
+   "excluding_generated_segments": 2612,
+   "removed_by_full_GEN": 9,
+   "union_mismatch_files": 0,
+   "seconds": 0.6,
+   "segments": {
+    "generated": {
+     "touches": 2,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 4,
+     "removes_alone": 1,
+     "unique": 1
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 28,
+     "removes_alone": 5,
+     "unique": 5
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 9,
+     "removes_alone": 2,
+     "unique": 2
+    },
+    "build": {
+     "touches": 2,
+     "removes_alone": 1,
+     "unique": 1
+    }
+   }
+  },
+  {
+   "repository": "full-stack-fastapi-template",
+   "head": "cb740b656d7a0a6c5e12c7bf8e50343ec94ee9c7",
+   "nonmerge_commits": 1509,
+   "path_population": 236,
+   "excluding_generated_segments": 236,
+   "removed_by_full_GEN": 0,
+   "union_mismatch_files": 0,
+   "seconds": 0.1,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    }
+   }
+  },
+  {
+   "repository": "gitea",
+   "head": "4d434455322a4780064ce67524ceb3711d865320",
+   "nonmerge_commits": 20488,
+   "path_population": 12489,
+   "excluding_generated_segments": 12257,
+   "removed_by_full_GEN": 232,
+   "union_mismatch_files": 0,
+   "seconds": 2.2,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 2,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 30,
+     "removes_alone": 4,
+     "unique": 0
+    },
+    "translation": {
+     "touches": 41,
+     "removes_alone": 7,
+     "unique": 4
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 461,
+     "removes_alone": 189,
+     "unique": 191
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 121,
+     "removes_alone": 33,
+     "unique": 35
+    }
+   }
+  },
+  {
+   "repository": "grafana",
+   "head": "e5b8e1b309e94e887a9f7e9e9fd0ba2f3d009018",
+   "nonmerge_commits": 68750,
+   "path_population": 48805,
+   "excluding_generated_segments": 48515,
+   "removed_by_full_GEN": 290,
+   "union_mismatch_files": 0,
+   "seconds": 9.3,
+   "segments": {
+    "generated": {
+     "touches": 116,
+     "removes_alone": 1,
+     "unique": 1
+    },
+    "locale": {
+     "touches": 2,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 14,
+     "removes_alone": 5,
+     "unique": 5
+    },
+    "i18n": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 1,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 370,
+     "removes_alone": 120,
+     "unique": 120
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 27,
+     "removes_alone": 3,
+     "unique": 3
+    },
+    "build": {
+     "touches": 218,
+     "removes_alone": 161,
+     "unique": 161
+    }
+   }
+  },
+  {
+   "repository": "hoppscotch",
+   "head": "ac145e7f758151b41fd46d3e5f513886ce9068ba",
+   "nonmerge_commits": 5149,
+   "path_population": 2387,
+   "excluding_generated_segments": 2387,
+   "removed_by_full_GEN": 0,
+   "union_mismatch_files": 0,
+   "seconds": 0.5,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    }
+   }
+  },
+  {
+   "repository": "langchain",
+   "head": "348c9dc572599947d2d7d33d6a5b8b936e92a1d4",
+   "nonmerge_commits": 16638,
+   "path_population": 9805,
+   "excluding_generated_segments": 9805,
+   "removed_by_full_GEN": 0,
+   "union_mismatch_files": 0,
+   "seconds": 2.3,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 2,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    }
+   }
+  },
+  {
+   "repository": "mastodon",
+   "head": "a7cc70db674d79616597fcc1e67aafee6fcb2f11",
+   "nonmerge_commits": 21811,
+   "path_population": 10753,
+   "excluding_generated_segments": 10634,
+   "removed_by_full_GEN": 119,
+   "union_mismatch_files": 0,
+   "seconds": 1.6,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 193,
+     "removes_alone": 119,
+     "unique": 119
+    },
+    "i18n": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    }
+   }
+  },
+  {
+   "repository": "plane",
+   "head": "2f895b82dad839c730c36a5c0cbc046f1e5d6b56",
+   "nonmerge_commits": 6667,
+   "path_population": 5845,
+   "excluding_generated_segments": 5829,
+   "removed_by_full_GEN": 16,
+   "union_mismatch_files": 0,
+   "seconds": 1.9,
+   "segments": {
+    "generated": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 35,
+     "removes_alone": 5,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 62,
+     "removes_alone": 16,
+     "unique": 11
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    }
+   }
+  },
+  {
+   "repository": "strapi",
+   "head": "34fdea8fb4e11afc475a0ffdc14311cce09ddded",
+   "nonmerge_commits": 26173,
+   "path_population": 18677,
+   "excluding_generated_segments": 18489,
+   "removed_by_full_GEN": 188,
+   "union_mismatch_files": 0,
+   "seconds": 6.0,
+   "segments": {
+    "generated": {
+     "touches": 2,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locale": {
+     "touches": 4,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 493,
+     "removes_alone": 136,
+     "unique": 137
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 82,
+     "removes_alone": 39,
+     "unique": 39
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 36,
+     "removes_alone": 11,
+     "unique": 12
+    },
+    "build": {
+     "touches": 2,
+     "removes_alone": 1,
+     "unique": 1
+    }
+   }
+  },
+  {
+   "repository": "twenty",
+   "head": "2badd5da7db126e9b8e41c90bfa9617486205866",
+   "nonmerge_commits": 15344,
+   "path_population": 12759,
+   "excluding_generated_segments": 11747,
+   "removed_by_full_GEN": 1012,
+   "union_mismatch_files": 0,
+   "seconds": 7.2,
+   "segments": {
+    "generated": {
+     "touches": 2245,
+     "removes_alone": 999,
+     "unique": 4
+    },
+    "locale": {
+     "touches": 1,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "locales": {
+     "touches": 1072,
+     "removes_alone": 995,
+     "unique": 0
+    },
+    "i18n": {
+     "touches": 444,
+     "removes_alone": 231,
+     "unique": 1
+    },
+    "translation": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "translations": {
+     "touches": 16,
+     "removes_alone": 1,
+     "unique": 1
+    },
+    "vendor": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "node_modules": {
+     "touches": 0,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "dist": {
+     "touches": 6,
+     "removes_alone": 0,
+     "unique": 0
+    },
+    "build": {
+     "touches": 121,
+     "removes_alone": 11,
+     "unique": 11
+    }
+   }
+  }
+ ],
+ "total_union_mismatch_files": 0,
+ "reading": {
+  "questionAsked": "does locale/locales remove zero commits from twenty (a prediction that picked a segment with no bite), or do they remove commits while the column still did not move (the conjunction blinding the check)?",
+  "answer": "NEITHER, and the census names a third state the two-way question did not contain: on twenty, locales is REDUNDANT, not idle.",
+  "twenty": {
+   "path_population": 12759,
+   "excluding_generated_segments": 11747,
+   "removed_by_full_GEN": 1012,
+   "locales": {
+    "touches": 1072,
+    "removes_alone": 995,
+    "unique": 0
+   },
+   "locale_singular": {
+    "touches": 1,
+    "removes_alone": 0,
+    "unique": 0
+   },
+   "generated": {
+    "touches": 2245,
+    "removes_alone": 999,
+    "unique": 4
+   },
+   "whatUniqueZeroMeans": "every commit that locales would remove is also removed by another segment, so dropping locales alone cannot move the column by even one commit. generated is the only segment on twenty large enough to account for that overlap; that it does account for it is consistent with the figures and is not separately measured here."
+  },
+  "causeEstablished": "the prediction was wrong, but not for the reason (a) named. locales is not a segment without bite on twenty: it would remove 995 commits of 12759 on its own. It has no UNIQUE bite. The check is not blind: on twenty, build has unique 11, generated 4, i18n 1 and translations 1, so a drop-one-out perturbation of any of those would move the column.",
+  "checkPowerOnTwenty": {
+   "build": 11,
+   "generated": 4,
+   "i18n": 1,
+   "translations": 1,
+   "note": "only build is at or above ten; the others are reported as raw figures and no conclusion is drawn from them individually"
+  },
+  "theRationaleQuestion": {
+   "conditionTheOwnerNamed": "if the locale segments measure zero on twenty, the pre-registrations stated rationale and its measured mechanism are not the same thing",
+   "conditionOccurred": false,
+   "why": "selector-b.md point 2 cites 47 of 224 pre-screen positives as generated locale files. locales measures 1072 touches and 995 removes_alone on twenty, so locale files are abundantly present and would remove commits. The rationale is NOT contradicted and no edit to selector-b.md is owed. What is true instead, and is new, is that on twenty the contribution of locales is wholly redundant with another segment."
+  },
+  "readabilityNotes": {
+   "uniquesAreNotAdditive": "a commit can be unique to several segments at once (drop either and it leaves the removed set), so per-repository uniques can sum above removed_by_full_GEN: discourse sums to 312 against a denominator of 307.",
+   "uniqueCanExceedRemovesAlone": "removes_alone requires every qualifying file to be under the segment; unique requires only one file to be under that segment and no other. discourse locales is 33 and 38, gitea build 33 and 35.",
+   "blindRegionConfirmed": "caddy, full-stack-fastapi-template, hoppscotch and langchain have removed_by_full_GEN = 0 and every segment at 0/0/0. The blind region is now a census fact, not an inference from equal columns.",
+   "countsUnderTen": "documenso removed_by_full_GEN is 9, and many per-segment figures are under ten. They are reported as raw figures with their denominators; no claim is built on any of them."
+  },
+  "sizingTableRowsReproduced": "12 of 12, path_population and excluding_generated both; labelled as in path-population-prereg-2026-09-12: a test of corpus stability and of the implementation, NOT corroboration that the definition is right",
+  "r12": "every figure is earned for the repository it was measured on and transfers to no other"
+ }
+}
