@@ -1,0 +1,132 @@
+{
+ "preRegistration": "path population for stage P of selector B",
+ "date": "2026-09-12",
+ "writtenBefore": "any run of the instrument over the corpus and any negative witness arm",
+ "zeroSpend": true,
+ "apiKeyPresent": false,
+ "isA": "restoration of the instrument that produced selector-b.md's sizing table, extended to emit the ordered sha lists, plus a measurement of whether its reproduction check can fail",
+ "isNot": "a falsification test of any reading of selector-b.md; recovering the original spent that independence",
+ "provenance": {
+  "recovered": "the 2026-09-11 counting job ran as a stdin heredoc, wrote no script file, printed all twelve rows and died in its final JSON write (a Git-Bash path handed to a Windows Python)",
+  "recoveredFrom": "session transcript of the project directory D--RAGHAD-JAD-Fixor-Final",
+  "consequence": "the three constants are copied verbatim; the rule of record is the rule that produced the table"
+ },
+ "ruleNamedByContent": {
+  "note": "selector-b.md says 'outside the SKIP_PATH_RE segments'. That named one rule when written; #212 widened the secrets-exposure copy and #213 added _test.go to its SKIP_FILE_RE, so the symbol now denotes two rules. Resolve by these strings and digests, never by the symbol.",
+  "EXT": {
+   "pattern": "\\.(js|jsx|ts|tsx|py|go|rb|java|kt)$",
+   "flags": "IGNORECASE",
+   "sha256": "8685bb027fc2a5bba06b453ee5ea9c1746c07036db2a6b83b3182aa20852a577"
+  },
+  "SKIP": {
+   "pattern": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "20506ff8246d8c64d3ea5fa465f058069083fb0bc070cda24536fdcf4e3d2652"
+  },
+  "GEN": {
+   "pattern": "(^|/)(generated|locales?|i18n|translations?|vendor|node_modules|dist|build)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "1e7ac9af47308900eaff62980110adc9a4920ab12785940118e33ef810fa5aa4"
+  }
+ },
+ "instrumentBlobs": {
+  "path_population.py": "2526845a24fac0d47ccbd9b29cb2bd2a1b4ec30b",
+  "path_population_witness.py": "12db2e079f76d33726cfa1f03fa297e95e8f44b2",
+  "commit-gated.sh": "399e66c58ca8189c0d175b8ecd2fe833fbce8fd6"
+ },
+ "prosAgainstCodeChecks": [
+  {
+   "check": "SKIP against the detector copy at count time",
+   "against": "SKIP_PATH_RE in admin-check.detector.ts at 134ca122",
+   "result": "character-identical"
+  },
+  {
+   "check": "GEN against the prose",
+   "against": "the ten generated-content segments named in selector-b.md",
+   "result": "equal; locales? and translations? carry the singular/plural pairs"
+  }
+ ],
+ "orderSettledEmpirically": {
+  "rule": "git log emission order, as the recovered job walked it",
+  "silentIn": ["selector-b.md", "README.md", "shape-sample-twenty.md"],
+  "evidence": "rebuilding twenty's population under this rule with the packages/twenty-server/src/ prefix reproduces twenty-server-population.shas identically, in order, 5689 of 5689, first identifier 2769f54b959a in both",
+  "consequence": "the FILE is the draw universe, not the command; each list's sha256, parsed record count and repository HEAD are recorded"
+ },
+ "labelOnTheTwelveRowMatch": {
+  "isA": "a test of corpus stability and of this implementation",
+  "isNot": "corroboration that the definition of path population is right",
+  "honestLegsClaimed": [
+   "two prose-against-code checks, both passed",
+   "order-identical reproduction of twenty-server-population.shas, a different artifact built by a different script"
+  ]
+ },
+ "negativeWitness": {
+  "why": "the reproduction check had no negative witness, so its discriminating power was assumed rather than measured; every other gate in this measurement earns one (#212 five negative fixtures, #213 fixture 19, the blind reader's planted live key and placeholder)",
+  "departureMeasuredAgainst": "this instrument's own unperturbed run of the same repository, never the sizing table",
+  "noRestorationStep": "the harness imports and reads the tracked constants and passes its own perturbed copies as parameters; nothing is perturbed in place, so no restore line can be skipped; digests asserted identical before and after",
+  "arms": [
+   {
+    "arm": "W1a", "repository": "discourse",
+    "perturbation": "SKIP replaced by the widened secrets-exposure copy (scripts?, e2e, e2e-*, api[_-]tests, app-tests)",
+    "notSynthetic": "this is the rule a future session gets by resolving the symbol against secrets-exposure.detector.ts",
+    "predicted": {"path_population": "decrease", "excluding_generated": "decrease"}
+   },
+   {
+    "arm": "W1b", "repository": "grafana",
+    "perturbation": "a _test\\.go$ basename exclusion added, one sub-rule only",
+    "predicted": {"path_population": "decrease", "excluding_generated": "decrease"}
+   },
+   {
+    "arm": "W1b", "repository": "gitea",
+    "perturbation": "same single sub-rule",
+    "predicted": {"path_population": "decrease", "excluding_generated": "decrease"}
+   },
+   {
+    "arm": "W2", "repository": "twenty",
+    "perturbation": "GEN with locales? dropped",
+    "predicted": {"path_population": "unchanged", "excluding_generated": "increase"}
+   },
+   {
+    "arm": "W2", "repository": "caddy",
+    "perturbation": "GEN with locales? dropped",
+    "blindRegion": "caddy's path-population and excluding-generated columns are equal in the sizing table, so GEN removes nothing there and no perturbation of it can depart; four of twelve repositories are in this state (caddy, full-stack-fastapi-template, hoppscotch, langchain)",
+    "predicted": {"path_population": "unchanged", "excluding_generated": "unchanged"}
+   },
+   {
+    "arm": "W3", "repository": "twenty",
+    "perturbation": "semantics changed to drop-if-any-generated, a perturbation of the READING rather than of a regex character",
+    "predicted": {"path_population": "unchanged", "excluding_generated": "decrease"}
+   }
+  ],
+  "boundCheckedOnEveryArm": "the excluding-generated count can never exceed the path-population count",
+  "consequenceIfAnyPredictedDepartureFails": "STOP: reported, not repaired in the same execution, and the twelve-repository run does not follow; the harness exits non-zero",
+  "r12": "each result is earned only for the repository it ran on"
+ },
+ "run": {
+  "repositories": 12,
+  "arms": ["as_recovered", "no_renames"],
+  "population": "the as-recovered arm, because it is the instrument that produced the committed sizing table",
+  "control": "no_renames; a per-repository divergence is a recorded property of the universe, not a defect to repair",
+  "env": "GIT_NO_LAZY_FETCH=1 on every git invocation",
+  "headRule": "captured before and after each repository's walk; a difference aborts that repository and no other; a later HEAD change re-opens that repository's draw and nothing else",
+  "atomicity": "each repository's two lists and its JSON are written the moment that repository completes, through a temporary name, so a halt at a repository boundary loses nothing and leaves no partial list",
+  "recordCounts": "parsed, never wc -l; lists written with a trailing newline, after the 5688-against-5689 discrepancy already in a landed artifact",
+  "listsUntracked": "../drafts-2026-09-11-tree-scan/, following the twenty-server-population.shas precedent",
+  "drawUniverse": "the excluding-generated list; the sizing table's twelve rows sum to 157996"
+ },
+ "sizingTableBaselines": {
+  "note": "recorded here for reference only; the witness compares against the instrument's own unperturbed run, not against these",
+  "caddy": [2663, 2234, 2234],
+  "discourse": [64257, 33558, 33251],
+  "documenso": [3696, 2621, 2612],
+  "full-stack-fastapi-template": [1509, 236, 236],
+  "gitea": [20488, 12489, 12257],
+  "grafana": [68750, 48805, 48515],
+  "hoppscotch": [5149, 2387, 2387],
+  "langchain": [16638, 9805, 9805],
+  "mastodon": [21811, 10753, 10634],
+  "plane": [6667, 5845, 5829],
+  "strapi": [26173, 18677, 18489],
+  "twenty": [15344, 12759, 11747]
+ }
+}
