@@ -527,3 +527,38 @@ must reset to the replayed commit. Then the required checks run on #222 for the 
 are witnessed from the API under app id 15368, not assumed. Only after that: #223 and #222 land
 on the owner's order, then W2-prime on twenty/`build` as the exact point prediction 11,747 to
 11,758, then the twelve-repository walk, then stage P.
+
+## The #222 push, witnessed from the remote (2026-09-12)
+
+The force-push was run by the owner from his own PowerShell, not from this session, whose
+permission layer refused it twice. Reported as a forced update, `--force-with-lease` did not
+object, and main was not touched. Everything below is read from the API, nothing from a local
+checkout.
+
+IDENTITY PRESERVED ACROSS THE PUSH. #222's head reads `29b67aab4fd363a8b00237d44e233402a4ca34ea`
+with tree `9d862fbe5a4345d8543c66eefb85f14dca860b46` and parent `0eb86f59`, each identical to
+what was verified locally before the push. The three measured blobs read on the server exactly
+as asserted in the working tree: census artifact `cd295633`, `gen_segment_census.py` `8c96433a`,
+`path_population.py` `2526845a`. The push is therefore witnessed as content-preserving on the
+server side and not only locally.
+
+THE CONVERSION THIS STEP EXISTED FOR IS COMPLETE. On the pushed head, under app id 15368:
+`build + typecheck + tests (20.x)` success, `build + typecheck + tests (22.x)` success,
+`gitleaks + pattern scan` success. Both node versions ran on this content for the first time;
+while #222 was stacked it had received `gitleaks + pattern scan` alone, because `ci.yml` fires
+only for pull requests targeting main. The local `npm test` pass recorded earlier was a local
+witness and is now superseded by the required checks rather than standing in for them. #222 left
+CONFLICTING and reads `mergeable_state: clean`, state OPEN. main is unmoved at `0eb86f59` with
+tree `674d0ca0`.
+
+NEXT COMMANDABLE STEP: the owner's merge order for #223 and #222, in that order. #223 carries
+the #221 merge record and the owed assertion-4 ledger entry filed as a third arm; #222 carries
+the census. Merging #223 first keeps the record ahead of the result and avoids a second rebase,
+since #222's only conflict surface with #223 is `HANDOFF.md`, which #223 touches at end of file
+and #222 touches at the title, before "Next actions", and at item 4. Only after both land:
+W2-prime on twenty/`build` as the exact point prediction 11,747 to 11,758, then the
+twelve-repository walk, then stage P.
+
+RESIDUAL ON THIS ENTRY: the step that produced it forbade pushing, so the commit carrying this
+block is LOCAL ONLY at the time of writing and is not yet a durable record. It reaches the
+remote with the next push of `docs/handoff-221-merged-2026-09-12`.
