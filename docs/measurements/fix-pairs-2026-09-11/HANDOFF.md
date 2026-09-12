@@ -448,3 +448,117 @@ exits non-zero on failure, and the commit is the last line of that script, so no
 be joined after a failure with a semicolon. A gate that cannot stop the chain is
 decoration. The session's script is `commit-gated.sh` (extra checks, the both-ways
 replay, staged-blob hash match, then commit, then push).
+
+## PR #221 MERGED (2026-09-12)
+
+New main: 0eb86f59e5028b3ae573079dcb3fdf161e27a615, subject carrying (#221). The four
+assertions, every one read from the API after the merge and none from a local checkout:
+(1) squash sha on main as above; (2) THE STRONG ONE, main's tree equals the head tree
+captured BEFORE the merge, 674d0ca00b54d2ef194df66a49a4fb4585454fad, EQUAL; (3) head ref
+404, which `delete_branch_on_merge` satisfies server-side and which is therefore no
+evidence about the client; (4) the LOCAL ref SURVIVED while `gh` exited 0 and printed
+nothing, the outcome the existing annotation says to expect and to check rather than
+assume. A per-arm ledger entry for that observation is OWED in
+`docs/REMEDIATION-PROGRESS.md` and was NOT written here: no order covered it, and the
+ledger is that file's, not this one's.
+
+A FOURTH GATE LEG was added before merging and is recorded so the next merge keeps it. The
+stated triple gate had no leg for "main has not moved", yet the strong assertion depends on
+it entirely. main read 3bb96c9 from the remote, equal to the branch point, so the squash
+tree had to equal the captured tree. Without that leg a moved main forces a STOP for
+something that is not a defect in the pull request.
+
+MERGED IS NOT DEPLOYED, AND YET A MERGE DEPLOYS. #221 touched only
+`docs/measurements/**`, so `pages.yml`, whose push trigger is path-filtered to `landing/**`,
+did NOT fire and the published landing page is unchanged. Two PRODUCTION deployments were
+nevertheless created against the merge commit, `Production` and `amusing-trust / production`:
+those integrations are configured outside the workflow files and are not path-filtered, so
+ANY merge to main here deploys production, a documentation-only merge included. What
+deployed is byte-identical application behaviour, since no product code changed. `CI` and
+`secrets` re-ran on main.
+
+PR #222 WAS RETARGETED BY THE MERGE, WITHOUT BEING TOUCHED. `delete_branch_on_merge` is
+true, so #221's head branch was deleted and GitHub moved #222's base from
+`measure/path-population-2026-09-12` to `main` on its own. #222 now reads
+`mergeable_state: dirty`, as predicted: this repository squash-merges, so the squash commit
+is not an ancestor of the census branch and its diff no longer applies. Expected, and not a
+defect in #222.
+
+NEXT COMMANDABLE STEP: rebase `measure/gen-segment-census-2026-09-12` onto the new main,
+which also makes its two required checks run for the first time. `ci.yml` triggers only on
+pull requests targeting main, so while #222 was stacked it received `gitleaks + pattern scan`
+alone; `npm test` was run locally on that branch and passed, which is a local witness and not
+the required check. The handoff edit that belongs with the census lands in that same beat.
+Only after that: W2-prime on twenty/`build` as the exact point prediction 11,747 to 11,758,
+then the twelve-repository walk, then stage P.
+
+## The #222 rebase: done locally, PUSH BLOCKED (2026-09-12)
+
+`git rebase --onto main b52634b` on `measure/gen-segment-census-2026-09-12` replayed the single
+census commit onto main. **ZERO conflicts**, as predicted, and the prediction's basis was read
+from the remote first: main `0eb86f59` with tree `674d0ca0`, and `b52634b`'s tree also
+`674d0ca0`, so the replay had nothing to reconcile. New local commit `29b67aab`, parent
+`0eb86f59`.
+
+CONTENT UNCHANGED, asserted three ways rather than assumed. The replayed tree is
+`9d862fbe5a4345d8543c66eefb85f14dca860b46`, identical to the pre-rebase commit's tree. The
+measured files are byte-identical by blob: census artifact `cd295633`, `gen_segment_census.py`
+`8c96433a`, `path_population.py` `2526845a`. And the three constants hash exactly as they did
+when the census imported them, agreeing across four places at once: the replayed instrument, the
+census artifact's `constants_before` and `constants_after`, and the pre-registration now on main
+(EXT `8685bb02`, SKIP `20506ff8`, GEN `1e7ac9af`). Census values intact: twenty 12,759 / 11,747 /
+1,012, `locales` 1,072/995/0, `build` 121/11/11, twelve repositories, 0 union mismatches.
+
+**THE PUSH IS BLOCKED AND THE STEP IS THEREFORE INCOMPLETE.** `git push --force-with-lease` was
+refused by this environment's permission layer, twice, so the remote branch still points at the
+pre-rebase commit `fde62da` and #222 still reads `mergeable_state: dirty`. The conversion this
+step exists for has NOT happened: #222 has still never been checked by `build + typecheck +
+tests` under app id 15368, because `ci.yml` fires only for pull requests targeting main and #222
+was stacked until the #221 merge retargeted it. `npm test` passed locally on this content, which
+is a local witness and not the required check, and it is not offered as one.
+
+NEXT COMMANDABLE STEP: the owner runs the force-push himself, from the repository root, which
+rewrites ONLY this branch and touches nothing on main:
+
+    git push --force-with-lease origin measure/gen-segment-census-2026-09-12
+
+It rewrites history on a branch with no other known consumer; anyone who had fetched `fde62da`
+must reset to the replayed commit. Then the required checks run on #222 for the first time and
+are witnessed from the API under app id 15368, not assumed. Only after that: #223 and #222 land
+on the owner's order, then W2-prime on twenty/`build` as the exact point prediction 11,747 to
+11,758, then the twelve-repository walk, then stage P.
+
+## The #222 push, witnessed from the remote (2026-09-12)
+
+The force-push was run by the owner from his own PowerShell, not from this session, whose
+permission layer refused it twice. Reported as a forced update, `--force-with-lease` did not
+object, and main was not touched. Everything below is read from the API, nothing from a local
+checkout.
+
+IDENTITY PRESERVED ACROSS THE PUSH. #222's head reads `29b67aab4fd363a8b00237d44e233402a4ca34ea`
+with tree `9d862fbe5a4345d8543c66eefb85f14dca860b46` and parent `0eb86f59`, each identical to
+what was verified locally before the push. The three measured blobs read on the server exactly
+as asserted in the working tree: census artifact `cd295633`, `gen_segment_census.py` `8c96433a`,
+`path_population.py` `2526845a`. The push is therefore witnessed as content-preserving on the
+server side and not only locally.
+
+THE CONVERSION THIS STEP EXISTED FOR IS COMPLETE. On the pushed head, under app id 15368:
+`build + typecheck + tests (20.x)` success, `build + typecheck + tests (22.x)` success,
+`gitleaks + pattern scan` success. Both node versions ran on this content for the first time;
+while #222 was stacked it had received `gitleaks + pattern scan` alone, because `ci.yml` fires
+only for pull requests targeting main. The local `npm test` pass recorded earlier was a local
+witness and is now superseded by the required checks rather than standing in for them. #222 left
+CONFLICTING and reads `mergeable_state: clean`, state OPEN. main is unmoved at `0eb86f59` with
+tree `674d0ca0`.
+
+NEXT COMMANDABLE STEP: the owner's merge order for #223 and #222, in that order. #223 carries
+the #221 merge record and the owed assertion-4 ledger entry filed as a third arm; #222 carries
+the census. Merging #223 first keeps the record ahead of the result and avoids a second rebase,
+since #222's only conflict surface with #223 is `HANDOFF.md`, which #223 touches at end of file
+and #222 touches at the title, before "Next actions", and at item 4. Only after both land:
+W2-prime on twenty/`build` as the exact point prediction 11,747 to 11,758, then the
+twelve-repository walk, then stage P.
+
+RESIDUAL ON THIS ENTRY: the step that produced it forbade pushing, so the commit carrying this
+block is LOCAL ONLY at the time of writing and is not yet a durable record. It reaches the
+remote with the next push of `docs/handoff-221-merged-2026-09-12`.
