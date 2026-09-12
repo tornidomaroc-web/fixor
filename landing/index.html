@@ -136,6 +136,162 @@
       .hero {
         text-align: center;
         padding-top: clamp(2.5rem, 6vw, 4rem);
+        padding-bottom: clamp(1.5rem, 4vw, 2.5rem);
+      }
+
+      /* Measured-numbers section: seated directly under the hero's install button. */
+      #measured {
+        padding-top: 0;
+      }
+      #measured .section-sub {
+        margin-bottom: 1.5rem;
+      }
+      /* One framed panel: the table on top, the note and the limits inside the same
+         frame beneath it, so a reader who stops at the table has still seen the limits. */
+      .measured-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-bottom: 0;
+        border-radius: var(--radius) var(--radius) 0 0;
+        overflow: hidden;
+      }
+      .measured-table th,
+      .measured-table td {
+        padding: 0.9rem 1rem;
+        text-align: left;
+        vertical-align: bottom;
+        border-bottom: 1px solid var(--border);
+      }
+      .measured-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding-top: 0.8rem;
+        padding-bottom: 0.6rem;
+      }
+      .measured-table tbody th {
+        font-weight: 500;
+        font-size: 0.95rem;
+        color: var(--text);
+        white-space: nowrap;
+      }
+      .measured-table tbody td {
+        font-family: var(--font-mono);
+        font-size: clamp(1.35rem, 2.6vw, 1.85rem);
+        font-weight: 600;
+        line-height: 1.1;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .measured-table tbody td[data-label="Real credentials"] {
+        color: var(--accent);
+      }
+      .measured-note {
+        margin: 0;
+        padding: 0.85rem 1rem;
+        background: var(--bg-elevated);
+        border-left: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      .measured-limits {
+        margin: 0 0 1.5rem;
+        padding: 0.25rem 1rem 0.5rem;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-top: 1px dashed var(--border);
+        border-radius: 0 0 var(--radius) var(--radius);
+      }
+      .measured-limits dt {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0.85rem 0 0.25rem;
+      }
+      .measured-limits dd {
+        margin: 0;
+        font-size: 0.92rem;
+        color: var(--text-muted);
+      }
+      .measured-unmeasured {
+        margin: 0 0 1rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 0.95rem;
+        color: var(--text-muted);
+      }
+      .measured-unmeasured strong {
+        color: var(--text);
+      }
+      .measured-footer {
+        margin: 0;
+        text-align: center;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      @media (min-width: 600px) {
+        .measured-table tbody td {
+          text-align: right;
+        }
+        .measured-table thead th:not(:first-child) {
+          text-align: right;
+        }
+      }
+      /* Below phone width the header row hides and each corpus row becomes a card of
+         four labelled figures; the labels come from the cells' data-label attributes. */
+      @media (max-width: 599px) {
+        .measured-table thead {
+          display: none;
+        }
+        .measured-table,
+        .measured-table tbody {
+          display: block;
+        }
+        .measured-table tbody tr {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.25rem 1rem;
+          padding: 0.9rem 1rem 1rem;
+          border-bottom: 1px solid var(--border);
+        }
+        .measured-table th,
+        .measured-table td {
+          display: block;
+          padding: 0;
+          border-bottom: 0;
+        }
+        .measured-table tbody th {
+          grid-column: 1 / -1;
+          white-space: normal;
+          margin-bottom: 0.35rem;
+        }
+        .measured-table tbody td::before {
+          content: attr(data-label);
+          display: block;
+          font-family: var(--font-mono);
+          font-size: 0.62rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          white-space: nowrap;
+          color: var(--text-muted);
+          margin-bottom: 0.15rem;
+        }
+        .measured-table tbody td {
+          font-size: 1.5rem;
+          padding-bottom: 0.4rem;
+        }
       }
 
       .hero h1 {
