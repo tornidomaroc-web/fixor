@@ -86,6 +86,16 @@ interface PrefilterPattern {
   explanation: string;
 }
 
+/**
+ * A PUBLISHED SENTENCE DEPENDS ON THIS ARRAY AND ON SKIP_PATH_RE / SKIP_FILE_RE
+ * BELOW. The secrets-exposure licensed sentence (HANDOFF.md in
+ * docs/measurements/fix-pairs-2026-09-11/, "Licensed sentence per detector")
+ * was measured on 2026-09-12 against exactly these 16 patterns and exactly that
+ * skip rule (detector blob 405c85e8). Editing either makes the sentence false
+ * until both false-alarm corpora are re-measured and the sentence is rewritten;
+ * withdraw it first, then change, then re-measure. L-023 in
+ * docs/REMEDIATION-PROGRESS.md carries the same invalidation for the patterns.
+ */
 const PREFILTER_PATTERNS: PrefilterPattern[] = [
   {
     id: "supabase_service_role",
