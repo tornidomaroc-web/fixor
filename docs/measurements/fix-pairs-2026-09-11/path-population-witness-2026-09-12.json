@@ -1,0 +1,254 @@
+{
+ "measurement": "negative witness for path_population.py",
+ "date": "2026-09-12",
+ "zeroSpend": true,
+ "apiKeyPresent": false,
+ "isA": "a measurement of whether the reproduction check departs when the rule is deliberately wrong, on the repositories named and no others",
+ "isNot": "evidence that the definition of path population is right, and not a result transferable to any repository not listed here (R12)",
+ "constants_before": {
+  "EXT": {
+   "pattern": "\\.(js|jsx|ts|tsx|py|go|rb|java|kt)$",
+   "flags": "IGNORECASE",
+   "sha256": "8685bb027fc2a5bba06b453ee5ea9c1746c07036db2a6b83b3182aa20852a577"
+  },
+  "SKIP": {
+   "pattern": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "20506ff8246d8c64d3ea5fa465f058069083fb0bc070cda24536fdcf4e3d2652"
+  },
+  "GEN": {
+   "pattern": "(^|/)(generated|locales?|i18n|translations?|vendor|node_modules|dist|build)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "1e7ac9af47308900eaff62980110adc9a4920ab12785940118e33ef810fa5aa4"
+  }
+ },
+ "constants_after": {
+  "EXT": {
+   "pattern": "\\.(js|jsx|ts|tsx|py|go|rb|java|kt)$",
+   "flags": "IGNORECASE",
+   "sha256": "8685bb027fc2a5bba06b453ee5ea9c1746c07036db2a6b83b3182aa20852a577"
+  },
+  "SKIP": {
+   "pattern": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "20506ff8246d8c64d3ea5fa465f058069083fb0bc070cda24536fdcf4e3d2652"
+  },
+  "GEN": {
+   "pattern": "(^|/)(generated|locales?|i18n|translations?|vendor|node_modules|dist|build)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "1e7ac9af47308900eaff62980110adc9a4920ab12785940118e33ef810fa5aa4"
+  }
+ },
+ "tracked_constants_untouched": true,
+ "git": "git version 2.53.0.windows.2",
+ "arms": [
+  {
+   "arm": "W1a",
+   "repository": "discourse",
+   "rationale": "SKIP replaced by the widened secrets copy; strictly wider, so both columns can only fall. discourse carries script/import_scripts/, singular, which the recovered SKIP does not exclude and the widened one does.",
+   "perturbation": {
+    "skip": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts?|dev-tools|migrations?|seed|seeds|demo|e2e|e2e-[a-z0-9-]+|api[_-]tests|app-tests)(/|$)"
+   },
+   "baseline": {
+    "path_population": 33558,
+    "excluding_generated": 33251
+   },
+   "perturbed": {
+    "path_population": 32678,
+    "excluding_generated": 32370
+   },
+   "predicted": {
+    "path_population": "decrease",
+    "excluding_generated": "decrease"
+   },
+   "observed": {
+    "path_population": "decrease",
+    "excluding_generated": "decrease"
+   },
+   "prediction_holds": true,
+   "bound_holds": true
+  },
+  {
+   "arm": "W1b",
+   "repository": "grafana",
+   "rationale": "A _test.go basename exclusion the recovered rule has not got at all. Go repository.",
+   "perturbation": {
+    "skip": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)   ||basename:_test\\.go$"
+   },
+   "baseline": {
+    "path_population": 48805,
+    "excluding_generated": 48515
+   },
+   "perturbed": {
+    "path_population": 48052,
+    "excluding_generated": 47760
+   },
+   "predicted": {
+    "path_population": "decrease",
+    "excluding_generated": "decrease"
+   },
+   "observed": {
+    "path_population": "decrease",
+    "excluding_generated": "decrease"
+   },
+   "prediction_holds": true,
+   "bound_holds": true
+  },
+  {
+   "arm": "W1b",
+   "repository": "gitea",
+   "rationale": "Same single sub-rule, second Go repository.",
+   "perturbation": {
+    "skip": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)   ||basename:_test\\.go$"
+   },
+   "baseline": {
+    "path_population": 12489,
+    "excluding_generated": 12257
+   },
+   "perturbed": {
+    "path_population": 12241,
+    "excluding_generated": 11998
+   },
+   "predicted": {
+    "path_population": "decrease",
+    "excluding_generated": "decrease"
+   },
+   "observed": {
+    "path_population": "decrease",
+    "excluding_generated": "decrease"
+   },
+   "prediction_holds": true,
+   "bound_holds": true
+  },
+  {
+   "arm": "W2",
+   "repository": "twenty",
+   "rationale": "GEN narrowed, so more commits keep a non-generated qualifying file. The excluding-generated column can only rise, bounded above by the path-population column, which GEN does not touch. twenty has the largest gap in the corpus.",
+   "perturbation": {
+    "gen": "(^|/)(generated|i18n|translations?|vendor|node_modules|dist|build)(/|$)"
+   },
+   "baseline": {
+    "path_population": 12759,
+    "excluding_generated": 11747
+   },
+   "perturbed": {
+    "path_population": 12759,
+    "excluding_generated": 11747
+   },
+   "predicted": {
+    "path_population": "unchanged",
+    "excluding_generated": "increase"
+   },
+   "observed": {
+    "path_population": "unchanged",
+    "excluding_generated": "unchanged"
+   },
+   "prediction_holds": false,
+   "bound_holds": true
+  },
+  {
+   "arm": "W2",
+   "repository": "caddy",
+   "rationale": "THE BLIND REGION. caddy path-population equals excluding-generated in the sizing table, so GEN removes nothing there and no perturbation of it can depart. Recorded, not hidden: the check has no power against a broken GEN in this repository.",
+   "perturbation": {
+    "gen": "(^|/)(generated|i18n|translations?|vendor|node_modules|dist|build)(/|$)"
+   },
+   "baseline": {
+    "path_population": 2234,
+    "excluding_generated": 2234
+   },
+   "perturbed": {
+    "path_population": 2234,
+    "excluding_generated": 2234
+   },
+   "predicted": {
+    "path_population": "unchanged",
+    "excluding_generated": "unchanged"
+   },
+   "observed": {
+    "path_population": "unchanged",
+    "excluding_generated": "unchanged"
+   },
+   "prediction_holds": true,
+   "bound_holds": true
+  },
+  {
+   "arm": "W3",
+   "repository": "twenty",
+   "rationale": "The READING, not a regex character: \"drop the commit if any qualifying file is generated\" instead of \"keep it if any qualifying file is not\". Strictly stronger exclusion, so the column can only fall.",
+   "perturbation": {
+    "gen_semantics": "drop-if-any-generated"
+   },
+   "baseline": {
+    "path_population": 12759,
+    "excluding_generated": 11747
+   },
+   "perturbed": {
+    "path_population": 12759,
+    "excluding_generated": 10390
+   },
+   "predicted": {
+    "path_population": "unchanged",
+    "excluding_generated": "decrease"
+   },
+   "observed": {
+    "path_population": "unchanged",
+    "excluding_generated": "decrease"
+   },
+   "prediction_holds": true,
+   "bound_holds": true
+  }
+ ],
+ "every_prediction_holds": false,
+ "plumbingAssertionRunAfterTheArms": {
+  "why": "both W2 arms returned unchanged, which is also what a gen= override that never took effect would produce; reporting a STOP requires knowing the stop is real",
+  "assertion": "a GEN matching every path must collapse the excluding-generated column to 0 if gen= is live",
+  "repository": "twenty",
+  "baseline": [
+   12759,
+   11747
+  ],
+  "genMatchesAll": [
+   12759,
+   0
+  ],
+  "genParameterIsLive": true,
+  "recordedAsAfterTheFact": "run after the arms, not before; it verifies the harness, it is not an arm and carries no pre-registered prediction"
+ },
+ "stop": {
+  "fired": true,
+  "arm": "W2-twenty",
+  "predicted": "increase in the excluding-generated column when locales? is dropped from GEN",
+  "observed": "unchanged, 11747 to 11747",
+  "consequence": "the twelve-repository run did not follow; the ordered sha lists do not exist; stage P cannot draw",
+  "ambiguity": "the failure does not distinguish between (a) the prediction about WHICH GEN segment carries twenty bite was wrong and (b) the check is blind to a GEN perturbation on twenty. Disambiguating needs a NEW pre-registered prediction. Choosing one after seeing the number would be fitting a rule to a result, which is what the witness exists to prevent, so the session does not choose.",
+  "notRepaired": "nothing was adjusted, re-predicted or re-run to make this arm pass"
+ },
+ "baselinesAgainstTheSizingTable": {
+  "note": "labelled per the pre-registration: a test of corpus stability and of this implementation, NOT corroboration that the definition is right",
+  "reproducedExactly": {
+   "discourse": [
+    33558,
+    33251
+   ],
+   "grafana": [
+    48805,
+    48515
+   ],
+   "gitea": [
+    12489,
+    12257
+   ],
+   "twenty": [
+    12759,
+    11747
+   ],
+   "caddy": [
+    2234,
+    2234
+   ]
+  },
+  "rowsWalked": 5,
+  "rowsInTable": 12
+ }
+}
