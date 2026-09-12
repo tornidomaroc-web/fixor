@@ -2369,9 +2369,10 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #172 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #221 | from a THIRD branch, a descendant of the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #223 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #222 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
-**Totals, amended 2026-09-12 for #223: the arm invoked FROM the merged branch is 5
-observations, 2 green and 3 red; the already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
+**Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
+already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
 firmer than it is: **#141's arm is not separately recorded anywhere.** It sits in the
 already-checked-out arm on the #143 block's own framing, which cites #141 as the case a merge NOT
 driven from the branch produces. Every other row's arm is recorded at the observation itself.
@@ -2397,8 +2398,14 @@ moved main forces a STOP for something that is not a defect in the pull request.
 **#223 MOVES THE "FROM THE MERGED BRANCH" TOTALS, AND #221's ROW STILL DOES NOT (2026-09-12).**
 `gh pr merge 223 --squash` was invoked while HEAD sat on `docs/handoff-221-merged-2026-09-12`,
 which is #223's own head branch, so this observation is squarely in the FROM-the-merged-branch
-arm and the totals sentence above is amended deliberately: that arm goes from 4 observations, 2
-green and 2 red, to 5 observations, 2 green and 3 red. Assertion 4 was **RED** — `git branch
+arm. CORRECTED 2026-09-12, in the same beat as the #222 row below and before either reached
+main: this entry first rewrote the dated 2026-08-15 COUNT UPDATE above to carry the new
+observation, which this file's own rule forbids - counts move in the table and nowhere else,
+and a dated prose count is a record of what was known when it was written. That rewrite is
+reverted and the 2026-08-15 sentence stands byte for byte as it was. Its arithmetic was wrong
+in any case: the table's FROM-the-merged-branch rows are #143 and #160 green and #171, #173,
+#174 and #172 red, so with #223 the arm reads 7 observations, 2 green and 5 red, not the 5 and
+2-and-3 first written here. Read that from the table. Assertion 4 was **RED** — `git branch
 --show-current` still returned the merged branch while `gh` exited 0 and printed nothing.
 Assertion 2, the only strong one, held: main's tree equalled `a7008fd8`, the head tree captured
 before the merge, and main moved to `17fd02df`.
@@ -2413,6 +2420,29 @@ What the two observations together do NOT establish: any cause. The FROM-the-mer
 now holds both greens and reds under the same recorded tool versions, so the arm does not
 predict the outcome any more than the tool version does. This entry adds an observation to the
 ledger and no explanation to it.
+
+**#222 IS A SECOND OBSERVATION IN THE THIRD ARM, AND IT SUPPORTS NOTHING NEW (2026-09-12).**
+`gh pr merge 222 --squash` was invoked while HEAD sat on `docs/assertion4-223-record-2026-09-12`,
+which is neither the merged branch nor the base. That was READ with `git branch --show-current`
+at merge time rather than inferred, and the read is what places the observation in the third arm
+instead of either of the two. Assertion 4 was **RED**: `measure/gen-segment-census-2026-09-12`
+survived locally while `gh` exited 0 and printed nothing. Assertion 2, the only strong one, held:
+main's tree equalled `8a13bf1d`, the head tree captured before the merge, and the three measured
+census blobs read unchanged on main after the squash.
+
+As of this entry the third arm holds two observations, both RED. That figure is stated here as a
+dated record and the table remains the only place to read a count from; **the two-arm totals
+sentence is NOT touched**, because it is a dated 2026-08-15 record and this file forbids
+rewriting a dated count to match the table.
+
+WHAT TWO OF TWO SUPPORTS, WHICH IS NOTHING THE FIRST DID NOT. Against this table's own base
+rate, RED is 10 of 12 observations, so an all-RED arm of two is unremarkable: it does not
+separate "this arm produces RED" from "RED is simply the common outcome". Both third-arm
+observations carry identical recorded tool versions, and the FROM-the-merged-branch arm holds
+greens AND reds under those same versions, so nothing in the recorded environment distinguishes
+the arms either. And this measurement publishes no count under ten, which a two-observation arm
+is not. The arm predicts the outcome no better than the tool version does - the same sentence
+this ledger already carries about the other arm, and it is repeated rather than softened.
 
 **VERSION CONSTANCY, AND WHAT IT EXCLUDES.** Across #143, #171 and #173 the recorded environment is
 the same — gh 2.91.0, git 2.53.0, Windows — and those three span one green and two reds, so **the

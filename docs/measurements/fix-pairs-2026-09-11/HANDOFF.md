@@ -602,3 +602,35 @@ because `strict: true` makes whichever lands second go `behind` and need another
 `update-branch` plus a full check re-run; putting the measurement first spends that cost on the
 smaller change. Only after both: W2-prime on twenty/`build` as the exact point prediction 11,747
 to 11,758, then the twelve-repository walk, then stage P.
+
+## PR #222 MERGED: the census is on main, unaltered (2026-09-12)
+
+New main `69898851f2d605973d4e3f62178ea0bbbc2fa327`. **Tree verdict: EQUAL** - main's tree reads
+`8a13bf1da7c1e687477f61e23ebe72efd545174b`, the head tree captured before the merge.
+
+THE MEASURED ARTIFACT LANDED UNALTERED, which was the point of the whole beat. On main after the
+squash the three blobs read `cd295633`, `8c96433a`, `2526845a`, identical to the digests taken
+when the census was produced. They have now survived a rebase, a merge-update and a squash, each
+verified by server-side blob digest rather than by inspection.
+
+Assertion 4 RED again, in the THIRD arm: HEAD sat on `docs/assertion4-223-record-2026-09-12` at
+merge time, read with `git branch --show-current`. Its ledger entry is in
+`docs/REMEDIATION-PROGRESS.md` and states plainly that two of two in that arm supports nothing
+the first observation did not, RED being 10 of 12 observations across the whole table.
+
+THIRD MEASURED DEPLOY INSTANCE, identical in shape. Checks started 22:36:03; `amusing-trust /
+production` created 22:36:05, two seconds later; `Production` created 22:37:16; `secrets`
+concluded 22:36:20 and `CI` at 22:39:27. Both production deployments were created while the
+required checks were still running, `Production` landing over two minutes before `CI` concluded.
+Recorded for the third time, still unordered, nothing proposed.
+
+RECORDED AGAINST THIS SESSION: the #223 ledger entry, as first written, rewrote the dated
+2026-08-15 COUNT UPDATE to carry a new observation. This file's rule is that counts move in the
+table and nowhere else and that a dated prose count is not rewritten to match it. The rewrite
+was reverted before it reached main, in the same commit as the #222 row, and its arithmetic had
+been wrong as well: the FROM-the-merged-branch arm reads 7 observations, 2 green and 5 red from
+the table, not the 5 and 2-and-3 first written.
+
+NEXT COMMANDABLE STEP: merge #224 once its re-run checks conclude green under app id 15368.
+After that the records are current and the measurement resumes: W2-prime on twenty/`build` as
+the exact point prediction 11,747 to 11,758, then the twelve-repository walk, then stage P.
