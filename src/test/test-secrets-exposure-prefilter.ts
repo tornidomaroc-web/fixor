@@ -164,6 +164,16 @@ const PREMODEL_DROP_EXPECTED: ReadonlyArray<readonly [string, string]> = [
   ["negative/11-openai-project-key-placeholder.ts", "no regex match"],
   ["negative/12-google-api-key-placeholder.ts", "no regex match"],
   ["negative/13-stripe-publishable-placeholder.ts", "no regex match"],
+  // 2026-09-12: one negative per path class the secrets copy of SKIP_PATH_RE added
+  // (design (a) of secrets-skip-list-prereg-2026-09-12.md). Each carries a
+  // password literal that WOULD fire password_literal if the path rule did not
+  // drop it first, so each is a negative control on its own segment, not a
+  // no-regex-match fixture wearing a test path.
+  ["negative/14-import-script-placeholder.rb", "path filter"],
+  ["negative/15-e2e-login-flow.ts", "path filter"],
+  ["negative/16-api-tests-shared-creds.ts", "path filter"],
+  ["negative/17-app-tests-team-email.ts", "path filter"],
+  ["negative/18-spec-file-outside-test-dir.ts", "path filter"],
 ];
 
 let failures = 0;
