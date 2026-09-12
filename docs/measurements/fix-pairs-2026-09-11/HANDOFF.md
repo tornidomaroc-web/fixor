@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (eleventh revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (twelfth revision)
 
 ## The published sentence, and the two edits that withdraw it
 
@@ -283,7 +283,7 @@ frame, the five unmeasured detectors as their own block, a footer to `docs/measu
 laid out with the figures as figures and stacked cards below phone width, read at 390 and
 1100 pixels in local frames (the device reading is the owner's). The four / admin-check
 minus three / secrets-never split reads exactly once on the page, beside the numbers.
-Publication is the owner's, after his own phone reading. THE NEXT ACT IS THE DRAW: stage P
+After the owner’s phone reading (#220): every heading swept against the removed verbs (two fixed: step 02 now "Fixor checks", the features title now "What ships with every scan"); the sample report reflows below 600px instead of scrolling; the headline is "A second reviewer for every pull request.", two lines at 390px. PAGE WORK CLOSED. Chosen not to do, so it is not rediscovered as a defect: the security page’s subprocessor row says Anthropic handles "diff analysis" without noting that the secrets check sends nothing to Anthropic; true as written, optional precision, left. Publication is the owner's, after his own phone reading. THE NEXT ACT IS THE DRAW: stage P
 of selector B (item 4 below), on the owner's command; the next session starts there, on
 the measurement, not on the page.
 
