@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (eighth revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (ninth revision)
 
 This file is the durable state of the measurement. It lives beside the pre-registrations
 because they are the only tracked, swept surface the measurement has: CLAUDE.md is
@@ -184,7 +184,7 @@ slack_webhook_hardcoded (`PREFILTER_PATTERNS` in `secrets-exposure.detector.ts`)
 | admin-check | catch, miss, false alarm on fix pairs, about 24 commits under the cap; literal tier keyless | "On N real fixes in mature open source it caught k and missed m, with f false alarms on the fixed files" |
 | idor | same, about 24 commits | same, with the single-file co-location bound stated beside it |
 | auth-bypass | same, about 12 commits, borderline for the floor | same if the floor holds; a case list and no number if not |
-| secrets-exposure | ROW COMPLETE 2026-09-12, all on the shipped path, one instrument (detector blob f28118cf after the skip-list change, #212), no spend: shape coverage 5 of 208 gitleaks 8.24.3 default rules covered and 2 partly, 9 of 16 patterns with a counterpart, 7 without (`secrets-shape-coverage-2026-09-12.json`); false alarms after the change (`secrets-false-alarms-remeasure-2026-09-12.json`): 13 step-4 clones 35 flags on 65,566 files, 35 wrong, 0 real; 43 ICP repositories 5 flags on 4,772 files, 2 wrong, 3 real in one repository; before the change, on main's instrument, 58 and 12 (`secrets-false-alarms-2026-09-12.json`, `secrets-false-alarms-icp-2026-09-12.json`); fixture catch 16 of 16 positives, 0 of 18 negatives flagged | "Fixor's secrets check matches sixteen fixed credential shapes and never calls a model: on 4,772 files across 43 public TypeScript and JavaScript repositories of the size and age of a typical customer it raised 5 flags, 2 of them not credentials and 3 of them real API keys; on 65,566 files across 13 mature open-source repositories it raised 35 flags, all 35 not credentials; it flagged 16 of 16 authored positive fixtures and 0 of 18 authored negatives; and of the 208 rules in the gitleaks 8.24.3 default set it covers 5 outright and 2 in part, while carrying 7 shapes that set has no rule for, three credential formats and four exposure contexts; and it does not read files under test, e2e, spec, script or fixture paths, so a credential committed there is not seen, a trade that removed 30 flags across the two corpora, none of them real." Every clause measured on the instrument that ships after #212; the miss class stated in the sentence itself and in the DOES NOT CLAIM row (#212), because a sentence that says the noise dropped without saying what stopped being looked at is the claim shape this measurement exists to remove; the numbers differ from main's earlier readings (12 and 58) only because the secrets copy of the skip list widened, pre-registered then observed path for path; the corpora named; no rate; nothing about what it misses on real code, which is unmeasured and must stay unsaid |
+| secrets-exposure | ROW COMPLETE 2026-09-12, all on the shipped path, one instrument (detector blob 405c85e8 after the two skip-list steps, #212 and #213), no spend: shape coverage 5 of 208 gitleaks 8.24.3 default rules covered and 2 partly, 9 of 16 patterns with a counterpart, 7 without (`secrets-shape-coverage-2026-09-12.json`); false alarms after both steps (`secrets-false-alarms-remeasure-go-tests-2026-09-12.json`): 13 step-4 clones 15 flags on 65,566 files, 15 wrong, 0 real; 43 ICP repositories 5 flags on 4,772 files, 2 wrong, 3 real in one repository; before any change, on main's instrument of the morning, 58 and 12 (`secrets-false-alarms-2026-09-12.json`, `secrets-false-alarms-icp-2026-09-12.json`), and 35 and 5 after the first step (`secrets-false-alarms-remeasure-2026-09-12.json`); fixture catch 16 of 16 positives, 0 of 19 negatives flagged | "Fixor's secrets check matches sixteen fixed credential shapes and never calls a model: on 4,772 files across 43 public TypeScript and JavaScript repositories of the size and age of a typical customer it raised 5 flags, 2 of them not credentials and 3 of them real API keys; on 65,566 files across 13 mature open-source repositories it raised 15 flags, all 15 not credentials; it flagged 16 of 16 authored positive fixtures and 0 of 19 authored negatives; of the 208 rules in the gitleaks 8.24.3 default set it covers 5 outright and 2 in part, while carrying 7 shapes that set has no rule for, three credential formats and four exposure contexts; and it does not read files under test, e2e, spec, script or fixture paths or Go test files, so a credential committed there is not seen, a trade that removed 50 flags across the two corpora, none of them real." Every clause measured on the instrument that ships after #213; the miss class stated in the sentence itself and in the DOES NOT CLAIM row (#212), because a sentence that says the noise dropped without saying what stopped being looked at is the claim shape this measurement exists to remove; the numbers differ from main's earlier readings (12 and 58) only because the secrets copy of the skip list widened, pre-registered then observed path for path; the corpora named; no rate; nothing about what it misses on real code, which is unmeasured and must stay unsaid |
 | env-exposure | keyless reach count; false alarms on reaching files only with approved spend; no catch on real code by any selector we have | "Catches the authored shapes; on M real files it would have judged R and raised F flags"; no catch rate on real code, said plainly |
 | webhook-unverified | the 97 read 2026-09-12: 3 fixes, 3 distinct commits, all discourse (Ruby); the absence consequence did not fire, by one commit; whether the three are admitted as pairs is decided under README.md's admission rules, not here, and 3 is under the 10-commit floor either way | until the floor is met: a case list and no number; the fixture claim stands on the 34 replay recordings; no catch rate on real code, said plainly |
 
@@ -275,11 +275,20 @@ stated beside every verdict count.
    real; ICP 2 wrong, 3 real. The licensed sentence in the table is rewritten to these
    numbers; they differ from the ones measured on main earlier today because of this
    change and for no other reason (blob e50c7c37 before, f28118cf after).
-   NEXT SECRETS STEP, PRE-REGISTERED, NOT RUN: Go `*_test.go` (basename rule
-   `_test\.go$` in the secrets copy). Prediction from the flagged paths: mature 35 to 15
-   (the 20 Go test files: grafana 17, gitea 3), ICP unchanged at 5 (no Go file among its
-   flags). Pass condition: exactly those 20 paths gone, nothing else; anything else is a
-   stop. One change measured at a time.
+   GO `*_test.go` STEP: DONE 2026-09-12 (#213), pre-registered in
+   `secrets-skip-go-tests-prereg-2026-09-12.md` then observed
+   (`secrets-false-alarms-remeasure-go-tests-2026-09-12.json`): mature 35 to 15 flags on
+   the same 65,566 files, exactly the 20 pre-registered paths gone (grafana 17, gitea 3),
+   none added; ICP 5 to 5, nothing removed, nothing added, the three real keys still
+   flagged; fixture 19 (a Go test file with a password literal) fires under a neutral
+   path and drops under its own; gate 35 of 35; controls re-run and passed. Detector blob
+   405c85e8. The miss class (a credential in a Go test file is not detected, deliberately)
+   is stated in the DOES NOT CLAIM row and in the licensed sentence. Every remaining flag
+   was read blind earlier today, verdicts carry over: mature 15 wrong, 0 real; ICP 2
+   wrong, 3 real. No further path step is pre-registered: the 15 remaining mature flags
+   are in source paths (grafana 6, plane 4, hoppscotch 2, twenty 2, mastodon 1) and the
+   next reduction, if any, is pattern work, which re-opens L-023's clearing question and
+   is not a skip-list matter.
 4. STAGE P of selector B: NOT DRAWN. 300 pre-screen positives, 25 per repository, seeds per
    repository HEAD, interleaved with the keyword arm's 150, read blind. Then rounds per
    `selector-b.md`.

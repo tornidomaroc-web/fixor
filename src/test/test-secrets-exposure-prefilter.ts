@@ -174,6 +174,10 @@ const PREMODEL_DROP_EXPECTED: ReadonlyArray<readonly [string, string]> = [
   ["negative/16-api-tests-shared-creds.ts", "path filter"],
   ["negative/17-app-tests-team-email.ts", "path filter"],
   ["negative/18-spec-file-outside-test-dir.ts", "path filter"],
+  // 2026-09-12, second step: Go `*_test.go` (no test-named directory in the Go
+  // convention). Same shape of control as 14 to 18: a password literal that fires
+  // under a neutral path and is dropped under its own.
+  ["negative/19-go-test-file-password.go", "path filter"],
 ];
 
 let failures = 0;

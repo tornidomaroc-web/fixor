@@ -201,12 +201,14 @@ const PREFILTER_PATTERNS: PrefilterPattern[] = [
  * / `*.spec.<ext>` (SKIP_FILE_RE). The other five copies are unchanged on
  * purpose: their fix-pair measurements are in flight on the old rule. Measured
  * effect on the two false-alarm corpora, pre-registered then observed:
- * secrets-false-alarms-remeasure-2026-09-12.json. Go `*_test.go` is NOT here;
- * it is pre-registered as its own step.
+ * secrets-false-alarms-remeasure-2026-09-12.json. Go `*_test.go` joined
+ * SKIP_FILE_RE as its own pre-registered step the same day
+ * (secrets-skip-go-tests-prereg-2026-09-12.md; measured effect in
+ * secrets-false-alarms-remeasure-go-tests-2026-09-12.json).
  */
 const SKIP_PATH_RE =
   /(^|\/)(test|tests|__tests__|spec|fixtures|examples?|scripts?|dev-tools|migrations?|seed|seeds|demo|e2e|e2e-[a-z0-9-]+|api[_-]tests|app-tests)(\/|$)/i;
-const SKIP_FILE_RE = /\.(test|spec)\.[a-z]+$/i;
+const SKIP_FILE_RE = /(\.(test|spec)\.[a-z]+|_test\.go)$/i;
 
 const SERVER_ONLY_RE = /^\s*import\s+["']server-only["']\s*;?\s*$/m;
 
