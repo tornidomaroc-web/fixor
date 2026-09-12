@@ -1,4 +1,4 @@
-# Handoff: the fix-pair measurement as of 2026-09-12 (third revision)
+# Handoff: the fix-pair measurement as of 2026-09-12 (fourth revision)
 
 This file is the durable state of the measurement. It lives beside the pre-registrations
 because they are the only tracked, swept surface the measurement has: CLAUDE.md is
@@ -35,10 +35,19 @@ below and no shorter one, in sales copy included.
   `secrets-rerun-2026-09-12/` (the 13 per-repository harness outputs of the secrets
   false-alarm rerun, snippets redacted by the harness) and
   `secrets-false-alarms-2026-09-12-verdicts/` (the seven blind reader files and the
-  aggregate with the three grounds audits, written before any count was computed).
+  aggregate with the three grounds audits, written before any count was computed);
+  `webhook-97-2026-09-12/` (the 97 webhook keyword-candidate diffs as `diff-<sha12>.patch`
+  plus `records.json`, which maps sha to repository and is never shown to a reader) and
+  `webhook-97-2026-09-12-verdicts/` (one file per blind reader batch, each written by a
+  single Write call after the batch's last packet was read, and the aggregate; the reading
+  was interrupted by a session limit at 05:17 on 2026-09-12 with nine batches complete and
+  three never written, and resumes from those three). Raw reader files stay in the drafts
+  directory as the shape sample's did; the consolidated verdicts land in the artifact.
 - Instruments, tracked in `tools/` here: `shape_sample.py` (the seeded draw, pre-screen and
-  diff fetch; the selector B draw reuses it with the generated-segment exclusion added) and
-  `make_pairs.py` (pair records from patches plus blind verdicts).
+  diff fetch; the selector B draw reuses it with the generated-segment exclusion added),
+  `make_pairs.py` (pair records from patches plus blind verdicts) and `webhook_97.py` (the
+  diff packets for the 97 webhook keyword candidates: same EXT and SKIP filters and the same
+  `git show --format=` call as `shape_sample.py`, no twenty-server PREFIX, twelve clones).
 - gitleaks 8.24.3 windows_x64 used for every replay this session sits in a previous
   session's scratchpad (`...\claude\D--RAGHAD-JAD-Fixor-Final\2681e4f3-...\scratchpad\gl\gitleaks.exe`);
   if absent, download the release, verify the zip sha256 starts 3f1a3557, and record it.
@@ -144,6 +153,20 @@ new permission features, tests, and anything where the defect is not evident fro
 alone are "none". Verdicts are saved to disk in the drafts directory before anything is
 computed from them. For flag readings (not diffs) the same readers see the flagged line
 with its file context and answer "real credential" or "not a credential" with one sentence.
+
+KNOWN LIMIT OF THE READING INSTRUMENT (recorded 2026-09-12, a property of the protocol,
+not of a run): a packet carries the relative path of every file it touches, and a path such
+as `packages/twenty-server/` or a Go import path such as `github.com/grafana/grafana/pkg/`
+names the repository even though the reader is never told it. It cannot be closed by path
+masking without destroying the judgement the protocol asks for: the reader needs the path
+to tell a route handler from a test, a server package from a client bundle, a migration
+from a service; and the repository name recurs inside file content (Go import paths,
+package imports, class prefixes), so masking the path alone leaves the leak and masking the
+content alters the evidence. What the blindness actually protects is the selector, the arm
+and the reason a packet is present, none of which is inferable from the packet. In force
+since the 2026-09-12 readings: packets renamed to opaque ids, batches shuffled across
+repositories, no commit message in a packet, one fresh reader per batch, and this limit
+stated beside every verdict count.
 
 ## Next actions, in order (owner's order 2026-09-12)
 

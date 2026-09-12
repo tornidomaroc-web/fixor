@@ -3809,6 +3809,25 @@ pattern-axis facts and DEFER their ICP rates to E'.
   five exits changed, no clearing step added. The entry stands unchanged and still asserts no
   rate.
 
+  **MEASURED 2026-09-12 (the corpus this entry said was missing), zero spend.** The shipped
+  path rerun over the 13 step-4 clones with the step-4 harness unmodified, keyless under the
+  replay triple lock: 58 flags on 65,566 files; every flag read blind by three readers: 58 not
+  a credential, 0 real credential. Counts with denominators; no rate is asserted here either.
+  Artifact `docs/measurements/fix-pairs-2026-09-11/secrets-false-alarms-2026-09-12.json`
+  (#206); the handoff in the same directory carries the shape breakdown. Of the 58, 19 are
+  reachable by path handling rather than pattern work: ten discourse `script/import_scripts/`
+  operator placeholders (singular `script/`, outside `SKIP_PATH_RE`) and nine under test paths
+  the skip list does not name (`api_tests/`, `app-tests/`, `e2e-playwright/`, `*.spec.ts`,
+  `*.test.tsx`).
+
+  **SEQUENCING RULING (owner, 2026-09-12): NOT FIXED YET.** A skip-list change before the
+  measurements are done would leave the 58 measured on a corpus-and-list pair that no longer
+  ships. Order: measure (done on mature code; the ICP corpus next, on this same instrument),
+  then fix, then re-measure both corpora on the new instrument, keeping each instrument's
+  numbers side by side and never merged. The entry stays OPEN and still asserts no rate; a
+  change to `SKIP_PATH_RE` re-opens the measured numbers exactly as the invalidation clause
+  above says for `PREFILTER_PATTERNS`.
+
 ### Priority 1f - OPEN: reach / market-fit findings surfaced by structural measurement
 
 Same `L-` namespace as Priority 1d and 1e (found by RUNNING the detector), and a DELIBERATELY
