@@ -75,9 +75,8 @@ the parent-file answer range, the grounds, the blind reader's sentence, the verb
 
 ## Open, in order
 
-1. The sizing table in `selector-b.md` has a NAMED GAP for strapi and twenty. The counting
-   job was alive at commit time; the two rows land in a follow-up commit BEFORE any selector
-   B candidate is drawn. If the job died, the gap stays stated.
+1. DONE 2026-09-12: the sizing table in `selector-b.md` is complete, twelve rows; the gap for
+   strapi and twenty was filled from the counting job's output before any draw.
 2. Selector B stage P (300 pre-screen positives, 25 per repository, blind read) and the
    keyword arm's 150 reads, interleaved. Not drawn yet. Draw seeds are per-repository HEAD.
 3. Stage 1 reach instrument (keyless, on the IDOR rig's triple lock): not built.
@@ -93,5 +92,5 @@ for anything in this measurement; no `git fetch --prune`; no touching
 
 ## Next action, one line
 
-Fill the strapi and twenty rows in `selector-b.md` from
-`../drafts-2026-09-11-tree-scan/selector-b-population.txt`, then draw stage P.
+Draw selector B stage P (300 pre-screen positives, 25 per repository, seeds per repository
+HEAD) and the keyword arm's 150, interleave them, read blind; only on the owner's word.

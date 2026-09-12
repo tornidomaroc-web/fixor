@@ -87,12 +87,12 @@ column excludes generated segments, point 2 above):
 | langchain | 16,638 | 9,805 | 9,805 |
 | mastodon | 21,811 | 10,753 | 10,634 |
 | plane | 6,667 | 5,845 | 5,829 |
-| strapi | GAP | GAP | GAP |
-| twenty | GAP | GAP | GAP |
+| strapi | 26,173 | 18,677 | 18,489 |
+| twenty | 15,344 | 12,759 | 11,747 |
 
-Sum of the reported rows, excluding generated segments: 127,760 commits.
+Sum of the twelve rows, excluding generated segments: 157,996 commits.
 
-NAMED GAP: strapi and twenty had not reported when this file was committed; the counting job (one sequential `git log --name-only` per repository, trees only) was alive and on its eleventh repository at commit time. The two rows are filled in a follow-up commit BEFORE any selector B candidate is drawn; that fill changes no threshold, no cap and no rule in this file. If the job dies first, the gap stays stated, never guessed. twenty's SERVER-ONLY population (5,689 under packages/twenty-server/src) is known from the shape sample and is deliberately not substituted, because this table's definition is the whole path population.
+GAP FILLED 2026-09-12, before any selector B candidate was drawn: strapi and twenty had not reported when the previous commit was made; the counting job finished both (strapi 1,367 s, twenty 2,072 s) and then crashed on its final JSON write, which came after the twelve rows were printed, so the rows are from the job's own output and nothing here is estimated. This fill changed the two rows and this paragraph only: no threshold, no cap and no rule in this file was touched.
 
 ## The keyword list: comparison arm, not a live selector
 
