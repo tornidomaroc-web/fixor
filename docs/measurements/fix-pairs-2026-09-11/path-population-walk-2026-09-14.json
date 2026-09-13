@@ -1,0 +1,636 @@
+{
+ "measurement": "path population for stage P: the twelve-repository walk",
+ "date": "2026-09-14",
+ "preRegistration": "path-population-prereg-2026-09-12.md, unchanged; instrument blob path_population.py 2526845a and commit-gated.sh 399e66c5 both match it",
+ "discharge": {
+  "file": "path-population-discharge-2026-09-14.md",
+  "committed_before_the_run": true,
+  "what_was_discharged": "the pre-registered STOP that prevented this walk from running after W2-twenty failed",
+  "ruledBy": "owner, 2026-09-14",
+  "W2_status_unchanged": "FAILED, permanently recorded; armsFailed 1; every_prediction_holds false; harness still exits 1",
+  "limitThatTravels": "W2-prime cross-checks the IMPLEMENTATION, not the rule, the same limit the twelve-row match carries. The walk gains no independent support for the definition of path population from either."
+ },
+ "corpus": {
+  "path": "../fix-pairs-corpus/ (blobless, --filter=blob:none --no-checkout)",
+  "repositories": 12,
+  "notTheStep4Clones": "test-output/step4-scans/repos/ holds thirteen directories (the twelve plus lemmy), is SHALLOW, and the step-4 manifest forbids touching it; a walk pointed there would have produced a thirteenth row from truncated histories",
+  "lemmyExcluded": "Rust is outside the nine languages in SUPPORTED_LANGS (README.md)"
+ },
+ "constants": {
+  "EXT": {
+   "pattern": "\\.(js|jsx|ts|tsx|py|go|rb|java|kt)$",
+   "flags": "IGNORECASE",
+   "sha256": "8685bb027fc2a5bba06b453ee5ea9c1746c07036db2a6b83b3182aa20852a577"
+  },
+  "SKIP": {
+   "pattern": "(^|/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "20506ff8246d8c64d3ea5fa465f058069083fb0bc070cda24536fdcf4e3d2652"
+  },
+  "GEN": {
+   "pattern": "(^|/)(generated|locales?|i18n|translations?|vendor|node_modules|dist|build)(/|$)",
+   "flags": "IGNORECASE",
+   "sha256": "1e7ac9af47308900eaff62980110adc9a4920ab12785940118e33ef810fa5aa4"
+  }
+ },
+ "constantsAssertedUnchanged": "imported from the tracked instrument; the manifest was read before and after the run and compared, identical on all three",
+ "run": {
+  "arms": [
+   "as_recovered",
+   "no_renames"
+  ],
+  "population_arm": "as_recovered",
+  "foreground": true,
+  "GIT_NO_LAZY_FETCH": "1 on every git invocation; trees only",
+  "git_version": "git version 2.53.0.windows.2",
+  "wall_seconds_total": 50.6,
+  "record_counts": "parsed from the written files, never wc -l",
+  "atomic_writes": "each list and each per-repository JSON written through a temporary name and os.replace, the moment that repository completed",
+  "lists_untracked_in": "../drafts-2026-09-11-tree-scan/"
+ },
+ "reproduction": {
+  "rowsCompared": 12,
+  "rowsReproducing": 12,
+  "divergences": [],
+  "sum_excluding_generated": 157996,
+  "sum_expected": 157996,
+  "sumMatches": true,
+  "verifiedTwoWays": "first against a hand-transcribed table, then against the table PARSED out of selector-b.md, to remove the transcription as a single point of failure; both gave zero divergences",
+  "commitCountsVerifiedIndependently": "git rev-list --count --no-merges HEAD agreed with the instrument's block-split count on all twelve",
+  "LABEL": "A TEST OF CORPUS STABILITY AND OF THIS IMPLEMENTATION. It is NOT corroboration that the definition of path population is right, and must not be recorded as such. Recovering the original spent that independence: running the recovered rule and obtaining the recovered numbers cannot test a reading taken from the same source."
+ },
+ "totals": {
+  "nonmerge_commits": 253145,
+  "path_population": 160169,
+  "path_population_excluding_generated_segments": 157996
+ },
+ "renameArmDivergence": {
+  "note": "the --no-renames arm is a CONTROL on all twelve; a per-repository divergence is a recorded property of the universe, not a defect to repair and not a reason to switch arms (pre-registration)",
+  "repositoriesDiverging": 6,
+  "rows": [
+   {
+    "repository": "discourse",
+    "as_recovered": [
+     64257,
+     33558,
+     33251
+    ],
+    "no_renames": [
+     64257,
+     33607,
+     33301
+    ],
+    "delta_path_population": 49,
+    "delta_excluding_generated": 50
+   },
+   {
+    "repository": "gitea",
+    "as_recovered": [
+     20488,
+     12489,
+     12257
+    ],
+    "no_renames": [
+     20488,
+     12490,
+     12258
+    ],
+    "delta_path_population": 1,
+    "delta_excluding_generated": 1
+   },
+   {
+    "repository": "grafana",
+    "as_recovered": [
+     68750,
+     48805,
+     48515
+    ],
+    "no_renames": [
+     68750,
+     48808,
+     48518
+    ],
+    "delta_path_population": 3,
+    "delta_excluding_generated": 3
+   },
+   {
+    "repository": "hoppscotch",
+    "as_recovered": [
+     5149,
+     2387,
+     2387
+    ],
+    "no_renames": [
+     5149,
+     2388,
+     2388
+    ],
+    "delta_path_population": 1,
+    "delta_excluding_generated": 1
+   },
+   {
+    "repository": "plane",
+    "as_recovered": [
+     6667,
+     5845,
+     5829
+    ],
+    "no_renames": [
+     6667,
+     5846,
+     5830
+    ],
+    "delta_path_population": 1,
+    "delta_excluding_generated": 1
+   },
+   {
+    "repository": "strapi",
+    "as_recovered": [
+     26173,
+     18677,
+     18489
+    ],
+    "no_renames": [
+     26173,
+     18679,
+     18493
+    ],
+    "delta_path_population": 2,
+    "delta_excluding_generated": 4
+   }
+  ]
+ },
+ "drawUniverse": "the excluding-generated list per repository; the FILE is the draw universe, not the command. Each list's sha256, parsed record count and repository HEAD are pinned below so a future git that orders differently cannot silently move a landed draw.",
+ "stageP": "NOT DRAWN. The walk produces the universe; the draw is a separate order.",
+ "repositories": {
+  "caddy": {
+   "head": "425a3381fdf65c826dd991c92e78eaf6ef24941e",
+   "head_after": "425a3381fdf65c826dd991c92e78eaf6ef24941e",
+   "head_stable": true,
+   "seed_hex": "0x425a3381",
+   "nonmerge_commits": 2663,
+   "path_population": 2234,
+   "path_population_excluding_generated_segments": 2234,
+   "quoted_paths": 3,
+   "malformed_blocks": 0,
+   "seconds": 0.1,
+   "sizing_table_row": [
+    2663,
+    2234,
+    2234
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 2234,
+     "sha256": "a6ca80db8ed2845d4d15266717059dd7b98c14f7bf27fb87709cd8f24ef46034",
+     "bytes": 91594,
+     "file": "caddy.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 2234,
+     "sha256": "a6ca80db8ed2845d4d15266717059dd7b98c14f7bf27fb87709cd8f24ef46034",
+     "bytes": 91594,
+     "file": "caddy.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 2663,
+    "path_population": 2234,
+    "path_population_excluding_generated_segments": 2234,
+    "seconds": 0.1
+   },
+   "arms_agree": true
+  },
+  "discourse": {
+   "head": "9cccc5837dc83a7af376dd40d4cb709cd25b0228",
+   "head_after": "9cccc5837dc83a7af376dd40d4cb709cd25b0228",
+   "head_stable": true,
+   "seed_hex": "0x9cccc583",
+   "nonmerge_commits": 64257,
+   "path_population": 33558,
+   "path_population_excluding_generated_segments": 33251,
+   "quoted_paths": 39,
+   "malformed_blocks": 0,
+   "seconds": 6.6,
+   "sizing_table_row": [
+    64257,
+    33558,
+    33251
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 33558,
+     "sha256": "e5e4dd55abffddc54c60d10f78c3d4f9de90e13526c3f583329f6bc15f3ab781",
+     "bytes": 1375878,
+     "file": "discourse.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 33251,
+     "sha256": "91f69c128e5e5f10f62decf6bfa17c8c42710afa8e3272b94a1f6f7ea3cda613",
+     "bytes": 1363291,
+     "file": "discourse.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 64257,
+    "path_population": 33607,
+    "path_population_excluding_generated_segments": 33301,
+    "seconds": 2.8
+   },
+   "arms_agree": false
+  },
+  "documenso": {
+   "head": "5603a9e59da2ae770edcc822ac08a5e3df02ad82",
+   "head_after": "5603a9e59da2ae770edcc822ac08a5e3df02ad82",
+   "head_stable": true,
+   "seed_hex": "0x5603a9e5",
+   "nonmerge_commits": 3696,
+   "path_population": 2621,
+   "path_population_excluding_generated_segments": 2612,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 0.6,
+   "sizing_table_row": [
+    3696,
+    2621,
+    2612
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 2621,
+     "sha256": "e2f7f5d46c972554155956082bc3d65cf54b86f487bc7faf74a149643a7433d0",
+     "bytes": 107461,
+     "file": "documenso.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 2612,
+     "sha256": "6e81d84d8f2d4e61b6ac83e285de6e4481fc823b03fffaeb92847ca268a2d2d1",
+     "bytes": 107092,
+     "file": "documenso.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 3696,
+    "path_population": 2621,
+    "path_population_excluding_generated_segments": 2612,
+    "seconds": 0.1
+   },
+   "arms_agree": true
+  },
+  "full-stack-fastapi-template": {
+   "head": "cb740b656d7a0a6c5e12c7bf8e50343ec94ee9c7",
+   "head_after": "cb740b656d7a0a6c5e12c7bf8e50343ec94ee9c7",
+   "head_stable": true,
+   "seed_hex": "0xcb740b65",
+   "nonmerge_commits": 1509,
+   "path_population": 236,
+   "path_population_excluding_generated_segments": 236,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 0.1,
+   "sizing_table_row": [
+    1509,
+    236,
+    236
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 236,
+     "sha256": "e399c39a896e368d52b52960fb8219431108419c9bffa18a67c9913a1e0dcd73",
+     "bytes": 9676,
+     "file": "full-stack-fastapi-template.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 236,
+     "sha256": "e399c39a896e368d52b52960fb8219431108419c9bffa18a67c9913a1e0dcd73",
+     "bytes": 9676,
+     "file": "full-stack-fastapi-template.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 1509,
+    "path_population": 236,
+    "path_population_excluding_generated_segments": 236,
+    "seconds": 0.0
+   },
+   "arms_agree": true
+  },
+  "gitea": {
+   "head": "4d434455322a4780064ce67524ceb3711d865320",
+   "head_after": "4d434455322a4780064ce67524ceb3711d865320",
+   "head_stable": true,
+   "seed_hex": "0x4d434455",
+   "nonmerge_commits": 20488,
+   "path_population": 12489,
+   "path_population_excluding_generated_segments": 12257,
+   "quoted_paths": 14,
+   "malformed_blocks": 0,
+   "seconds": 2.3,
+   "sizing_table_row": [
+    20488,
+    12489,
+    12257
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 12489,
+     "sha256": "48a3d6cf7251bd6daec0624639441f331a85b315a355ebee1e604183f95a8ee5",
+     "bytes": 512049,
+     "file": "gitea.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 12257,
+     "sha256": "91e79c2b15644208a5963f9c6fbb754a9443ba9df6567084c61949a8f54bb723",
+     "bytes": 502537,
+     "file": "gitea.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 20488,
+    "path_population": 12490,
+    "path_population_excluding_generated_segments": 12258,
+    "seconds": 0.6
+   },
+   "arms_agree": false
+  },
+  "grafana": {
+   "head": "e5b8e1b309e94e887a9f7e9e9fd0ba2f3d009018",
+   "head_after": "e5b8e1b309e94e887a9f7e9e9fd0ba2f3d009018",
+   "head_stable": true,
+   "seed_hex": "0xe5b8e1b3",
+   "nonmerge_commits": 68750,
+   "path_population": 48805,
+   "path_population_excluding_generated_segments": 48515,
+   "quoted_paths": 8,
+   "malformed_blocks": 0,
+   "seconds": 8.3,
+   "sizing_table_row": [
+    68750,
+    48805,
+    48515
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 48805,
+     "sha256": "ab6b966449fa0da9d6759c3dac89c68dd6ea636d2ab608e8290a3862cb58b2da",
+     "bytes": 2001005,
+     "file": "grafana.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 48515,
+     "sha256": "e52feb69e817b24e242acb4a29a7099516b85b26f7cab5607ae7314361edc82f",
+     "bytes": 1989115,
+     "file": "grafana.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 68750,
+    "path_population": 48808,
+    "path_population_excluding_generated_segments": 48518,
+    "seconds": 2.5
+   },
+   "arms_agree": false
+  },
+  "hoppscotch": {
+   "head": "ac145e7f758151b41fd46d3e5f513886ce9068ba",
+   "head_after": "ac145e7f758151b41fd46d3e5f513886ce9068ba",
+   "head_stable": true,
+   "seed_hex": "0xac145e7f",
+   "nonmerge_commits": 5149,
+   "path_population": 2387,
+   "path_population_excluding_generated_segments": 2387,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 0.4,
+   "sizing_table_row": [
+    5149,
+    2387,
+    2387
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 2387,
+     "sha256": "6d372cf747d9ea4c88982271d5f0c8f68623b1e652b051434bdf871f6349d5bd",
+     "bytes": 97867,
+     "file": "hoppscotch.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 2387,
+     "sha256": "6d372cf747d9ea4c88982271d5f0c8f68623b1e652b051434bdf871f6349d5bd",
+     "bytes": 97867,
+     "file": "hoppscotch.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 5149,
+    "path_population": 2388,
+    "path_population_excluding_generated_segments": 2388,
+    "seconds": 0.1
+   },
+   "arms_agree": false
+  },
+  "langchain": {
+   "head": "348c9dc572599947d2d7d33d6a5b8b936e92a1d4",
+   "head_after": "348c9dc572599947d2d7d33d6a5b8b936e92a1d4",
+   "head_stable": true,
+   "seed_hex": "0x348c9dc5",
+   "nonmerge_commits": 16638,
+   "path_population": 9805,
+   "path_population_excluding_generated_segments": 9805,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 2.0,
+   "sizing_table_row": [
+    16638,
+    9805,
+    9805
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 9805,
+     "sha256": "b57ca0b071934fc0d8cfb1d908ec0d8e5f1831b60cf401622dd4453266f83eb4",
+     "bytes": 402005,
+     "file": "langchain.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 9805,
+     "sha256": "b57ca0b071934fc0d8cfb1d908ec0d8e5f1831b60cf401622dd4453266f83eb4",
+     "bytes": 402005,
+     "file": "langchain.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 16638,
+    "path_population": 9805,
+    "path_population_excluding_generated_segments": 9805,
+    "seconds": 0.5
+   },
+   "arms_agree": true
+  },
+  "mastodon": {
+   "head": "a7cc70db674d79616597fcc1e67aafee6fcb2f11",
+   "head_after": "a7cc70db674d79616597fcc1e67aafee6fcb2f11",
+   "head_stable": true,
+   "seed_hex": "0xa7cc70db",
+   "nonmerge_commits": 21811,
+   "path_population": 10753,
+   "path_population_excluding_generated_segments": 10634,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 1.3,
+   "sizing_table_row": [
+    21811,
+    10753,
+    10634
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 10753,
+     "sha256": "93545e82e1e3230742ca918c92b16f07b0057220c40a4455a2342a3c4ef340f7",
+     "bytes": 440873,
+     "file": "mastodon.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 10634,
+     "sha256": "fbd6ab6f8bd2fb6014122a59afdca709ca295f6402d42c2b36aa2301c9040dee",
+     "bytes": 435994,
+     "file": "mastodon.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 21811,
+    "path_population": 10753,
+    "path_population_excluding_generated_segments": 10634,
+    "seconds": 0.6
+   },
+   "arms_agree": true
+  },
+  "plane": {
+   "head": "2f895b82dad839c730c36a5c0cbc046f1e5d6b56",
+   "head_after": "2f895b82dad839c730c36a5c0cbc046f1e5d6b56",
+   "head_stable": true,
+   "seed_hex": "0x2f895b82",
+   "nonmerge_commits": 6667,
+   "path_population": 5845,
+   "path_population_excluding_generated_segments": 5829,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 1.3,
+   "sizing_table_row": [
+    6667,
+    5845,
+    5829
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 5845,
+     "sha256": "c2a0aa43889092a3ad3a2de69f1b71f32bb3f0fa3a37f31bb6db76a918b5feb7",
+     "bytes": 239645,
+     "file": "plane.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 5829,
+     "sha256": "ef1caa38dbc278f2119829341a9f024cd14801729b2ec65e6c13e408a0a2423d",
+     "bytes": 238989,
+     "file": "plane.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 6667,
+    "path_population": 5846,
+    "path_population_excluding_generated_segments": 5830,
+    "seconds": 0.3
+   },
+   "arms_agree": false
+  },
+  "strapi": {
+   "head": "34fdea8fb4e11afc475a0ffdc14311cce09ddded",
+   "head_after": "34fdea8fb4e11afc475a0ffdc14311cce09ddded",
+   "head_stable": true,
+   "seed_hex": "0x34fdea8f",
+   "nonmerge_commits": 26173,
+   "path_population": 18677,
+   "path_population_excluding_generated_segments": 18489,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 5.0,
+   "sizing_table_row": [
+    26173,
+    18677,
+    18489
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 18677,
+     "sha256": "bac80f48805fab8e5a40d6feffa7f25c0cf6e7b34959ab8e3538edc97f2a899c",
+     "bytes": 765757,
+     "file": "strapi.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 18489,
+     "sha256": "f9645b54afd6b37870ae4263fc233d71739ef9473bc0043e5adc2d87fefe0f1a",
+     "bytes": 758049,
+     "file": "strapi.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 26173,
+    "path_population": 18679,
+    "path_population_excluding_generated_segments": 18493,
+    "seconds": 0.9
+   },
+   "arms_agree": false
+  },
+  "twenty": {
+   "head": "2badd5da7db126e9b8e41c90bfa9617486205866",
+   "head_after": "2badd5da7db126e9b8e41c90bfa9617486205866",
+   "head_stable": true,
+   "seed_hex": "0x2badd5da",
+   "nonmerge_commits": 15344,
+   "path_population": 12759,
+   "path_population_excluding_generated_segments": 11747,
+   "quoted_paths": 0,
+   "malformed_blocks": 0,
+   "seconds": 5.6,
+   "sizing_table_row": [
+    15344,
+    12759,
+    11747
+   ],
+   "reproduces_sizing_table_row": true,
+   "lists": {
+    "path_population": {
+     "records": 12759,
+     "sha256": "962a78179bcef14c8184f9b9f3c0ee21174b79157bbfd7b400ab2136e8d95c72",
+     "bytes": 523119,
+     "file": "twenty.path-population.shas"
+    },
+    "excluding_generated_segments": {
+     "records": 11747,
+     "sha256": "13d8c91543d7162ad6be45e50e6a79e4abdeaa4637853d5aaa217c302595ea9e",
+     "bytes": 481627,
+     "file": "twenty.path-population-nogen.shas"
+    }
+   },
+   "no_renames_arm": {
+    "nonmerge_commits": 15344,
+    "path_population": 12759,
+    "path_population_excluding_generated_segments": 11747,
+    "seconds": 1.1
+   },
+   "arms_agree": true
+  }
+ },
+ "cost": "zero; no API key, no model call, no network"
+}
