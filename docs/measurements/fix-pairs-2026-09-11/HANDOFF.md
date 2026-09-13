@@ -727,3 +727,45 @@ tracked JSON carrying the pinning fields - all of it already pre-registered in
 `path-population-prereg-2026-09-12.md` and unchanged since. Then stage P draws from the
 excluding-generated lists. If not discharged, the walk waits and the owner names what else the
 witness owes.
+
+## PR #225 MERGED: W2-prime is on main, and the discharge is still unruled (2026-09-13)
+
+New main `400c25de9bef88a72ec0aaf07d66568a4f2c6637`. **Tree verdict: EQUAL** - main's tree reads
+`dc378d3780c76f704670454e6fb70ca4b9cb351d`, the head tree captured before the merge.
+
+THE ORDERING SURVIVED THE SQUASH, which is the assertion that matters for this result. The
+prediction and the harness were committed in `806aa72` BEFORE the run precisely so neither could
+be shaped to the other, and a squash is the last place that ordering could have been undone. On
+main after the squash the pre-registration reads `46beaea4` and the harness reads `1a02f428`,
+both identical to their blobs in `806aa72`.
+
+THE RESULT ON MAIN DOES NOT SOFTEN. The artifact states `armsHolding` 6, `armsFailed` 1,
+`failedArm` W2-twenty, `W2 twenty: FAILED, permanently recorded`, `harnessExitCode` 1 with the
+reason that a failed arm is recorded and never removed, and `every_prediction_holds` false. It
+carries the limit verbatim: W2-prime cross-checks the IMPLEMENTATION, not the rule, the same
+limit the twelve-row match carries. The residual is recorded beside it - W2-twenty failed and is
+not erased, and every claim about this witness carries that together with the census finding that
+the null came from a redundant segment rather than an idle one or a blind check.
+
+FIFTH MEASURED DEPLOY INSTANCE, unchanged in shape. Checks started 00:15:16; `amusing-trust /
+production` created 00:15:19, three seconds later; `Production` created 00:15:54; `secrets`
+concluded 00:15:32 and `CI` at 00:18:38. Both production deployments were created while the
+required checks were still running, `Production` landing nearly three minutes before `CI`
+concluded. Five instances, recorded, still unordered, nothing proposed.
+
+A SIXTH ASSERTION-4 ROW IS OWED AND IS DELIBERATELY NOT WRITTEN. `gh pr merge 225 --squash` ran
+while HEAD sat on `measure/w2prime-2026-09-13`, which IS the merged branch, so the observation
+belongs to the FROM-the-merged-branch arm; assertion 4 was RED, the local ref surviving while
+`gh` exited 0 and printed nothing. No order covered it and it is named here rather than filed,
+per the same rule that governed the last two.
+
+NEXT COMMANDABLE STEP: THE OWNER'S RULING ON DISCHARGE. The 2026-09-12 pre-registration says a
+failed predicted departure stops the chain and did not anticipate a replacement arm, so it
+decides the question neither way, and no session may decide it in its place. If DISCHARGED, the
+twelve-repository walk runs under `tools/path_population.py` with nothing new to author:
+`path-population-prereg-2026-09-12.md` already fixes both arms, the as-recovered arm as the
+population, the HEAD before-and-after rule, atomic per-repository writes, parsed record counts,
+and the lists untracked in the drafts directory with one tracked JSON carrying the pinning
+fields - unchanged since it landed. Stage P then draws from the excluding-generated lists. If NOT
+discharged, the walk waits and the owner names what else the witness owes, which is
+pre-registered before anything runs.
