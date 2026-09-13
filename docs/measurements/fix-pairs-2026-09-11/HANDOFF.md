@@ -769,3 +769,74 @@ and the lists untracked in the drafts directory with one tracked JSON carrying t
 fields - unchanged since it landed. Stage P then draws from the excluding-generated lists. If NOT
 discharged, the walk waits and the owner names what else the witness owes, which is
 pre-registered before anything runs.
+
+## PR #226 MERGED AND THE TWO OWED ASSERTION-4 ROWS ARE FILED (2026-09-13)
+
+New main `9c9f93066a844b35fb599a696402d9092a901ea7`. **Tree verdict: EQUAL** - main's tree reads
+`1b0f12ccb40975a36dee93b9f5bdc176eee11057`, the head tree captured before the merge.
+
+THE RECORD ARRIVED ON MAIN UNSOFTENED. The ordering passage, the "DOES NOT SOFTEN" passage and the
+W2-twenty failure all reached main byte-identical - the file's blob is `ec0bcf50` on the branch
+commit and on main alike - and the check did not rest on that identity alone: the witness JSON
+itself was read from main and carries `armsHolding` 6, `armsFailed` 1, `failedArm` W2-twenty,
+`W2 twenty: FAILED, permanently recorded`, `harnessExitCode` 1 and `every_prediction_holds` false.
+**W2 is still failed on main.** The pre-registration reads `46beaea4` and the harness `1a02f428`,
+both identical to their blobs in `806aa72`, so the pre-run ordering survived a second squash.
+
+THE DEBT IS DISCHARGED. Both owed rows are in the register: #225 and #226, each FROM the merged
+branch, each **RED**, each under gh 2.91.0 / git 2.53.0.windows.2 / Windows. #226's arm was READ
+with `git rev-parse --abbrev-ref HEAD` before and after the merge rather than inferred, and HEAD was
+deliberately left where the prior step had put it - moving it to main first would have been the
+observer choosing the row he was about to write. That restraint is recorded in the entry because it
+is part of the observation, not a note about method.
+
+THE ARM NOW READS NINE, AND NINE SUPPORTS NOTHING SEVEN DID NOT. 2 green and 7 red on the
+FROM-the-merged-branch arm; 15 rows in the register of which 13 are RED. Two more reds are what the
+base rate already predicts; the arm is MIXED rather than all-RED, so reds cannot make it predictive;
+and nine is under the ten this measurement publishes at. One short is still short. Stated as a new
+dated record - the dated 2026-08-15 COUNT UPDATE is untouched, per the rule that counts move in the
+table and nowhere else.
+
+THE STRONG ASSERTION IS TAUTOLOGICAL UNDER CURRENT PROTECTION, AND THAT IS NOW IN THE LEDGER RATHER
+THAN IN CHAT. What forces the squash tree to equal the captured tree is that the merge base IS the base
+tip - the branch up to date with main - for one commit or for twenty. **This entry first gave the
+commit count as the reason and said a multi-commit branch would restore assertion 2's force. That
+was false**, #225 falsifies it with two commits, a `base.sha` equal to the then-current main and an
+EQUAL verdict, and it was corrected before either claim reached main. `main` carries `strict: true`
+with `enforce_admins: true`, so a branch that is not up to date cannot be merged at all and
+assertion 2 cannot fail here under normal operation. **SCOPED TO THE CURRENT CONFIGURATION, AND THE
+REGISTER PREDATES IT.** The tracker's DONE entry records protection on main established with strict
+OFF and it reads `strict: true` today, so the setting changed and **no date for it exists in any
+source read** - not elsewhere in `docs/`, not any commit message in `git log --all`, not the
+user-level audit log (404 for a personal account), not the repository events feed. Rows merged
+before the change could have been merged while behind main, where the squash tree is a three-way
+merge result rather than the head tree and assertion 2 does real work. **Nothing licenses reading
+the two greens as tautological**, and the unknown is left as an unknown. It still earned its place
+as a PRE-COMMITMENT -
+the tree captured before the merge is what proves nothing was added between capture and merge - and
+what remains for it to catch is a push to the branch inside that window, or a race in which main
+moves between the up-to-date check and the squash. Recorded beside it: the required checks were
+roughly eighteen hours stale at merge time, permitted under `strict: true`, and content-exact
+because leg 4 held rather than because the checks said so.
+
+SIXTH MEASURED DEPLOY INSTANCE, AND THE SHARPEST OF THE SIX. Merge 18:46:03Z. `amusing-trust /
+production` created 18:46:07Z - **one second BEFORE the first required check started at 18:46:08Z** -
+reaching success 18:46:29Z. `Production` created 18:46:54Z, success 18:46:55Z. The two CI checks
+concluded 18:49:12Z and 18:49:28Z. **Both production deployments were created AND reached success
+before either CI check concluded**, by 2m59s and 2m33s against the last. At the fifth instance
+`amusing-trust` was created three seconds AFTER checks started; here it preceded them. Six
+instances, recorded, still unordered, nothing proposed.
+
+A SEVENTH ASSERTION-4 ROW WILL BE OWED BY THE MERGE OF THIS ENTRY. That is the condition the
+register's own convention states cannot be fixed: a register maintained by merges cannot contain its
+own. Named here, not filed, and not a reason to withhold the entry.
+
+NEXT COMMANDABLE STEP: THE OWNER'S RULING ON DISCHARGE, unchanged by this entry and still not made
+by any session. The records are current as of #226 and nothing else is owed. If DISCHARGED, the
+twelve-repository walk runs under `tools/path_population.py` with nothing new to author:
+`path-population-prereg-2026-09-12.md` already fixes both arms, the as-recovered arm as the
+population, the HEAD before-and-after rule, atomic per-repository writes, parsed record counts, and
+the lists untracked in the drafts directory with one tracked JSON carrying the pinning fields -
+unchanged since it landed. Stage P then draws from the excluding-generated lists. If NOT discharged,
+the walk waits and the owner names what else the witness owes, which is pre-registered before
+anything runs.
