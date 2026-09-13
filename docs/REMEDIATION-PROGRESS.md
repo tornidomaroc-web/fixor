@@ -2371,6 +2371,8 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #223 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #222 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #224 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #225 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #226 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
 already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
@@ -2462,6 +2464,60 @@ This adds nothing the previous two did not. Against the table's own base rate RE
 the other arm holds greens and reds under those same versions. Three is not ten, and this
 measurement publishes no count under ten.
 
+**#225 AND #226 ARE TWO OBSERVATIONS IN THE FROM-THE-MERGED-BRANCH ARM, FILED TOGETHER
+(2026-09-13).** Both were owed and unwritten when this entry was ordered: #225's own handoff named
+its row and deliberately did not file it, and the merge of #226 produced the second. They are filed
+in one commit, in observation order, #225 before #226.
+
+**#225.** `gh pr merge 225 --squash` ran while HEAD sat on `measure/w2prime-2026-09-13`, which IS
+the merged branch. Assertion 4 was **RED**: the local ref survived while `gh` exited 0 and printed
+nothing. Assertion 2, the only strong one, held - main's tree equalled `dc378d37`, the head tree
+captured before the merge, and main moved to `400c25de`. That tree was re-read from the remote while
+preparing #226 rather than carried over from the earlier record.
+
+**#226.** `gh pr merge 226 --squash` ran while HEAD sat on `docs/handoff-225-merged-2026-09-13`,
+which IS the merged branch. **The arm was READ, not inferred** - `git rev-parse --abbrev-ref HEAD`
+returned that branch both before and after the merge command. Assertion 4 was **RED**: the local ref
+survived at `354aa690` while `gh` exited 0 and printed nothing. Assertion 2 held - main's tree
+equalled `1b0f12cc`, the head tree captured before the merge, and main moved to `9c9f9306`.
+
+**THE ARM WAS NOT CHOSEN, AND THAT RESTRAINT IS PART OF THE OBSERVATION.** HEAD was already sitting
+on the merged branch when the merge was ordered. Moving it to main first would have placed the
+observation in the other arm by the observer's own hand, inside the split this ledger exists to
+collect, so it was deliberately left where the prior step had put it. The arm at #226 is therefore
+INHERITED rather than selected, which is the only reason it counts as an observation at all. **A
+session that switches HEAD before merging is choosing the row it is about to write**, and a row
+chosen that way measures the session, not `gh`.
+
+**THE SIGNATURE READ AT #226** is the one named under "FOUR OF FOUR ON ONE SIGNATURE" below: HEAD
+not switched, ref not deleted, local `main` not advanced, `origin/main` not advanced, `gh` exiting 0
+and printing nothing. Exactly what was read when, so this is not stated firmer than it is - HEAD and
+the ref were read BEFORE and AFTER the merge command; local `main` and `origin/main` were read AFTER
+only, returning `0eb86f5` and `400c25de` while the true remote main was already `9c9f9306`, and
+`origin/main` would have had to advance had `gh` fetched, so the after-only read still carries it.
+**This is not the within-one-execution instrument named as item (1) under "WHAT WOULD IDENTIFY A
+CAUSE, AND WHETHER ANYTHING FREE CAN DO IT" below**, which requires all four read immediately before
+AND immediately after the merge command inside one execution. It is the same residue, read once
+more, and it characterises the RED arm only - exactly the limit that entry places on item (1).
+
+**TOTALS AS A NEW DATED RECORD (2026-09-13).** With these two rows the arm invoked FROM the merged
+branch reads **9 observations, 2 green and 7 red**. The already-checked-out arm is unchanged at 3,
+all red; the third arm is unchanged at 3, all red. The register carries 15 rows of which 13 are RED.
+**The dated 2026-08-15 COUNT UPDATE and its Totals sentence are NOT touched**, per this file's own
+rule that counts move in the table and a dated prose count is a record of what was known when it was
+written. This paragraph is a new dated record, not an amendment to that one.
+
+**WHAT NINE SUPPORTS, WHICH IS NOTHING THE SEVEN DID NOT.** Stated plainly rather than softened.
+First, **RED is 13 of 15 observations in this register**, so two further reds on any arm are what the
+base rate already predicts; they do not separate "this arm produces RED" from "RED is simply the
+common outcome". Second, **this arm is MIXED, not all-RED** - it holds #143 and #160 green under
+recorded tool versions other rows share - so adding reds to it cannot make it predictive; it moves a
+ratio inside an arm that already contains both results, which is a weaker thing than extending a
+uniform one. Third, **nine is not ten, and this measurement publishes no count under ten.** One
+short is still short, and the arm is not published at nine. The arm predicts the outcome no better
+than the tool version does, which is the sentence this ledger already carries about both other arms,
+repeated rather than weakened. **No cause is named here either.**
+
 **VERSION CONSTANCY, AND WHAT IT EXCLUDES.** Across #143, #171 and #173 the recorded environment is
 the same — gh 2.91.0, git 2.53.0, Windows — and those three span one green and two reds, so **the
 tool version does not account for the split**. **#160 is excluded from that comparison because its
@@ -2537,6 +2593,77 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   FROM the merged branch, not a property of the repo. A merge driven from a detached HEAD, from
   another branch, or from the web UI would not exercise that path, and the local branch would
   survive again exactly as it did at #141.
+
+  **THE STRONG ASSERTION IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION, AND AT #226 IT
+  WAS (2026-09-13; CORRECTED THE SAME DAY, BEFORE EITHER CLAIM REACHED `main`; SCOPE LIMIT BELOW).** What forces the squash
+  tree to equal the captured tree is that **the merge base IS the base tip** - the branch is up to
+  date with `main`. A squash then replays the branch's cumulative diff onto the merge base and
+  reproduces the head tree exactly, **for one commit or for twenty**. Leg 3 had read the branch ref
+  directly and leg 4 had read `main` from the remote, so that condition was established before the
+  merge ran. Assertion 2 therefore could not have come out any other way, and its EQUAL verdict
+  confirmed a fact the other legs had already forced rather than independently testing the merge
+  mechanism.
+
+  **THE COMMIT COUNT IS NOT THE CONDITION, AND THIS BLOCK FIRST SAID IT WAS.** As first written it
+  gave "a SINGLE commit whose parent was exactly the then-current `main`" as the reason, and added
+  that a branch carrying more than one commit would restore assertion 2's independent force. **That
+  is false, and the counter-example was already in the register above: #225 carried TWO commits, its
+  `base.sha` was `998df504`, equal to the then-current `main`, and its tree verdict was EQUAL just as
+  trivially.** The error was found while labelling #227's own certificate and is corrected here
+  rather than landed and annotated later.
+
+  **THE CONDITION IS REQUIRED AT EVERY MERGE UNDER CURRENT PROTECTION, SO THE TAUTOLOGY IS NOT
+  OCCASIONAL WHILE THAT PROTECTION STANDS - AND THE REGISTER PREDATES IT.** `main`'s protection
+  carries `strict: true` with `enforce_admins: true`, so a branch that is not up to date with
+  `main` cannot be merged at all. **Assertion 2 therefore cannot fail in this repository under
+  normal operation.** **This is scoped to the CURRENT configuration, and the register predates it.**
+  The DONE entry above records protection on `main` established with strict OFF; it reads
+  `strict: true` today, so the setting changed and **this file carries no date for the change**.
+  Rows merged before it could have been merged while behind `main`, where the squash tree is a
+  three-way merge result rather than the head tree and assertion 2 does real work. **Nothing here
+  licenses reading the two greens as tautological.** The date was looked for and not found, and the
+  sources are named so the search is not repeated blind: nothing else in `docs/` records the change,
+  no commit message in `git log --all` records it, the user-level audit log returns 404 for a
+  personal account, and the repository events feed carries no protection-change event type. **The
+  unknown stands as an unknown; it is not estimated and not inferred from neighbouring entries.**
+  What remains for it to catch is narrow and real: a push to the BRANCH between
+  the leg-3 capture and the merge, and a race in which `main` moves between the up-to-date
+  evaluation and the squash. **It still earned its place, and that is exactly where its value lies**
+  - as a PRE-COMMITMENT, the tree captured and stated before the merge, which is what proves nothing
+  was added in between. **This is the failure shape CLAUDE.md §3 names for the replay gate**, where
+  re-recording turns the gate into a tautology that reports success; the shape is general and
+  reaches a read-back assertion as readily as a fixture.
+
+  **§5 CARRIES A CLAIM THIS CORRECTS, AND NO COMMIT CAN REACH IT WHILE `/CLAUDE.md` IS GITIGNORED.**
+  CLAUDE.md §5's merge-read-back bullet states that assertion 2 is the only strong one. It is still
+  the only assertion that transfers the PR's CI verdict to the squash commit, which is what "strong"
+  was reaching for, but
+  read plainly beside this entry it now misleads: the assertion is also unable to fail here under
+  the current protection configuration, with the scope limit recorded above. **CLAUDE.md is gitignored in whole (`/CLAUDE.md`), so no pull request can edit it** - the
+  identical condition already recorded above for §8 and for §5's own bullet. Replacement wording is
+  handed to the owner separately and **§5 is not edited until he has read it**, per the precedent set
+  there. One definition lives here; §5 points at this heading.
+
+  **THIS CONTINUES THE #221 "FOURTH GATE LEG" ENTRY RATHER THAN CONTRADICTING IT.** That entry
+  recorded that the gate carried no leg for "main has not moved" while the strong assertion depended
+  on it entirely. The leg has since been added and was read at #226. The consequence is the one
+  recorded here: **the no-movement leg reads the very condition that makes assertion 2 an
+  entailment**, so reading it converts the assertion from a check into a confirmation of something
+  already established. The leg was still worth adding - without it a moved main forces a STOP for
+  something that is not a defect in the pull request - and **the entailment is the price of having
+  it, not an argument against it.** **What to read, for anyone checking rather than assuming: the
+  PR's `base.sha` against the base ref, never the commit count.** Under `strict: true` those match at
+  every permitted merge, which is why the answer here is structural rather than decided per merge.
+  Naming that is as far as this goes; no change to the gate is proposed and no identifier is
+  created.
+
+  **A SECOND, SMALLER POINT FROM THE SAME MERGE, RECORDED SO IT IS NOT READ AS A DEFECT.** #226's
+  three required checks concluded at 00:20:10Z, 00:22:57Z and 00:23:10Z and the merge ran at
+  18:46:03Z, so the green verdict was roughly eighteen hours old when it was relied on. Under branch
+  protection's `strict: true` that is permitted, and the verdict was content-exact for what was
+  merged - same head SHA, same tree, base unmoved. **The content-exactness came from leg 4, not from
+  the checks.** "Green checks" and "green checks on the state being merged" were the same statement
+  at #226 only because `main` was read and had not moved. Named, not filed.
 
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
