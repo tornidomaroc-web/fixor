@@ -689,3 +689,41 @@ the table, not the 5 and 2-and-3 first written.
 NEXT COMMANDABLE STEP: merge #224 once its re-run checks conclude green under app id 15368.
 After that the records are current and the measurement resumes: W2-prime on twenty/`build` as
 the exact point prediction 11,747 to 11,758, then the twelve-repository walk, then stage P.
+
+## W2-prime: the exact point prediction held (2026-09-13)
+
+Pre-registered in `w2prime-prereg-2026-09-13.md` and committed WITH the harness that runs it, in
+one commit (`806aa72`), so neither could be shaped to the other. **Predicted exactly 11,758.
+Observed 11,758.** twenty, `GEN` with the `build` segment dropped: 12,759 / 11,747 becomes
+12,759 / 11,758.
+
+The prediction was entailed by the census through a DIFFERENT CODE PATH before the run: the
+census derives `unique` from per-file segment bitmasks and a drop-one-out test and counted
+`build` on twenty at 121 / 11 / 11; this arm derives the column from the conjunction over a
+perturbed `GEN` inside `walk()`. Agreement to the unit cross-checks the IMPLEMENTATION and not
+the rule - the same limit the twelve-row match carries.
+
+ALL FOUR STOP CONDITIONS READ CLEAR. Observed 11,758, the committed value. Tracked constants
+identical before and after. `union_mismatch_files` 0 on the twenty walk, read from the landed
+census on main. twenty's HEAD `2badd5da7db126e9b8e41c90bfa9617486205866` read before AND after
+the run, seed 732812762, the seed the landed shape sample records.
+
+THE WITNESS NOW STANDS AT SIX ARMS HOLDING AND ONE FAILED. W1a discourse, W1b grafana, W1b
+gitea, W2 caddy (the blind region), W3 twenty and W2-prime twenty all hold; **W2 twenty stands
+FAILED and is not erased.** W2 was left in `ARMS` exactly as it was, so the run re-executed all
+seven and the harness still exits non-zero, by design: a failed arm is recorded, never removed.
+The residual travels with every claim about this witness, together with the census finding that
+the null came from a REDUNDANT segment rather than an idle one or a blind check.
+
+WHETHER THIS DISCHARGES THE WALK'S BLOCKING CONDITION IS THE OWNER'S RULING, NOT A SESSION'S.
+The 2026-09-12 pre-registration said a failed predicted departure stops the chain and did not
+anticipate a replacement arm, so nothing in it decides the question either way. The session's
+recommendation is recorded in the pull request and is a recommendation only.
+
+NEXT COMMANDABLE STEP: the owner's ruling on discharge. If discharged, the twelve-repository
+walk under `tools/path_population.py`, both arms, foreground, `GIT_NO_LAZY_FETCH=1`, HEAD
+captured before and after each repository, lists untracked in the drafts directory and one
+tracked JSON carrying the pinning fields - all of it already pre-registered in
+`path-population-prereg-2026-09-12.md` and unchanged since. Then stage P draws from the
+excluding-generated lists. If not discharged, the walk waits and the owner names what else the
+witness owes.
