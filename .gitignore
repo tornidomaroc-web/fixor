@@ -162,3 +162,14 @@ docs/WHAT-FIXOR-IS.md
 # Note there is NO general *.bak rule in this file, so this covers CLAUDE.md
 # backups only; other .bak files anywhere in the tree remain visible to git.
 /CLAUDE.md.bak*
+# The root AGENTS.md is the same decision as the block above, applied to the
+# second agent's copy of the same file: it differs from the root CLAUDE.md on
+# three lines and carries the same operational detail. The reasoning is in that
+# block and is not restated here.
+#
+# ROOT-ANCHORED (leading /) for the reason given there: apps/dashboard/AGENTS.md
+# is tracked and must stay tracked.
+/AGENTS.md
+# Prophylactic, by symmetry with CLAUDE.md.bak* above: no AGENTS.md backup
+# exists at the time of writing, four CLAUDE.md backups do.
+/AGENTS.md.bak*
