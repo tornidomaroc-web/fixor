@@ -840,3 +840,66 @@ the lists untracked in the drafts directory with one tracked JSON carrying the p
 unchanged since it landed. Stage P then draws from the excluding-generated lists. If NOT discharged,
 the walk waits and the owner names what else the witness owes, which is pre-registered before
 anything runs.
+
+## THE TWELVE-REPOSITORY WALK RAN: THE DRAW UNIVERSE EXISTS AS FILES (2026-09-14)
+
+DISCHARGE RECORDED FIRST, IN ITS OWN FILE, BEFORE THE WALK. `path-population-discharge-2026-09-14.md`
+landed in `ab84b18` ahead of the run, not beside its numbers. It records what the blocking condition
+guarded - a check whose discriminating power was ASSUMED - and why the owner ruled it discharged:
+W2-prime measured that power on twenty itself, to the unit, against an integer committed before the
+run, through an independent code path. **It also records what is NOT discharged**: W2 remains FAILED
+and permanently recorded, `armsFailed` 1, `every_prediction_holds` false, harness still exits 1; the
+census explains the null as a REDUNDANT segment rather than an idle one or a blind check, which is an
+explanation and not a pass; and W2-prime cross-checks the IMPLEMENTATION, not the rule. **That limit
+travels into the walk's artifact unchanged.**
+
+A CORPUS ERROR WAS CAUGHT BEFORE THE RUN, NOT AFTER. The pre-registration names no corpus path. The
+obvious candidate, `test-output/step4-scans/repos/`, holds THIRTEEN directories - the twelve plus
+`lemmy` - is SHALLOW, and the step-4 manifest forbids touching it; a walk pointed there would have
+produced a thirteenth row against a twelve-row table from truncated histories. `README.md`'s corpus
+line settles it: the fix-pairs corpus is `../fix-pairs-corpus/`, blobless, and it holds exactly the
+twelve. Verified before the instrument ran, and `lemmy` is excluded for a recorded reason - Rust is
+outside `SUPPORTED_LANGS`.
+
+THE WALK. Twelve repositories, both arms, foreground, `GIT_NO_LAZY_FETCH=1`, trees only, **50.6
+seconds total**. Constants imported from the tracked instrument and asserted unchanged before and
+after; all three digests match the pre-registration. `path_population.py` reads `2526845a` and
+`commit-gated.sh` `399e66c5`, both as pinned. HEAD read before and after every repository and stable
+on all twelve. 24 ordered lists written atomically, parsed record counts, no `.tmp` left behind,
+untracked in `../drafts-2026-09-11-tree-scan/` per the precedent.
+
+**ALL TWELVE ROWS REPRODUCE THE SIZING TABLE, AND THE SUM IS 157,996.** Verified two ways because a
+zero is the most dangerous result here: first against a hand-transcribed table, then against the
+table PARSED out of `selector-b.md`, which removes the transcription as a single point of failure.
+Both gave zero divergences. The commit counts were then checked by a path independent of the
+instrument entirely - `git rev-list --count --no-merges HEAD` - and agreed on all twelve. Quoted-path
+counts corroborate the pre-registration's own note: twenty 0, caddy 3.
+
+**THE LABEL ON THAT MATCH IS UNCHANGED.** It is a test of CORPUS STABILITY and of this
+IMPLEMENTATION. It is NOT corroboration that the definition of path population is right, and the
+artifact records it as such. Recovering the original spent that independence.
+
+THE RENAME CONTROL DIVERGES ON SIX OF TWELVE, all upward: discourse +49/+50, strapi +2/+4, grafana
++3/+3, gitea +1/+1, hoppscotch +1/+1, plane +1/+1. Per the pre-registration this is a recorded
+property of the universe, not a defect to repair and not a reason to switch arms. The population is
+the as-recovered arm.
+
+THE EIGHTH ASSERTION-4 ROW IS FILED HERE, not in a PR of its own. #227, FROM the merged branch, read
+not inferred, **RED**. The arm now reads 10 observations, 2 green and 8 red; the register carries 16
+rows of which 14 are RED. Ten is the first count at or above the threshold this measurement publishes
+at, so size no longer disqualifies the arm - but it supplies no finding: the arm is MIXED and RED is
+14 of 16 across the register. **The merge of this PR will owe #228.** That is the floor.
+
+THE ORDERING IS ON THE BRANCH AND WILL NOT SURVIVE THE SQUASH, WHICH IS STATED RATHER THAN
+ASSUMED. The discharge is commit `ab84b18` and the walk is `22307f4`; the discharge is the earlier
+of the two and the run happened between them. A squash merge collapses both into one commit on
+main, so **main's history will not show that the discharge preceded the walk** - the evidence is
+the branch history and the PR's own commit list, not the landed commit. This is the same class of
+claim the W2-prime record protected by committing the prediction and the harness together before
+the run, and it is weaker here: there, the ordering was verifiable after the squash by re-reading
+two blobs; here it is verifiable only on the PR. Named, not repaired, and no identifier created.
+
+NEXT COMMANDABLE STEP: THE STAGE P DRAW, which is a separate order and is NOT taken here. The walk
+produces the universe; the draw consumes it. The universe is now twelve excluding-generated lists,
+each pinned in `path-population-walk-2026-09-14.json` by sha256, parsed record count and repository
+HEAD, so a future git that orders differently cannot silently move a landed draw.

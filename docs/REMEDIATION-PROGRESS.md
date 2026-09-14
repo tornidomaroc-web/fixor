@@ -2373,6 +2373,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #224 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #225 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #226 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #227 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
 already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
@@ -2517,6 +2518,37 @@ uniform one. Third, **nine is not ten, and this measurement publishes no count u
 short is still short, and the arm is not published at nine. The arm predicts the outcome no better
 than the tool version does, which is the sentence this ledger already carries about both other arms,
 repeated rather than weakened. **No cause is named here either.**
+
+**#227 IS THE EIGHTH ROW, AND IT WAS OWED BY THE MERGE THAT FILED THE SIXTH AND SEVENTH
+(2026-09-14).** `gh pr merge 227 --squash` ran while HEAD sat on
+`docs/assertion4-rows-225-226-2026-09-13`, which IS the merged branch. **The arm was READ, not
+inferred** - `git rev-parse --abbrev-ref HEAD` returned that branch before the merge and still
+returned it after. Assertion 4 was **RED**: the local ref survived at `b19e9aa` while `gh` exited
+0 and printed nothing. Assertion 2 held - main's tree equalled `a840443b`, the head tree captured
+before the merge, and main moved to `b6ff3748`. The signature was the familiar one: HEAD not
+switched, ref not deleted, local `main` not advanced (`0eb86f5`), `origin/main` not advanced
+(`9c9f930`) while the true remote main was already `b6ff3748`.
+
+**THIS ROW IS THE FLOOR, NOT A LAPSE.** The merge that filed #225 and #226 necessarily owed one,
+because a register maintained by merges cannot contain its own. The steady state is one owed row;
+two was a backlog. It is filed here rather than in a PR of its own, because at the floor a
+filing PR is a lateral move - it converts "row #227 owed" into "row #228 owed" at the cost of a
+push, a CI cycle and a production deploy - so a lone row waits for content it can ride with.
+**This PR is that content, and the merge of this PR will owe #228.**
+
+**TOTALS AS A NEW DATED RECORD (2026-09-14).** With this row the arm invoked FROM the merged
+branch reads **10 observations, 2 green and 8 red**. The already-checked-out arm is unchanged at
+3, all red; the third arm is unchanged at 3, all red. The register carries 16 rows of which 14
+are RED. **The dated 2026-08-15 COUNT UPDATE and its Totals sentence are NOT touched**, per this
+file's rule that counts move in the table and a dated prose count is a record of what was known
+when it was written.
+
+**WHAT TEN SUPPORTS.** Ten is the first count at or above the threshold this measurement
+publishes at, so for the first time the arm is not disqualified by size alone. It still supports
+no causal claim: the arm is **MIXED**, holding #143 and #160 green under tool versions other rows
+share, so it does not predict the outcome any better than the tool version does; and RED is 14 of
+16 across the register, so a red on any arm is what the base rate expects. **Reaching ten removes
+an objection; it does not supply a finding.** No cause is named here either.
 
 **VERSION CONSTANCY, AND WHAT IT EXCLUDES.** Across #143, #171 and #173 the recorded environment is
 the same — gh 2.91.0, git 2.53.0, Windows — and those three span one green and two reds, so **the
