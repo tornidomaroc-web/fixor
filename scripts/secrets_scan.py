@@ -26,8 +26,20 @@ PATTERNS = [
     ("generic assignment", re.compile(r"""(?i)(?:api[_-]?key|secret|password|token)\s*[:=]\s*['"][A-Za-z0-9_\-/+]{24,}['"]""")),
 ]
 
-# Canonical documentation-example values that are public by definition.
-FAKE_VALUES = {"AKIAIOSFODNN7EXAMPLE"}
+# Canonical documentation-example values that are public by definition, plus
+# non-functional placeholders this repository's own tooling assigns on purpose.
+# The second entry is the WHOLE match of the "generic assignment" pattern at
+# docs/measurements/field-trial-2026-09-19/tools/run-arm-a.cjs:103, where the
+# value is set only in the rehearsal branch (`if (!live)`) so that a rehearsal
+# cannot reach the network. Exempting the matched string rather than the file
+# keeps every other line of that file scanned, and the line's bytes are frozen
+# by a sha256 recorded in arm-a-result-2026-09-19.json, so this entry cannot
+# silently stop matching what it was written for. gitleaks 8.24.3 does not flag
+# that line under the repo config or under its 208 default rules.
+FAKE_VALUES = {
+    "AKIAIOSFODNN7EXAMPLE",
+    'API_KEY = "fixor-rehearsal-placeholder-no-network"',
+}
 
 SKIP_DIRS = {".git", "node_modules", ".venv", "__pycache__", ".next", "dist", "test-output", ".claude"}
 SKIP_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".woff", ".woff2", ".ico", ".zip", ".csv"}
