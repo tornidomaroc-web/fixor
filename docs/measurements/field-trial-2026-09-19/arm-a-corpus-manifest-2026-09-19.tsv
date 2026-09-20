@@ -1,0 +1,55 @@
+# Arm A corpus manifest, 2026-09-19. One row per corpus file.
+# The corpus itself is NOT committed: it is third-party source, and this repository is public
+# (see the corpus-measurement block in .gitignore). These are git blob hashes, the same value
+# GitHub's contents API returns as .sha, so every row can be re-fetched and checked:
+#   gh api repos/<repo>/contents/<path>?ref=<commit> --jq .sha
+# All 48 rows were checked against GitHub on 2026-09-19 and matched.
+side	case	repo	commit	path	blob_sha1
+parent	01	n8n-io/n8n	2bba053d09e310b142c684a406daa110a5ce3666	packages/@n8n/api-types/src/dto/index.ts	1d1b2f56ccacf08ba790229b2fba819546a276cf
+parent	01	n8n-io/n8n	2bba053d09e310b142c684a406daa110a5ce3666	packages/cli/src/controllers/me.controller.ts	07a14ce83ea286acb7ebc3f85b6ad6f7aa248817
+parent	01	n8n-io/n8n	2bba053d09e310b142c684a406daa110a5ce3666	packages/frontend/@n8n/rest-api-client/src/api/users.ts	3bcee734a9a1954d91555984be43f4590192f654
+parent	01	n8n-io/n8n	2bba053d09e310b142c684a406daa110a5ce3666	packages/frontend/editor-ui/src/features/settings/users/users.store.ts	8048acf4cd4cee345f1ee70ead71ccb7f473c0f9
+fix	01	n8n-io/n8n	a70b2ea379086da3de103bb84811e88cadf29976	packages/@n8n/api-types/src/dto/index.ts	1603ce2f4d46b0f0948b40f84624f6c25b038b7f
+fix	01	n8n-io/n8n	a70b2ea379086da3de103bb84811e88cadf29976	packages/cli/src/controllers/me.controller.ts	9c2bae708429d4439deff12de4645824ef7b72b7
+fix	01	n8n-io/n8n	a70b2ea379086da3de103bb84811e88cadf29976	packages/frontend/@n8n/rest-api-client/src/api/users.ts	752166ce2ee8c130e6006e088eecd592b91f0aa2
+fix	01	n8n-io/n8n	a70b2ea379086da3de103bb84811e88cadf29976	packages/frontend/editor-ui/src/features/settings/users/users.store.ts	bb225e50aa14e99e204be4e690d4d04db94fbb71
+parent	02	Budibase/budibase	124e5df31a4725334c65aea3f4b37db6cb10d119	packages/worker/src/api/routes/global/groups.ts	69b69d7242efb71c96730d3cd2292aa26054cf03
+fix	02	Budibase/budibase	93db77846e68231ba655f180581c94503985421a	packages/worker/src/api/routes/global/groups.ts	3777dec3fc50c283cd1682130bf075f8dd5281d6
+parent	03	directus/directus	859f664f56fb50401c407b095889cea38ff580e5	api/src/flows.ts	791608cecbe6f8dec4e9db56a3f857564751a9cb
+fix	03	directus/directus	22be460c76957708d67fdd52846a9ad1cbb083fb	api/src/flows.ts	2ae7513294c42ab7b218daa5db1268bf54d746ab
+parent	04	actualbudget/actual	ea937d100956ca56689ff852d99c28589e2a7d88	packages/sync-server/src/app-sync.ts	91c9bab4c350c122a09d74a6c27c782b5f089b0e
+fix	04	actualbudget/actual	9966c024cb75f57943193cac8e42f401efed9d08	packages/sync-server/src/app-sync.ts	78626002d75452a729647cfb71beb28e7d60585b
+parent	05	frangoteam/FUXA	61b5cf41af63a60749ac39a285be66b693d19b94	server/api/command/index.js	0a7686a8857a5a36dc65c2ac8172c612a335f4f5
+parent	05	frangoteam/FUXA	61b5cf41af63a60749ac39a285be66b693d19b94	server/integrations/node-red/index.js	13c53e40613aba96e290e18afb047c35659eee1e
+fix	05	frangoteam/FUXA	78534da61a91613712b44bb63c8d7da8c5df5ca4	server/api/command/index.js	3d66e684d19b55672ff890ae27b7c5a57ca6a9cb
+fix	05	frangoteam/FUXA	78534da61a91613712b44bb63c8d7da8c5df5ca4	server/integrations/node-red/index.js	84fb55593f424441aff96c92fbeb231bc62a086a
+parent	06	withstudiocms/studiocms	9769cc160b06296b1a060389661061daa71ed231	packages/studiocms/frontend/pages/studiocms_api/_handlers/rest-api/v1/secure.ts	31cdf5f0503ca41f3cb58f531a1dbf7681d6ee2c
+fix	06	withstudiocms/studiocms	aebe8bcb3618bb07c6753e3f5c982c1fe6adea64	packages/studiocms/frontend/pages/studiocms_api/_handlers/rest-api/v1/secure.ts	ab84afcd147d12305004667b35f0cfba8a6772b1
+parent	07	lobehub/lobe-chat	a2947c91c712d7f61f6ecade18d6b52baa33709a	packages/database/src/models/knowledgeBase.ts	6c541ff5a30021a02a668b0f97c6efe9ebe5511a
+parent	07	lobehub/lobe-chat	a2947c91c712d7f61f6ecade18d6b52baa33709a	src/server/modules/S3/index.ts	8046e6c336971347f0923c0dc10ee2716ef9ffb0
+parent	07	lobehub/lobe-chat	a2947c91c712d7f61f6ecade18d6b52baa33709a	src/server/routers/lambda/file.ts	a65fe5e3e57e2214f64ab5dbcb776d0f64e0ee4e
+parent	07	lobehub/lobe-chat	a2947c91c712d7f61f6ecade18d6b52baa33709a	src/server/services/file/impls/s3.ts	043e957d1e49056ae2a508bfda071ccdbb6ec2b0
+parent	07	lobehub/lobe-chat	a2947c91c712d7f61f6ecade18d6b52baa33709a	src/server/services/file/impls/type.ts	308d33a19181ea5bf72eddc4e5ab2ebd1039427b
+parent	07	lobehub/lobe-chat	a2947c91c712d7f61f6ecade18d6b52baa33709a	src/server/services/file/index.ts	2030c1f511ed057ff24bd62e5e3f23fd5795f0a4
+fix	07	lobehub/lobe-chat	2c1762b85acb84467ed5e799afe1499cd2f912e6	packages/database/src/models/knowledgeBase.ts	6d7af1563757dd51614ae826779ccb0e36d18ca2
+fix	07	lobehub/lobe-chat	2c1762b85acb84467ed5e799afe1499cd2f912e6	src/server/modules/S3/index.ts	f10753308be509aa1932838dfbcdd1aac8445829
+fix	07	lobehub/lobe-chat	2c1762b85acb84467ed5e799afe1499cd2f912e6	src/server/routers/lambda/file.ts	31ba6f2016f43a9e219502361a2231567c632fd4
+fix	07	lobehub/lobe-chat	2c1762b85acb84467ed5e799afe1499cd2f912e6	src/server/services/file/impls/s3.ts	79e7a35e6486ec23b55ce10987de95bdaf5491ce
+fix	07	lobehub/lobe-chat	2c1762b85acb84467ed5e799afe1499cd2f912e6	src/server/services/file/impls/type.ts	b1f269c99f1b4df9c6feb08b07fb4e5313f81a75
+fix	07	lobehub/lobe-chat	2c1762b85acb84467ed5e799afe1499cd2f912e6	src/server/services/file/index.ts	92c17b08226d658ff642d9737d7b86eba43e9988
+parent	08	OneUptime/oneuptime	8642a54fec5e976258f4f95a4dac4b4c8d5ba7de	Common/Models/DatabaseModels/User.ts	ac75a449bf502bb41ffaca0797d29e6a5dd239ff
+fix	08	OneUptime/oneuptime	07bc6d4edde7397ea6b88f889c065ec392052ab4	Common/Models/DatabaseModels/User.ts	b4ec4d1f4855a568270729cd1660c2e466c43811
+parent	09	SignalK/signalk-server	5c211eaf33f0ccadbaed6720264780d92afbd7f8	src/tokensecurity.js	710fafa3b24ffc2684788c3b32f012df46933448
+fix	09	SignalK/signalk-server	ead2a03d8994969cafcca0320abee16f0e66e7a9	src/tokensecurity.js	1123227ca9bb87a35e2642a3f7b4dc04bc0f6fb1
+parent	10	apostrophecms/apostrophe	252635917446ec9b30c895181490220cab1fed26	packages/apostrophe/modules/@apostrophecms/page/index.js	e68c45e9755a5f091c796dae61b76b37f848f9c0
+fix	10	apostrophecms/apostrophe	d50c6ad61b9c1788958752358f1fca714cc8368c	packages/apostrophe/modules/@apostrophecms/page/index.js	cbbd6d81b48b2c74703137edefee6508446588d4
+parent	11	tinacms/tinacms	c2c03c677f67b6fd3a2155d5227b9bf785b43288	packages/@tinacms/auth/src/index.ts	cc888ef7bc52b35d8f48d84eddb18a9a89289b26
+parent	11	tinacms/tinacms	c2c03c677f67b6fd3a2155d5227b9bf785b43288	packages/@tinacms/cli/src/cmds/init/prompts/authProvider.ts	bf38e659ca26a72b33344609a849ab3d1793dc75
+parent	11	tinacms/tinacms	c2c03c677f67b6fd3a2155d5227b9bf785b43288	packages/next-tinacms-azure/src/auth.ts	73639abd8496c0a0a3d56fa37ee62d91419e3b1d
+parent	11	tinacms/tinacms	c2c03c677f67b6fd3a2155d5227b9bf785b43288	vitest.config.ts	f964be2a40cc88b5b1e7e01ae90506e3339fcb01
+fix	11	tinacms/tinacms	0a927a4f8d228dd05ee7ca4be32899bc190e73af	packages/@tinacms/auth/src/index.ts	e5ab0a4982f8241dbed2149c429e0cf656a34f89
+fix	11	tinacms/tinacms	0a927a4f8d228dd05ee7ca4be32899bc190e73af	packages/@tinacms/cli/src/cmds/init/prompts/authProvider.ts	6df9fe9a7c0e7bb25a21bc58f69d12e73a901467
+fix	11	tinacms/tinacms	0a927a4f8d228dd05ee7ca4be32899bc190e73af	packages/next-tinacms-azure/src/auth.ts	aab75edfa1b8e0093867ff7c28ff90c3e2e6ef99
+fix	11	tinacms/tinacms	0a927a4f8d228dd05ee7ca4be32899bc190e73af	vitest.config.ts	3bb6e5f04328e16fe627a64ffe83d3f078948bb8
+parent	12	backstage/backstage	6042dd0c7f0706e0f473dafa92799ecf19c825ec	plugins/scaffolder-backend/src/scaffolder/tasks/NunjucksWorkflowRunner.ts	5c4cbd67303776ba4633d992093cfd051f6867bf
+fix	12	backstage/backstage	3b62dd2d6bf7623ebd23e4b5a6dceb209f98dfce	plugins/scaffolder-backend/src/scaffolder/tasks/NunjucksWorkflowRunner.ts	589ad2e204a96ff62ec91afed01f9e0bc8746960

@@ -1,0 +1,349 @@
+{
+  "measurement": "field-trial trigger dry run",
+  "date": "2026-09-19",
+  "spend_usd": 0,
+  "instrument": {
+    "script": "src/test/measure-trial-triggers.ts",
+    "method": "shipped detect() under the measure-stage3-calls spy shape; canned responses; zero real transport",
+    "fixorTree": "84e08fdf955c77969c248d25f5512d89a30c79b5",
+    "model": "claude-sonnet-4-6"
+  },
+  "controls": {
+    "positive": {
+      "files": 5,
+      "calls": 12
+    },
+    "negative": {
+      "files": 1,
+      "calls": 0
+    },
+    "skipListUnderWindowsPaths": {
+      "file": "tests/api/posts/[id]/route.ts",
+      "calls": 0
+    }
+  },
+  "rate": {
+    "usdPerCall": 0.0268,
+    "provenance": "mean of 3 cold real-code calls, REMEDIATION-PROGRESS.md; uncorroborated; a projection, not a measurement"
+  },
+  "knownAnswer": {
+    "admissionSha256": "1224650e3f3e9d14536cb62a5aff9f403c221bf7c73289e908a7a78acf3f9cb4",
+    "cases": [
+      {
+        "case": "01",
+        "filesEnumerated": 4,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 1,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 1,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "rawSha256": "4a199bd53753bf91cd5a415b7b3f45ef5770fb7246b82a797e489889a898221d"
+      },
+      {
+        "case": "02",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "rawSha256": "8f1da03606771350962e3b7a3f94203872283fc4ae2f7ff944fdf0be176fdddf"
+      },
+      {
+        "case": "03",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "rawSha256": "dea63c0b51a901e38584f217933ff0e716a19d6956096a20c11034943c158a30"
+      },
+      {
+        "case": "04",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "rawSha256": "c01f0f62e030874ccbdc9516035a91e173b9d32fd094b5a97e4ffd7f8b02c65c"
+      },
+      {
+        "case": "05",
+        "filesEnumerated": 2,
+        "filesFailed": 0,
+        "filesReachingModel": 2,
+        "modelCalls": 4,
+        "byDetector": {
+          "auth-bypass-multi": 2,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 2,
+          "idor-multi": 0
+        },
+        "rawSha256": "719748fa158fa3301d2327d0671acbc8537b6ec7b5afb21dcd36bcd2ef272f43"
+      },
+      {
+        "case": "06",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "rawSha256": "b39f41706d186d8110c8af2ad148c3809f9fe00240aa31c3c2732a04bd1aa67f"
+      },
+      {
+        "case": "07",
+        "filesEnumerated": 6,
+        "filesFailed": 0,
+        "filesReachingModel": 2,
+        "modelCalls": 2,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 2
+        },
+        "rawSha256": "d485d843d0b1e1b54d9496a8e88734afcad6d787c4f14a4d9e1d66d5ee5c1c49"
+      },
+      {
+        "case": "08",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "rawSha256": "4a7c8c91398fad015bf4689afc03573ec4d10f0f506a6e6879ffdbc61132c17a"
+      },
+      {
+        "case": "09",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "rawSha256": "a7053653c0a4866e04609219f0ba0c310562cd71619b4bffe200d865611d1352"
+      },
+      {
+        "case": "10",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "rawSha256": "639230fc20b1b1d98419d9271c1bd1a0d5af4a3ad02b95c89bc45f24992805fa"
+      },
+      {
+        "case": "11",
+        "filesEnumerated": 4,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "rawSha256": "3f86f958564d0f7a968eb940294e280e2c9e2dc11169dc7cf7c651adab5bb0c2"
+      },
+      {
+        "case": "12",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "rawSha256": "5771e6600009be395cd3947bb9d9b805fb5ea5528288943c4db195efae703506"
+      }
+    ],
+    "totalCalls": 13,
+    "casesWhereAnAccessControlOrLaneDetectorReachesTheModel": [
+      "04",
+      "05",
+      "07",
+      "09",
+      "10"
+    ]
+  },
+  "live": {
+    "drawOrderSeed": "sha256(admissionSha256 + owner/repo), ascending",
+    "sizeRule": "GitHub API size <= 1000 MB",
+    "repos": [
+      {
+        "repo": "medusajs/medusa",
+        "head": "48a8812735f6630bcc12b3997b6d1d1f559cd492",
+        "filesEnumerated": 9534,
+        "filesFailed": 0,
+        "filesReachingModel": 409,
+        "modelCalls": 1199,
+        "byDetector": {
+          "auth-bypass-multi": 399,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 393,
+          "env-exposure-multi": 7,
+          "admin-check-multi": 399,
+          "idor-multi": 1
+        },
+        "projectedUsdAtMeasuredColdRate": 32.13,
+        "rawSha256": "11caff6a0ee9650f3459046127497441eda120299f28ce83d847ec762ba33d47"
+      },
+      {
+        "repo": "novuhq/novu",
+        "head": "36c5c0cefa400e8edc6ec8b18ac4574288eabd03",
+        "filesEnumerated": 8655,
+        "filesFailed": 0,
+        "filesReachingModel": 81,
+        "modelCalls": 113,
+        "byDetector": {
+          "auth-bypass-multi": 19,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 23,
+          "env-exposure-multi": 21,
+          "admin-check-multi": 21,
+          "idor-multi": 29
+        },
+        "projectedUsdAtMeasuredColdRate": 3.03,
+        "rawSha256": "f39b3480cf388e73b581bde5d01ed799ed65da92e4a02b5e28dd31869f7beb55"
+      },
+      {
+        "repo": "outline/outline",
+        "head": "f9ae2dcd6d4eec191939d906f6b0d142789f7788",
+        "filesEnumerated": 2535,
+        "filesFailed": 0,
+        "filesReachingModel": 68,
+        "modelCalls": 124,
+        "byDetector": {
+          "auth-bypass-multi": 16,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 4,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 63,
+          "idor-multi": 41
+        },
+        "projectedUsdAtMeasuredColdRate": 3.32,
+        "rawSha256": "c7c929927accb111beb4deb6f5fe8b62309e2300eb5d74f3fa15d279ad61f539"
+      },
+      {
+        "repo": "umami-software/umami",
+        "head": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+        "filesEnumerated": 1386,
+        "filesFailed": 0,
+        "filesReachingModel": 152,
+        "modelCalls": 454,
+        "byDetector": {
+          "auth-bypass-multi": 151,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 150,
+          "env-exposure-multi": 1,
+          "admin-check-multi": 150,
+          "idor-multi": 2
+        },
+        "projectedUsdAtMeasuredColdRate": 12.17,
+        "rawSha256": "208cfb5addc4eee825c61028127c032367b2a555b0f253048faf0001effd449c"
+      },
+      {
+        "repo": "dubinc/dub",
+        "head": "66223ae22cdec9960897507cf86c551b4e333562",
+        "filesEnumerated": 4402,
+        "filesFailed": 0,
+        "filesReachingModel": 557,
+        "modelCalls": 1562,
+        "byDetector": {
+          "auth-bypass-multi": 514,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 506,
+          "env-exposure-multi": 2,
+          "admin-check-multi": 522,
+          "idor-multi": 18
+        },
+        "projectedUsdAtMeasuredColdRate": 41.86,
+        "rawSha256": "f2d60930468a02767ef9238cc5e354d08836e8cba7213232f37b127dec2b9eea"
+      },
+      {
+        "repo": "docmost/docmost",
+        "head": "6205bbeb908fe846f87dd6a2cbf562e24777db38",
+        "filesEnumerated": 1437,
+        "filesFailed": 0,
+        "filesReachingModel": 37,
+        "modelCalls": 65,
+        "byDetector": {
+          "auth-bypass-multi": 29,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 2,
+          "admin-check-multi": 30,
+          "idor-multi": 4
+        },
+        "projectedUsdAtMeasuredColdRate": 1.74,
+        "rawSha256": "99267820903b81dc1624a9673caffb92f5cd7def76870b776ea2e3d586db669d"
+      }
+    ],
+    "totalCallsSixDrawn": 3517
+  }
+}
