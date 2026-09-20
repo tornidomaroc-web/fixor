@@ -1,0 +1,102 @@
+{
+  "registeredRuleHits": 0,
+  "pairedRuleHits": 0,
+  "rows": [
+    {
+      "case": "01",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "02",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "03",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "04",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "05",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "06",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "07",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "08",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "09",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "10",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "11",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    },
+    {
+      "case": "12",
+      "parentHit": false,
+      "fixHit": false,
+      "discriminating": false,
+      "parentFindings": [],
+      "fixFindings": []
+    }
+  ]
+}

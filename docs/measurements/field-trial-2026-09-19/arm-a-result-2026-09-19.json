@@ -1,0 +1,165 @@
+{
+  "measurement": "field trial Arm A, paired (amendment A1, cost-corrected)",
+  "date": "2026-09-19",
+  "verdict": {
+    "pairedRuleHits": 0,
+    "registeredRuleHits": 0,
+    "thresholds": "FAIL <=1, PASS >=3, 2 inconclusive",
+    "result": "FAIL",
+    "pointPrediction": "2 (cases 05 and 07)",
+    "predictionHeld": false,
+    "armB": "does not run (stop condition 6)"
+  },
+  "calls": {
+    "parent": 13,
+    "fix": 14,
+    "failed": 0,
+    "requestModels": [
+      "claude-sonnet-4-6"
+    ],
+    "responseModels": [
+      "claude-sonnet-4-6"
+    ],
+    "everyVerdictIsVulnerable": [
+      false
+    ]
+  },
+  "cost": {
+    "observerUsd": 0.9579,
+    "pricing": "repository calculateCost: claude-sonnet-4-6 $3 in / $15 out per million; cache write 1.25x, read 0.1x",
+    "tokens": {
+      "input": 255683,
+      "output": 7545,
+      "cacheWrite": 13770,
+      "cacheRead": 86808
+    },
+    "consoleWindowUtc": [
+      "2026-09-19T17:55:04.473Z",
+      "2026-09-19T18:03:33.225Z"
+    ],
+    "approvedCeilingUsd": 2,
+    "projectionCentralUsd": 1.14
+  },
+  "stopConditionsFired": [],
+  "corpusManifest": {
+    "before": "71cb469d287af44e259ee8e53d40f1b976c0fd13de1747349ab0b4f8c9b3b2b1",
+    "after": "71cb469d287af44e259ee8e53d40f1b976c0fd13de1747349ab0b4f8c9b3b2b1"
+  },
+  "cases": [
+    {
+      "case": "01",
+      "verdict": "MISS",
+      "missKind": "never reached the model by a lane-family detector",
+      "callsParent": 1,
+      "callsFix": 1,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "02",
+      "verdict": "MISS",
+      "missKind": "never reached the model by a lane-family detector",
+      "callsParent": 0,
+      "callsFix": 0,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "03",
+      "verdict": "MISS",
+      "missKind": "never reached the model by a lane-family detector",
+      "callsParent": 0,
+      "callsFix": 0,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "04",
+      "verdict": "MISS",
+      "missKind": "read; returned nothing in the window",
+      "callsParent": 2,
+      "callsFix": 2,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "05",
+      "verdict": "MISS",
+      "missKind": "read; returned nothing in the window",
+      "callsParent": 4,
+      "callsFix": 4,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "06",
+      "verdict": "MISS",
+      "missKind": "never reached the model by a lane-family detector",
+      "callsParent": 0,
+      "callsFix": 0,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "07",
+      "verdict": "MISS",
+      "missKind": "read; returned nothing in the window",
+      "callsParent": 2,
+      "callsFix": 2,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "08",
+      "verdict": "MISS",
+      "missKind": "never reached the model by a lane-family detector",
+      "callsParent": 0,
+      "callsFix": 0,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "09",
+      "verdict": "MISS",
+      "missKind": "read; returned nothing in the window",
+      "callsParent": 2,
+      "callsFix": 2,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "10",
+      "verdict": "MISS",
+      "missKind": "read; returned nothing in the window",
+      "callsParent": 2,
+      "callsFix": 2,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "11",
+      "verdict": "MISS",
+      "missKind": "never reached the model by a lane-family detector",
+      "callsParent": 0,
+      "callsFix": 1,
+      "findingsParent": 0,
+      "findingsFix": 0
+    },
+    {
+      "case": "12",
+      "verdict": "MISS",
+      "missKind": "never reached the model by a lane-family detector",
+      "callsParent": 0,
+      "callsFix": 0,
+      "findingsParent": 0,
+      "findingsFix": 0
+    }
+  ],
+  "toolsSha256": {
+    "run-arm-a.cjs": "2ebaa9628714b2cd2c117d7a7ed3ae4405ec0df7b757d839e81a5ee9d6ae81dc",
+    "score-arm-a.cjs": "fef506f93403e11cb14a681531f9984cab5a96e7013c01200c87e6054383be44",
+    "score-paired.cjs": "df92a3c9934e82b94ea571da487a03ec94c7716d8c79b155557b85b8dee46cba",
+    "trial-observer.cjs": "59a1eed4df278f06f1767123238fe13ddc89969d81ecf825a11b9ac2effc3b14"
+  },
+  "rawRunLocation": "field-trial-corpus-2026-09-19/arm-a-run-2026-09-19 (outside the repository; observer.jsonl holds every raw verdict)"
+}
