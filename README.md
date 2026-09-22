@@ -8,7 +8,7 @@
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
 [![License: MIT](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
 
-> **Detects 6 business-logic vulnerability classes in Node/TypeScript: auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, and unverified webhooks.**
+> **Six detectors for Node/TypeScript pull requests: auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, and unverified webhooks.**
 
 [Landing](https://fixor.dev/) ·
 [Dashboard](https://app.fixor.dev) ·
@@ -24,12 +24,12 @@
 
 | Capability | Status |
 |---|---|
-| 🔓 Authentication bypass — weakened or short-circuited auth checks: role-to-admin fallbacks, swallowed token verification, hardcoded bypass flags | ✅ Shipping (measured) |
-| 🔑 IDOR — resource access without an ownership check | ✅ Shipping (measured) |
-| 👮 Weak admin check — privilege gated by hardcoded email/role allowlists or client-supplied role | ✅ Shipping (measured) |
-| 🌫️ Env exposure — secrets leaked through env vars into response bodies | ✅ Shipping (measured) |
+| 🔓 Authentication bypass — weakened or short-circuited auth checks: role-to-admin fallbacks, swallowed token verification, hardcoded bypass flags | ✅ Shipping · measured on authored fixtures; no real-code result supports a claim |
+| 🔑 IDOR — resource access without an ownership check | ✅ Shipping · measured on authored fixtures; no real-code result supports a claim |
+| 👮 Weak admin check — privilege gated by hardcoded email/role allowlists or client-supplied role | ✅ Shipping · measured on authored fixtures; no real-code result supports a claim |
+| 🌫️ Env exposure — secrets leaked through env vars into response bodies | ✅ Shipping · measured on authored fixtures; no real-code result supports a claim |
 | 🗝️ Secrets exposure — hardcoded API keys, tokens, credentials | ✅ Shipping (measured) |
-| 🪝 Unverified webhook handlers — handlers that skip signature verification. URL-name prefilter (router-style frameworks only) plus content-based lib-import / anti-pattern prefilter (any framework; see [`docs/detector-capabilities.md`](docs/detector-capabilities.md) for content-prefilter blind spots). Provider fixtures: Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC | ✅ Shipping (measured) |
+| 🪝 Unverified webhook handlers — handlers that skip signature verification. URL-name prefilter (router-style frameworks only) plus content-based lib-import / anti-pattern prefilter (any framework; see [`docs/detector-capabilities.md`](docs/detector-capabilities.md) for content-prefilter blind spots). Provider fixtures: Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC | ✅ Shipping · measured on authored fixtures; no real-code result supports a claim |
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
 | 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
 | 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
@@ -42,7 +42,7 @@
 | ☕ Java · 🐘 PHP — first-class detectors planned | 🚧 On roadmap (Phase 6) |
 | 🤖 Auto-fix Pull Requests (commit back) | 🚧 On roadmap (Phase 6) |
 
-*Route-shape note: auth bypass, IDOR, and weak admin check run independently, so a route flagged by more than one of them can carry cross-wired labels. Every finding still lands on a genuinely vulnerable route, but a cross-wired finding's mechanism description can be imprecise; that labeling work is tracked but not yet shipped.*
+*Route-shape note: auth bypass, IDOR, and weak admin check run independently, so a route flagged by more than one of them can carry cross-wired labels, and a cross-wired finding's mechanism description can be imprecise; that labeling work is tracked but not yet shipped.*
 
 The full plan and what's already shipped is in [`docs/INDIE-SAAS-ROADMAP.md`](docs/INDIE-SAAS-ROADMAP.md).
 
@@ -50,13 +50,11 @@ The full plan and what's already shipped is in [`docs/INDIE-SAAS-ROADMAP.md`](do
 
 1. Install Fixor as a GitHub App on a repo or org.
 2. When a PR opens or updates, GitHub sends a signed webhook to Fixor.
-3. The diff (only the changed lines — never the full repo) is sent to Claude.
-4. Fixor's analysis engine produces findings, each with a precise explanation and remediation steps.
+3. Fixor reads each changed file in full at the PR head, plus, for a route file, the parent layout files that can guard it; it does not read the rest of the repository. The detectors that call Claude send it content from those files.
+4. Fixor's analysis engine produces findings, each with an explanation and remediation steps.
 5. A structured comment lands on the PR with the report inline + signed PDF/SARIF links.
 
-Total latency from PR push to comment: typically 10–30 seconds.
-
-> **A second pair of eyes, not a guarantee.** Every finding Fixor reports comes with a precise explanation and remediation steps, so you can judge it quickly. It sharpens human review; it does not replace it.
+> **A second pair of eyes, not a guarantee.** Every finding Fixor reports comes with an explanation and remediation steps, so you can judge it quickly. It sharpens human review; it does not replace it.
 
 ## Screenshots
 
@@ -70,19 +68,17 @@ A live Fixor Security Report, posted on a real pull request — [`fixor-demo` PR
 
 ## Compared to Snyk and Semgrep
 
-Fixor doesn't compete with Snyk or Semgrep — it covers the class they structurally can't. CVE scanners and pattern matchers are strong on dependency vulns and known injection sinks (SQLi, XSS); they are blind to business-logic flaws, because catching those needs reasoning about auth, ownership, and role semantics — not patterns. **Run Snyk for dependencies, run Fixor for the logic in your own code.**
-
 | | **Fixor** | Snyk Code | Semgrep (OSS / Pro) |
 |---|---|---|---|
 | Setup time | Install GitHub App, done | CLI / CI step + dashboard config | Add `.semgrep.yml` + CI step |
-| Languages | JS/TS full · partial Python/Go/Ruby | 10+ | 30+ |
-| Detector focus | Business logic: auth-bypass · IDOR · admin-check · env-exposure · secrets · unverified-webhooks | Dependency CVEs + injection patterns | 2,000+ pattern rules |
-| False-positive driver | Claude reasoning per finding | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
-| Remediation output | Precise explanation + remediation steps per finding | Partial auto-patch (Snyk Code Fix) | Rule message only |
+| Languages | JS/TS · partial Python/Go/Ruby | 10+ | 30+ |
+| Detector focus | auth-bypass · IDOR · admin-check · env-exposure · secrets · unverified-webhooks | Dependency CVEs + injection patterns | 2,000+ pattern rules |
+| False-positive driver | Claude judges the candidates each detector's patterns select (the secrets check uses fixed shapes and no model) | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
+| Remediation output | Explanation + remediation steps per finding | Partial auto-patch (Snyk Code Fix) | Rule message only |
 | PDF + SARIF | ✅ Both | ✅ SARIF | ✅ SARIF |
 | Pricing (entry) | $0 (free tier, real) | Free tier; $52/dev/mo Team | OSS free; $40/dev/mo Pro |
 | Open source | ✅ MIT | ❌ | ✅ rules engine |
-| Best for | Catching logic flaws in your own JS/TS code | Dependency + known-CVE coverage | Teams who want full rule control |
+| Best for | Zero-setup PR checks on Node/TypeScript (real-code results published for the secrets check only) | Dependency + known-CVE coverage | Teams who want full rule control |
 
 If you're at a 50-person company with a polyglot codebase, Snyk or Semgrep Pro is probably the right call. If you're a solo founder or a small team shipping a Node.js app and want a security review on every PR with zero ceremony, Fixor is built for you.
 
@@ -109,7 +105,7 @@ The dashboard is a separate Next.js app at [`apps/dashboard/`](apps/dashboard/) 
 | Layer | Tech | Why |
 |---|---|---|
 | Runtime | Node.js 20 + TypeScript 5 | Boring, fast, well-supported |
-| AI | Claude (Anthropic SDK with prompt caching + tool use) | Reasons about diff context, not just patterns |
+| AI | Claude (Anthropic SDK with prompt caching + tool use) | Judges the candidates each detector's patterns select |
 | Database | Neon Postgres + Drizzle ORM | Serverless, branching, type-safe |
 | Auth (App) | GitHub App — RS256 JWT + ≤1h installation tokens | Standard for App-based GitHub integrations |
 | Auth (Dashboard) | Clerk — GitHub OAuth only | 10k MAU free, OOTB |
