@@ -151,9 +151,9 @@
 
   <main class="wrap">
     <h1>Security &amp; Trust</h1>
-    <p class="updated">Last updated: April 27, 2026</p>
+    <p class="updated">Last updated: September 23, 2026</p>
 
-    <p>Fixor reads pull request diffs and writes back security findings. Anyone trusting Fixor with their code has a right to know what we hold, who else touches it, and how to tell us when we&apos;ve done something wrong. This page is the short version &mdash; the longer narrative is in our <a href="privacy.html">Privacy Policy</a> and the operator-facing roadmap in our public repository.</p>
+    <p>Fixor reads the code a pull request changes and writes back security findings. Anyone trusting Fixor with their code has a right to know what we hold, who else touches it, and how to tell us when we&apos;ve done something wrong. This page is the short version &mdash; the longer narrative is in our <a href="privacy.html">Privacy Policy</a> and the operator-facing roadmap in our public repository.</p>
 
     <h2>1. Security practices</h2>
     <p>Concrete things shipped today, not aspirations:</p>
@@ -167,12 +167,20 @@
         <p>Fixor authenticates with GitHub via the App's installation tokens, which expire within 1 hour. We don&apos;t hold a long-lived personal access token for any user.</p>
       </div>
       <div class="practice">
-        <h3>Diffs are not stored</h3>
-        <p>The PR diff is processed in memory by the analysis engine and is not written to our database. Cost ledger and scan history rows track <em>that</em> a scan ran (and what it cost) without storing the code itself.</p>
+        <h3>What Fixor reads</h3>
+        <p>A scan reads the pull request&apos;s diff, the full content of each changed file and, for route files, the parent layout files that can guard them, at the pull request&apos;s head commit. The GitHub App holds the Contents permission at read level, so it <em>can</em> read every file in each repository it is installed on.</p>
       </div>
       <div class="practice">
-        <h3>Signed report URLs</h3>
-        <p>PDF + SARIF reports live on Cloudinary as authenticated assets. The PR comment links to a signed URL with a 1-hour TTL by default; the URL only proves the holder reached the comment within that window.</p>
+        <h3>Code is not stored in our database</h3>
+        <p>Pull request code is processed in memory by the analysis engine and is not written to our database. Cost ledger rows record <em>that</em> a model call ran (and what it cost) without storing the code itself. The PDF report is the exception: it includes excerpts of flagged code.</p>
+      </div>
+      <div class="practice">
+        <h3>Signed report links</h3>
+        <p>PDF + SARIF reports live on Cloudinary as authenticated assets. The link in the PR comment works for one hour after the scan, and during that hour anyone who can see the pull request can open it; on a public repository, that is anyone.</p>
+      </div>
+      <div class="practice">
+        <h3>Reports come only from the Fixor bot</h3>
+        <p>Fixor posts its report as the Fixor GitHub App&apos;s bot account and only ever edits a comment that bot wrote. Trust a Fixor report only when it is posted by the Fixor bot; a comment that looks like one but was posted by anyone else is not from Fixor.</p>
       </div>
       <div class="practice">
         <h3>Hashed API tokens</h3>
@@ -200,7 +208,7 @@
         <tr><th>Subprocessor</th><th>Purpose</th><th>Region</th></tr>
       </thead>
       <tbody>
-        <tr><td><a href="https://trust.anthropic.com/">Anthropic</a></td><td>Diff analysis (Claude API)</td><td>USA</td></tr>
+        <tr><td><a href="https://trust.anthropic.com/">Anthropic</a></td><td>Analysis of pull-request code (Claude API)</td><td>USA</td></tr>
         <tr><td><a href="https://neon.tech/security">Neon</a></td><td>Postgres database</td><td>USA / EU</td></tr>
         <tr><td><a href="https://railway.com/legal/privacy">Railway</a></td><td>Backend webhook + analysis runtime</td><td>USA</td></tr>
         <tr><td><a href="https://vercel.com/security">Vercel</a></td><td>Dashboard hosting</td><td>USA / EU</td></tr>
@@ -245,7 +253,7 @@
     <p>Good-faith research that follows this scope and stops at proof-of-concept will not result in legal action from us. Don&apos;t exfiltrate data, don&apos;t run automated scanners that affect availability, and don&apos;t go after other customers&apos; data &mdash; if you find a way to read another org&apos;s rows, stop, and tell us.</p>
 
     <h2>5. Incident communication</h2>
-    <p>Live status: <a href="https://status.fixor.dev">status.fixor.dev</a> tracks four monitors (landing, dashboard, backend, Anthropic edge). Subscribe there for incident emails. Material data-breach notifications go to the email on each affected org&apos;s record (the installer email captured at first dashboard sign-in) within 72 hours of confirmation.</p>
+    <p>There is no public status page at the moment. Material data-breach notifications go to the email on each affected org&apos;s record (the installer email captured at first dashboard sign-in) within 72 hours of confirmation.</p>
 
     <h2>6. Data subject requests</h2>
     <p>For access, deletion, or export of data Fixor holds about your org, see the &ldquo;Your rights&rdquo; section of our <a href="privacy.html">Privacy Policy</a>. Requests go to <a href="mailto:support@fixor.dev">support@fixor.dev</a> and are answered within 30 days.</p>
