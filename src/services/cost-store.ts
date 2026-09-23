@@ -47,8 +47,18 @@ function startOfDayUtc(now: Date = new Date()): Date {
   );
 }
 
-async function ensureInstallation(installationId: string): Promise<void> {
-  await db()
+type Database = ReturnType<typeof db>;
+
+/**
+ * Upserts the `installations` row that `cost_ledger` and `scan_runs`
+ * reference. Also used by the scan-run store, which inserts before any
+ * ledger row exists.
+ */
+export async function ensureInstallation(
+  installationId: string,
+  database: Database = db(),
+): Promise<void> {
+  await database
     .insert(installations)
     .values({ id: installationId })
     .onConflictDoUpdate({
@@ -57,20 +67,39 @@ async function ensureInstallation(installationId: string): Promise<void> {
     });
 }
 
+/** What one priced call carries into its ledger row besides the cost. */
+export interface CostDetail {
+  scanRunId?: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheCreationInputTokens?: number;
+  cacheReadInputTokens?: number;
+}
+
 /** Inserts one cost_ledger row. Caller is responsible for catching errors. */
 export async function recordCost(
   installationId: number | string,
   costUsd: number,
+  detail: CostDetail = {},
+  database?: Database,
 ): Promise<void> {
   if (!Number.isFinite(costUsd) || costUsd <= 0) return;
 
   const id = String(installationId);
-  await ensureInstallation(id);
-  await db()
+  const d = database ?? db();
+  await ensureInstallation(id, d);
+  await d
     .insert(costLedger)
     .values({
       installationId: id,
+      scanRunId: detail.scanRunId ?? null,
       costUsd: costUsd.toString(),
+      model: detail.model ?? null,
+      inputTokens: detail.inputTokens ?? null,
+      outputTokens: detail.outputTokens ?? null,
+      cacheCreationInputTokens: detail.cacheCreationInputTokens ?? null,
+      cacheReadInputTokens: detail.cacheReadInputTokens ?? null,
     });
   logger.info(
     { installationId: id, costUsd },

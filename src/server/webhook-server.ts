@@ -163,6 +163,7 @@ function summarizeWebhookResult(
       signatureState: result.signatureState,
       error: result.error,
       missingFields: result.missingFields,
+      duplicateDelivery: result.duplicateDelivery,
     };
   }
   return {
@@ -262,11 +263,12 @@ async function main(): Promise<void> {
         rawBody,
         eventHeader: req.headers["x-github-event"],
         signatureHeader: req.headers["x-hub-signature-256"],
+        deliveryHeader: req.headers["x-github-delivery"],
         webhookSecret,
         skipSignatureVerification,
         deps: {
           provisionOrg: provisionOrgForInstallation,
-          handlePullRequest: async ({ rawBody, payload, signatureHeader }) => {
+          handlePullRequest: async ({ rawBody, payload, signatureHeader, deliveryId }) => {
             const dryRun = process.env.DRY_RUN?.trim() === "true";
             const result = await handlePullRequestWebhook({
               rawBody,
@@ -277,6 +279,7 @@ async function main(): Promise<void> {
               dryRun,
               updateExisting: true,
               usePrDiffFallback: true,
+              deliveryId,
             });
             return summarizeWebhookResult(result);
           },

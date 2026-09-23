@@ -49,6 +49,8 @@ export interface WebhookRouteDeps {
     rawBody: Buffer;
     payload: unknown;
     signatureHeader: string | null;
+    /** `X-GitHub-Delivery`, when present and well-formed; else null. */
+    deliveryId: string | null;
   }) => Promise<unknown>;
 }
 
@@ -56,6 +58,8 @@ export interface WebhookRouteOptions {
   rawBody: Buffer;
   eventHeader: string | string[] | undefined;
   signatureHeader: string | string[] | undefined;
+  /** `X-GitHub-Delivery`. Not covered by the HMAC, so it is format-checked. */
+  deliveryHeader?: string | string[] | undefined;
   webhookSecret: string;
   /** Dev-only escape hatch; webhook-server refuses it in production. */
   skipSignatureVerification: boolean;
@@ -64,6 +68,18 @@ export interface WebhookRouteOptions {
 
 function firstHeader(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined;
+}
+
+/**
+ * GitHub sends a GUID. Anything else is dropped to null (no de-duplication
+ * for that delivery) rather than stored: the header is outside the signed
+ * body, so it is never trusted beyond its shape.
+ */
+export function parseDeliveryId(
+  v: string | string[] | undefined,
+): string | null {
+  const raw = firstHeader(v)?.trim();
+  return raw && /^[0-9a-fA-F-]{8,64}$/.test(raw) ? raw.toLowerCase() : null;
 }
 
 export async function routeGitHubWebhook(
@@ -203,11 +219,15 @@ export async function routeGitHubWebhook(
     rawBody: opts.rawBody,
     payload,
     signatureHeader,
+    deliveryId: parseDeliveryId(opts.deliveryHeader),
   });
   // A handler failure (a GitHub call refused, a payload that did not
   // validate) must not read as success: GitHub records a non-2xx as a
   // failed delivery, visible in the App's Recent Deliveries. GitHub never
   // retries on its own, so nothing runs twice because of this status.
-  const failed = (result as { ok?: unknown } | null)?.ok === false;
+  // A delivery already recorded is not a failure: it was received once
+  // and deliberately not scanned again.
+  const r = result as { ok?: unknown; duplicateDelivery?: unknown } | null;
+  const failed = r?.ok === false && r.duplicateDelivery !== true;
   return { status: failed ? 502 : 200, body: result };
 }
