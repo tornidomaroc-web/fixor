@@ -9,12 +9,13 @@
  *
  * Both are scoped to an installation_id rather than an org.id — the
  * caller (scans page) has already done the auth check via
- * getOrgForUser, so this layer just runs queries.
+ * getOrgForUser — and to the repositories the user can see in it, so
+ * the chart never counts a private repository the user cannot open
+ * (scan-queries.ts).
  */
 import "server-only";
-import { and, gte, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { scanRuns } from "@/db/schema";
+import { selectByFamily, selectWeekly } from "@/lib/scan-queries";
 import { DETECTOR_OPTIONS } from "@/lib/detectors";
 
 export interface WeeklyPoint {
@@ -48,31 +49,16 @@ const DEFAULT_WEEKS = 12;
 
 export async function getTrendsForOrg(
   installationId: string,
+  visibleRepos: readonly string[],
   weeksBack: number = DEFAULT_WEEKS,
 ): Promise<Trends> {
   const weeks = Math.max(1, Math.floor(weeksBack));
   const since = startOfIsoWeekUtc(new Date());
   since.setUTCDate(since.getUTCDate() - 7 * (weeks - 1));
 
-  // 1) Weekly bucketed counts. date_trunc('week', ...) returns the
-  //    Monday at 00:00 UTC for a given timestamp — that's our bucket
-  //    key. We then zero-fill in JS so the chart x-axis covers every
-  //    week even when no scans landed.
-  const weeklyRows = await db()
-    .select({
-      weekStart: sql<Date>`date_trunc('week', ${scanRuns.startedAt} AT TIME ZONE 'UTC')`,
-      scans: sql<number>`count(*)::int`,
-      findings: sql<number>`coalesce(sum(${scanRuns.totalFindings}), 0)::int`,
-    })
-    .from(scanRuns)
-    .where(
-      and(
-        eq(scanRuns.installationId, installationId),
-        gte(scanRuns.startedAt, since),
-      ),
-    )
-    .groupBy(sql`1`)
-    .orderBy(sql`1 asc`);
+  // 1) Weekly bucketed counts, zero-filled in JS below so the chart
+  //    x-axis covers every week even when no scans landed.
+  const weeklyRows = await selectWeekly(db(), installationId, visibleRepos, since);
 
   const weeklyByKey = new Map<string, { scans: number; findings: number }>();
   for (const r of weeklyRows) {
@@ -92,26 +78,11 @@ export async function getTrendsForOrg(
     });
   }
 
-  // 2) Per-family finding sums. jsonb_each unrolls each row's
-  //    findings_by_family into (key, value) pairs which we then sum
-  //    across rows. The cast ::text::int handles the jsonb -> int
-  //    conversion (jsonb_each returns the value as jsonb, not numeric).
-  const familyRows = await db().execute<{ family: string; count: number }>(
-    sql`
-      SELECT entry.key AS family,
-             SUM((entry.value)::text::int)::int AS count
-      FROM ${scanRuns},
-           LATERAL jsonb_each(${scanRuns.findingsByFamily}) AS entry
-      WHERE ${scanRuns.installationId} = ${installationId}
-        AND ${scanRuns.startedAt} >= ${since}
-      GROUP BY entry.key
-      HAVING SUM((entry.value)::text::int) > 0
-      ORDER BY count DESC
-    `,
-  );
+  // 2) Per-family finding sums from findings_by_family.
+  const familyRows = await selectByFamily(db(), installationId, visibleRepos, since);
 
   const labelById = new Map(DETECTOR_OPTIONS.map((d) => [d.id, d.label]));
-  const byFamily: FamilyPoint[] = (familyRows.rows ?? familyRows).map(
+  const byFamily: FamilyPoint[] = familyRows.map(
     (r: { family: string; count: number | string }) => ({
       family: r.family,
       label: labelById.get(r.family) ?? r.family,
