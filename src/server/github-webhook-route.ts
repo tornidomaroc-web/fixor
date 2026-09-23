@@ -15,10 +15,17 @@
  * type to exempt. The only bypass is the explicit dev-mode flag
  * (ALLOW_UNSIGNED_WEBHOOKS=true outside production), which webhook-server
  * enforces at startup.
+ *
+ * SCAN TRIGGER: only pull_request deliveries that carry code the last scan
+ * has not seen reach the handler (pr-action-filter.ts). The rest are
+ * acknowledged with 200 "ignored" and a reason, after the signature check
+ * and before any token, diff fetch, budget read or scan, and leave nothing
+ * on the pull request.
  */
 import * as Sentry from "@sentry/node";
 
 import { logger } from "../lib/logger";
+import { decidePullRequestScan } from "../integrations/github/pr-action-filter";
 import { verifyGitHubWebhookSignature256 } from "../integrations/github/webhook-signature";
 
 export interface WebhookRouteResponse {
@@ -155,6 +162,41 @@ export async function routeGitHubWebhook(
 
   if (eventStr !== "pull_request") {
     return { status: 200, body: { status: "ignored" } };
+  }
+
+  const decision = decidePullRequestScan(payload);
+  if (!decision.scan) {
+    const pr = payload as {
+      installation?: { id?: unknown };
+      repository?: { full_name?: unknown };
+      pull_request?: { number?: unknown };
+    } | null;
+    const fields = {
+      action: decision.action,
+      reason: decision.reason,
+      installationId: pr?.installation?.id,
+      repository: pr?.repository?.full_name,
+      pullNumber: pr?.pull_request?.number,
+    };
+    // An action GitHub does not document (or a payload without one) is
+    // refused like the rest, but surfaced: it may be new, and it may carry
+    // code this filter does not yet know about.
+    if (
+      decision.reason === "action_unrecognized" ||
+      decision.reason === "action_missing"
+    ) {
+      logger.warn(fields, "pull_request delivery not scanned: unrecognized action");
+    } else {
+      logger.info(fields, "pull_request delivery not scanned");
+    }
+    return {
+      status: 200,
+      body: {
+        status: "ignored",
+        reason: decision.reason,
+        action: decision.action,
+      },
+    };
   }
 
   const result = await opts.deps.handlePullRequest({
