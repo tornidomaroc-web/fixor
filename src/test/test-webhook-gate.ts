@@ -217,9 +217,11 @@ async function main(): Promise<void> {
       skipSignatureVerification: false,
       deps,
     });
+    // The stub reports ok:false, and a handler failure answers 502 so it
+    // shows as a failed delivery (test-loud-comment-failure.ts).
     check(
-      pr.status === 200 && deps.prCalls === 1,
-      "pull_request, VALID signature -> 200, PR handler called",
+      pr.status === 502 && deps.prCalls === 1,
+      "pull_request, VALID signature -> PR handler called; its ok:false answers 502",
     );
 
     const ping = await routeGitHubWebhook({
