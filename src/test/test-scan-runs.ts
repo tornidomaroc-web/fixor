@@ -479,7 +479,12 @@ async function testDrizzleStore(): Promise<void> {
   assert(/returning "id"/i.test(insert?.text ?? ""), "the insert returns the new id");
   assert((insert?.params ?? []).includes("pending"), "the row starts pending");
 
-  const again = await store.createPending(start);
+  let again: ScanRunCreateResult | string;
+  try {
+    again = await store.createPending(start);
+  } catch (err) {
+    again = `threw: ${(err as Error).message}`;
+  }
   assertEq(again, { created: false, reason: "duplicate_delivery" }, "the same delivery_id inserts nothing and reports a duplicate");
 
   pg.statements.length = 0;
@@ -681,19 +686,21 @@ async function main(): Promise<void> {
   }
   console.log("[PASS] no Anthropic client exists in this process");
 
-  await testCapReached();
-  await testUnverifiable();
-  await testPrFetchRefused();
-  await testCommentRefused();
-  await testSuccess();
-  await testThrowMidHandler();
-  await testDuplicateDeliveryThroughRoute();
-  await testDrizzleStore();
-  await testDrizzleStoreThroughHandler();
-  await testInsertFailureStillScans();
-  await testCostAndLedger();
-  testOutcomeMapping();
-  await testDashboardRepoFilter();
+  // A section that throws is a failure, never the end of the run: every
+  // later section still runs, so a control shows everything it breaks.
+  const sections: Array<() => unknown> = [
+    testCapReached, testUnverifiable, testPrFetchRefused, testCommentRefused,
+    testSuccess, testThrowMidHandler, testDuplicateDeliveryThroughRoute,
+    testDrizzleStore, testDrizzleStoreThroughHandler, testInsertFailureStillScans,
+    testCostAndLedger, testOutcomeMapping, testDashboardRepoFilter,
+  ];
+  for (const run of sections) {
+    try {
+      await run();
+    } catch (err) {
+      assert(false, `section threw: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   assertEq(sectionsRun.length, EXPECTED_SECTIONS, "every section ran");
   assert(getAnthropicClient() === null, "still no Anthropic client after the run");
