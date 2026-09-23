@@ -38,6 +38,7 @@ import {
   uuid,
   serial,
   index,
+  uniqueIndex,
   jsonb,
 } from "drizzle-orm/pg-core";
 
@@ -77,12 +78,21 @@ export const scanRuns = pgTable(
       .default("0"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
+    // Only a fixed message from SCAN_RUN_MESSAGES (services/scan-run-store.ts),
+    // never raw error text: the dashboard shows it to every org member.
     errorMessage: text("error_message"),
+    // X-GitHub-Delivery of the pull_request delivery that created the row.
+    // Unique, so a redelivered event finds its row and is not scanned (or
+    // charged) twice. NULL when the header was absent; NULLs never collide.
+    deliveryId: text("delivery_id"),
   },
   (table) => ({
     installationStartedIdx: index("scan_runs_installation_started_idx").on(
       table.installationId,
       table.startedAt,
+    ),
+    deliveryIdIdx: uniqueIndex("scan_runs_delivery_id_idx").on(
+      table.deliveryId,
     ),
   }),
 );

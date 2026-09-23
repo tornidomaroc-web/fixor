@@ -50,6 +50,13 @@
       "when": 1777318373285,
       "tag": "0006_dizzy_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790199009381,
+      "tag": "0007_black_falcon",
+      "breakpoints": true
     }
   ]
 }
