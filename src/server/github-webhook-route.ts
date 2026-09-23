@@ -204,5 +204,10 @@ export async function routeGitHubWebhook(
     payload,
     signatureHeader,
   });
-  return { status: 200, body: result };
+  // A handler failure (a GitHub call refused, a payload that did not
+  // validate) must not read as success: GitHub records a non-2xx as a
+  // failed delivery, visible in the App's Recent Deliveries. GitHub never
+  // retries on its own, so nothing runs twice because of this status.
+  const failed = (result as { ok?: unknown } | null)?.ok === false;
+  return { status: failed ? 502 : 200, body: result };
 }

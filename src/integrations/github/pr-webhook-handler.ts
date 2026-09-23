@@ -130,6 +130,45 @@ export async function handlePullRequestWebhook(
   );
 }
 
+/**
+ * A GitHub call that failed inside the webhook is a loud failure, never a
+ * quiet `ok:false`: from 2026-07-10 to 2026-09-23 every comment post was
+ * refused with 401 by an expired token, the handler returned `ok:false`,
+ * the webhook answered 200, and nothing was logged or sent to Sentry, so
+ * about 96 scanned and paid-for pull requests received no comment and
+ * nobody knew. Logs at error level and captures to Sentry (a no-op when
+ * SENTRY_DSN is unset), tagged with the phase that failed.
+ */
+export function reportGitHubFailure(
+  phase: "pr_fetch" | "comment_post",
+  err: GitHubApiError,
+  where: {
+    owner: string;
+    repo: string;
+    pullNumber: number;
+    headSha: string;
+    installationId: number | null;
+  },
+): void {
+  const fields = {
+    phase,
+    status: err.details.status,
+    reason: err.details.message,
+    requestId: err.details.requestId,
+    ...where,
+  };
+  logger.error(
+    fields,
+    phase === "comment_post"
+      ? "GitHub refused the PR comment: the scan ran but no report was posted"
+      : "GitHub refused the pull request fetch: the scan did not run",
+  );
+  Sentry.captureException(err, {
+    tags: { "fixor.phase": phase, "fixor.github_status": String(err.details.status) },
+    extra: fields,
+  });
+}
+
 async function handlePullRequestWebhookImpl(
   options: HandlePullRequestWebhookOptions,
 ): Promise<HandlePullRequestWebhookResult> {
@@ -280,6 +319,7 @@ async function handlePullRequestWebhookImpl(
     }
   } catch (e) {
     if (e instanceof GitHubApiError) {
+      reportGitHubFailure("pr_fetch", e, { owner, repo, pullNumber, headSha, installationId });
       return {
         ok: false,
         dryRun,
@@ -513,6 +553,7 @@ async function handlePullRequestWebhookImpl(
     };
   } catch (e) {
     if (e instanceof GitHubApiError) {
+      reportGitHubFailure("comment_post", e, { owner, repo, pullNumber, headSha, installationId });
       return {
         ok: false,
         dryRun,
