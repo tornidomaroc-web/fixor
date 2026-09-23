@@ -114,6 +114,24 @@ export function buildPullRequestCommentMarkdown(
   if (scanBits) {
     lines.push(scanBits);
   }
+  // A refused scan must never read as a clean one: no Summary table (which
+  // would show zero findings), no "budget reached" wording (which would be
+  // false), and no internal detail about why the budget was unreadable.
+  if (workflow.status === "budget_unverifiable") {
+    lines.push(
+      "",
+      "> ⏸️ **Fixor did not scan this commit**",
+      ">",
+      "> Fixor could not confirm this installation's usage budget because of a problem on Fixor's side, so it analyzed nothing in this pull request. This is not a clean result: no finding has been checked.",
+      ">",
+      "> Push a new commit to this pull request to run the scan again.",
+      "",
+      FIXOR_PR_COMMENT_MARKER,
+      `<sub>🔒 Analyzed by [Fixor](https://github.com/tornidomaroc-web/fixor) · ${workflow.timing.finishedAt || "—"}</sub>`
+    );
+    return lines.join("\n");
+  }
+
   if (workflow.status === "budget_exceeded" && workflow.budget) {
     const b = workflow.budget;
     const reasonText =
