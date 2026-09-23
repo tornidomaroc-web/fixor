@@ -86,7 +86,14 @@ async function fetchInstallationToken(installationId: number): Promise<string> {
     );
   }
 
-  const data = (await response.json()) as InstallationTokenResponse;
+  const data = (await response.json()) as InstallationTokenResponse | null;
+  // A 2xx without a token must fail here: an empty token would send the PR
+  // webhook handler to its GITHUB_TOKEN fallback.
+  if (typeof data?.token !== "string" || data.token === "") {
+    throw new Error(
+      `GitHub returned no installation token for installation ${installationId}`
+    );
+  }
   const expiresAt = new Date(data.expires_at).getTime();
 
   tokenCache.set(installationId, { token: data.token, expiresAt });

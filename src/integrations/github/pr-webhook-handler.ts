@@ -443,7 +443,10 @@ async function handlePullRequestWebhookImpl(
       },
       workflow,
       dryRun,
-      token: options.token,
+      // The token resolved above: the installation token for every App
+      // delivery. Never options.token, which production leaves unset and
+      // which sent the poster to its GITHUB_TOKEN fallback.
+      token,
       apiBaseUrl: options.apiBaseUrl,
       updateExisting: options.updateExisting,
       maxDetailedFixes: options.maxDetailedFixes,
