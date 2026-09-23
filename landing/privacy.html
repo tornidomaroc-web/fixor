@@ -111,22 +111,23 @@
 
   <main class="wrap">
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: April 27, 2026</p>
+    <p class="updated">Last updated: September 23, 2026</p>
 
     <p>Fixor (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) provides automated security review for GitHub pull requests. This Privacy Policy explains what data we access, what we store, who else processes it, and what control you have. We try to keep the policy short and concrete &mdash; if anything is unclear, contact us (section 9).</p>
 
     <h2>1. What we access from GitHub</h2>
     <p>When you install Fixor on a GitHub user account or organization, our GitHub App receives:</p>
     <ul>
-      <li><strong>Pull request diffs</strong> &mdash; the changed lines for each PR Fixor scans.</li>
+      <li><strong>Pull request code</strong> &mdash; for each PR Fixor scans: the pull request&apos;s diff, the full content of each file the pull request changes and, for route files, the parent layout files that can guard them, all read at the pull request&apos;s head commit.</li>
+      <li><strong>Read access to every file in the repository</strong> &mdash; the GitHub App holds GitHub&apos;s Contents permission at read level, so it can read any file in each repository you install it on. A scan reads only the pull request code described above.</li>
       <li><strong>Repository metadata</strong> &mdash; repo full name, PR number, head commit SHA.</li>
       <li><strong>Installation events</strong> &mdash; when Fixor is installed, updated, or uninstalled.</li>
       <li><strong>Your installer email (optional)</strong> &mdash; when you sign in to the dashboard with GitHub OAuth, we receive your primary email from GitHub via Clerk.</li>
     </ul>
-    <p>Fixor does <strong>not</strong> access issues, discussions, releases, secrets, environment variables, GitHub Actions logs, or files outside the PR diff.</p>
+    <p>Fixor does <strong>not</strong> read issues, discussions, releases, secrets, environment variables, GitHub Actions logs, or any other file in the repository.</p>
 
     <h2>2. What we store, and for how long</h2>
-    <p>Fixor stores the minimum needed to deliver the service. Code from your diffs is processed in memory and is <strong>not stored</strong> on our database after the scan completes. Specifically, our database contains:</p>
+    <p>Fixor stores the minimum needed to deliver the service. Code from your pull requests is processed in memory and is <strong>not stored</strong> in our database after the scan completes. The PDF report is the exception: it includes an excerpt of each flagged code location (see the last row below). Specifically, our database contains:</p>
     <table>
       <thead>
         <tr><th>Data</th><th>Why we store it</th><th>Retention</th></tr>
@@ -135,7 +136,12 @@
         <tr>
           <td><code>orgs</code> &mdash; one row per GitHub installation: installation id, plan tier, monthly cap, Paddle customer / subscription ids (when paid), installer email</td>
           <td>Identify your account, route billing, send transactional email</td>
-          <td>Until you uninstall + 30 days, then deleted</td>
+          <td>Kept while Fixor is installed. Uninstalling does not delete it automatically; email support@fixor.dev and we delete it within 30 days of your request.</td>
+        </tr>
+        <tr>
+          <td><code>installations</code> &mdash; one row per GitHub installation: installation id, first-seen and last-seen timestamps</td>
+          <td>Attribute scans and costs to an installation</td>
+          <td>Same as the org row</td>
         </tr>
         <tr>
           <td><code>org_settings</code> &mdash; severity threshold, ignored globs, enabled detectors, optional Slack webhook</td>
@@ -145,27 +151,27 @@
         <tr>
           <td><code>cost_ledger</code> &mdash; one row per Anthropic API call: timestamp, USD cost, token counts (no diff content)</td>
           <td>Enforce monthly budget caps; show your spend in the dashboard</td>
-          <td>13 months (rolling), then aggregated and the row-level data is deleted</td>
+          <td>Kept while Fixor is installed; deleted with your org on request, as above. No automatic expiry.</td>
         </tr>
         <tr>
-          <td><code>scan_runs</code> &mdash; one row per scan: repo + PR number, status, finding counts, head SHA, started/finished timestamps</td>
+          <td><code>scan_runs</code> &mdash; one row per scan: repo + PR number, status, finding counts, head SHA, cost, error message, started/finished timestamps</td>
           <td>Show scan history + trends in the dashboard</td>
           <td>Same as cost_ledger</td>
         </tr>
         <tr>
           <td><code>audit_log</code> &mdash; settings changes, plan changes, webhook events</td>
           <td>Security trail for billing + settings</td>
-          <td>2 years</td>
+          <td>Same as cost_ledger</td>
         </tr>
         <tr>
           <td><code>api_tokens</code> &mdash; SHA-256 hashes of any API tokens you generate (the plain token is shown to you once and never stored)</td>
           <td>Authenticate API calls</td>
-          <td>Until you revoke + 30 days</td>
+          <td>Revoked tokens remain as unusable hashes until your org is deleted on request.</td>
         </tr>
         <tr>
-          <td>Generated PDF + SARIF reports</td>
+          <td>Generated PDF + SARIF reports, stored at Cloudinary (not in our database). The PDF includes excerpts of flagged code.</td>
           <td>Linked from the PR comment for download</td>
-          <td>90 days, then purged from object storage</td>
+          <td>Stored until deleted on request. The link in the PR comment works for one hour after the scan, and during that hour anyone who can see the pull request can open it; on a public repository, that is anyone.</td>
         </tr>
       </tbody>
     </table>
@@ -173,7 +179,7 @@
 
     <h2>3. How we use your data</h2>
     <ul>
-      <li><strong>Analysis.</strong> The PR diff plus minimal repo context is sent to Anthropic's Claude API and Fixor's analysis engine to detect business-logic vulnerabilities — authentication bypass, IDOR, weak admin checks, env exposure, secrets exposure, and unverified webhook handlers — and produce a precise explanation and remediation steps for each finding. Diffs are not used to train models. (See Anthropic's Trust Center for their commitments.)</li>
+      <li><strong>Analysis.</strong> Content from the files described in section 1 is analysed by Fixor&apos;s engine; the detectors that use a model send that content to Anthropic&apos;s Claude API (the secrets check does not). The detectors look for authentication bypass, IDOR, weak admin checks, environment-variable exposure, hardcoded secrets and unverified webhooks, and produce an explanation and remediation steps for each finding. Code sent to Anthropic is not used to train models. (See Anthropic's Trust Center for their commitments.)</li>
       <li><strong>Billing.</strong> When you upgrade to a paid plan, Paddle (our merchant of record) processes the payment. We send Paddle the price id and a correlation id; Paddle returns the customer + subscription ids we store on your <code>orgs</code> row.</li>
       <li><strong>Transactional email.</strong> We email you on first scan, on payment events (welcome / payment failed / subscription canceled), and once per calendar month if you cross 80% of your monthly Anthropic budget. We do not send marketing email.</li>
       <li><strong>Diagnostics.</strong> Server logs include installation id, PR number, and error stack traces. Sensitive values (API keys, GitHub App private keys, Stripe-style ids) are redacted at the logger layer.</li>
@@ -186,7 +192,7 @@
         <tr><th>Subprocessor</th><th>Purpose</th><th>Region</th></tr>
       </thead>
       <tbody>
-        <tr><td><a href="https://www.anthropic.com/privacy">Anthropic</a></td><td>Diff analysis (Claude API)</td><td>USA</td></tr>
+        <tr><td><a href="https://www.anthropic.com/privacy">Anthropic</a></td><td>Analysis of pull-request code (Claude API)</td><td>USA</td></tr>
         <tr><td><a href="https://neon.tech/privacy-policy">Neon</a></td><td>Postgres database (orgs, settings, ledger, audit log)</td><td>USA / EU (your project's region)</td></tr>
         <tr><td><a href="https://railway.com/legal/privacy">Railway</a></td><td>Backend webhook + analysis runtime</td><td>USA</td></tr>
         <tr><td><a href="https://vercel.com/legal/privacy-policy">Vercel</a></td><td>Dashboard hosting</td><td>USA / EU</td></tr>
@@ -209,7 +215,7 @@
     <h2>7. Your rights</h2>
     <ul>
       <li><strong>Access.</strong> Email us and we'll send you a JSON export of every row in our database that references your org.</li>
-      <li><strong>Deletion.</strong> Uninstall Fixor from your GitHub settings. We delete the org and its associated rows after a 30-day grace window (kept in case of accidental uninstall). Uploaded reports purge on the same schedule plus the 90-day cap.</li>
+      <li><strong>Deletion.</strong> Email support@fixor.dev to have your org, every row that references it and its stored reports deleted within 30 days of a verified request. Uninstalling alone does not currently trigger deletion.</li>
       <li><strong>Correction.</strong> Most settings are editable directly in the dashboard. For anything else, email us.</li>
       <li><strong>Portability.</strong> The JSON export above doubles as your portability artifact.</li>
       <li><strong>Objection.</strong> You can opt out of transactional email by uninstalling; we don't send marketing email so there is no separate opt-out for that.</li>
