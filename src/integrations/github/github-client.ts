@@ -21,6 +21,12 @@ export function getGitHubConfigFromEnv(): {
 export type IssueCommentItem = {
   id: number;
   body: string;
+  /**
+   * The GitHub App that created the comment (`performed_via_github_app`),
+   * or null for a comment a user wrote. GitHub sets it from the token that
+   * created the comment; the comment's author cannot.
+   */
+  createdByApp: { id: number; clientId: string | null } | null;
 };
 
 export type PostIssueCommentParams = {
@@ -110,6 +116,9 @@ export async function listIssueComments(params: {
         out.push({
           id: (row as { id: number }).id,
           body: (row as { body: string }).body,
+          createdByApp: readCreatingApp(
+            (row as { performed_via_github_app?: unknown }).performed_via_github_app
+          ),
         });
       }
     }
@@ -120,20 +129,46 @@ export async function listIssueComments(params: {
   return out;
 }
 
+function readCreatingApp(app: unknown): IssueCommentItem["createdByApp"] {
+  if (!app || typeof app !== "object") return null;
+  const { id, client_id } = app as { id?: unknown; client_id?: unknown };
+  if (typeof id !== "number") return null;
+  return { id, clientId: typeof client_id === "string" ? client_id : null };
+}
+
 /**
- * Returns the **last** issue comment whose body contains the Fixor marker (stable dedupe target).
+ * Returns the **last** Fixor comment this App created (stable dedupe
+ * target), or undefined when there is none.
+ *
+ * The marker alone proves nothing: anyone can paste it into a comment on a
+ * pull request they control, and editing that comment would let them
+ * forge or suppress the report. A comment counts only if GitHub also
+ * reports it was created by this App: `performed_via_github_app` matched
+ * against `ownAppId`, the App ID or client ID the server authenticates
+ * with. Without `ownAppId` (a personal token) nothing counts, so a new
+ * comment is posted instead of editing one Fixor cannot prove it wrote.
  */
 export function findLatestFixorIssueCommentId(
   comments: IssueCommentItem[],
+  ownAppId?: string,
   marker: string = FIXOR_PR_COMMENT_MARKER
 ): number | undefined {
+  const appId = ownAppId?.trim();
+  if (!appId) return undefined;
   let last: number | undefined;
   for (const c of comments) {
-    if (typeof c.body === "string" && c.body.includes(marker)) {
+    if (typeof c.body === "string" && c.body.includes(marker) && isCreatedByApp(c, appId)) {
       last = c.id;
     }
   }
   return last;
+}
+
+/** `appId` may be the numeric App ID or the client ID: GitHub accepts either as the JWT issuer. */
+function isCreatedByApp(c: IssueCommentItem, appId: string): boolean {
+  const app = c.createdByApp;
+  if (!app) return false;
+  return /^\d+$/.test(appId) ? app.id === Number(appId) : app.clientId === appId;
 }
 
 /**

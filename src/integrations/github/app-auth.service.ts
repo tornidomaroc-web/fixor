@@ -36,7 +36,7 @@ function readPrivateKeyPem(): string {
   return raw.replace(/\\n/g, "\n");
 }
 
-function readAppId(): string {
+export function readAppId(): string {
   const appId = process.env.GITHUB_APP_ID?.trim();
   if (!appId) {
     throw new Error("GITHUB_APP_ID is missing from environment variables.");

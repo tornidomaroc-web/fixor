@@ -1,5 +1,5 @@
 import { analyzePrDiff } from "../../services/pr-diff-analyzer";
-import { getInstallationToken } from "./app-auth.service";
+import { getInstallationToken, readAppId } from "./app-auth.service";
 import { generatePdfReport } from "../../services/pdf-report.service";
 import {
   uploadPdfBuffer,
@@ -185,8 +185,12 @@ async function handlePullRequestWebhookImpl(
     : null;
 
   let token = options.token?.trim() ?? "";
+  // Set only when the handler mints the installation token itself: the
+  // comment it may then edit is one this App created (github-client.ts).
+  let ownAppId: string | undefined;
   if (!token && installationId !== null) {
     token = await getInstallationToken(installationId);
+    ownAppId = readAppId();
   }
   if (!token) {
     token = process.env.GITHUB_TOKEN?.trim() ?? "";
@@ -447,6 +451,7 @@ async function handlePullRequestWebhookImpl(
       // delivery. Never options.token, which production leaves unset and
       // which sent the poster to its GITHUB_TOKEN fallback.
       token,
+      ownAppId,
       apiBaseUrl: options.apiBaseUrl,
       updateExisting: options.updateExisting,
       maxDetailedFixes: options.maxDetailedFixes,
