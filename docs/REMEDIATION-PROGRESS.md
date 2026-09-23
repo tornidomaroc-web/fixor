@@ -2374,6 +2374,17 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #225 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #226 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #227 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #228 | not observed (residue; in no arm) | **RED** (ref read 2026-09-23, not at merge) | none |
+| #229 | not observed (residue; in no arm) | **RED** (ref read 2026-09-23, not at merge) | none |
+| #230 | from a THIRD branch, neither the merged branch nor the base | **RED** | none |
+| #231 | not observed (residue; in no arm) | **RED** (ref read 2026-09-23, not at merge) | none |
+| #232 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #233 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #234 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #235 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #236 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #237 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #238 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
 already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
@@ -2565,6 +2576,69 @@ arm, nothing else held constant" — the second of which also names gh version a
 is the very thing the table above now holds constant across three observations. **No identifier is
 created, nothing is filed as work, and nothing is proposed.**
 
+**#228 THROUGH #238: ELEVEN ROWS, FILED TOGETHER (2026-09-23).** #228 was owed by the merge that
+filed #227. #229, #230 and #231 were merged by sessions that filed no row. #232 to #238 were merged
+on 2026-09-22 and 2026-09-23. They are appended to the register above in merge order, which is also
+number order.
+
+**THREE OF THE ELEVEN ARE RESIDUE, NOT OBSERVATIONS, AND COUNT IN NO ARM.** For #228, #229 and #231
+no session read HEAD when the merge ran, so the arm is unknown and the table says "not observed".
+What was read, on 2026-09-23, is that each local ref still exists at its PR head:
+`measure/path-population-walk-2026-09-14` at `f89b704`, `chore/gitignore-anchor-agents-md` at
+`a39807c`, and `measure/field-trial-arm-a-2026-09-19` at `2d2e68c`. A ref still present days later
+shows that `gh` did not delete it; it says nothing about which arm the merge ran from. They are filed
+so the register has no gap, and they are excluded from every total below.
+
+**#230 IS A FOURTH OBSERVATION IN THE THIRD ARM, ON THE WORD OF THE SESSION THAT SAW IT.** The
+2026-09-20 handoff (`.claude/HANDOFF-2026-09-20.md`, gitignored) records that `gh pr merge 230
+--squash` ran while HEAD sat on `measure/field-trial-arm-a-2026-09-19`, neither the merged branch
+nor the base, and that `chore/secrets-scan-placeholder-exception` survived at `d6519ab`. That ref was
+still present on 2026-09-23. The tool versions were not recorded for this merge.
+
+**#232 TO #238 ARE SEVEN OBSERVATIONS IN THE FROM-THE-MERGED-BRANCH ARM, AND THE ARM WAS READ EACH
+TIME.** For #232 and #233 it was read from the reflog: no HEAD move between the branch's last commit
+and the merge. For #234 to #238 the owner's merge command itself began with `git rev-parse
+--abbrev-ref HEAD`, which printed the merged branch, and HEAD was read again after the merge and was
+still on it. **Every one was RED**: the local ref survived while `gh` exited 0 and printed nothing.
+The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.53.0.windows.2.
+
+| PR | squash | merged (UTC) | HEAD during the merge | assertion 2: head tree = `main` tree | assertion 3: head ref first read as 404 | local ref that survived |
+|---|---|---|---|---|---|---|
+| #228 | `25bf2f5` | 2026-09-14 00:56:31 | not observed | `4f6eb1d9`, computed 2026-09-23 | not read at merge | `measure/path-population-walk-2026-09-14` at `f89b704` |
+| #229 | `a6b4eea` | 2026-09-19 16:31:06 | not observed | `84e08fdf`, computed 2026-09-23 | not read at merge | `chore/gitignore-anchor-agents-md` at `a39807c` |
+| #230 | `c2a1773` | 2026-09-20 00:37:19 | `measure/field-trial-arm-a-2026-09-19` (handoff) | `9b7c1089`, captured before (handoff) | server setting (handoff) | `chore/secrets-scan-placeholder-exception` at `d6519ab` |
+| #231 | `1633172` | 2026-09-20 21:23:42 | not observed | `2da74555`, computed 2026-09-23 | not read at merge | `measure/field-trial-arm-a-2026-09-19` at `2d2e68c` |
+| #232 | `301baaf` | 2026-09-22 23:42:01 | `docs/narrow-public-claims` | `ad6b3756`, captured before | present 23:42:34, 404 at 23:42:44 | `docs/narrow-public-claims` at `56d3c6c` |
+| #233 | `e4b213a` | 2026-09-23 00:50:22 | `fix/budget-fail-closed` | `08e9a361`, captured before | 00:50:39 | `fix/budget-fail-closed` at `1645a9c` |
+| #234 | `ae39eb2` | 2026-09-23 01:37:12 | `fix/pr-action-filter` | `27707c9c`, captured before | 01:38:06 | `fix/pr-action-filter` at `a6abba0` |
+| #235 | `7f14542` | 2026-09-23 02:55:49 | `fix/comment-installation-token` | `d64845b5`, captured before | 02:56:07 | `fix/comment-installation-token` at `94d94c4` |
+| #236 | `1c7d08d` | 2026-09-23 05:08:02 | `fix/comment-authorship` | `36542af0`, captured before | 05:08:29 | `fix/comment-authorship` at `b1bcee5` |
+| #237 | `c4f6697` | 2026-09-23 06:46:21 | `fix/loud-comment-failure` | `d9771023`, captured before | 06:46:39 | `fix/loud-comment-failure` at `488175c` |
+| #238 | `6a9b796` | 2026-09-23 07:12:47 | `docs/public-copy-correction` | `b382fecc`, captured before | 07:13:00 | `docs/public-copy-correction` at `9726bbf` |
+
+**ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
+reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
+up to date with `main`, so the squash reproduces the head tree. Where the tree was captured before
+the merge (#230, #232 to #238) it still shows that nothing was added between the capture and the
+squash. For #228, #229 and #231 it was computed afterwards from the PR head, and carries not even
+that.
+
+**ASSERTION 3's TIMES ARE THE FIRST READ, NOT THE DELETION.** Only #232 has a read on each side: the
+ref was present at 23:42:34 and gone at 23:42:44, so the server took between 33 and 43 seconds to
+delete it. A read-back that checks sooner records a false failure.
+
+**TOTALS AS A NEW DATED RECORD (2026-09-23).** The arm invoked FROM the merged branch reads **17
+observations, 2 green and 15 red**. The third arm reads **4, all red**. The already-checked-out arm
+is unchanged at 3, all red. Three rows (#228, #229, #231) are residue in no arm. The register carries
+27 rows, of which 25 are RED; the other two are the greens #143 and #160. **No dated count is
+rewritten.**
+
+**WHAT SEVENTEEN SUPPORTS: NOTHING NEW ABOUT CAUSE.** All seven 2026-09-23 observations carry the
+same signature, HEAD not switched and the local ref not deleted with `gh` silent, so the RED is one
+repeated behaviour rather than scatter. The arm stays mixed because of #143 and #160. **No cause is
+named.** The working rule is unchanged: expect assertion 4 red, check it, and delete no local ref
+before its row is filed. **The merge of this entry will owe #239**, per the floor recorded at #227.
+
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
 
@@ -2696,6 +2770,166 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   merged - same head SHA, same tree, base unmoved. **The content-exactness came from leg 4, not from
   the checks.** "Green checks" and "green checks on the state being merged" were the same statement
   at #226 only because `main` was read and had not moved. Named, not filed.
+
+- **INCIDENT, RESOLVED 2026-09-23: FIXOR POSTED NO PULL REQUEST COMMENT FROM 2026-07-10 TO
+  2026-09-23 02:56Z, WHILE THE SCANS KEPT RUNNING AND SPENDING. NOTHING LOGGED IT.**
+
+  **Window.** The last Fixor comment that posted is on knowflow #35, 2026-07-09 17:17:05Z. The first
+  pull request that received nothing is knowflow #36, opened 2026-07-10 08:22:47Z. The fix (#235)
+  went live when Railway deployed `7f14542` at 2026-09-23 02:56:56Z.
+
+  **Cause.** `pr-webhook-handler.ts` minted an installation token for every App delivery but passed
+  the comment poster `options.token`, which production never set, so the poster fell back to
+  `process.env.GITHUB_TOKEN`. That line dated from the first release (`3a591e6`, 2026-04-11). Until
+  2026-07-10 the variable held a working personal token, so comments posted under the owner's
+  personal account (next entry). The token in Railway was, by the evidence, the classic personal
+  token `fixor-deploy` (scopes `repo`, `workflow`): the owner's token pages list it as expired on
+  2026-07-10, show no personal token used in September, and the last successful post and the first
+  silent pull request straddle that date. **The value in Railway was never read, so this
+  identification is inference, not proof.** After expiry every comment post was refused by GitHub.
+
+  **Why nobody knew.** The handler caught the `GitHubApiError`, returned `ok:false`, and the webhook
+  answered GitHub 200. Nothing was logged, nothing was sent to Sentry, and the delivery showed as
+  successful.
+
+  **Scope.** knowflow is the only installed repository with pull requests in the window. 152 pull
+  requests were opened there from 2026-07-10 to 2026-09-23 (#36 to #193). **147 of them, #36 to
+  #188, received no Fixor comment.** The other 5, #189 to #193, were opened after the fix and
+  received the App's budget notice. fixor-demo had no pull requests in the window; the fixor
+  repository is not in the installation. An earlier count in the session that found this, "at least
+  96, #87 to #188", read only the first page of results; it is superseded by 147.
+
+  **What still ran.** For each delivery the handler minted the installation token, fetched the diff
+  and the changed files, read the budget, ran the scan and generated the PDF report, and only then
+  did the post fail. Code was therefore sent to the model where a detector's prefilter matched, and
+  PDFs containing code excerpts were uploaded to Cloudinary for pull requests that never received a
+  link. Until #234 (2026-09-23) every `pull_request` event, not only pushes, did this.
+
+  **Spend.** The installation's September spend reached **$5.04 against its $5.00 monthly cap**, as
+  Fixor's own budget notice reports on knowflow #189 to #193. No scan has run on the installation
+  since the cap was reached, so that is spend inside the window. **The spend from 2026-07-10 to
+  2026-08-31 is not known.** One read-only query of `cost_ledger` was attempted on 2026-09-23 and
+  failed before it ran, because the `DATABASE_URL` in the local `.env` carries no usable password
+  (the pg client refused it: "client password must be a string"). It was not worked around.
+
+  **Who was affected.** Every affected pull request is on the owner's own repository, and the App is
+  private. Whether the App was ever installed outside the owner's account is not recorded here.
+
+  **How it was found.** 2026-09-23: the owner's token pages showed every personal token expired, and
+  the 82 personal-account comments were seen to stop at 2026-07-09; a paginated count of knowflow's
+  pull requests then gave the scope.
+
+  **What was done.** #235 posts the comment with the installation token, and makes a successful token
+  response without a token fail instead of falling back. #236 edits only a comment the App wrote.
+  #237 turns a refused GitHub call into an error-level log line, a Sentry event (when `SENTRY_DSN` is
+  set) and a 502 delivery. `GITHUB_TOKEN` was removed from the Railway service on 2026-09-23
+  (redeploy success 06:06:27Z; `/health` read `status: ok, db: ok, anthropic: ok` at 06:15:39Z). The
+  expired token needs no revocation. **Whether `SENTRY_DSN` is set in production is not verified.**
+
+- **EVERY FIXOR REPORT COMMENT BEFORE #235 WAS POSTED UNDER THE OWNER'S PERSONAL ACCOUNT, NONE BY THE
+  APP (recorded 2026-09-23).** A GitHub search for "Fixor Security Report" in comments, followed by a
+  read of each comment, found 82 comments on 82 pull requests, all in the owner's repositories:
+  fixor 45 (April 2026), knowflow 35 (April to July), fixor-demo 2. They were created from 2026-04-18
+  to 2026-07-09. **All 82 are authored by `tornidomaroc-web` as a User; none was posted through a
+  GitHub App.** None carries a Scan ID line, and every demo script sets one, so all 82 came from the
+  production webhook path. The window closed with #235: the first comment the App posted as itself is
+  on knowflow #189, 2026-09-23 03:18:59Z, by `fixor-security[bot]`. **Correction:** the live trial
+  below reported its own first comment (05:40:32Z) as the first the App ever posted; knowflow #189 to
+  #191 preceded it. The 82 comments were left in place. No third party received a comment under the
+  owner's name. `docs/MARKETPLACE-LISTING.md` describes the App's pull-request permission as what
+  posts the comment; that was not true until #235.
+
+- **LIVE END-TO-END TRIAL ON PRODUCTION, 2026-09-23 05:40Z: AUTHORSHIP, SAME-COMMENT EDIT, THE ACTION
+  FILTER AND THE PLANTED-MARKER RULE HELD; NO SCAN RAN.** Throwaway private repository
+  `tornidomaroc-web/fixor-trial-2026-09-23`, added to the installation by the owner. The comment was
+  authored by `fixor-security[bot]` (`performed_via_github_app.id` 3526457). The second push edited
+  the same comment: same id, commit line changed. Adding a label produced no scan and no change within
+  90 seconds. A comment carrying the marker, posted from the owner's account between the two pushes,
+  was left untouched. **No scan ran**, because the installation was over its monthly cap ($5.04 of
+  $5.00), so both deliveries received the budget notice, at $0. Not covered: model calls, whole-file
+  fetching, a report with findings, and real scan duration. The repository and the planted comment
+  still exist.
+
+- **WEBHOOK AND COST FIXES MERGED 2026-09-23, EACH WITH A KEYLESS WITNESS IN `test:ci` AND A NEGATIVE
+  CONTROL IN ITS DESCRIPTION.** #233: the budget check fails closed; an unreadable ledger refuses the
+  scan and posts a "did not scan this commit" notice. #234: only `opened`, `synchronize`, `reopened`,
+  and `edited` with a base change start a scan. #235, #236 and #237: as in the incident entry above.
+  Each description carries its witness, its control, and the byte-identical restore.
+
+- **THE IDOR HELD-OUT BENCHMARK FROM PUBLIC ADVISORIES: FOUR ATTEMPTS, ALL CLOSED. NO REAL-CODE
+  EVIDENCE FOR IDOR EXISTS TODAY.** Four pre-registered attempts tried to build a held-out set of real
+  IDOR fixes from public security advisories. They admitted 8, 10, 12 and 19 cases, as #232's
+  description records. The third and fourth declared in advance that they would stop below 20, and
+  both stopped as declared rather than loosening the rule after seeing the count. The fourth
+  (2026-09-22) widened the source to unreviewed GitHub advisories whose fix lands in JS/TS code. From
+  a snapshot of 17,866 advisories, 35 passed the summary reading, 34 had the vulnerable file at the
+  parent commit, and 19, from 14 repositories, passed the code criterion (A2), which is what bound.
+  Its admission rule was frozen before selection (`admission.md`, sha256
+  `b79074f6d6c0efcb091d9ec726f9b3e63c9878b097ee9e0fd3837ef7890bb32a`, 2026-09-22 22:16:56Z). Two A2
+  rejections (Unleash 72h8, LibreChat jw8w) rest on a literal reading stated before ruling; under a
+  looser reading the count is 21, and the stop was not re-argued. The third and fourth attempts
+  sent no code to a model; the first two are not recorded on that point.
+  **The records of all four attempts exist only in a local session scratchpad; none is in this
+  repository.** What stands: fixture results are fixture results, Arm A
+  (`docs/measurements/field-trial-2026-09-19/`) returned 0 of 12 on real code, and IDOR evidence has
+  to come from a design partner's code with their ground truth.
+
+- **PUBLIC CLAIMS NARROWED (#232) AND PUBLIC PAGES CORRECTED (#238).** #232 (2026-09-22) narrowed
+  README and landing claims to what the record supports; its description tables each sentence, what
+  it rested on and why it was unsupported. #238 (2026-09-23) corrected the Privacy Policy, the
+  Security page and the Terms. What Fixor reads: the pull request's diff, the full content of each
+  changed file and, for route files, their parent layout files, with Contents read access to every
+  file in an installed repository. What it keeps: no deletion on uninstall and no expiry schedules;
+  deletion within 30 days of a verified request; the PDF includes code excerpts. The report link
+  works for one hour, and during that hour anyone who can see the pull request can open it. Reports
+  come only from the Fixor bot. The dead status-page link was removed, and all three pages are dated
+  September 23, 2026 (read back live on fixor.dev). **Still owed:** the announcement that Privacy
+  Policy §10 and the matching Terms clause require, drafted as a pinned repository issue and not
+  posted; and `docs/mintlify/` and `docs/MARKETPLACE-LISTING.md` still carry pre-correction claims
+  (`docs.fixor.dev` answers 404).
+
+- **PRODUCTION DEPLOYS FOR MERGES #224 AND #227 TO #238, READ FROM GITHUB'S DEPLOYMENT RECORDS
+  (2026-09-23).** Every merge to `main` deployed the backend to Railway and the dashboard to Vercel,
+  and merges touching `landing/**` also deployed GitHub Pages. #224, #227 and #228 were owed from
+  earlier sessions. Times are each deployment's `success` status, in UTC; a later `inactive` status
+  only means the next deploy superseded it. CI and the `secrets` workflow concluded success on every
+  merge commit. Where a session reported a slightly different time at merge, these supersede it.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #224 | `998df50` | 2026-09-12 23:41:25 | 23:41:42 | not triggered |
+  | #227 | `b6ff374` | 2026-09-13 21:41:34 | 21:41:53 | not triggered |
+  | #228 | `25bf2f5` | 2026-09-14 00:56:51 | 00:58:03 | not triggered |
+  | #229 | `a6b4eea` | 2026-09-19 16:32:08 | 16:32:02 | not triggered |
+  | #230 | `c2a1773` | 2026-09-20 00:38:15 | 00:37:52 | not triggered |
+  | #231 | `1633172` | 2026-09-20 21:24:44 | 21:24:21 | not triggered |
+  | #232 | `301baaf` | 2026-09-22 23:43:47 | 23:42:37 | 23:42:26 |
+  | #233 | `e4b213a` | 2026-09-23 00:51:26 | 00:51:05 | not triggered |
+  | #234 | `ae39eb2` | 2026-09-23 01:38:19 | 01:37:54 | not triggered |
+  | #235 | `7f14542` | 2026-09-23 02:56:56 | 02:56:27 | not triggered |
+  | #236 | `1c7d08d` | 2026-09-23 05:08:59 | 05:08:40 | not triggered |
+  | #237 | `c4f6697` | 2026-09-23 06:47:15 | 06:47:24 | not triggered |
+  | #238 | `6a9b796` | 2026-09-23 07:13:12 | 07:13:21 | 07:13:09 |
+
+  A second Railway deploy of `1c7d08d` succeeded at 06:06:27Z, after `GITHUB_TOKEN` was removed from
+  the service (incident entry above).
+
+- **OWED AND UNVERIFIED: FOUR RECORDS NAMED IN THE 2026-09-20 HANDOFF THAT NO AVAILABLE EVIDENCE
+  GROUNDS.** The handoff lists five records owed from earlier sessions, and says the session that
+  wrote it did not verify them. The fifth, the deploys for #224, #227 and #228, is filed above from
+  GitHub's deployment records. The other four are recorded here as owed, not filed, because nothing
+  readable grounds them:
+  1. "the fourth confirmation row for merge #229 (red, with the match-head-commit marker)". What can
+     be grounded is in the register: #229's squash, its tree equality computed afterwards, and its
+     surviving local ref. Whether `--match-head-commit` was used, and what "fourth confirmation"
+     counts, is recorded nowhere readable.
+  2. "the seventh settled prediction with its timings". No register of settled predictions was found
+     in the repository.
+  3. "the `git check-ignore` tool-defect entry". The only mention in this file is a parenthesis in the
+     R12 retraction under Priority 1c; the defect has no entry of its own.
+  4. "the one-byte difference in the phrase «بايتاً بايتاً»". Not found in the repository.
+
+  Whoever holds the evidence should file them; they are not reconstructed here.
 
 ### IN REVIEW (open PR, awaiting merge command - NOT merged, NOT done)
 
