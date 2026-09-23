@@ -18,10 +18,16 @@ export type PostPrCommentInput = {
   /** When true, builds the body but does not call the GitHub API. */
   dryRun?: boolean;
   /**
-   * When true (default), PATCH an existing issue comment that contains the Fixor marker
-   * instead of creating a duplicate. If none exists, POST a new comment.
+   * When true (default), PATCH an existing Fixor comment instead of creating a duplicate.
+   * If none exists, POST a new comment.
    */
   updateExisting?: boolean;
+  /**
+   * The GitHub App ID (or client ID) whose comments count as Fixor's own. Only a
+   * comment this App created, and that carries the marker, is ever edited; without
+   * it (a personal token) no existing comment is edited and a new one is posted.
+   */
+  ownAppId?: string;
   /** Passed to comment builder (default 10). */
   maxDetailedFixes?: number;
   /** Overrides `GITHUB_TOKEN` when posting. */

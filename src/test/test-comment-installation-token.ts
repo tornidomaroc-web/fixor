@@ -89,7 +89,7 @@ function section(name: string): void {
 
 interface Scenario {
   tokenResponse: { status: number; body: unknown };
-  existingComments: Array<{ id: number; body: string }>;
+  existingComments: Array<{ id: number; body: string; performed_via_github_app?: { id: number } }>;
   postStatus: 201 | 403;
 }
 interface Recorded {
@@ -242,7 +242,13 @@ async function testFirstReport(): Promise<void> {
 
 async function testUpdateExisting(): Promise<void> {
   section("B. report already on the pull request -> PATCH with the installation token");
-  reset({ existingComments: [{ id: 555, body: `${FIXOR_PR_COMMENT_MARKER}\nprevious report` }] });
+  // The App's own earlier report: only a comment this App created is edited
+  // (test-comment-authorship.ts).
+  reset({
+    existingComments: [
+      { id: 555, body: `${FIXOR_PR_COMMENT_MARKER}\nprevious report`, performed_via_github_app: { id: 424242 } },
+    ],
+  });
   const result = await runHandler(1002, WITHIN_BUDGET);
   assertMintedOnce("update");
   assertEq(commentCalls(), [["GET", INST], ["PATCH", INST]], "update: list and edit both used the installation token");

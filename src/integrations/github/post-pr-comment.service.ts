@@ -173,7 +173,7 @@ export async function postFixorPullRequestComment(
       token,
       apiBaseUrl,
     });
-    const existingId = findLatestFixorIssueCommentId(comments);
+    const existingId = findLatestFixorIssueCommentId(comments, input.ownAppId);
     if (existingId !== undefined) {
       const result = await tryPatchById(existingId);
       return result;
