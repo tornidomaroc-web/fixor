@@ -21,7 +21,7 @@ import {
 import { FixedWindowRateLimiter } from "../lib/rate-limiter";
 import { runAuditorWorkflow } from "../workflows/auditor-workflow";
 import { costContext } from "../lib/cost-context";
-import { checkBudget } from "../services/cost-store";
+import { budgetRefusalHttp, checkBudget } from "../services/cost-store";
 
 // Per-token bucket. 60 requests / 60s default — plenty for a CI loop,
 // blocks runaway scripts. Override with FIXOR_API_RATE_LIMIT_PER_MIN.
@@ -113,14 +113,12 @@ async function handleApiScan(
   const installationId = await getInstallationIdForOrg(verified.orgId);
   if (installationId) {
     const budget = await checkBudget(installationId);
-    if (!budget.withinBudget && budget.reason !== "exempt") {
-      jsonResponse(res, 402, {
-        error: "monthly_budget_exceeded",
-        reason: budget.reason,
-        monthlySpend: budget.monthlySpend,
-        dailySpend: budget.dailySpend,
-        caps: budget.caps,
-      });
+    const refusal = budgetRefusalHttp(budget);
+    if (refusal) {
+      if (refusal.retryAfterSeconds !== undefined) {
+        res.setHeader("Retry-After", String(refusal.retryAfterSeconds));
+      }
+      jsonResponse(res, refusal.status, refusal.body);
       return;
     }
   }

@@ -23,7 +23,10 @@ export interface WorkflowResult {
     | "partial_success"
     | "failed"
     | "no_action"
-    | "budget_exceeded";
+    | "budget_exceeded"
+    // Not run: the installation's budget could not be read, so the scan
+    // was refused rather than run unpriced (cost-store fails closed).
+    | "budget_unverifiable";
   automationReady: boolean;
   /** Why automation is or is not allowed (patch quality + warnings + status). */
   automationDecisionReason: string;

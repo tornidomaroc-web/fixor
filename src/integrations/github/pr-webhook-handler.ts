@@ -26,7 +26,7 @@ import {
   resolveRouteGuardSidecars,
 } from "./whole-file-scan-input";
 import { costContext } from "../../lib/cost-context";
-import { checkBudget } from "../../services/cost-store";
+import { checkBudget, type BudgetCheck } from "../../services/cost-store";
 import { logger } from "../../lib/logger";
 import { maybeSendFirstScanEmail } from "../../services/first-scan-email";
 import {
@@ -69,6 +69,11 @@ export type HandlePullRequestWebhookOptions = {
    * enrichment runs deterministically (no network).
    */
   fetchFileAtRefImpl?: (path: string) => Promise<string>;
+  /**
+   * Test injection: overrides the budget gate (both the pre-scan check and
+   * the post-scan re-read). Production always uses `checkBudget`.
+   */
+  checkBudgetImpl?: (installationId: number | string) => Promise<BudgetCheck>;
   pilotPersistence?: boolean;
   pilotStorePath?: string;
   forceRepost?: boolean;
@@ -294,16 +299,12 @@ async function handlePullRequestWebhookImpl(
     // but degrade gracefully without recording cost.
     workflow = await runAuditorWorkflow(semgrepPayload, metadata);
   } else {
-    const budget = await checkBudget(installationId);
-    if (!budget.withinBudget && budget.reason !== "exempt") {
+    const budgetGate = options.checkBudgetImpl ?? checkBudget;
+    const budget = await budgetGate(installationId);
+    if (!budget.withinBudget) {
       const now = new Date().toISOString();
-      workflow = {
-        status: "budget_exceeded",
+      const notRun = {
         automationReady: false,
-        automationDecisionReason:
-          budget.reason === "monthly_exceeded"
-            ? "Monthly Anthropic budget reached for this installation"
-            : "Daily Anthropic budget reached for this installation",
         totalFindings: 0,
         sqlInjectionFindings: 0,
         classifiedFindings: 0,
@@ -313,17 +314,46 @@ async function handlePullRequestWebhookImpl(
         mediumQualityPatches: 0,
         lowQualityPatches: 0,
         fixes: [],
-        errors: [],
         metadata: metadata ?? {},
-        budget: {
-          reason: budget.reason as "monthly_exceeded" | "daily_exceeded",
-          monthlySpend: budget.monthlySpend,
-          dailySpend: budget.dailySpend,
-          monthlyCapUsd: budget.caps.monthlyCapUsd,
-          dailyCapUsd: budget.caps.dailyCapUsd,
-        },
         timing: { startedAt: now, finishedAt: now, durationMs: 0 },
       };
+      if (
+        budget.reason === "monthly_exceeded" ||
+        budget.reason === "daily_exceeded"
+      ) {
+        workflow = {
+          ...notRun,
+          status: "budget_exceeded",
+          automationDecisionReason:
+            budget.reason === "monthly_exceeded"
+              ? "Monthly Anthropic budget reached for this installation"
+              : "Daily Anthropic budget reached for this installation",
+          errors: [],
+          budget: {
+            reason: budget.reason,
+            monthlySpend: budget.monthlySpend,
+            dailySpend: budget.dailySpend,
+            monthlyCapUsd: budget.caps.monthlyCapUsd,
+            dailyCapUsd: budget.caps.dailyCapUsd,
+          },
+        };
+      } else {
+        // budget_unverifiable, or any refusal reason not handled above:
+        // the scan is refused, never run unpriced. The PR comment says the
+        // commit was not scanned — it must never render as a clean report.
+        workflow = {
+          ...notRun,
+          status: "budget_unverifiable",
+          automationDecisionReason:
+            "Scan skipped: this installation's usage budget could not be verified",
+          errors: [
+            {
+              message:
+                "Scan skipped: the usage budget could not be verified, so no code was analyzed",
+            },
+          ],
+        };
+      }
     } else {
       workflow = await costContext.run({ installationId }, async () =>
         runAuditorWorkflow(semgrepPayload, metadata)
@@ -333,7 +363,7 @@ async function handlePullRequestWebhookImpl(
       // numbers AFTER this scan's costs landed. checkBudget caches
       // nothing; the second call adds one DB round-trip per scan.
       try {
-        const postBudget = await checkBudget(installationId);
+        const postBudget = await budgetGate(installationId);
         const warning = computeBudgetWarning(
           postBudget.monthlySpend,
           postBudget.caps.monthlyCapUsd,
@@ -425,9 +455,15 @@ async function handlePullRequestWebhookImpl(
     });
 
     // Best-effort first-scan email (5E-4). Idempotent at the SQL
-    // layer; does not throw. Skipped on dry runs and when no
-    // installation is associated (PAT-only paths).
-    if (!dryRun && installationId) {
+    // layer; does not throw. Skipped on dry runs, when no
+    // installation is associated (PAT-only paths), and when the scan
+    // was refused because its budget could not be verified — nothing
+    // was scanned, so there is no first scan to announce.
+    if (
+      !dryRun &&
+      installationId &&
+      workflow.status !== "budget_unverifiable"
+    ) {
       const prUrl = `https://github.com/${owner}/${repo}/pull/${pullNumber}`;
       maybeSendFirstScanEmail({
         installationId: String(installationId),

@@ -155,8 +155,8 @@ export async function getOrgSettingsForInstallation(
  * should treat null as "fall back to env-default".
  *
  * No fallback / catch happens here on purpose — DB errors propagate
- * so cost-store's existing fail-open path (`reason: "db_unavailable"`)
- * still owns the recovery decision.
+ * so cost-store's fail-closed path (`reason: "budget_unverifiable"`)
+ * owns the decision: an unreadable cap refuses the scan.
  */
 export async function resolveMonthlyCapForInstallation(
   installationId: string,
