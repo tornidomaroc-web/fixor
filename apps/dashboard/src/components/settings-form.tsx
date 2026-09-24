@@ -75,6 +75,10 @@ export function SettingsForm({ orgId, initial }: Props) {
         };
         if (Array.isArray(body.details) && body.details.length > 0) {
           messages = body.details;
+        } else if (body.error === "github_unauthorized") {
+          messages = [
+            "GitHub no longer accepts your sign-in. Sign out and back in with GitHub, then save again.",
+          ];
         } else if (typeof body.error === "string") {
           messages = [body.error];
         }

@@ -44,6 +44,9 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
   //    installation (lib/org-access.ts). A viewer already knows the org
   //    exists, so it gets 403; an unrelated user gets 404.
   const access = await getOrgAccess(orgId);
+  if (access.status === "unauthorized") {
+    return NextResponse.json({ error: "github_unauthorized" }, { status: 401 });
+  }
   if (access.status === "github_unavailable") {
     return NextResponse.json(
       { error: "github_unavailable" },

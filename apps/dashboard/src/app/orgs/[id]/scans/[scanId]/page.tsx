@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { ScanStatusPill } from "@/components/scan-status-pill";
+import { SessionExpiredPage } from "@/components/session-expired";
 import { listFixorInstallations, listVisibleRepoNames } from "@/lib/github";
 import { getOrgForUser, getScanForOrg } from "@/lib/scans-data";
 
@@ -13,6 +14,7 @@ export default async function ScanDetailPage({ params }: PageProps) {
   const { id: orgId, scanId } = await params;
 
   const result = await listFixorInstallations();
+  if (result.status === "unauthorized") return <SessionExpiredPage />;
   if (result.status !== "ok") notFound();
 
   const allowed = result.installations.map((i) => String(i.id));
@@ -24,8 +26,10 @@ export default async function ScanDetailPage({ params }: PageProps) {
   );
 
   // A scan in a repository this user cannot open is not found, the same
-  // answer as a scan that does not exist.
+  // answer as a scan that does not exist. A token GitHub refuses is told
+  // apart: the scan is not shown, and the page says why.
   const visible = await listVisibleRepoNames(org.installationId);
+  if (visible.status === "unauthorized") return <SessionExpiredPage />;
   if (visible.status !== "ok") notFound();
   const scan = await getScanForOrg(org.installationId, visible.repos, scanId);
   if (!scan) notFound();

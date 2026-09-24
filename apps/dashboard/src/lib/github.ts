@@ -33,8 +33,13 @@ export interface GitHubInstallation {
  * Returns:
  *   - `{ status: "ok", installations: [...] }` on success (may be empty)
  *   - `{ status: "no_token" }` if Clerk has no GitHub token (user
- *     signed in via a different provider, or token expired)
- *   - `{ status: "error", message }` on network / API failure
+ *     signed in via a different provider, or Clerk could not return one)
+ *   - `{ status: "unauthorized" }` when GitHub answers 401: the App user
+ *     token expired (eight hours, unless the App opts out) and was not
+ *     refreshed, or the user revoked the App's authorization. Only a new
+ *     sign-in fixes it, so the pages say so instead of 404 or "GitHub
+ *     didn't respond".
+ *   - `{ status: "error", message }` on network / other API failure
  *
  * The caller renders the "install on GitHub" CTA when installations
  * is empty OR status is anything other than "ok".
@@ -42,6 +47,7 @@ export interface GitHubInstallation {
 export type ListInstallationsResult =
   | { status: "ok"; installations: GitHubInstallation[] }
   | { status: "no_token" }
+  | { status: "unauthorized" }
   | { status: "error"; message: string };
 
 export async function listFixorInstallations(): Promise<ListInstallationsResult> {
@@ -86,6 +92,7 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
     };
   }
 
+  if (res.status === 401) return { status: "unauthorized" };
   if (!res.ok) {
     return {
       status: "error",
@@ -101,6 +108,8 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
 
 export type VisibleReposResult =
   | { status: "ok"; repos: string[] }
+  /** GitHub answered 401 for the user's token; see ListInstallationsResult. */
+  | { status: "unauthorized" }
   | { status: "error" };
 
 /** Page cap: 30 x 100 repositories. Past it, the list is cut short. */
@@ -113,9 +122,10 @@ const MAX_REPO_PAGES = 30;
  * own GitHub token.
  *
  * Scan history is filtered to this list (scan-queries.ts). Any failure
- * returns `error` and the caller shows nothing: a partial or unknown list
- * must never widen what the user sees. A list cut short at the page cap
- * only hides scans, it never reveals one.
+ * returns `error` (or `unauthorized` for a 401, so the page can say the
+ * sign-in must be renewed) and the caller shows nothing: a partial or
+ * unknown list must never widen what the user sees. A list cut short at
+ * the page cap only hides scans, it never reveals one.
  */
 export async function listVisibleRepoNames(
   installationId: string,
@@ -142,6 +152,7 @@ export async function listVisibleRepoNames(
     } catch {
       return { status: "error" };
     }
+    if (res.status === 401) return { status: "unauthorized" };
     if (!res.ok) return { status: "error" };
     const data = (await res.json().catch(() => null)) as {
       repositories?: Array<{ full_name?: unknown }>;

@@ -9,11 +9,12 @@ interface Props {
    * - `ready`   — user has 0 installations and hasn't been to GitHub yet
    * - `waiting` — just came back from GitHub (`?installed=1`); poll for
    *               the installation to appear
-   * - `error`   — Clerk has no GitHub token, or GitHub API rejected us
+   * - `error`   — Clerk has no GitHub token, GitHub refused the token
+   *               (401: expired or revoked), or GitHub API failed
    */
   state: "ready" | "waiting" | "error";
-  /** Distinguishes the two error variants so we can give different copy. */
-  reason?: "no_token" | "error";
+  /** Distinguishes the error variants so we can give different copy. */
+  reason?: "no_token" | "unauthorized" | "error";
   installUrl: string;
 }
 
@@ -62,7 +63,9 @@ export function InstallWizard({ state, reason, installUrl }: Props) {
         <p className="text-muted-foreground mt-1 text-sm">
           {reason === "no_token"
             ? "Clerk has no GitHub token for your session. Sign out and back in with GitHub to retry."
-            : "GitHub didn't respond. Try again in a moment; if it persists, check the dashboard logs."}
+            : reason === "unauthorized"
+              ? "GitHub no longer accepts your sign-in: the token expired or the Fixor Security App's authorization was revoked. Sign out and back in with GitHub."
+              : "GitHub didn't respond. Try again in a moment; if it persists, check the dashboard logs."}
         </p>
       </div>
     );
