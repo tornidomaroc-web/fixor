@@ -9,8 +9,8 @@ import {
   BudgetWarningBanner,
   shouldShowBudgetWarning,
 } from "@/components/budget-warning-banner";
-import { listFixorInstallations } from "@/lib/github";
-import { getOrgForUser } from "@/lib/scans-data";
+import { OwnerOnlyNotice } from "@/components/owner-only-notice";
+import { getOrgAccess } from "@/lib/org-access";
 import { getOrgSummaries } from "@/lib/orgs-data";
 import { TIERS, getTier, type Tier } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
@@ -28,31 +28,28 @@ export default async function OrgBillingPage({
   const { checkout } = await searchParams;
   const justCheckedOut = checkout === "success";
 
-  const result = await listFixorInstallations();
-  if (result.status !== "ok") notFound();
-
-  const allowed = result.installations.map((i) => String(i.id));
-  const org = await getOrgForUser(orgId, allowed);
-  if (!org) notFound();
-
-  const installation = result.installations.find(
-    (i) => String(i.id) === org.installationId,
-  );
+  const access = await getOrgAccess(orgId);
+  if (access.status !== "ok") notFound();
+  const { org, installation, role } = access;
+  const isAdmin = role === "admin";
 
   // Reuse the home-page summary so spend, cap, and tier come from one
   // query path. DB unreachable → render the page in a degraded mode
-  // rather than crashing the billing surface.
+  // rather than crashing the billing surface. Spend and cap are the
+  // installation owner's to see: they total every repository in it.
   let monthlySpendUsd: number | null = null;
   let monthlyCapUsd: number | null = null;
-  try {
-    const [summary] = await getOrgSummaries([org.installationId]);
-    if (summary) {
-      monthlySpendUsd = summary.monthlySpendUsd;
-      monthlyCapUsd = summary.monthlyCapUsd;
+  if (isAdmin) {
+    try {
+      const [summary] = await getOrgSummaries([org.installationId]);
+      if (summary) {
+        monthlySpendUsd = summary.monthlySpendUsd;
+        monthlyCapUsd = summary.monthlyCapUsd;
+      }
+    } catch {
+      monthlySpendUsd = null;
+      monthlyCapUsd = null;
     }
-  } catch {
-    monthlySpendUsd = null;
-    monthlyCapUsd = null;
   }
 
   const currentTier = getTier(org.planTier);
@@ -103,7 +100,9 @@ export default async function OrgBillingPage({
           </p>
         </div>
 
-        {justCheckedOut ? <CheckoutSuccessBanner /> : null}
+        {!isAdmin ? <OwnerOnlyNotice what="this org's billing" /> : null}
+
+        {isAdmin && justCheckedOut ? <CheckoutSuccessBanner /> : null}
 
         {monthlySpendUsd !== null &&
         monthlyCapUsd !== null &&
@@ -116,16 +115,20 @@ export default async function OrgBillingPage({
           />
         ) : null}
 
-        <CurrentPlanCard
-          orgId={org.id}
-          tier={currentTier}
-          rawTier={org.planTier}
-          monthlySpendUsd={monthlySpendUsd}
-          monthlyCapUsd={monthlyCapUsd}
-          hasSubscription={Boolean(org.paddleSubscriptionId)}
-        />
+        {isAdmin ? (
+          <>
+            <CurrentPlanCard
+              orgId={org.id}
+              tier={currentTier}
+              rawTier={org.planTier}
+              monthlySpendUsd={monthlySpendUsd}
+              monthlyCapUsd={monthlyCapUsd}
+              hasSubscription={Boolean(org.paddleSubscriptionId)}
+            />
 
-        <PricingGrid orgId={org.id} currentTierId={org.planTier} />
+            <PricingGrid orgId={org.id} currentTierId={org.planTier} />
+          </>
+        ) : null}
       </section>
     </main>
   );

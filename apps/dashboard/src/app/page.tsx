@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { cn } from "@/lib/utils";
 import { fixorInstallUrl, listFixorInstallations } from "@/lib/github";
 import { getOrgSummaries, type OrgSummary } from "@/lib/orgs-data";
+import { adminInstallationIds } from "@/lib/org-access";
 import {
   populateInstallerEmailIfMissing,
   readClerkUserEmail,
@@ -32,7 +33,12 @@ export default async function Home({ searchParams }: HomeProps) {
   // env-vars setup window.
   let summaries: OrgSummary[] = [];
   let dbStatus: "ok" | "error" = "ok";
+  // Spend, cap, the budget banner and the installer email belong to the
+  // installation's owner (lib/org-access.ts). Everyone else still sees
+  // the org and can open its scans.
+  let adminIds = new Set<string>();
   if (result.status === "ok" && result.installations.length > 0) {
+    adminIds = await adminInstallationIds(result.installations);
     try {
       summaries = await getOrgSummaries(
         result.installations.map((i) => String(i.id)),
@@ -42,17 +48,14 @@ export default async function Home({ searchParams }: HomeProps) {
     }
 
     // 5E-4 plumbing: stamp the signed-in user's email onto any of
-    // their accessible orgs that don't have one yet. Best-effort —
+    // the orgs they OWN that don't have one yet. Best-effort —
     // wraps any error inside the helper itself so the home page
     // render isn't gated on it.
     const { userId } = await auth();
-    if (userId) {
+    if (userId && adminIds.size > 0) {
       const email = await readClerkUserEmail(userId);
       if (email) {
-        await populateInstallerEmailIfMissing(
-          result.installations.map((i) => String(i.id)),
-          email,
-        );
+        await populateInstallerEmailIfMissing([...adminIds], email);
       }
     }
   }
@@ -82,6 +85,7 @@ export default async function Home({ searchParams }: HomeProps) {
           .filter(
             (s) =>
               s.orgId !== null &&
+              adminIds.has(s.installationId) &&
               shouldShowBudgetWarning(s.monthlySpendUsd, s.monthlyCapUsd),
           )
           .map((s) => {
@@ -138,7 +142,7 @@ export default async function Home({ searchParams }: HomeProps) {
                     </div>
                   </div>
                   <div className="w-full sm:w-56">
-                    {summary ? (
+                    {!adminIds.has(String(inst.id)) ? null : summary ? (
                       <SpendBar
                         spendUsd={summary.monthlySpendUsd}
                         capUsd={summary.monthlyCapUsd}

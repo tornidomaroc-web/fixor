@@ -6,8 +6,9 @@
  * Reply: { url: string }   (browser redirects to it)
  *
  * Auth model mirrors PATCH /api/orgs/[id]/settings — Clerk session →
- * listFixorInstallations → getOrgForUser. Out-of-scope orgs return
- * 404 so the URL space isn't enumerable.
+ * getOrgAccess. Out-of-scope orgs return 404 so the URL space isn't
+ * enumerable; a user who can see the org but does not own its
+ * installation gets 403.
  *
  * The free tier is rejected because there's no Paddle product behind
  * it; downgrading is handled by 5D-3's webhook flow + 5D-5's portal
@@ -15,8 +16,7 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { listFixorInstallations } from "@/lib/github";
-import { getOrgForUser } from "@/lib/scans-data";
+import { getOrgAccess } from "@/lib/org-access";
 import { TIERS, getTier, type TierId } from "@/lib/tiers";
 import { createCheckoutTransaction } from "@/lib/paddle";
 
@@ -67,19 +67,23 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2) Auth scope check — same path as the settings endpoint.
-  const installations = await listFixorInstallations();
-  if (installations.status !== "ok") {
+  // 2) Auth scope check — same path as the settings endpoint. Only the
+  //    installation's owner may buy for the org: the checkout carries the
+  //    org's Paddle customer.
+  const access = await getOrgAccess(orgId);
+  if (access.status === "github_unavailable") {
     return NextResponse.json(
       { error: "github_unavailable" },
       { status: 502 },
     );
   }
-  const allowed = installations.installations.map((i) => String(i.id));
-  const org = await getOrgForUser(orgId, allowed);
-  if (!org) {
+  if (access.status === "not_found") {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
+  if (access.role !== "admin") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  const org = access.org;
 
   // 3) Resolve the Paddle price id from env. The tier-to-env-name
   //    mapping lives on the Tier object (5D-1) so adding a new tier
