@@ -5,8 +5,8 @@
  * Body:  { orgId: string, kind: "update_payment" | "cancel" }
  * Reply: { url: string }   (browser redirects to it)
  *
- * Auth: Clerk session → listFixorInstallations → getOrgForUser
- * (same scope-check pattern as /api/billing/checkout). When the org
+ * Auth: Clerk session → getOrgAccess, installation owner only (same
+ * scope-check pattern as /api/billing/checkout). When the org
  * has no `paddle_subscription_id` we return 409 — the caller should
  * surface "no active subscription" rather than retry.
  *
@@ -16,8 +16,7 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { listFixorInstallations } from "@/lib/github";
-import { getOrgForUser } from "@/lib/scans-data";
+import { getOrgAccess } from "@/lib/org-access";
 import { getSubscriptionManagementUrls } from "@/lib/paddle";
 
 type PortalKind = "update_payment" | "cancel";
@@ -66,19 +65,22 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2) Auth scope check.
-  const installations = await listFixorInstallations();
-  if (installations.status !== "ok") {
+  // 2) Auth scope check. The portal URLs cancel the org's subscription
+  //    and change its payment method: installation owner only.
+  const access = await getOrgAccess(orgId);
+  if (access.status === "github_unavailable") {
     return NextResponse.json(
       { error: "github_unavailable" },
       { status: 502 },
     );
   }
-  const allowed = installations.installations.map((i) => String(i.id));
-  const org = await getOrgForUser(orgId, allowed);
-  if (!org) {
+  if (access.status === "not_found") {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
+  if (access.role !== "admin") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  const org = access.org;
 
   // 3) Subscription check. The portal URLs only exist on a live
   //    Paddle subscription, so a free-tier org or a downgraded org

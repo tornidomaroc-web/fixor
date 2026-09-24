@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { TierBadge } from "@/components/tier-badge";
 import { SettingsForm } from "@/components/settings-form";
-import { listFixorInstallations } from "@/lib/github";
-import { getOrgForUser } from "@/lib/scans-data";
+import { OwnerOnlyNotice } from "@/components/owner-only-notice";
+import { getOrgAccess } from "@/lib/org-access";
 import { getOrgSettings } from "@/lib/settings-data";
 
 interface PageProps {
@@ -14,18 +14,13 @@ interface PageProps {
 export default async function OrgSettingsPage({ params }: PageProps) {
   const { id: orgId } = await params;
 
-  const result = await listFixorInstallations();
-  if (result.status !== "ok") notFound();
+  const access = await getOrgAccess(orgId);
+  if (access.status !== "ok") notFound();
+  const { org, installation, role } = access;
 
-  const allowed = result.installations.map((i) => String(i.id));
-  const org = await getOrgForUser(orgId, allowed);
-  if (!org) notFound();
-
-  const installation = result.installations.find(
-    (i) => String(i.id) === org.installationId,
-  );
-
-  const settings = await getOrgSettings(org.id);
+  // The settings hold the Slack webhook URL, a secret: never read them
+  // for a user who does not own the installation.
+  const settings = role === "admin" ? await getOrgSettings(org.id) : null;
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
@@ -73,7 +68,11 @@ export default async function OrgSettingsPage({ params }: PageProps) {
           </p>
         </div>
 
-        <SettingsForm orgId={org.id} initial={settings} />
+        {settings ? (
+          <SettingsForm orgId={org.id} initial={settings} />
+        ) : (
+          <OwnerOnlyNotice what="or change this org's settings" />
+        )}
       </section>
     </main>
   );

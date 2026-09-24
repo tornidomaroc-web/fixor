@@ -11,11 +11,13 @@ export interface GitHubInstallation {
   id: number;
   app_id: number;
   account: {
+    id: number;
     login: string;
     type: string;
     avatar_url: string;
   };
   target_type: string;
+  /** The App's permissions on the installation, NOT the user's. */
   permissions?: Record<string, string>;
 }
 
@@ -139,20 +141,7 @@ export async function listVisibleRepoNames(
   installationId: string,
 ): Promise<VisibleReposResult> {
   if (!/^\d+$/.test(installationId)) return { status: "error" };
-  const { userId } = await auth();
-  if (!userId) return { status: "error" };
-
-  let githubToken: string | undefined;
-  try {
-    const clerk = await clerkClient();
-    const tokens = await clerk.users.getUserOauthAccessToken(
-      userId,
-      "oauth_github",
-    );
-    githubToken = tokens.data[0]?.token;
-  } catch {
-    return { status: "error" };
-  }
+  const githubToken = await githubUserToken();
   if (!githubToken) return { status: "error" };
 
   const repos: string[] = [];
@@ -186,6 +175,49 @@ export async function listVisibleRepoNames(
   }
   return { status: "ok", repos };
 }
+
+/** The signed-in user's GitHub App user token from Clerk, or null. */
+async function githubUserToken(): Promise<string | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+  try {
+    const clerk = await clerkClient();
+    const tokens = await clerk.users.getUserOauthAccessToken(
+      userId,
+      "oauth_github",
+    );
+    return tokens.data[0]?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export type GitHubUserGet = (
+  apiPath: string,
+) => Promise<{ status: number; body: unknown } | null>;
+
+/**
+ * One GET against api.github.com as the signed-in user. Null when there
+ * is no token or the request never completed; any HTTP status otherwise.
+ */
+export const githubUserGet: GitHubUserGet = async (apiPath) => {
+  const githubToken = await githubUserToken();
+  if (!githubToken) return null;
+  try {
+    const res = await fetch(`https://api.github.com${apiPath}`, {
+      headers: {
+        Authorization: `token ${githubToken}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      cache: "no-store",
+    });
+    const body: unknown = await res.json().catch(() => null);
+    return { status: res.status, body };
+  } catch {
+    return null;
+  }
+};
 
 export function fixorInstallUrl(): string {
   const slug = process.env.FIXOR_GITHUB_APP_SLUG?.trim() || "fixor";

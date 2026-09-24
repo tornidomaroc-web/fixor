@@ -3,10 +3,11 @@
  *
  * Auth model:
  *   - Clerk session cookie identifies the actor.
- *   - listFixorInstallations() resolves the user's GitHub installations.
- *   - getOrgForUser() loads the org by id ONLY when its
- *     github_installation_id is in that allow-list. Out-of-scope orgs
- *     return 404 (same shape as missing) so we don't leak existence.
+ *   - getOrgAccess() loads the org only when its installation is one
+ *     the user can see (else 404, same shape as missing), and resolves
+ *     whether the user owns that installation. Only the owner may write
+ *     (else 403): these settings apply to every repository in the
+ *     installation. See lib/org-access.ts.
  *
  * The endpoint name and verb match the 5C-5 roadmap line. We keep the
  * write path on the dashboard runtime — Vercel + Drizzle to the same
@@ -16,8 +17,7 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { listFixorInstallations } from "@/lib/github";
-import { getOrgForUser } from "@/lib/scans-data";
+import { getOrgAccess } from "@/lib/org-access";
 import {
   getOrgSettings,
   updateOrgSettings,
@@ -40,20 +40,21 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
 
   const { id: orgId } = await ctx.params;
 
-  // 1) Resolve user's GitHub installations and confirm they own this org.
-  //    notFound semantics live at the page; the API returns 403 / 404 to
-  //    let the form distinguish "no access" from "validation failed".
-  const installations = await listFixorInstallations();
-  if (installations.status !== "ok") {
+  // 1) The org must be visible to the user AND the user must own its
+  //    installation (lib/org-access.ts). A viewer already knows the org
+  //    exists, so it gets 403; an unrelated user gets 404.
+  const access = await getOrgAccess(orgId);
+  if (access.status === "github_unavailable") {
     return NextResponse.json(
       { error: "github_unavailable" },
       { status: 502 },
     );
   }
-  const allowed = installations.installations.map((i) => String(i.id));
-  const org = await getOrgForUser(orgId, allowed);
-  if (!org) {
+  if (access.status === "not_found") {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (access.role !== "admin") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   // 2) Parse + validate body. Handler returns 400 with all errors so the
