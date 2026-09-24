@@ -28,6 +28,8 @@ import {
   addScanSpend,
   currentInstallationId,
   currentScanRunId,
+  ledgerWriteFailed,
+  markLedgerWriteFailed,
 } from "../lib/cost-context";
 import { calculateCost } from "../services/cost-tracking.service";
 import { recordCost } from "../services/cost-store";
@@ -50,6 +52,21 @@ import {
 } from "./llm-replay";
 
 let _client: Anthropic | null = null;
+
+/**
+ * Test seam: a stand-in for the SDK's `messages.create` and for the ledger
+ * writer, so a keyless witness drives callClaude's real control flow with
+ * no Anthropic client constructed and no key in the process. Production
+ * never calls it; with it unset, callClaude is unchanged.
+ */
+export interface CallClaudeTestDeps {
+  create: (body: unknown, opts: { signal: AbortSignal }) => Promise<Message>;
+  recordCost: typeof recordCost;
+}
+let _testDeps: CallClaudeTestDeps | null = null;
+export function setCallClaudeTestDeps(deps: CallClaudeTestDeps | null): void {
+  _testDeps = deps;
+}
 
 /** Returns a lazily-initialized SDK client, or null if no API key is set. */
 export function getAnthropicClient(): Anthropic | null {
@@ -104,7 +121,11 @@ export type MessagesCallOptions = {
 
 export type MessagesCallResult =
   | { ok: true; message: Message; toolInput?: unknown; text: string }
-  | { ok: false; reason: "no_api_key" | "timeout" | "http_error" | "parse_error"; error?: unknown };
+  | {
+      ok: false;
+      reason: "no_api_key" | "timeout" | "http_error" | "parse_error" | "spend_unrecorded";
+      error?: unknown;
+    };
 
 /**
  * DB-free cost observability for the most recent successful callClaude.
@@ -160,7 +181,9 @@ export async function callClaude(
   // internal retries are not separate attempts). This is the load-bearing
   // signal that keeps "LLM call failed" from masquerading as "no findings"
   // downstream; see src/lib/llm-coverage.ts.
-  const tally = (reason?: "no_api_key" | "timeout" | "http_error"): void => {
+  const tally = (
+    reason?: "no_api_key" | "timeout" | "http_error" | "spend_unrecorded",
+  ): void => {
     if (opts.coverage === "auxiliary") return;
     recordLlmDetectionCall(
       reason === undefined
@@ -200,7 +223,25 @@ export async function callClaude(
     };
   }
 
-  const client = getAnthropicClient();
+  // A scan whose spend can no longer be recorded makes no further model
+  // calls: checkBudget sums cost_ledger, so an unrecorded call is spend
+  // the cap never sees. Checked before the client is touched, and again
+  // before every retry below.
+  const refuseUnrecordedSpend = (): MessagesCallResult => {
+    logger.warn(
+      { model: opts.model, caller: opts.callerId ?? "untagged" },
+      "callClaude refused: an earlier ledger write in this scan failed",
+    );
+    tally("spend_unrecorded");
+    recordLlmCall(null);
+    return { ok: false, reason: "spend_unrecorded" };
+  };
+  if (ledgerWriteFailed()) return refuseUnrecordedSpend();
+
+  const client = _testDeps
+    ? ({ messages: { create: _testDeps.create } } as unknown as Anthropic)
+    : getAnthropicClient();
+  const writeLedger = _testDeps?.recordCost ?? recordCost;
   if (!client) {
     logger.error("callClaude failed: no_api_key (ANTHROPIC_API_KEY missing)");
     tally("no_api_key");
@@ -219,6 +260,7 @@ export async function callClaude(
   let attempts = 0;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0 && ledgerWriteFailed()) return refuseUnrecordedSpend();
     attempts = attempt + 1;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -293,7 +335,7 @@ export async function callClaude(
       const installationId = currentInstallationId();
       if (installationId !== undefined && usage) {
         try {
-          await recordCost(installationId, costUsd, {
+          await writeLedger(installationId, costUsd, {
             scanRunId: currentScanRunId(),
             model: opts.model,
             inputTokens,
@@ -302,16 +344,18 @@ export async function callClaude(
             cacheReadInputTokens,
           });
         } catch (err) {
-          // Cost-tracking is observability, not control flow. A DB
-          // hiccup must not break the scan: we lose visibility on this
-          // one call, not money.
+          // The ledger is the budget: checkBudget sums it, so this call's
+          // cost is now invisible to the cap. The call itself is paid, so
+          // its result is still returned, but the scan makes no further
+          // model calls (refuseUnrecordedSpend above).
+          markLedgerWriteFailed();
           Sentry.captureException(err, {
-            tags: { "fixor.phase": "record_cost" },
-            extra: { installationId: String(installationId), costUsd },
+            tags: { "fixor.phase": "record_cost", "fixor.spend_guard": "tripped" },
+            extra: { installationId: String(installationId), costUsd, model: opts.model },
           });
-          logger.warn(
-            { installationId: String(installationId), err },
-            "recordCost failed",
+          logger.error(
+            { installationId: String(installationId), costUsd, model: opts.model, err },
+            "recordCost failed: this call's spend is not in the ledger; the scan stops making model calls",
           );
         }
       }

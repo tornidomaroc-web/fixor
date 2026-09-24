@@ -44,6 +44,7 @@ import * as path from "path";
 import { getAnthropicClient } from "../analysis-engine/anthropic-client";
 import { closeDb } from "../db/client";
 import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-handler";
+import type { ScanRunStore } from "../services/scan-run-store";
 import {
   budgetRefusalHttp,
   checkBudget,
@@ -294,9 +295,27 @@ function prPayloadWithInstallation(): { raw: string; payload: unknown } {
   return { raw: JSON.stringify(payload), payload };
 }
 
-async function runHandler(checkBudgetImpl?: (id: number | string) => Promise<BudgetCheck>) {
+/**
+ * A scan_runs writer that accepts every write. Section I needs it: with
+ * DATABASE_URL on a closed port the real writer's insert fails, and a
+ * failed insert now refuses the scan (test-ledger-fail-closed.ts), which
+ * would hide what this section measures, the budget gate alone.
+ */
+const acceptingStore: ScanRunStore = {
+  async createPending() {
+    return { created: true, id: "00000000-0000-4000-8000-0000000000b1" };
+  },
+  async markRunning() {},
+  async finish() {},
+};
+
+async function runHandler(
+  checkBudgetImpl?: (id: number | string) => Promise<BudgetCheck>,
+  scanRunStore?: ScanRunStore,
+) {
   const { raw, payload } = prPayloadWithInstallation();
   return handlePullRequestWebhook({
+    ...(scanRunStore ? { scanRunStore } : {}),
     rawBody: raw,
     payload,
     dryRun: true,
@@ -337,7 +356,7 @@ async function testHandlerGateAnswers(): Promise<void> {
     dailySpend: OK_READS.dailySpend,
     caps: CAPS,
   };
-  const result = await runHandler(async () => answered);
+  const result = await runHandler(async () => answered, acceptingStore);
   assert(result.ok, "handler completes");
   if (!result.ok) return;
   const wf = result.workflow;

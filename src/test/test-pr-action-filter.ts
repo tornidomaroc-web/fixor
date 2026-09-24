@@ -59,6 +59,15 @@ import {
   type WebhookRouteResponse,
 } from "../server/github-webhook-route";
 import type { BudgetCheck } from "../services/cost-store";
+import type { ScanRunStore } from "../services/scan-run-store";
+
+const acceptingStore: ScanRunStore = {
+  async createPending() {
+    return { created: true, id: "00000000-0000-4000-8000-0000000000a1" };
+  },
+  async markRunning() {},
+  async finish() {},
+};
 
 let failures = 0;
 function assert(cond: unknown, msg: string): void {
@@ -205,6 +214,10 @@ function depsFor(spies: Spies): WebhookRouteDeps {
           return WITHIN_BUDGET;
         },
         workflowMetadata: { scanId: "pr-action-filter-witness" },
+        // A writer that accepts every write: with DATABASE_URL unset the
+        // real insert fails, and a failed insert refuses the scan
+        // (test-ledger-fail-closed.ts), which is not what this measures.
+        scanRunStore: acceptingStore,
       });
     },
   };

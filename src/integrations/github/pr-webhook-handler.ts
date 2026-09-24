@@ -25,7 +25,7 @@ import {
   buildWholeFileScanInput,
   resolveRouteGuardSidecars,
 } from "./whole-file-scan-input";
-import { costContext, type ScanSpend } from "../../lib/cost-context";
+import { costContext, type CostContextStore, type ScanSpend } from "../../lib/cost-context";
 import { checkBudget, type BudgetCheck } from "../../services/cost-store";
 import {
   drizzleScanRunStore,
@@ -247,7 +247,13 @@ async function handlePullRequestWebhookImpl(
   // row to finish. A delivery with no installation cannot be scoped to an
   // org, so it gets none.
   const store = options.scanRunStore ?? drizzleScanRunStore();
-  const run: ScanRunState = { id: null, outcome: null, spend: { usd: 0 } };
+  const run: ScanRunState = {
+    id: null,
+    outcome: null,
+    spend: { usd: 0 },
+    preScanWriteFailed: false,
+    spendUnrecorded: false,
+  };
   if (installationId !== null) {
     const deliveryId = options.deliveryId ?? null;
     try {
@@ -276,9 +282,11 @@ async function handlePullRequestWebhookImpl(
       }
       run.id = created.id;
     } catch (err) {
-      // History is observability: a failed insert must not cost the
-      // customer their scan. PR2 decides whether it should refuse spend.
+      // A database that refuses this write will refuse the ledger writes
+      // too, and an unrecorded call is spend the cap never sees. The scan
+      // is refused before any model call (scanDelivery).
       reportScanRunFailure("create", err, { installationId, deliveryId, owner, repo, pullNumber, headSha });
+      run.preScanWriteFailed = true;
     }
   }
 
@@ -320,7 +328,51 @@ type ScanRunState = {
   id: string | null;
   outcome: ScanRunOutcome | null;
   spend: ScanSpend;
+  /** The row insert or the `running` update failed: the scan is refused. */
+  preScanWriteFailed: boolean;
+  /** A ledger write failed mid-scan, so later model calls were refused. */
+  spendUnrecorded: boolean;
 };
+
+/**
+ * The row outcome for a workflow that ran. A scan stopped by the spend
+ * guard is `incomplete` with its own code, so the dashboard says why; its
+ * `cost_usd` still counts the unrecorded calls (the accumulator is written
+ * before the ledger).
+ */
+function scannedOutcome(
+  run: ScanRunState,
+  workflow: WorkflowResult,
+  inputDegraded: boolean,
+): ScanRunOutcome {
+  const outcome = outcomeFromWorkflow(workflow, run.spend.usd, inputDegraded);
+  if (run.spendUnrecorded && outcome.status !== "skipped") {
+    return { ...outcome, status: "incomplete", code: "spend_unrecorded" };
+  }
+  return outcome;
+}
+
+/** A workflow result for a scan that did not run. */
+function notRunWorkflow(metadata: ScanMetadata): Omit<
+  WorkflowResult,
+  "status" | "automationDecisionReason" | "errors"
+> {
+  const now = new Date().toISOString();
+  return {
+    automationReady: false,
+    totalFindings: 0,
+    sqlInjectionFindings: 0,
+    classifiedFindings: 0,
+    skippedFindings: 0,
+    fixesGenerated: 0,
+    highQualityPatches: 0,
+    mediumQualityPatches: 0,
+    lowQualityPatches: 0,
+    fixes: [],
+    metadata: metadata ?? {},
+    timing: { startedAt: now, finishedAt: now, durationMs: 0 },
+  };
+}
 
 type DeliveryContext = {
   dryRun: boolean;
@@ -475,27 +527,16 @@ async function scanDelivery(
   let workflow: WorkflowResult;
   if (installationId === null) {
     // Should not happen for properly authenticated GitHub App webhooks,
-    // but degrade gracefully without recording cost.
+    // but degrade gracefully without recording cost. NOT guarded by the
+    // budget or the spend guard: nothing here can be priced. Reachable
+    // only by a delivery with no installation, i.e. a repository webhook
+    // the operator configured with this secret, or a local demo.
     workflow = await runAuditorWorkflow(semgrepPayload, metadata);
   } else {
     const budgetGate = options.checkBudgetImpl ?? checkBudget;
     const budget = await budgetGate(installationId);
     if (!budget.withinBudget) {
-      const now = new Date().toISOString();
-      const notRun = {
-        automationReady: false,
-        totalFindings: 0,
-        sqlInjectionFindings: 0,
-        classifiedFindings: 0,
-        skippedFindings: 0,
-        fixesGenerated: 0,
-        highQualityPatches: 0,
-        mediumQualityPatches: 0,
-        lowQualityPatches: 0,
-        fixes: [],
-        metadata: metadata ?? {},
-        timing: { startedAt: now, finishedAt: now, durationMs: 0 },
-      };
+      const notRun = notRunWorkflow(metadata);
       if (
         budget.reason === "monthly_exceeded" ||
         budget.reason === "daily_exceeded"
@@ -534,39 +575,68 @@ async function scanDelivery(
         };
       }
     } else {
-      if (run.id !== null) {
+      if (run.id !== null && !run.preScanWriteFailed) {
         try {
           await store.markRunning(run.id);
         } catch (err) {
           reportScanRunFailure("running", err, { installationId, owner, repo, pullNumber, headSha });
+          run.preScanWriteFailed = true;
         }
       }
-      workflow = await costContext.run(
-        {
+      if (run.preScanWriteFailed) {
+        // The last database write before the first model call failed, so the
+        // ledger writes would likely fail too. Refused, never run unrecorded.
+        logger.error(
+          { installationId, owner, repo, pullNumber, headSha },
+          "scan refused: a database write failed before the scan, so its spend could not be recorded",
+        );
+        workflow = {
+          ...notRunWorkflow(metadata),
+          status: "spend_unrecordable",
+          automationDecisionReason:
+            "Scan skipped: this scan's usage could not be recorded",
+          errors: [
+            {
+              message:
+                "Scan skipped: the scan's usage could not be recorded, so no code was analyzed",
+            },
+          ],
+        };
+      } else {
+        const scanCtx: CostContextStore = {
           installationId,
           ...(run.id !== null ? { scanRunId: run.id } : {}),
           scanSpend: run.spend,
-        },
-        async () => runAuditorWorkflow(semgrepPayload, metadata),
-      );
-
-      // Re-read post-scan budget so the comment + email use the
-      // numbers AFTER this scan's costs landed. checkBudget caches
-      // nothing; the second call adds one DB round-trip per scan.
-      try {
-        const postBudget = await budgetGate(installationId);
-        const warning = computeBudgetWarning(
-          postBudget.monthlySpend,
-          postBudget.caps.monthlyCapUsd,
+        };
+        workflow = await costContext.run(scanCtx, async () =>
+          runAuditorWorkflow(semgrepPayload, metadata),
         );
-        if (warning) {
-          workflow.budgetWarning = warning;
+        if (scanCtx.ledgerWriteFailed) {
+          run.spendUnrecorded = true;
+          logger.error(
+            { installationId, owner, repo, pullNumber, headSha, scanSpendUsd: run.spend.usd },
+            "scan stopped early: a ledger write failed, so later model calls were refused",
+          );
         }
-      } catch (e) {
-        logger.warn(
-          { installationId, err: e },
-          "post-scan budget re-read failed; budgetWarning skipped",
-        );
+
+        // Re-read post-scan budget so the comment + email use the
+        // numbers AFTER this scan's costs landed. checkBudget caches
+        // nothing; the second call adds one DB round-trip per scan.
+        try {
+          const postBudget = await budgetGate(installationId);
+          const warning = computeBudgetWarning(
+            postBudget.monthlySpend,
+            postBudget.caps.monthlyCapUsd,
+          );
+          if (warning) {
+            workflow.budgetWarning = warning;
+          }
+        } catch (e) {
+          logger.warn(
+            { installationId, err: e },
+            "post-scan budget re-read failed; budgetWarning skipped",
+          );
+        }
       }
     }
   }
@@ -653,12 +723,14 @@ async function scanDelivery(
     // Best-effort first-scan email (5E-4). Idempotent at the SQL
     // layer; does not throw. Skipped on dry runs, when no
     // installation is associated (PAT-only paths), and when the scan
-    // was refused because its budget could not be verified — nothing
-    // was scanned, so there is no first scan to announce.
+    // was refused because its budget could not be verified or its spend
+    // could not be recorded — nothing was scanned, so there is no first
+    // scan to announce.
     if (
       !dryRun &&
       installationId &&
-      workflow.status !== "budget_unverifiable"
+      workflow.status !== "budget_unverifiable" &&
+      workflow.status !== "spend_unrecordable"
     ) {
       const prUrl = `https://github.com/${owner}/${repo}/pull/${pullNumber}`;
       maybeSendFirstScanEmail({
@@ -691,7 +763,7 @@ async function scanDelivery(
       });
     }
 
-    run.outcome = outcomeFromWorkflow(workflow, run.spend.usd, inputDegraded);
+    run.outcome = scannedOutcome(run, workflow, inputDegraded);
     return {
       ok: true,
       dryRun,
@@ -703,7 +775,7 @@ async function scanDelivery(
   } catch (e) {
     if (e instanceof GitHubApiError) {
       reportGitHubFailure("comment_post", e, { owner, repo, pullNumber, headSha, installationId });
-      const scanned = outcomeFromWorkflow(workflow, run.spend.usd, inputDegraded);
+      const scanned = scannedOutcome(run, workflow, inputDegraded);
       // A skipped delivery stays skipped: nothing was scanned either way.
       run.outcome =
         scanned.status === "skipped"

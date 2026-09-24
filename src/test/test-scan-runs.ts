@@ -518,15 +518,20 @@ async function testDrizzleStoreThroughHandler(): Promise<void> {
   assertEq(errorLogs.filter((l) => l.fields.phase === "scan_run_record").length, 0, "no insert failure was logged: the guard, not an error, stopped it");
 }
 
-async function testInsertFailureStillScans(): Promise<void> {
-  section("J. scan_runs insert fails -> logged, sent to Sentry, scanned anyway");
+// Policy changed by the ledger fail-closed PR: a database that refuses this
+// insert would refuse the ledger writes too, so the scan is refused before
+// any model call (test-ledger-fail-closed.ts witnesses the spend side).
+async function testInsertFailureRefuses(): Promise<void> {
+  section("J. scan_runs insert fails -> logged, sent to Sentry, scan refused");
   const failing: ScanRunStore = {
     createPending: async () => { throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }); },
     markRunning: async () => { throw new Error("markRunning must not be called without a row"); },
     finish: async () => { throw new Error("finish must not be called without a row"); },
   };
   const result = await deliver({ store: failing });
-  assert(result.ok && result.workflow.classifiedFindings === 1, "the scan ran and found the planted secret");
+  assert(result.ok && result.workflow.status === "spend_unrecordable", "the scan was refused (spend_unrecordable)");
+  assert(result.ok && result.workflow.classifiedFindings === 0, "the planted secret was never looked for");
+  assert(result.ok && result.comment.body.includes("Fixor did not scan this commit"), "the comment says the commit was not scanned");
   const logs = errorLogs.filter((l) => l.fields.phase === "scan_run_record");
   assertEq(logs.map((l) => l.fields.step), ["create"], "one error line for the failed insert, none after");
   assertEq(sentryEvents.filter((e) => e.tags?.["fixor.phase"] === "scan_run_record").length, 1, "one Sentry event for it");
@@ -691,7 +696,7 @@ async function main(): Promise<void> {
   const sections: Array<() => unknown> = [
     testCapReached, testUnverifiable, testPrFetchRefused, testCommentRefused,
     testSuccess, testThrowMidHandler, testDuplicateDeliveryThroughRoute,
-    testDrizzleStore, testDrizzleStoreThroughHandler, testInsertFailureStillScans,
+    testDrizzleStore, testDrizzleStoreThroughHandler, testInsertFailureRefuses,
     testCostAndLedger, testOutcomeMapping, testDashboardRepoFilter,
   ];
   for (const run of sections) {

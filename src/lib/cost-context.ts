@@ -12,6 +12,13 @@
  * `cost_usd`: the process-wide counters in llm-call-ledger.ts are
  * snapshot deltas, so two scans running at once would each absorb the
  * other's calls. The async-local store is per scan by construction.
+ *
+ * The store also carries the scan's spend guard. `checkBudget` sums
+ * `cost_ledger`, so a priced call whose ledger row was not written is
+ * spend the cap never sees. When a ledger write fails, callClaude marks
+ * the store, and every later model call in the same scan refuses before
+ * it reaches the network. The flag lives on the store object, so it stops
+ * this scan only; a concurrent scan runs in its own store.
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -26,6 +33,8 @@ export interface CostContextStore {
   scanRunId?: string;
   /** Running USD total for this scan only. */
   scanSpend?: ScanSpend;
+  /** Set once a ledger write failed; later model calls in this scan refuse. */
+  ledgerWriteFailed?: boolean;
 }
 
 export const costContext = new AsyncLocalStorage<CostContextStore>();
@@ -42,4 +51,15 @@ export function currentScanRunId(): string | undefined {
 export function addScanSpend(costUsd: number): void {
   const spend = costContext.getStore()?.scanSpend;
   if (spend && Number.isFinite(costUsd) && costUsd > 0) spend.usd += costUsd;
+}
+
+/** Stops every later model call in the current scan; a no-op outside a scan. */
+export function markLedgerWriteFailed(): void {
+  const store = costContext.getStore();
+  if (store) store.ledgerWriteFailed = true;
+}
+
+/** True once a ledger write in the current scan has failed. */
+export function ledgerWriteFailed(): boolean {
+  return costContext.getStore()?.ledgerWriteFailed === true;
 }

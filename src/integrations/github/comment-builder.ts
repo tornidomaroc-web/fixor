@@ -117,12 +117,19 @@ export function buildPullRequestCommentMarkdown(
   // A refused scan must never read as a clean one: no Summary table (which
   // would show zero findings), no "budget reached" wording (which would be
   // false), and no internal detail about why the budget was unreadable.
-  if (workflow.status === "budget_unverifiable") {
+  if (
+    workflow.status === "budget_unverifiable" ||
+    workflow.status === "spend_unrecordable"
+  ) {
+    const cause =
+      workflow.status === "budget_unverifiable"
+        ? "could not confirm this installation's usage budget"
+        : "could not record this scan's usage";
     lines.push(
       "",
       "> ⏸️ **Fixor did not scan this commit**",
       ">",
-      "> Fixor could not confirm this installation's usage budget because of a problem on Fixor's side, so it analyzed nothing in this pull request. This is not a clean result: no finding has been checked.",
+      `> Fixor ${cause} because of a problem on Fixor's side, so it analyzed nothing in this pull request. This is not a clean result: no finding has been checked.`,
       ">",
       "> Push a new commit to this pull request to run the scan again.",
       "",
