@@ -19,9 +19,7 @@ import {
   verifyApiToken,
 } from "../services/api-tokens.service";
 import { FixedWindowRateLimiter } from "../lib/rate-limiter";
-import { runAuditorWorkflow } from "../workflows/auditor-workflow";
-import { costContext } from "../lib/cost-context";
-import { budgetRefusalHttp, checkBudget } from "../services/cost-store";
+import { runApiScan } from "./api-scan";
 
 // Per-token bucket. 60 requests / 60s default — plenty for a CI loop,
 // blocks runaway scripts. Override with FIXOR_API_RATE_LIMIT_PER_MIN.
@@ -109,48 +107,25 @@ async function handleApiScan(
     return;
   }
 
-  // 4. Budget gate (mirrors pr-webhook-handler)
+  // 4-5. Budget gate, spend guard and the scan (api-scan.ts)
   const installationId = await getInstallationIdForOrg(verified.orgId);
-  if (installationId) {
-    const budget = await checkBudget(installationId);
-    const refusal = budgetRefusalHttp(budget);
-    if (refusal) {
-      if (refusal.retryAfterSeconds !== undefined) {
-        res.setHeader("Retry-After", String(refusal.retryAfterSeconds));
-      }
-      jsonResponse(res, refusal.status, refusal.body);
-      return;
-    }
-  }
-
-  // 5. Run workflow
-  const metadata = {
+  const result = await runApiScan(installationId, diff, {
     repoName: `api/v1/scan/${verified.orgId}`,
     scanId: verified.tokenId,
-  };
-  const workflow = installationId
-    ? await costContext.run({ installationId }, () =>
-        runAuditorWorkflow(diff, metadata),
-      )
-    : await runAuditorWorkflow(diff, metadata);
+  });
 
   // 6. Best-effort bookkeeping — update last_used_at without blocking
   //    the response. A failed update only loses a timestamp.
-  void markTokenUsed(verified.tokenId).catch((err) => {
-    logger.warn({ tokenId: verified.tokenId, err }, "markTokenUsed failed");
-  });
+  if (result.ran) {
+    void markTokenUsed(verified.tokenId).catch((err) => {
+      logger.warn({ tokenId: verified.tokenId, err }, "markTokenUsed failed");
+    });
+  }
 
-  jsonResponse(res, 200, {
-    status: workflow.status,
-    automationReady: workflow.automationReady,
-    totalFindings: workflow.totalFindings,
-    classifiedFindings: workflow.classifiedFindings,
-    skippedFindings: workflow.skippedFindings,
-    fixesGenerated: workflow.fixesGenerated,
-    fixes: workflow.fixes,
-    errors: workflow.errors,
-    timing: workflow.timing,
-  });
+  if (result.retryAfterSeconds !== undefined) {
+    res.setHeader("Retry-After", String(result.retryAfterSeconds));
+  }
+  jsonResponse(res, result.status, result.body);
 }
 
 function summarizeWebhookResult(

@@ -8,8 +8,10 @@
  * `await checkBudget(...)`.
  *
  * Error policy:
- * - `recordCost` failures are caller-handled (the analysis-engine
- *   wraps it in try/catch + warn). We never silently swallow here.
+ * - `recordCost` failures are caller-handled. callClaude catches one,
+ *   reports it, and stops the scan's later model calls, because a call
+ *   missing from this ledger is spend `checkBudget` never sees. We never
+ *   silently swallow here.
  * - `checkBudget` FAILS CLOSED. When the spend or the cap cannot be read,
  *   the answer to "is this installation under its cap?" is unknown, and an
  *   unknown answer must not authorize LLM spend: it returns

@@ -39,6 +39,8 @@ export type ScanRunStatus =
 export type ScanRunCode =
   | "budget_exceeded"
   | "budget_unverifiable"
+  | "spend_unrecordable"
+  | "spend_unrecorded"
   | "pr_fetch_refused"
   | "comment_refused"
   | "coverage_degraded"
@@ -51,6 +53,10 @@ export const SCAN_RUN_MESSAGES: Readonly<Record<ScanRunCode, string>> = {
     "Not scanned: this installation reached its usage budget for the period.",
   budget_unverifiable:
     "Not scanned: Fixor could not verify this installation's usage budget.",
+  spend_unrecordable:
+    "Not scanned: Fixor could not record usage for this scan, so it did not start it.",
+  spend_unrecorded:
+    "Incomplete: Fixor could not record this scan's usage, so it stopped before finishing. These findings are not a complete result.",
   pr_fetch_refused:
     "Not scanned: GitHub refused Fixor's request for the pull request.",
   comment_refused:
@@ -126,6 +132,9 @@ export function outcomeFromWorkflow(
   }
   if (workflow.status === "budget_unverifiable") {
     return { ...emptyOutcome("skipped", "budget_unverifiable"), costUsd };
+  }
+  if (workflow.status === "spend_unrecordable") {
+    return { ...emptyOutcome("skipped", "spend_unrecordable"), costUsd };
   }
   // No coverage tally means the workflow never reached detection: it
   // threw, timed out, or rejected its input.
