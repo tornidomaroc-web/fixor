@@ -32,6 +32,13 @@ An open PR is "in review," never "done."
   date of the annotation. Never cite the annotating PR: a PR cannot know its own number while
   its text is being written, and that number tells a reader nothing they can act on. Sweep and
   provenance details belong in this file, not in the annotated document.
+- SCHEMA CHANGES REACH PRODUCTION ONLY THROUGH THE DRIZZLE MIGRATOR (`npm run db:migrate`), NEVER
+  BY HAND. The migrator records each migration it applies in `drizzle.__drizzle_migrations`; SQL
+  run by hand changes the schema and records nothing, so the next migrator run replays migrations
+  that are already applied, or skips what was never applied, and nothing shows the gap. CASE
+  (found 2026-09-23): production's migration table held only 0000 and 0001; 0003 to 0006 had been
+  applied by hand with no rows, and 0002 (`api_tokens`) had never been applied at all. See the DONE
+  entry "PRODUCTION SCHEMA DRIFT FOUND AND REPAIRED".
 
 ### Reasoning guardrails (learned in practice; each carries the case that produced it, because the rule without its case is a slogan)
 
@@ -2615,6 +2622,8 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #236 | `1c7d08d` | 2026-09-23 05:08:02 | `fix/comment-authorship` | `36542af0`, captured before | 05:08:29 | `fix/comment-authorship` at `b1bcee5` |
 | #237 | `c4f6697` | 2026-09-23 06:46:21 | `fix/loud-comment-failure` | `d9771023`, captured before | 06:46:39 | `fix/loud-comment-failure` at `488175c` |
 | #238 | `6a9b796` | 2026-09-23 07:12:47 | `docs/public-copy-correction` | `b382fecc`, captured before | 07:13:00 | `docs/public-copy-correction` at `9726bbf` |
+| #239 | `72630fb` | 2026-09-23 07:41:51 | `docs/tracker-record-2026-09-23` (reflog) | `817f7d70`, computed 2026-09-24 | not read at merge; absent 2026-09-24 | `docs/tracker-record-2026-09-23` at `0c1ef53` |
+| #241 | `bd1a4ec` | 2026-09-24 00:26:16 | `feat/scan-runs-writer` (reflog) | `7caf14ce`, computed 2026-09-24 (owner reports it captured before) | not read at merge; absent 2026-09-24 | `feat/scan-runs-writer` at `f7e6ded` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2638,6 +2647,17 @@ same signature, HEAD not switched and the local ref not deleted with `gh` silent
 repeated behaviour rather than scatter. The arm stays mixed because of #143 and #160. **No cause is
 named.** The working rule is unchanged: expect assertion 4 red, check it, and delete no local ref
 before its row is filed. **The merge of this entry will owe #239**, per the floor recorded at #227.
+
+**#239 AND #241: TWO ROWS, FILED TOGETHER (2026-09-24).** #239 was the owed floor row; #241 merged
+after it, so two were owed, not one. #240 is an issue, not a pull request. For both, the arm was read from the
+reflog: HEAD sat on the merged branch from its last commit until after the merge (for #239 from
+07:34:12 to 21:25:13 on 2026-09-23, for #241 from 21:39:52 on 2026-09-23 through 00:26:16 on
+2026-09-24). **Both RED**: each local ref still exists at its PR head, and local `main` still reads
+`0eb86f5`. Both head trees equal their squash trees, computed 2026-09-24. Assertion 3 was not read
+at either merge; `git ls-remote` found neither head ref on 2026-09-24. Tool versions on this
+machine: gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-24):** the arm
+invoked FROM the merged branch reads 19 observations, 2 green and 17 red; the register carries 29
+rows, 27 RED. No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -2874,7 +2894,9 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   (`docs/measurements/field-trial-2026-09-19/`) returned 0 of 12 on real code, and IDOR evidence has
   to come from a design partner's code with their ground truth.
 
-- **PUBLIC CLAIMS NARROWED (#232) AND PUBLIC PAGES CORRECTED (#238).** #232 (2026-09-22) narrowed
+- *Annotation 2026-09-24: the announcement named as "still owed" below was posted as issue #240
+  on 2026-09-23 07:48:45Z and is open; whether it is pinned was not read.*
+  **PUBLIC CLAIMS NARROWED (#232) AND PUBLIC PAGES CORRECTED (#238).** #232 (2026-09-22) narrowed
   README and landing claims to what the record supports; its description tables each sentence, what
   it rested on and why it was unsupported. #238 (2026-09-23) corrected the Privacy Policy, the
   Security page and the Terms. What Fixor reads: the pull request's diff, the full content of each
@@ -2914,6 +2936,77 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   A second Railway deploy of `1c7d08d` succeeded at 06:06:27Z, after `GITHUB_TOKEN` was removed from
   the service (incident entry above).
 
+  **#239 and #241 (added 2026-09-24).** CI and the `secrets` workflow concluded success on both merge
+  commits; on `bd1a4ec` the `deploy` check run also concluded success.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #239 | `72630fb` | 2026-09-23 07:42:34 | 07:42:47 | not triggered |
+  | #241 | `bd1a4ec` | 2026-09-24 00:27:58 | 00:27:05 | 00:28:03 |
+
+  The same deployment records carry later `success` statuses for `72630fb`: Railway 22:40:50 and
+  22:40:56, Vercel 08:07:26 and 23:03:08, all 2026-09-23. The evening ones fit the owner's report
+  that `DATABASE_URL` was replaced in both services and they were redeployed (next entries); the
+  records do not say why any redeploy ran.
+
+- **SCAN_RUNS WRITER (#241) VERIFIED IN PRODUCTION AT $0 (2026-09-24).** An empty commit, `688ef43`
+  (2026-09-24 00:50:36Z, zero files), was pushed to trial PR #1 in
+  `tornidomaroc-web/fixor-trial-2026-09-23`. The Fixor comment on that PR (id 5789699725, by
+  `fixor-security[bot]`, created 2026-09-23 05:40:32Z) was edited in place at 00:50:42Z, read back
+  from the GitHub API. **As reported by the owner from the database, not read by this entry:** one
+  `scan_runs` row for that PR, status `skipped`, the budget message, a GUID `delivery_id`, cost
+  `0.000000`, finished; zero `cost_ledger` rows linked to any scan; spend unchanged at $5.04 of the
+  $5.00 cap. The installation was over its cap, so no scan ran: this proves the row is written and
+  the delivery id recorded, not the paths that write `completed`, `failed` or a non-zero cost.
+
+- **PRODUCTION SCHEMA DRIFT FOUND AND REPAIRED (2026-09-23; as reported by the owner, not read by
+  this entry).** Production's migration table (`drizzle.__drizzle_migrations`) held only 0000 and
+  0001. Migrations 0003 to 0006 had been applied by hand, with no rows recorded. 0002, which creates
+  `api_tokens`, had never been applied. One guarded `DO` block applied 0002 and 0007, recorded rows
+  for 0002 to 0007, and post-checks matched; the table now holds 8 rows ending at `created_at`
+  1790199009381, which equals the `when` of `0007_black_falcon` in `meta/_journal.json`.
+  **Correction to how this was first stated:** API tokens were never "broken since April"; they
+  never worked in production at all. 0002 was added on 2026-04-26 (`99bf31b`, "API tokens + POST
+  /api/v1/scan + rate limiter") and never reached the production database, so every path that
+  reads `api_tokens` (`api-tokens.service.ts`: `POST /api/v1/scan` in `webhook-server.ts`, and the
+  `create-api-token` script) could only fail there until 2026-09-23. No dashboard page creates a
+  token. Rule that follows: see "SCHEMA CHANGES REACH PRODUCTION ONLY THROUGH THE DRIZZLE MIGRATOR"
+  under "How we work".
+
+- **THE PRODUCTION DATABASE IS SHARED WITH ANOTHER PROJECT (recorded 2026-09-24; as reported by the
+  owner).** The same Neon database holds six CKSE tables (`alembic_version`, `block`, `page`,
+  `projection_state`, `source`, `suppression_audit`) under the same single owner role as Fixor. Risks:
+  an Alembic `--autogenerate` run by CKSE without a table filter would emit `DROP TABLE` for every
+  Fixor table; `drizzle.config.ts` has no `tablesFilter`, so a `drizzle-kit push` or introspection
+  from Fixor sees CKSE's tables as its own (the repo has no `db:push` script; `db:migrate` runs only
+  Fixor's own SQL); a point-in-time restore for one project rolls back the other; and one credential
+  reaches both. Queued below as item 4.
+
+- **`neondb_owner` PASSWORD RESET (2026-09-23; as reported by the owner).** The password was exposed
+  in a chat, then reset, and `DATABASE_URL` was replaced in Railway and Vercel. The dashboard's
+  `/api/health` read `{"status":"ok","db":"ok"}` on 2026-09-24 at 09:15Z; the backend's health
+  endpoint is as reported. **If CKSE connects to this database, it still carries the old password
+  and is failing to connect.** No value is recorded here.
+
+- **DASHBOARD SIGN-IN RESTORED (2026-09-24).** Clerk sign-in with GitHub failed with
+  `internal_clerk_error` after GitHub's callback (attempt `sia_3JleIAU9bPMh4TW2AyHN77TXf9T`), and
+  the page showed "Unable to complete action at this time." Clerk's custom GitHub credentials are the
+  **Fixor Security GitHub App** (client id `Iv23liR7sxK4OAP1FMAx`, which GitHub's own sign-in page
+  names as "Fixor Security"), not a GitHub OAuth App as Clerk's guide assumes. The App's account
+  permission "Email addresses" was `No access`. For a GitHub App, GitHub ignores the requested OAuth
+  scopes (`user:email read:user`) and grants email access only through that permission. **Setting
+  it to `Read-only` fixed sign-in, as reported by the owner:** the dashboard now shows the
+  installation, spend $5.04 of $5.00, and two `skipped` rows (fixor-trial-2026-09-23 #1 and
+  knowflow #194). The client id is correct for the dashboard: `/user/installations` accepts only a
+  GitHub App user token, and an ordinary token gets 403 "You must authenticate with an access token
+  authorized to a GitHub App" (read 2026-09-24). **When it broke is inferred, not recorded:** the
+  browser's Clerk client was created 2026-04-28 00:49:52Z, and `0b2ee40` (01:59Z the same night)
+  logged token details that exist only for a signed-in user, so sign-in very probably worked then.
+  Nothing records sign-in working since. **Correction to how the filter result was first stated:**
+  the two rows show the per-repository filter ADMITS private repositories the user can access. They
+  do not show that it EXCLUDES one the user cannot see; only the keyless witness in
+  `test-scan-runs.ts` exercises exclusion, and production has not.
+
 - **OWED AND UNVERIFIED: FOUR RECORDS NAMED IN THE 2026-09-20 HANDOFF THAT NO AVAILABLE EVIDENCE
   GROUNDS.** The handoff lists five records owed from earlier sessions, and says the session that
   wrote it did not verify them. The fifth, the deploys for #224, #227 and #228, is filed above from
@@ -2946,6 +3039,59 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
 ---
 
 ## NOT-DONE / DEFERRED (ordered worklist)
+
+### Pre-public queue (before the Fixor Security App is made public; ordered 2026-09-24)
+
+F-004 below gates the READY verdict; this queue gates letting strangers install the App. They are
+independent. Order: money first, then who can change what, then losing data, then correctness a
+stranger would notice, then public copy, and making the App public last. Items marked "as reported"
+were stated by the owner and not read by the entry that filed them.
+
+1. **The owner's own installation cap before 2026-10-01 (owner's decision; money).** The monthly
+   window is the UTC calendar month (`startOfMonthUtc` in `cost-store.ts`), so on 2026-10-01 the
+   installation drops from $5.04 of $5.00 to $0 spent, and every scan-eligible push to knowflow and
+   the trial repository scans with paid model calls, with no command. Any October trial needs the
+   cap set first. Money needs the owner's approval.
+2. **Ledger write fails closed (the queued "PR2").** `anthropic-client.ts` catches a `recordCost`
+   failure, logs a warning and continues, on the stated ground that "we lose visibility on this one
+   call, not money". That is false: `checkBudget` sums `cost_ledger`, so an unrecorded call is spend
+   the cap never sees. Until this lands, item 1's cap is a floor on spend, not a ceiling.
+3. **Settings and billing access control.** `PATCH /api/orgs/:id/settings` checks only that the
+   installation appears in the user's `/user/installations`, so anyone with read access to one
+   repository in the installation can change the org's settings, including the Slack webhook URL,
+   which redirects findings. The org list shows total spend to the same people. Harmless while the
+   owner is the only user; not once a team installs.
+4. **CKSE to its own database and role, then a drizzle `tablesFilter`.** See the DONE entry "THE
+   PRODUCTION DATABASE IS SHARED WITH ANOTHER PROJECT". **Do it before CKSE is reconnected**: its
+   connection still carries the old password (as reported), and giving it the new owner password
+   would re-open the shared-credential and `DROP TABLE` risks the move removes.
+5. **Acknowledge-then-scan**, with the agreed retry rules (at-least-once; re-run an unfinished row
+   once at startup; on a second failure post the "did not scan" notice) and a sweeper for stale
+   `pending` and `running` rows. #241 writes the row this builds on.
+6. **`SENTRY_DSN` in Railway: read whether it is set.** Not verified since 2026-09-23. #237 and #241
+   report refused GitHub calls and failed `scan_runs` writes to Sentry; without the DSN those reports
+   go nowhere.
+7. **User-token expiry on the App and the history filter.** If the App's user tokens expire and
+   Clerk returns an expired one, `listVisibleRepoNames` returns `error` and scan history shows
+   nothing (fails closed, leaks nothing, looks broken). Read the App's "User-to-server token
+   expiration" setting and sign in more than 8 hours after the last sign-in.
+8. **Remove the `[fixor-debug]` logging in `apps/dashboard/src/lib/github.ts`** (from `0b2ee40`,
+   2026-04-28). It writes `userId` and token scopes, not the token, to Vercel logs on every home
+   page load. The root `lint:no-console` does not cover the dashboard.
+9. **Railway `FIXOR_MONTHLY_CAP_USD=3` against the published free cap of $5 (as reported).** The
+   dashboard showed $5.00 for the owner's installation, and `checkBudget` prefers an org-level cap
+   (`resolveMonthlyCapForInstallation`) over the env value. Which cap a new installation actually
+   gets must be read and made to match the published figure.
+10. **Public copy, one PR:**
+    - `landing/terms.html` and `apps/dashboard/src/lib/tiers.ts` promise the free tier "5 scans /
+      month" and "Public repos only". Nothing in `src/` enforces either; the budget cap is the only
+      limit, and the owner's free installation scans private repositories.
+    - `landing/privacy.html` and `landing/security.html` describe API tokens "you generate". No
+      self-service path exists; tokens come only from the `create-api-token` script, and until
+      2026-09-23 their table did not exist in production.
+    - `landing/security.html` still lists a `pro=$80` cap for a tier removed on 2026-05-31.
+    - `README.md` links `https://docs.fixor.dev`, which answers 404 (read 2026-09-24).
+11. **Make the App public, last.**
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
 
