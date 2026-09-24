@@ -2624,6 +2624,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #238 | `6a9b796` | 2026-09-23 07:12:47 | `docs/public-copy-correction` | `b382fecc`, captured before | 07:13:00 | `docs/public-copy-correction` at `9726bbf` |
 | #239 | `72630fb` | 2026-09-23 07:41:51 | `docs/tracker-record-2026-09-23` (reflog) | `817f7d70`, computed 2026-09-24 | not read at merge; absent 2026-09-24 | `docs/tracker-record-2026-09-23` at `0c1ef53` |
 | #241 | `bd1a4ec` | 2026-09-24 00:26:16 | `feat/scan-runs-writer` (reflog) | `7caf14ce`, computed 2026-09-24 (owner reports it captured before) | not read at merge; absent 2026-09-24 | `feat/scan-runs-writer` at `f7e6ded` |
+| #242 | `7201c67` | 2026-09-24 10:02:08 | `docs/tracker-record-2026-09-24` (read before and after) | `0dbe5525`, captured before | 404 on first read after 10:02:15 | `docs/tracker-record-2026-09-24` at `302a0fe` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2658,6 +2659,14 @@ at either merge; `git ls-remote` found neither head ref on 2026-09-24. Tool vers
 machine: gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-24):** the arm
 invoked FROM the merged branch reads 19 observations, 2 green and 17 red; the register carries 29
 rows, 27 RED. No cause is named. **The merge of this entry will owe the next row.**
+
+**#242 (2026-09-24).** The owner ran `gh pr merge 242 --squash --match-head-commit
+302a0feecbee84e27f27598360d441282d9a6643` with HEAD on the merged branch, read before and after. **RED**: `gh` exited 0 and printed
+nothing; HEAD was not switched, the local ref survived at `302a0fe`, local `main` stayed `0eb86f5` and
+`origin/main` stayed `bd1a4ec` until the next fetch. Assertion 2 held against a tree captured before
+the merge: `0dbe5525` on both. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record
+(2026-09-24):** the arm invoked FROM the merged branch reads 20 observations, 2 green and 18 red; the
+register carries 30 rows, 28 RED. No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -2949,6 +2958,20 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   that `DATABASE_URL` was replaced in both services and they were redeployed (next entries); the
   records do not say why any redeploy ran.
 
+- **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
+  owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to
+  0 by one guarded `UPDATE`, which returned one row, and `FIXOR_BUDGET_EXEMPT_INSTALLATIONS` in
+  Railway is empty. Read by this entry: empty commit `21948c4` ("trial: zero cap check") was pushed to
+  trial PR #1 at 11:17:09Z, and the Fixor comment (id 5789699725, `fixor-security[bot]`) was edited in
+  place at 11:17:13Z to name that commit and read "This installation has hit its $0.00 monthly cap
+  (spent $5.04 this month)"; before, it read $5.00. Spend is unchanged at $5.04, and PR #1 still has two
+  comments. Why 0 and not a lower positive cap: `checkBudget` refuses when `monthlySpend >= cap`, so 0
+  refuses before any model call even with nothing recorded, which no positive cap does while a failed
+  ledger write goes unseen. The month resets on 2026-10-01 (UTC), and with this cap nothing scans. **Two
+  sentences in that comment are now wrong** (queued under item 10 below): "Scans resume automatically
+  next month" is false at a $0 cap, and "set `FIXOR_MONTHLY_CAP_USD`" is wrong wherever an org row
+  exists, because the org's cap overrides that variable.
+
 - **SCAN_RUNS WRITER (#241) VERIFIED IN PRODUCTION AT $0 (2026-09-24).** An empty commit, `688ef43`
   (2026-09-24 00:50:36Z, zero files), was pushed to trial PR #1 in
   `tornidomaroc-web/fixor-trial-2026-09-23`. The Fixor comment on that PR (id 5789699725, by
@@ -3056,6 +3079,11 @@ were stated by the owner and not read by the entry that filed them.
    failure, logs a warning and continues, on the stated ground that "we lose visibility on this one
    call, not money". That is false: `checkBudget` sums `cost_ledger`, so an unrecorded call is spend
    the cap never sees. Until this lands, item 1's cap is a floor on spend, not a ceiling.
+2a. **The webhook handler's no-installation branch runs unpriced and uncapped** (found 2026-09-24).
+   When a `pull_request` delivery carries no installation, `pr-webhook-handler.ts` runs the scan with
+   no budget check and no ledger. A GitHub App delivery always carries one, so it is reachable only by
+   a repository webhook configured with Fixor's webhook secret, or a local demo. Refuse it, or require
+   an explicit demo flag.
 3. **Settings and billing access control.** `PATCH /api/orgs/:id/settings` checks only that the
    installation appears in the user's `/user/installations`, so anyone with read access to one
    repository in the installation can change the org's settings, including the Slack webhook URL,
@@ -3091,6 +3119,9 @@ were stated by the owner and not read by the entry that filed them.
       2026-09-23 their table did not exist in production.
     - `landing/security.html` still lists a `pro=$80` cap for a tier removed on 2026-05-31.
     - `README.md` links `https://docs.fixor.dev`, which answers 404 (read 2026-09-24).
+    - The budget-reached PR comment (`comment-builder.ts`) says "Scans resume automatically next
+      month", false at a $0 cap, and tells the reader to set `FIXOR_MONTHLY_CAP_USD`, which an org's
+      own cap overrides. Seen on trial PR #1, 2026-09-24.
 11. **Make the App public, last.**
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
