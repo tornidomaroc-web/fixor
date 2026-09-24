@@ -24,7 +24,11 @@ import {
   MODEL_DEFAULTS,
   type ClaudeModelId,
 } from "../config/models";
-import { currentInstallationId } from "../lib/cost-context";
+import {
+  addScanSpend,
+  currentInstallationId,
+  currentScanRunId,
+} from "../lib/cost-context";
 import { calculateCost } from "../services/cost-tracking.service";
 import { recordCost } from "../services/cost-store";
 import { logger } from "../lib/logger";
@@ -282,10 +286,21 @@ export async function callClaude(
         costUsd,
       };
 
+      // The scan's own total, kept before the ledger write so a failed
+      // write never makes the scan's cost_usd under-count.
+      if (usage) addScanSpend(costUsd);
+
       const installationId = currentInstallationId();
       if (installationId !== undefined && usage) {
         try {
-          await recordCost(installationId, costUsd);
+          await recordCost(installationId, costUsd, {
+            scanRunId: currentScanRunId(),
+            model: opts.model,
+            inputTokens,
+            outputTokens,
+            cacheCreationInputTokens,
+            cacheReadInputTokens,
+          });
         } catch (err) {
           // Cost-tracking is observability, not control flow. A DB
           // hiccup must not break the scan: we lose visibility on this

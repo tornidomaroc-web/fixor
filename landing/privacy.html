@@ -149,13 +149,13 @@
           <td>Same as the org row</td>
         </tr>
         <tr>
-          <td><code>cost_ledger</code> &mdash; one row per Anthropic API call: timestamp, USD cost, token counts (no diff content)</td>
+          <td><code>cost_ledger</code> &mdash; one row per priced Anthropic API call made for your installation: timestamp, USD cost, model, token counts, and for a pull request scan the id of its <code>scan_runs</code> row (no diff content)</td>
           <td>Enforce monthly budget caps; show your spend in the dashboard</td>
           <td>Kept while Fixor is installed; deleted with your org on request, as above. No automatic expiry.</td>
         </tr>
         <tr>
-          <td><code>scan_runs</code> &mdash; one row per scan: repo + PR number, status, finding counts, head SHA, cost, error message, started/finished timestamps</td>
-          <td>Show scan history + trends in the dashboard</td>
+          <td><code>scan_runs</code> &mdash; one row per pull request event Fixor acted on, including events it did not scan because the budget was reached or could not be verified: repo + PR number, head SHA, GitHub's delivery id for the event, status, finding counts per detector, fixes generated, cost, a fixed status message (never code or raw error text), started/finished timestamps. Events Fixor ignores, such as a label or an assignee change, get no row.</td>
+          <td>Show scan history + trends in the dashboard, only to people who can access that repository on GitHub; recognize a redelivered event so it is not scanned or charged twice</td>
           <td>Same as cost_ledger</td>
         </tr>
         <tr>

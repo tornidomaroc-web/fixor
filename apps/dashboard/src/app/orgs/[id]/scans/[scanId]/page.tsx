@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { ScanStatusPill } from "@/components/scan-status-pill";
-import { listFixorInstallations } from "@/lib/github";
+import { listFixorInstallations, listVisibleRepoNames } from "@/lib/github";
 import { getOrgForUser, getScanForOrg } from "@/lib/scans-data";
 
 interface PageProps {
@@ -23,7 +23,11 @@ export default async function ScanDetailPage({ params }: PageProps) {
     (i) => String(i.id) === org.installationId,
   );
 
-  const scan = await getScanForOrg(org.installationId, scanId);
+  // A scan in a repository this user cannot open is not found, the same
+  // answer as a scan that does not exist.
+  const visible = await listVisibleRepoNames(org.installationId);
+  if (visible.status !== "ok") notFound();
+  const scan = await getScanForOrg(org.installationId, visible.repos, scanId);
   if (!scan) notFound();
 
   const prUrl = `https://github.com/${scan.repoFullName}/pull/${scan.pullNumber}`;
@@ -89,7 +93,9 @@ export default async function ScanDetailPage({ params }: PageProps) {
 
         {scan.errorMessage ? (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
-            <p className="font-medium">Scan error</p>
+            <p className="font-medium">
+              {scan.status === "failed" ? "Scan error" : "Note"}
+            </p>
             <p className="mt-1 font-mono text-xs">{scan.errorMessage}</p>
           </div>
         ) : null}

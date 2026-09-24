@@ -8,9 +8,10 @@
  * other orgs' scans by guessing UUIDs.
  */
 import "server-only";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { orgs, scanRuns } from "@/db/schema";
+import { orgs } from "@/db/schema";
+import { selectScan, selectScans } from "@/lib/scan-queries";
 
 export interface OrgRef {
   id: string;
@@ -77,33 +78,16 @@ export async function getOrgForUser(
 }
 
 /**
- * Scan history for an org, newest first. Uses the
- * scan_runs_installation_started_idx index from the backend schema so
- * this is a single index range scan even on busy installations.
+ * Scan history for an org, newest first, limited to the repositories
+ * the user can see (`visibleRepos`, from listVisibleRepoNames). See
+ * scan-queries.ts for why the installation check alone is not enough.
  */
 export async function getScansForOrg(
   installationId: string,
+  visibleRepos: readonly string[],
   limit = 100,
 ): Promise<ScanRow[]> {
-  const rows = await db()
-    .select({
-      id: scanRuns.id,
-      repoFullName: scanRuns.repoFullName,
-      pullNumber: scanRuns.pullNumber,
-      headSha: scanRuns.headSha,
-      status: scanRuns.status,
-      totalFindings: scanRuns.totalFindings,
-      fixesGenerated: scanRuns.fixesGenerated,
-      costUsd: scanRuns.costUsd,
-      startedAt: scanRuns.startedAt,
-      finishedAt: scanRuns.finishedAt,
-      errorMessage: scanRuns.errorMessage,
-    })
-    .from(scanRuns)
-    .where(eq(scanRuns.installationId, installationId))
-    .orderBy(desc(scanRuns.startedAt))
-    .limit(limit);
-
+  const rows = await selectScans(db(), installationId, visibleRepos, limit);
   return rows.map((r) => ({
     ...r,
     costUsd: parseFloat(r.costUsd) || 0,
@@ -111,38 +95,17 @@ export async function getScansForOrg(
 }
 
 /**
- * One scan by id, scoped to the same installation as the org. The
- * installation_id check belongs here (not in the page) because the
- * scan's UUID is a separate enumeration surface from the org's UUID.
+ * One scan by id, scoped to the org's installation and to the
+ * repositories the user can see. The scope check belongs here (not in
+ * the page) because the scan's UUID is a separate enumeration surface
+ * from the org's UUID.
  */
 export async function getScanForOrg(
   installationId: string,
+  visibleRepos: readonly string[],
   scanId: string,
 ): Promise<ScanRow | null> {
-  const rows = await db()
-    .select({
-      id: scanRuns.id,
-      repoFullName: scanRuns.repoFullName,
-      pullNumber: scanRuns.pullNumber,
-      headSha: scanRuns.headSha,
-      status: scanRuns.status,
-      totalFindings: scanRuns.totalFindings,
-      fixesGenerated: scanRuns.fixesGenerated,
-      costUsd: scanRuns.costUsd,
-      startedAt: scanRuns.startedAt,
-      finishedAt: scanRuns.finishedAt,
-      errorMessage: scanRuns.errorMessage,
-    })
-    .from(scanRuns)
-    .where(
-      and(
-        eq(scanRuns.id, scanId),
-        eq(scanRuns.installationId, installationId),
-      ),
-    )
-    .limit(1);
-
-  const row = rows[0];
+  const row = await selectScan(db(), installationId, visibleRepos, scanId);
   if (!row) return null;
   return { ...row, costUsd: parseFloat(row.costUsd) || 0 };
 }

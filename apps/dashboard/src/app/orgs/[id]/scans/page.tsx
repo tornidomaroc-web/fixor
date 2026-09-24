@@ -4,7 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 import { TierBadge } from "@/components/tier-badge";
 import { ScanStatusPill } from "@/components/scan-status-pill";
 import { TrendsChart } from "@/components/trends-chart";
-import { listFixorInstallations } from "@/lib/github";
+import { listFixorInstallations, listVisibleRepoNames } from "@/lib/github";
 import {
   getOrgForUser,
   getScansForOrg,
@@ -36,13 +36,20 @@ export default async function OrgScansPage({ params }: PageProps) {
   let scans: ScanRow[] = [];
   let trends: Trends | null = null;
   let dbStatus: "ok" | "error" = "ok";
-  try {
-    [scans, trends] = await Promise.all([
-      getScansForOrg(org.installationId),
-      getTrendsForOrg(org.installationId),
-    ]);
-  } catch {
+  // History is limited to the repositories this user can open. If that
+  // list cannot be read, show nothing rather than everything.
+  const visible = await listVisibleRepoNames(org.installationId);
+  if (visible.status !== "ok") {
     dbStatus = "error";
+  } else {
+    try {
+      [scans, trends] = await Promise.all([
+        getScansForOrg(org.installationId, visible.repos),
+        getTrendsForOrg(org.installationId, visible.repos),
+      ]);
+    } catch {
+      dbStatus = "error";
+    }
   }
 
   return (
@@ -88,7 +95,8 @@ export default async function OrgScansPage({ params }: PageProps) {
             Scan history
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Every PR Fixor has scanned for this org, newest first.
+            Every pull request event Fixor acted on in the repositories you
+            can access, newest first, including ones it skipped.
           </p>
         </div>
 
@@ -183,8 +191,9 @@ function ErrorState() {
     <div className="rounded-lg border border-dashed border-border bg-card/50 p-6">
       <p className="font-medium">Couldn&apos;t load scan history</p>
       <p className="text-muted-foreground mt-1 text-sm">
-        The dashboard couldn&apos;t reach the database. Try refreshing in a
-        moment; if it persists, check the dashboard logs.
+        The dashboard couldn&apos;t load your scans or the list of
+        repositories you can access. Try refreshing in a moment; if it
+        persists, sign out and back in.
       </p>
     </div>
   );

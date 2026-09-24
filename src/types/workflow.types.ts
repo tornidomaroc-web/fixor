@@ -43,6 +43,13 @@ export interface WorkflowResult {
    * fixesGenerated === errors.length` when every failure is logged.
    */
   classifiedFindings: number;
+  /**
+   * `totalFindings` broken down by the detector that produced each
+   * finding (`NormalizedFinding.detectorId`). Written to
+   * `scan_runs.findings_by_family` for the dashboard's trends pie.
+   * Present on the detector (webhook) path only.
+   */
+  findingsByDetector?: Record<string, number>;
   skippedFindings: number;
   fixesGenerated: number;
   highQualityPatches: number;

@@ -450,6 +450,11 @@ async function executeWorkflow(
     }
     findings = dedupeNormalizedFindings(findings);
     result.totalFindings = findings.length;
+    const byDetector: Record<string, number> = {};
+    for (const f of findings) {
+      byDetector[f.detectorId] = (byDetector[f.detectorId] ?? 0) + 1;
+    }
+    result.findingsByDetector = byDetector;
 
     // H2 partition: findings on code the PR did not touch are reported
     // detection-only (no fix generation, collapsed PR-comment section).

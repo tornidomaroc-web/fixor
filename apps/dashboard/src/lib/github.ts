@@ -117,6 +117,76 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
   return { status: "ok", installations: fixorOnly };
 }
 
+export type VisibleReposResult =
+  | { status: "ok"; repos: string[] }
+  | { status: "error" };
+
+/** Page cap: 30 x 100 repositories. Past it, the list is cut short. */
+const MAX_REPO_PAGES = 30;
+
+/**
+ * Full names (`owner/repo`) of the repositories in one installation that
+ * the signed-in user can access, from
+ * GET /user/installations/{installation_id}/repositories with the user's
+ * own GitHub token.
+ *
+ * Scan history is filtered to this list (scan-queries.ts). Any failure
+ * returns `error` and the caller shows nothing: a partial or unknown list
+ * must never widen what the user sees. A list cut short at the page cap
+ * only hides scans, it never reveals one.
+ */
+export async function listVisibleRepoNames(
+  installationId: string,
+): Promise<VisibleReposResult> {
+  if (!/^\d+$/.test(installationId)) return { status: "error" };
+  const { userId } = await auth();
+  if (!userId) return { status: "error" };
+
+  let githubToken: string | undefined;
+  try {
+    const clerk = await clerkClient();
+    const tokens = await clerk.users.getUserOauthAccessToken(
+      userId,
+      "oauth_github",
+    );
+    githubToken = tokens.data[0]?.token;
+  } catch {
+    return { status: "error" };
+  }
+  if (!githubToken) return { status: "error" };
+
+  const repos: string[] = [];
+  for (let page = 1; page <= MAX_REPO_PAGES; page++) {
+    let res: Response;
+    try {
+      res = await fetch(
+        `https://api.github.com/user/installations/${installationId}/repositories?per_page=100&page=${page}`,
+        {
+          headers: {
+            Authorization: `token ${githubToken}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+          cache: "no-store",
+        },
+      );
+    } catch {
+      return { status: "error" };
+    }
+    if (!res.ok) return { status: "error" };
+    const data = (await res.json().catch(() => null)) as {
+      repositories?: Array<{ full_name?: unknown }>;
+    } | null;
+    const batch = Array.isArray(data?.repositories) ? data.repositories : null;
+    if (batch === null) return { status: "error" };
+    for (const r of batch) {
+      if (typeof r.full_name === "string") repos.push(r.full_name);
+    }
+    if (batch.length < 100) break;
+  }
+  return { status: "ok", repos };
+}
+
 export function fixorInstallUrl(): string {
   const slug = process.env.FIXOR_GITHUB_APP_SLUG?.trim() || "fixor";
   return `https://github.com/apps/${slug}/installations/new`;

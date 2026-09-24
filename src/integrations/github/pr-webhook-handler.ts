@@ -25,8 +25,15 @@ import {
   buildWholeFileScanInput,
   resolveRouteGuardSidecars,
 } from "./whole-file-scan-input";
-import { costContext } from "../../lib/cost-context";
+import { costContext, type ScanSpend } from "../../lib/cost-context";
 import { checkBudget, type BudgetCheck } from "../../services/cost-store";
+import {
+  drizzleScanRunStore,
+  emptyOutcome,
+  outcomeFromWorkflow,
+  type ScanRunOutcome,
+  type ScanRunStore,
+} from "../../services/scan-run-store";
 import { logger } from "../../lib/logger";
 import { maybeSendFirstScanEmail } from "../../services/first-scan-email";
 import {
@@ -74,6 +81,13 @@ export type HandlePullRequestWebhookOptions = {
    * the post-scan re-read). Production always uses `checkBudget`.
    */
   checkBudgetImpl?: (installationId: number | string) => Promise<BudgetCheck>;
+  /**
+   * `X-GitHub-Delivery` of this delivery. Recorded on the scan_runs row,
+   * where its unique index stops a redelivered event being scanned twice.
+   */
+  deliveryId?: string | null;
+  /** Test injection: the scan_runs writer. Production uses the Drizzle store. */
+  scanRunStore?: ScanRunStore;
   pilotPersistence?: boolean;
   pilotStorePath?: string;
   forceRepost?: boolean;
@@ -104,6 +118,11 @@ export type HandlePullRequestWebhookFailure = {
   missingFields?: string[];
   /** Present when GitHub REST returned a non-2xx response. */
   githubError?: GitHubApiErrorDetails;
+  /**
+   * The delivery was already recorded, so nothing ran. Not a failure:
+   * the route answers 200 for it.
+   */
+  duplicateDelivery?: true;
 };
 
 export type HandlePullRequestWebhookResult =
@@ -223,6 +242,120 @@ async function handlePullRequestWebhookImpl(
     ? installation.id
     : null;
 
+  // One scan_runs row per delivery that names an installation, written
+  // before any GitHub call or budget read so every outcome below has a
+  // row to finish. A delivery with no installation cannot be scoped to an
+  // org, so it gets none.
+  const store = options.scanRunStore ?? drizzleScanRunStore();
+  const run: ScanRunState = { id: null, outcome: null, spend: { usd: 0 } };
+  if (installationId !== null) {
+    const deliveryId = options.deliveryId ?? null;
+    try {
+      const created = await store.createPending({
+        installationId: String(installationId),
+        deliveryId,
+        repoFullName: `${owner}/${repo}`,
+        pullNumber,
+        headSha,
+        startedAt: new Date(),
+      });
+      if (!created.created) {
+        // Already received: this delivery has a row, so it was scanned
+        // (or is being scanned). Scanning it again would charge it again.
+        logger.info(
+          { deliveryId, installationId, owner, repo, pullNumber, headSha },
+          "pull_request delivery already recorded; not scanned again",
+        );
+        return {
+          ok: false,
+          dryRun,
+          signatureState,
+          error: "Delivery already received; not scanned again",
+          duplicateDelivery: true,
+        };
+      }
+      run.id = created.id;
+    } catch (err) {
+      // History is observability: a failed insert must not cost the
+      // customer their scan. PR2 decides whether it should refuse spend.
+      reportScanRunFailure("create", err, { installationId, deliveryId, owner, repo, pullNumber, headSha });
+    }
+  }
+
+  try {
+    return await scanDelivery(options, run, store, {
+      dryRun,
+      signatureState,
+      owner,
+      repo,
+      pullNumber,
+      headSha,
+      action,
+      installationId,
+    });
+  } finally {
+    // The ONLY place a row reaches its final state, exactly once. An
+    // outcome left unset means the scan threw before it decided one.
+    if (run.id !== null) {
+      const outcome = run.outcome ?? emptyOutcome("failed", "internal_error");
+      try {
+        await store.finish(run.id, outcome, new Date());
+      } catch (err) {
+        reportScanRunFailure("finish", err, { installationId, owner, repo, pullNumber, headSha });
+      }
+    }
+  }
+}
+
+/** Whole-file fetches or parent-layout guards that failed (H2, F-001). */
+function scanInputDegraded(payload: unknown): boolean {
+  if (!payload || typeof payload !== "object") return false;
+  const p = payload as { scanInputErrors?: unknown; routeGuardErrors?: unknown };
+  const count = (v: unknown) => (Array.isArray(v) ? v.length : 0);
+  return count(p.scanInputErrors) + count(p.routeGuardErrors) > 0;
+}
+
+/** What one delivery's row accumulates while the handler runs. */
+type ScanRunState = {
+  id: string | null;
+  outcome: ScanRunOutcome | null;
+  spend: ScanSpend;
+};
+
+type DeliveryContext = {
+  dryRun: boolean;
+  signatureState: WebhookSignatureState;
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  headSha: string;
+  action: string | undefined;
+  installationId: number | null;
+};
+
+function reportScanRunFailure(
+  step: "create" | "running" | "finish",
+  err: unknown,
+  where: Record<string, unknown>,
+): void {
+  logger.error(
+    { phase: "scan_run_record", step, err, ...where },
+    "scan_runs write failed: this delivery is missing from scan history",
+  );
+  Sentry.captureException(err, {
+    tags: { "fixor.phase": "scan_run_record", "fixor.scan_run_step": step },
+    extra: where,
+  });
+}
+
+async function scanDelivery(
+  options: HandlePullRequestWebhookOptions,
+  run: ScanRunState,
+  store: ScanRunStore,
+  ctx: DeliveryContext,
+): Promise<HandlePullRequestWebhookResult> {
+  const { dryRun, signatureState, owner, repo, pullNumber, headSha, action, installationId } = ctx;
+
   let token = options.token?.trim() ?? "";
   // Set only when the handler mints the installation token itself: the
   // comment it may then edit is one this App created (github-client.ts).
@@ -263,6 +396,7 @@ async function handlePullRequestWebhookImpl(
       }
     } else {
       if (!token) {
+        run.outcome = emptyOutcome("failed", "internal_error");
         return {
           ok: false,
           dryRun,
@@ -320,6 +454,7 @@ async function handlePullRequestWebhookImpl(
   } catch (e) {
     if (e instanceof GitHubApiError) {
       reportGitHubFailure("pr_fetch", e, { owner, repo, pullNumber, headSha, installationId });
+      run.outcome = emptyOutcome("failed", "pr_fetch_refused");
       return {
         ok: false,
         dryRun,
@@ -399,8 +534,20 @@ async function handlePullRequestWebhookImpl(
         };
       }
     } else {
-      workflow = await costContext.run({ installationId }, async () =>
-        runAuditorWorkflow(semgrepPayload, metadata)
+      if (run.id !== null) {
+        try {
+          await store.markRunning(run.id);
+        } catch (err) {
+          reportScanRunFailure("running", err, { installationId, owner, repo, pullNumber, headSha });
+        }
+      }
+      workflow = await costContext.run(
+        {
+          installationId,
+          ...(run.id !== null ? { scanRunId: run.id } : {}),
+          scanSpend: run.spend,
+        },
+        async () => runAuditorWorkflow(semgrepPayload, metadata),
       );
 
       // Re-read post-scan budget so the comment + email use the
@@ -471,6 +618,7 @@ async function handlePullRequestWebhookImpl(
   }
   workflow.pdfUrl = pdfUrl;
   workflow.sarifUrl = sarifUrl;
+  const inputDegraded = scanInputDegraded(semgrepPayload);
 
   const executionKey =
     options.executionKey?.trim() ??
@@ -543,6 +691,7 @@ async function handlePullRequestWebhookImpl(
       });
     }
 
+    run.outcome = outcomeFromWorkflow(workflow, run.spend.usd, inputDegraded);
     return {
       ok: true,
       dryRun,
@@ -554,6 +703,12 @@ async function handlePullRequestWebhookImpl(
   } catch (e) {
     if (e instanceof GitHubApiError) {
       reportGitHubFailure("comment_post", e, { owner, repo, pullNumber, headSha, installationId });
+      const scanned = outcomeFromWorkflow(workflow, run.spend.usd, inputDegraded);
+      // A skipped delivery stays skipped: nothing was scanned either way.
+      run.outcome =
+        scanned.status === "skipped"
+          ? scanned
+          : { ...scanned, status: "failed", code: "comment_refused" };
       return {
         ok: false,
         dryRun,

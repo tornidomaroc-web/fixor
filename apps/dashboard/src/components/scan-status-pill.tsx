@@ -19,6 +19,9 @@ const STATUS_STYLES: Record<string, string> = {
     "bg-red-100 text-red-900 border-red-200 dark:bg-red-950 dark:text-red-100 dark:border-red-900",
   skipped:
     "bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-100 dark:border-amber-900",
+  // Ran, but some files or checks were not analyzed: never read as clean.
+  incomplete:
+    "bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-100 dark:border-amber-900",
 };
 
 const NEUTRAL = "bg-muted text-muted-foreground border-border";
