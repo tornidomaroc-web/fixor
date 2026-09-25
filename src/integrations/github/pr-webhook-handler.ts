@@ -36,6 +36,7 @@ import {
   type UnfinishedScanRun,
 } from "../../services/scan-run-store";
 import { logger } from "../../lib/logger";
+import { scanQueue, type ScanQueue } from "../../lib/scan-queue";
 import { maybeSendFirstScanEmail } from "../../services/first-scan-email";
 import {
   computeBudgetWarning,
@@ -102,6 +103,8 @@ export type HandlePullRequestWebhookOptions = {
    * stay `running` forever. Default DEFAULT_SCAN_DEADLINE_MS.
    */
   scanDeadlineMs?: number;
+  /** Test injection: the queue scans run through. Production uses the process-wide one. */
+  scanQueue?: ScanQueue;
   pilotPersistence?: boolean;
   pilotStorePath?: string;
   forceRepost?: boolean;
@@ -407,51 +410,60 @@ async function runAccepted(
     }
   };
 
-  const scan = (async () => {
-    try {
-      return await scanDelivery(options, run, store, ctx);
-    } finally {
-      await finishOnce();
-    }
-  })();
-
-  const deadlineMs = options.scanDeadlineMs ?? DEFAULT_SCAN_DEADLINE_MS;
-  let timer: NodeJS.Timeout | undefined;
-  const deadline = new Promise<HandlePullRequestWebhookResult>((resolve) => {
-    timer = setTimeout(() => {
-      void (async () => {
-        if (run.finished) return;
-        run.outcome = emptyOutcome("failed", "timed_out");
-        logger.error(
-          { installationId, owner, repo, pullNumber, headSha, deadlineMs, scanRunId: run.id },
-          "scan did not finish within the deadline: its row is closed as timed out",
-        );
-        Sentry.captureMessage("scan deadline exceeded", {
-          level: "error",
-          tags: { "fixor.phase": "scan_deadline" },
-          extra: { installationId, owner, repo, pullNumber, headSha, deadlineMs },
-        });
+  // One scan at a time per installation, so each budget read sees the
+  // previous scan's ledger rows, and a bounded number at once overall
+  // (lib/scan-queue.ts). The deadline starts when the scan starts, not
+  // while it waits in the queue.
+  const queue = options.scanQueue ?? scanQueue;
+  const queueKey =
+    installationId !== null ? String(installationId) : `unpriced:${owner}/${repo}`;
+  return queue.run(queueKey, async () => {
+    const scan = (async () => {
+      try {
+        return await scanDelivery(options, run, store, ctx);
+      } finally {
         await finishOnce();
-        // The late result, if any, must not become an unhandled rejection.
-        scan.catch((err) => {
-          logger.error({ err, owner, repo, pullNumber, headSha }, "scan failed after its deadline");
-        });
-        resolve({
-          ok: false,
-          dryRun: ctx.dryRun,
-          signatureState: ctx.signatureState,
-          error: `Scan did not finish within ${deadlineMs} ms`,
-          timedOut: true,
-        });
-      })();
-    }, deadlineMs);
-  });
+      }
+    })();
 
-  try {
-    return await Promise.race([scan, deadline]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
+    const deadlineMs = options.scanDeadlineMs ?? DEFAULT_SCAN_DEADLINE_MS;
+    let timer: NodeJS.Timeout | undefined;
+    const deadline = new Promise<HandlePullRequestWebhookResult>((resolve) => {
+      timer = setTimeout(() => {
+        void (async () => {
+          if (run.finished) return;
+          run.outcome = emptyOutcome("failed", "timed_out");
+          logger.error(
+            { installationId, owner, repo, pullNumber, headSha, deadlineMs, scanRunId: run.id },
+            "scan did not finish within the deadline: its row is closed as timed out",
+          );
+          Sentry.captureMessage("scan deadline exceeded", {
+            level: "error",
+            tags: { "fixor.phase": "scan_deadline" },
+            extra: { installationId, owner, repo, pullNumber, headSha, deadlineMs },
+          });
+          await finishOnce();
+          // The late result, if any, must not become an unhandled rejection.
+          scan.catch((err) => {
+            logger.error({ err, owner, repo, pullNumber, headSha }, "scan failed after its deadline");
+          });
+          resolve({
+            ok: false,
+            dryRun: ctx.dryRun,
+            signatureState: ctx.signatureState,
+            error: `Scan did not finish within ${deadlineMs} ms`,
+            timedOut: true,
+          });
+        })();
+      }, deadlineMs);
+    });
+
+    try {
+      return await Promise.race([scan, deadline]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  });
 }
 
 /**

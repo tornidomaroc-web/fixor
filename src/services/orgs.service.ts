@@ -153,8 +153,9 @@ export async function getOrgSettingsForInstallation(
  * Per-installation monthly Anthropic cap (USD).
  *
  * Returns the org's `monthly_cap_usd` when a row exists for the
- * installation; returns `null` when no org row is found. Callers
- * should treat null as "fall back to env-default".
+ * installation; returns `null` when no org row is found. `checkBudget`
+ * treats null as "provision the org now and use its cap"; there is no
+ * env fallback (since 2026-09-25, see `provisionMissingOrg`).
  *
  * No fallback / catch happens here on purpose — DB errors propagate
  * so cost-store's fail-closed path (`reason: "budget_unverifiable"`)

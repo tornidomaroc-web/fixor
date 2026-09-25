@@ -247,6 +247,48 @@ async function testMissingOrgProvisioned(): Promise<void> {
   assertEq([failing.withinBudget, failing.reason, failing.failure?.kind], [false, "budget_unverifiable", "connection"], "provisioning fails -> refused as unverifiable (connection), never run under the env cap");
 }
 
+// Provisioning runs under the same per-step timeout as the read. Without
+// it a hung database during provisioning hung the scan, and with the scan
+// queue (lib/scan-queue.ts) that scan would also hold a queue slot.
+async function testMissingOrgProvisionHangs(): Promise<void> {
+  section("D3. no org row and provisioning hangs -> refused as timeout, never waited out");
+  const noRow = async () => ({ monthlySpend: 0, dailySpend: 0, orgMonthlyCapUsd: null });
+
+  // Sensitivity: this provisioner does answer, after 6x the timeout, with
+  // a cap the scan could run under. Without the timeout the check waits
+  // for it and PROCEEDS; with it the check refuses at 50 ms and never sees
+  // the answer. Both the verdict and the elapsed time are asserted, so the
+  // section fails if the timeout is removed.
+  const t0 = Date.now();
+  const slow = await checkBudget(ID, CAPS, {
+    readBudget: noRow,
+    provisionMissingOrg: () => new Promise<number>((resolve) => setTimeout(() => resolve(5), 300)),
+    retryDelayMs: 0,
+    timeoutMs: 50,
+  });
+  const elapsed = Date.now() - t0;
+  assertEq([slow.withinBudget, slow.reason], [false, "budget_unverifiable"], "a provisioning that outlives the timeout is refused");
+  assertEq(slow.failure?.kind, "timeout", "timeout kind");
+  assert(elapsed < 300, `refused before the provisioner answered (elapsed ${elapsed} ms, provisioner answers at 300 ms)`);
+
+  const never = await checkBudget(ID, CAPS, {
+    readBudget: noRow,
+    provisionMissingOrg: () => new Promise<number>(() => {}),
+    retryDelayMs: 0,
+    timeoutMs: 50,
+  });
+  assertEq([never.withinBudget, never.reason, never.failure?.kind], [false, "budget_unverifiable", "timeout"], "a provisioning that never settles is refused as timeout");
+
+  // Control: a provisioning that answers inside the timeout proceeds.
+  const quick = await checkBudget(ID, CAPS, {
+    readBudget: noRow,
+    provisionMissingOrg: () => new Promise<number>((resolve) => setTimeout(() => resolve(5), 5)),
+    retryDelayMs: 0,
+    timeoutMs: 50,
+  });
+  assertEq([quick.withinBudget, quick.caps.monthlyCapUsd], [true, 5], "control: a provisioning inside the timeout proceeds at its cap");
+}
+
 async function testRetryPolicy(): Promise<void> {
   section("E. retry policy");
   const blip = scriptedReader([connRefused, OK_READS]);
@@ -435,7 +477,7 @@ async function testHandlerUnknownRefusal(): Promise<void> {
   assertEq(result.workflow.classifiedFindings, 0, "no scan ran");
 }
 
-const EXPECTED_SECTIONS = 12;
+const EXPECTED_SECTIONS = 13;
 
 async function main(): Promise<void> {
   // Zero-spend precondition, checked before anything else runs.
@@ -450,6 +492,7 @@ async function main(): Promise<void> {
   await testRealClientUnreachable();
   await testDatabaseAnswers();
   await testMissingOrgProvisioned();
+  await testMissingOrgProvisionHangs();
   await testRetryPolicy();
   await testExemption();
   testApiMapping();

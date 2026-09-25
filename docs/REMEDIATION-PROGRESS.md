@@ -2402,6 +2402,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #247 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #248 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #249 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #250 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2648,6 +2649,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #247 | `157032e` | 2026-09-25 03:04:10 | `fix/dashboard-token-expiry` (reflog: last move 02:36:27) | `463abcce`, captured before | 404 on first read after the merge | `fix/dashboard-token-expiry` at `5c4b4ef` |
 | #248 | `d694fd1` | 2026-09-25 03:36:07 | `feat/ack-then-scan` (reflog: last move 03:23:00) | `a6643fe6`, captured before | 404 on first read after the merge | `feat/ack-then-scan` at `2748830` |
 | #249 | `8d10d77` | 2026-09-25 05:23:31 | `docs/public-copy-and-248-row` (reflog: last move 05:03:49) | `1f4ca04e`, recomputed 2026-09-25 from the PR head `6bfbe51` | not read at merge by this entry; 404 at 22:00 | `docs/public-copy-and-248-row` at `6bfbe51` |
+| #250 | `8162a05` | 2026-09-25 22:30:23 | `fix/cap-provision-on-scan` (reflog: last move 22:02:15) | `5647d1f8`, captured before | 404 on first read after the merge, 22:30:44 | `fix/cap-provision-on-scan` at `748f7f8` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2762,6 +2764,17 @@ it, and the owner reports the read-back clean. The squash has the single parent 
 2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm invoked FROM the merged
 branch reads 26 observations, 2 green and 24 red; the THIRD-branch arm is unchanged at 5, all RED;
 the register carries 37 rows, 35 RED. No cause is named. **The merge of this entry will owe the next
+row.**
+
+**#250 (2026-09-25).** The owner ran `gh pr merge 250 --squash --match-head-commit
+748f7f8e68478e489bfdc96f0c91eb5318a57885` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 22:02:15, and HEAD was still there after it. **RED**: `gh` exited 0 and printed
+nothing; the local ref survived at `748f7f8`. Assertion 2 held against a tree captured before the
+merge: `5647d1f8` on both. The squash `8162a05` has the single parent `8d10d77`, merged at 22:30:23Z.
+The head ref answered 404 on the first read after the merge, at 22:30:44. gh 2.91.0, git
+2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm invoked FROM the merged
+branch reads 27 observations, 2 green and 25 red; the THIRD-branch arm is unchanged at 5, all RED;
+the register carries 38 rows, 36 RED. No cause is named. **The merge of this entry will owe the next
 row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
@@ -3124,6 +3137,18 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #249 | `8d10d77` | 2026-09-25 05:24:27 | 05:24:08 | 05:23:55 |
+
+  **#250 (added 2026-09-25).** CI (both Node jobs, `head=8162a05`) and the `secrets` workflow
+  concluded success on the merge commit; each job's log carries `Budget fail-closed witness: PASS.`
+  with `every section ran (expected 12, got 12)`, so section D2 (the missing org provisioned at the
+  tier default) ran on `main`. At 22:35:45 the backend answered `{"status":"ok","db":"ok",
+  "anthropic":"ok","uptime_s":212}`, which dates the container to about 22:32:13, the deploy; the
+  dashboard answered `{"status":"ok","db":"ok"}`. These reads show only that nothing regressed: the
+  provisioning path runs only for an installation with no org row, and none has been observed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #250 | `8162a05` | 2026-09-25 22:32:17 | 22:31:15 | not triggered |
 
 - **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
   owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to

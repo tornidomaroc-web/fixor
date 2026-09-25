@@ -210,10 +210,11 @@ export interface BudgetCheckDeps {
   /**
    * Creates the org row for an installation that has none and returns its
    * monthly cap. Production: provisionOrgForInstallation, then a re-read.
-   * A throw refuses the scan (budget_unverifiable), never an env fallback.
+   * A throw, or a hang past `timeoutMs`, refuses the scan
+   * (budget_unverifiable), never an env fallback.
    */
   provisionMissingOrg: (installationId: string) => Promise<number>;
-  /** Per-attempt ceiling on one budget read, in ms. */
+  /** Per-attempt ceiling on one budget read, and on one provisioning, in ms. */
   timeoutMs: number;
   /** Delay before the single retry of a transient failure, in ms. */
   retryDelayMs: number;
@@ -319,10 +320,16 @@ export function classifyBudgetReadFailure(err: unknown): BudgetReadFailureKind {
   return "unknown";
 }
 
-async function readBudgetOnce(
+/**
+ * Races one database step against `deps.timeoutMs`. Both the budget read
+ * and the provisioning of a missing org go through it: a hung database
+ * during either refuses the scan (kind "timeout") instead of hanging the
+ * scan, which after lib/scan-queue.ts would also hold a queue slot.
+ */
+async function withBudgetTimeout<T>(
   deps: BudgetCheckDeps,
-  installationId: string,
-): Promise<BudgetReads> {
+  work: () => Promise<T>,
+): Promise<T> {
   // The timer is deliberately NOT unref'd: an unref'd timer would let a
   // process whose only pending work is a hung read exit before the timeout
   // fires. It is always cleared once the race settles.
@@ -334,10 +341,17 @@ async function readBudgetOnce(
     );
   });
   try {
-    return await Promise.race([deps.readBudget(installationId), timeout]);
+    return await Promise.race([work(), timeout]);
   } finally {
     if (timer !== undefined) clearTimeout(timer);
   }
+}
+
+function readBudgetOnce(
+  deps: BudgetCheckDeps,
+  installationId: string,
+): Promise<BudgetReads> {
+  return withBudgetTimeout(deps, () => deps.readBudget(installationId));
 }
 
 function sleep(ms: number): Promise<void> {
@@ -436,9 +450,10 @@ export async function checkBudget(
     // (the schema default) governs. FIXOR_MONTHLY_CAP_USD used to govern
     // such installations, and it is not the published figure (Railway had
     // it at 3 against a published 5, tracker item 9). A provisioning
-    // failure refuses the scan like any other unreadable cap.
+    // failure refuses the scan like any other unreadable cap, and so does
+    // a hang: the same per-step timeout as the read (withBudgetTimeout).
     try {
-      resolvedMonthlyCap = await d.provisionMissingOrg(idStr);
+      resolvedMonthlyCap = await withBudgetTimeout(d, () => d.provisionMissingOrg(idStr));
       logger.warn(
         { installationId: idStr, monthlyCapUsd: resolvedMonthlyCap },
         "checkBudget: no org row for this installation; provisioned it at the tier default cap",
