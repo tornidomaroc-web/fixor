@@ -207,6 +207,7 @@ function PricingGrid({
       <p className="text-muted-foreground mt-1 text-sm">
         Upgrade opens Paddle&apos;s hosted checkout. Tier change takes effect
         within ~30 seconds of payment, when Paddle&apos;s webhook fires.
+        Prices and caps are current values and may change.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         {TIERS.map((t) => {

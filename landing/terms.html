@@ -119,15 +119,15 @@
     <p>Pricing is in US dollars. Paid tiers are billed monthly via Paddle (see section 4):</p>
     <table>
       <thead>
-        <tr><th>Tier</th><th>Price</th><th>Scans / month</th><th>Repos</th></tr>
+        <tr><th>Tier</th><th>Price</th><th>Monthly model-spend cap</th><th>Repos</th></tr>
       </thead>
       <tbody>
-        <tr><td>Free</td><td>$0</td><td>5</td><td>Public repos only</td></tr>
-        <tr><td>Indie</td><td>$29 / mo</td><td>100</td><td>1 private + unlimited public</td></tr>
-        <tr><td>Team</td><td>$199 / mo</td><td>2,000</td><td>Unlimited</td></tr>
+        <tr><td>Free</td><td>$0</td><td>$5</td><td>Public and private</td></tr>
+        <tr><td>Indie</td><td>$29 / mo</td><td>$30</td><td>Public and private</td></tr>
+        <tr><td>Team</td><td>$199 / mo</td><td>$200</td><td>Public and private</td></tr>
       </tbody>
     </table>
-    <p>Each org has a hard monthly Anthropic budget cap; when reached, scans pause until the next calendar month or the user upgrades to a higher tier. The cap is shown in your dashboard's billing page.</p>
+    <p>The cap is the only limit: Fixor does not count scans and does not restrict which repositories it scans. Each org has a hard monthly cap on what Fixor spends on model calls for it; when reached, scans pause until the next calendar month (UTC) or an upgrade, and a cap of $0 pauses scanning entirely. A daily cap set by the operator also applies. The prices and caps above are the current values, not commitments, and may change; the monthly cap in force for your org is the one shown in your dashboard's billing page.</p>
 
     <h2>4. Billing via Paddle</h2>
     <p>Paddle is the merchant of record for Fixor. That means:</p>

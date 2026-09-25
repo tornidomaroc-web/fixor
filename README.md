@@ -12,8 +12,6 @@
 
 [Landing](https://fixor.dev/) ·
 [Dashboard](https://app.fixor.dev) ·
-[Docs](https://docs.fixor.dev) ·
-[Status](https://status.fixor.dev) ·
 [Security](https://fixor.dev/security.html)
 
 </div>
@@ -116,7 +114,7 @@ The dashboard is a separate Next.js app at [`apps/dashboard/`](apps/dashboard/) 
 | Payments | Paddle (merchant of record — handles VAT) | Stripe alt; geo-friendly |
 | Email | Resend | 100/day free; transactional only, no marketing |
 | Object storage | Cloudinary (signed URLs, 1h TTL) | PDF + SARIF reports |
-| Status page | Better Uptime | Four monitors at `status.fixor.dev` |
+| Status page | Better Uptime | Configured in code (`docs/`); `status.fixor.dev` answered 404 on 2026-09-25, so no public page is claimed |
 | Security | HMAC-SHA256 on both webhook surfaces, hashed API tokens, TLS everywhere | See [security.html](landing/security.html) |
 
 ## Project structure

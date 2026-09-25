@@ -20,8 +20,6 @@ export interface Tier {
   /** Anthropic budget cap (USD/month) — what `orgs.monthly_cap_usd`
    *  is set to when this tier is provisioned. */
   monthlyCapUsd: number;
-  /** Customer-facing scans/month limit (independent of the cap). */
-  scansPerMonth: number;
   /** Name of the env var that holds this tier's Paddle price id —
    *  e.g. `PADDLE_PRICE_INDIE`. `null` for the free tier (no Paddle
    *  product needed). 5D-2's checkout call reads `process.env[name]`. */
@@ -38,12 +36,11 @@ export const TIERS: readonly Tier[] = [
     label: "Free",
     priceUsd: 0,
     monthlyCapUsd: 5,
-    scansPerMonth: 5,
     paddlePriceEnv: null,
-    highlight: "Try Fixor on a public repo",
+    highlight: "Try Fixor with a $5 monthly cap",
     features: [
-      "5 scans / month",
-      "Public repos only",
+      "$5 / month model-spend cap",
+      "Public and private repos",
       "All 6 detectors",
     ],
   },
@@ -52,12 +49,11 @@ export const TIERS: readonly Tier[] = [
     label: "Indie",
     priceUsd: 29,
     monthlyCapUsd: 30,
-    scansPerMonth: 100,
     paddlePriceEnv: "PADDLE_PRICE_INDIE",
-    highlight: "One private repo, weekend-side-project pricing",
+    highlight: "A $30 monthly cap, side-project pricing",
     features: [
-      "100 scans / month",
-      "1 private repo + unlimited public",
+      "$30 / month model-spend cap",
+      "Public and private repos",
       "All 6 detectors",
     ],
   },
@@ -66,12 +62,11 @@ export const TIERS: readonly Tier[] = [
     label: "Team",
     priceUsd: 199,
     monthlyCapUsd: 200,
-    scansPerMonth: 2000,
     paddlePriceEnv: "PADDLE_PRICE_TEAM",
-    highlight: "Unlimited repos, priority support",
+    highlight: "A $200 monthly cap, priority support",
     features: [
-      "2,000 scans / month",
-      "Unlimited repos",
+      "$200 / month model-spend cap",
+      "Public and private repos",
       "All 6 detectors + priority support",
     ],
   },

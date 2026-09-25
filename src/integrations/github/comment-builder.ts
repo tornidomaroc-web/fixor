@@ -153,11 +153,15 @@ export function buildPullRequestCommentMarkdown(
       "> ⏸️ **Fixor scan paused - budget reached**",
       ">",
       `> This installation has hit its ${reasonText}.`,
-      "> Scans resume automatically next " +
-        (b.reason === "monthly_exceeded" ? "month" : "day") +
-        ".",
-      "> To raise the cap or get instant resume, contact the Fixor admin or set" +
-        " `FIXOR_MONTHLY_CAP_USD` / `FIXOR_DAILY_CAP_USD`.",
+      // A cap of $0 never resets into headroom, so "resumes next month" is
+      // only true for a positive cap. The cap is the org's own row (the
+      // dashboard's billing page), not the operator's env variable.
+      ...(b.reason === "monthly_exceeded"
+        ? b.monthlyCapUsd > 0
+          ? ["> Scans resume when this month's spend resets on the 1st (UTC)."]
+          : ["> This installation's cap is $0, so scans stay paused until the cap is raised."]
+        : ["> Scans resume when today's spend resets at midnight UTC."]),
+      "> To raise the cap, contact the Fixor operator. The current cap is shown on your dashboard's billing page.",
       "",
       FIXOR_PR_COMMENT_MARKER,
       `<sub>🔒 Analyzed by [Fixor](https://github.com/tornidomaroc-web/fixor) · ${workflow.timing.finishedAt || "—"}</sub>`
