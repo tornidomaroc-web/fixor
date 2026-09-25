@@ -12,6 +12,11 @@
  *               the ledger before the retry, so the cap still bounds it.
  *   retrying -> failed / interrupted, and the pull request gets the
  *               did-not-scan notice.  A third attempt is never made.
+ *   any of them, when a later row exists for the same pull request ->
+ *               skipped / superseded, with nothing re-run and nothing
+ *               posted. The pull request has one Fixor comment; re-running
+ *               the older delivery would overwrite the later commit's report
+ *               with the older commit's, which the 2026-09-23 design rules out.
  * The row's `status` is the attempt counter, so no column is added.
  *
  * When it runs: once, `SWEEP_DELAY_MS` after the process starts, over rows
@@ -56,12 +61,14 @@ export interface SweepReport {
   abandoned: string[];
   /** Rows that finished between the listing and the update: left alone. */
   skipped: string[];
+  /** Rows with a later row for the same pull request: closed, nothing posted. */
+  superseded: string[];
 }
 
 export async function sweepUnfinishedScanRuns(deps: SweepDeps): Promise<SweepReport> {
   const now = deps.now ?? (() => new Date());
   const before = new Date(now().getTime() - (deps.staleAfterMs ?? STALE_AFTER_MS));
-  const report: SweepReport = { retried: [], abandoned: [], skipped: [] };
+  const report: SweepReport = { retried: [], abandoned: [], skipped: [], superseded: [] };
 
   let rows: UnfinishedScanRun[];
   try {
@@ -77,6 +84,12 @@ export async function sweepUnfinishedScanRuns(deps: SweepDeps): Promise<SweepRep
   for (const row of rows) {
     const where = { scanRunId: row.id, status: row.status, repo: row.repoFullName, pullNumber: row.pullNumber, headSha: row.headSha };
     try {
+      if (await deps.store.hasNewerRun(row)) {
+        await deps.store.finish(row.id, emptyOutcome("skipped", "superseded"), now());
+        report.superseded.push(row.id);
+        logger.warn(where, "scan_runs sweep: a later delivery for this pull request exists; row closed as superseded, nothing posted");
+        continue;
+      }
       if (row.status === "retrying") {
         await deps.store.finish(row.id, emptyOutcome("failed", "interrupted"), now());
         report.abandoned.push(row.id);

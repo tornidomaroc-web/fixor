@@ -34,7 +34,7 @@
  * dashboard shows it to every member of the org, and raw error text can
  * quote code, internal hosts or GitHub responses.
  */
-import { and, asc, eq, inArray, isNull, lt } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt } from "drizzle-orm";
 import { db } from "../db/client";
 import { scanRuns } from "../db/schema";
 import type { WorkflowResult } from "../types/workflow.types";
@@ -61,6 +61,7 @@ export type ScanRunCode =
   | "scan_failed"
   | "interrupted"
   | "timed_out"
+  | "superseded"
   | "internal_error";
 
 /** The only strings `scan_runs.error_message` may hold. */
@@ -83,6 +84,8 @@ export const SCAN_RUN_MESSAGES: Readonly<Record<ScanRunCode, string>> = {
   interrupted:
     "Not completed: the scan was interrupted before it finished, and its retry did not finish either. Push a new commit to scan again.",
   timed_out: "Not completed: the scan did not finish within Fixor's time limit.",
+  superseded:
+    "Not completed: the scan was interrupted, and a later delivery for this pull request was scanned instead.",
   internal_error: "The scan stopped on an internal error.",
 };
 
@@ -133,6 +136,12 @@ export interface ScanRunSweepStore {
   listUnfinished(before: Date, limit: number): Promise<UnfinishedScanRun[]>;
   /** pending or running -> retrying. False when the row is no longer either. */
   markRetrying(id: string): Promise<boolean>;
+  /**
+   * True when a later row exists for the same installation, repository and
+   * pull request. Re-running (or noticing) an older one would edit the pull
+   * request's one Fixor comment to describe an older commit.
+   */
+  hasNewerRun(row: UnfinishedScanRun): Promise<boolean>;
 }
 
 /** An outcome with nothing counted: the scan did not run, or ran nothing. */
@@ -278,6 +287,22 @@ export function drizzleScanRunStore(
           ),
         )
         .returning({ id: scanRuns.id });
+      return rows.length > 0;
+    },
+
+    async hasNewerRun(row) {
+      const rows = await database()
+        .select({ id: scanRuns.id })
+        .from(scanRuns)
+        .where(
+          and(
+            eq(scanRuns.installationId, row.installationId),
+            eq(scanRuns.repoFullName, row.repoFullName),
+            eq(scanRuns.pullNumber, row.pullNumber),
+            gt(scanRuns.startedAt, row.startedAt),
+          ),
+        )
+        .limit(1);
       return rows.length > 0;
     },
 

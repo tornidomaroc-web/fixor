@@ -199,6 +199,11 @@ class MemoryStore implements ScanRunStore, ScanRunSweepStore {
     r.status = "retrying";
     return true;
   }
+  async hasNewerRun(row: UnfinishedScanRun): Promise<boolean> {
+    return [...this.rows.values()].some((r) =>
+      r.installationId === row.installationId && r.repoFullName === row.repoFullName &&
+      r.pullNumber === row.pullNumber && r.startedAt > row.startedAt);
+  }
   only(): MemRow | undefined {
     return this.rows.size === 1 ? [...this.rows.values()][0] : undefined;
   }
@@ -347,11 +352,12 @@ async function testSweeper(): Promise<void> {
   const now = new Date("2026-09-25T12:00:00Z");
   const old = new Date(now.getTime() - 15 * 60_000);
   const young = new Date(now.getTime() - 2 * 60_000);
-  const pendingOld = store.seed({ status: "pending", startedAt: old });
-  const runningOld = store.seed({ status: "running", startedAt: old });
-  const retryingOld = store.seed({ status: "retrying", startedAt: old });
-  const pendingYoung = store.seed({ status: "pending", startedAt: young });
-  const completedOld = store.seed({ status: "completed", startedAt: old, finishedAt: old });
+  // One pull request per row, so no row supersedes another (section K covers that).
+  const pendingOld = store.seed({ status: "pending", startedAt: old, pullNumber: 11 });
+  const runningOld = store.seed({ status: "running", startedAt: old, pullNumber: 12 });
+  const retryingOld = store.seed({ status: "retrying", startedAt: old, pullNumber: 13 });
+  const pendingYoung = store.seed({ status: "pending", startedAt: young, pullNumber: 14 });
+  const completedOld = store.seed({ status: "completed", startedAt: old, finishedAt: old, pullNumber: 15 });
   const reruns: string[] = [];
   const notices: string[] = [];
   const deps = {
@@ -383,7 +389,7 @@ async function testSweeper(): Promise<void> {
   assertEq([status(pendingOld), status(runningOld)], ["failed", "failed"], "second sweep: both rows are failed");
 
   // A row finished between the listing and the update is left alone.
-  const racing = store.seed({ status: "running", startedAt: old });
+  const racing = store.seed({ status: "running", startedAt: old, pullNumber: 16 });
   const racingStore = Object.create(store) as MemoryStore;
   racingStore.markRetrying = async (id: string) => {
     if (id === racing.id) { await store.finish(id, { status: "completed", code: null, totalFindings: 0, findingsByFamily: {}, fixesGenerated: 0, costUsd: 0 }, now); return false; }
@@ -392,6 +398,43 @@ async function testSweeper(): Promise<void> {
   const third = await sweepUnfinishedScanRuns({ ...deps, store: racingStore });
   console.log(`       third sweep (row finishes during the sweep): ${JSON.stringify(third)}`);
   assertEq([third.skipped, third.retried, status(racing)], [[racing.id], [], "completed"], "a row that finished meanwhile is skipped, not re-run");
+}
+
+async function testSuperseded(): Promise<void> {
+  section("K. a stale row with a later row for the same pull request: closed as superseded, nothing re-run or posted");
+  const store = new MemoryStore();
+  const now = new Date("2026-09-25T12:00:00Z");
+  const old = new Date(now.getTime() - 15 * 60_000);
+  const later = new Date(now.getTime() - 12 * 60_000);
+  // Commit A was killed mid-scan; commit B on the same pull request was
+  // scanned and reported afterwards.
+  const killedA = store.seed({ status: "running", startedAt: old, pullNumber: 21, headSha: "a".repeat(40) });
+  const reportedB = store.seed({ status: "completed", startedAt: later, finishedAt: later, pullNumber: 21, headSha: "b".repeat(40) });
+  // A retry that died too, likewise superseded by a later delivery.
+  const retryingC = store.seed({ status: "retrying", startedAt: old, pullNumber: 22, headSha: "c".repeat(40) });
+  // The later row is unfinished and stale too, and it is the newest for its
+  // pull request: it is the one re-run.
+  const newestD = store.seed({ status: "pending", startedAt: later, pullNumber: 22, headSha: "d".repeat(40) });
+  // Control: the same PR number in another repository does not supersede.
+  const otherRepo = store.seed({ status: "running", startedAt: old, pullNumber: 23, repoFullName: "acme-corp/demo-app" });
+  store.seed({ status: "completed", startedAt: later, finishedAt: later, pullNumber: 23, repoFullName: "acme-corp/other-app" });
+  const reruns: string[] = [];
+  const notices: string[] = [];
+  const report = await sweepUnfinishedScanRuns({
+    store,
+    rerun: async (row) => { reruns.push(row.id); },
+    notify: async (row) => { notices.push(row.id); },
+    now: () => now,
+  });
+  const row = (r: MemRow) => store.rows.get(r.id);
+  console.log(`       sweep: ${JSON.stringify(report)}; reruns ${JSON.stringify(reruns)}; notices ${JSON.stringify(notices)}`);
+  assertEq(report.superseded.sort(), [killedA.id, retryingC.id].sort(), "the killed row and the dead retry are superseded");
+  assertEq([row(killedA)?.status, row(killedA)?.code, row(killedA)?.errorMessage], ["skipped", "superseded", SCAN_RUN_MESSAGES.superseded], "superseded row: skipped / superseded with the fixed message");
+  assertEq([row(retryingC)?.status, row(retryingC)?.code], ["skipped", "superseded"], "a superseded retry is closed the same way, not as interrupted");
+  assert(!reruns.includes(killedA.id) && !reruns.includes(retryingC.id), "no superseded row was re-run");
+  assert(!notices.includes(killedA.id) && !notices.includes(retryingC.id), "no superseded row got a notice");
+  assertEq([row(reportedB)?.status, row(reportedB)?.code], ["completed", null], "the later commit's row is untouched");
+  assertEq(report.retried.sort(), [otherRepo.id, newestD.id].sort(), "the newest stale row of a pull request is re-run; control: the same PR number in another repository is not superseded");
 }
 
 async function testDeadline(): Promise<void> {
@@ -534,9 +577,19 @@ async function testDrizzleSweepSql(): Promise<void> {
   assert(marked === true, "markRetrying reports the update");
   assert(retry.params.includes("retrying") && /"status" in \(/.test(retry.text.toLowerCase()) && ["pending", "running"].every((s) => retry.params.includes(s)), "markRetrying: set retrying where status IN (pending, running)");
   assert(/"finished_at" is null/.test(retry.text.toLowerCase()) && /returning/.test(retry.text.toLowerCase()), "markRetrying: only an unfinished row, and it returns the id");
+
+  pg.statements.length = 0;
+  const startedAt = new Date("2026-09-25T11:45:00Z");
+  await store.hasNewerRun({ id, installationId: "3101", deliveryId: null, repoFullName: "acme-corp/demo-app", pullNumber: 7, headSha: HEAD_SHA, status: "running", startedAt });
+  const newer = pg.statements[0]!;
+  const nl = newer.text.toLowerCase();
+  console.log(`       hasNewerRun: ${newer.text} ${JSON.stringify(newer.params)}`);
+  assert(/"installation_id" = \$\d+/.test(nl) && /"repo_full_name" = \$\d+/.test(nl) && /"pull_number" = \$\d+/.test(nl), "hasNewerRun: same installation, repository and pull request");
+  assert(/"started_at" > \$\d+/.test(nl) && /limit \$\d+/.test(nl), "hasNewerRun: a strictly later row, limited");
+  assert(["3101", "acme-corp/demo-app", 7].every((v) => newer.params.includes(v)), "hasNewerRun: binds the row's coordinates");
 }
 
-const EXPECTED_SECTIONS = 10;
+const EXPECTED_SECTIONS = 11;
 
 async function main(): Promise<void> {
   if (getAnthropicClient() !== null) {
@@ -548,6 +601,7 @@ async function main(): Promise<void> {
   const sections: Array<() => unknown> = [
     testAckBeforeScan, testBudgetBeforeFetch, testUnpricedRefused, testSweeper, testDeadline,
     testDrain, testUnrecordedDelivery, testRealRerun, testInterruptedNotice, testDrizzleSweepSql,
+    testSuperseded,
   ];
   for (const run of sections) {
     try {
