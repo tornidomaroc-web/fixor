@@ -2937,6 +2937,7 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   set) and a 502 delivery. `GITHUB_TOKEN` was removed from the Railway service on 2026-09-23
   (redeploy success 06:06:27Z; `/health` read `status: ok, db: ok, anthropic: ok` at 06:15:39Z). The
   expired token needs no revocation. **Whether `SENTRY_DSN` is set in production is not verified.**
+  *(Annotation 2026-09-25: the owner reports it set; see queue item 6. Not read by any entry.)*
 
 - **EVERY FIXOR REPORT COMMENT BEFORE #235 WAS POSTED UNDER THE OWNER'S PERSONAL ACCOUNT, NONE BY THE
   APP (recorded 2026-09-23).** A GitHub search for "Fixor Security Report" in comments, followed by a
@@ -3270,9 +3271,12 @@ were stated by the owner and not read by the entry that filed them.
    every scan is refused before the diff fetch. Fix before a positive cap or a second installation:
    a per-installation serial queue, or reserving an estimate against the cap before the first
    model call.
-6. **`SENTRY_DSN` in Railway: read whether it is set.** Not verified since 2026-09-23. #237 and #241
-   report refused GitHub calls and failed `scan_runs` writes to Sentry; without the DSN those reports
-   go nowhere.
+6. **`SENTRY_DSN` in Railway: read whether it is set.** CLOSED 2026-09-25, **as reported by the
+   owner, not read by this entry**: the variable is set in Railway, per a record from an earlier
+   session. No tracked record carries that reading; the only earlier commits naming the variable say
+   "not verified" (#239, #242) or show it empty in the field trial's local environment (#231), which
+   is not production. Nothing here has seen a Sentry event arrive. #237, #241 and #248 report refused
+   GitHub calls, failed `scan_runs` writes and scan deadlines there.
 7. **User-token expiry on the App and the history filter.** If the App's user tokens expire and
    Clerk returns an expired one, `listVisibleRepoNames` returns `error` and scan history shows
    nothing (fails closed, leaks nothing, looks broken). Read the App's "User-to-server token
@@ -3295,6 +3299,16 @@ were stated by the owner and not read by the entry that filed them.
     **Also found:** `status.fixor.dev` answered 404 on 2026-09-25 (with and without a browser
     agent), so the README's Status link is removed and its tech-stack row no longer claims a public
     page; the four monitors exist only as configuration until the page answers.
+10a. **Pricing decision, from a proper study (owner's decision; money; added 2026-09-25).** The
+    caps now stated in public copy (free $5, indie $30, team $200, from `tiers.ts` and the
+    `monthly_cap_usd` schema default) are true to the code but are not a pricing decision. Read
+    from those figures: a free installation earns $0 and may spend up to its $5 cap on model calls
+    every month, so each active free installation can cost up to $5 a month; the indie cap ($30)
+    exceeds the indie price ($29) and the team cap ($200) exceeds the team price ($199), so a paid
+    installation that uses its whole cap loses money before Paddle's fee and before any hosting
+    cost. The copy says the caps are current values that may change, and promises none as
+    permanent. Decide prices and caps before the App goes public; the schema default, `tiers.ts`,
+    `billing-events.ts` (`FREE_CAP_USD`) and the public pages must then change together.
 11. **Make the App public, last.**
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)
