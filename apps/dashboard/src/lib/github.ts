@@ -64,18 +64,7 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
       "oauth_github",
     );
     githubToken = tokens.data[0]?.token;
-    console.error("[fixor-debug] clerk-tokens", {
-      userId,
-      tokenCount: tokens.data.length,
-      provider: tokens.data[0]?.provider,
-      scopes: tokens.data[0]?.scopes,
-      hasToken: Boolean(githubToken),
-    });
-  } catch (err) {
-    console.error("[fixor-debug] clerk-token-error", {
-      userId,
-      err: err instanceof Error ? err.message : String(err),
-    });
+  } catch {
     return { status: "no_token" };
   }
   if (!githubToken) return { status: "no_token" };
@@ -91,9 +80,6 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
       cache: "no-store",
     });
   } catch (err) {
-    console.error("[fixor-debug] github-fetch-throw", {
-      err: err instanceof Error ? err.message : String(err),
-    });
     return {
       status: "error",
       message: err instanceof Error ? err.message : "github fetch failed",
@@ -101,12 +87,6 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
   }
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    console.error("[fixor-debug] github-non-2xx", {
-      status: res.status,
-      statusText: res.statusText,
-      body: body.slice(0, 500),
-    });
     return {
       status: "error",
       message: `GitHub API ${res.status} ${res.statusText}`,
