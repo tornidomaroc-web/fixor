@@ -3280,10 +3280,15 @@ were stated by the owner and not read by the entry that filed them.
 8. **Remove the `[fixor-debug]` logging.** DONE in #245 (`b0e8d82`, 2026-09-25): the four blocks
    are gone and the root `lint:no-console` now walks `apps/dashboard/src`, allowlisting only the
    Paddle webhook route and `lib/resend.ts`. Lines already written stay in Vercel's log retention.
-9. **Railway `FIXOR_MONTHLY_CAP_USD=3` against the published free cap of $5 (as reported).** The
-   dashboard showed $5.00 for the owner's installation, and `checkBudget` prefers an org-level cap
-   (`resolveMonthlyCapForInstallation`) over the env value. Which cap a new installation actually
-   gets must be read and made to match the published figure.
+9. **Railway `FIXOR_MONTHLY_CAP_USD=3` against the published free cap of $5 (as reported).** Read
+   from the code 2026-09-25: the env value governed only an installation with NO org row (a lost
+   `installation` delivery, or an install older than provisioning); every provisioned org carries
+   the schema default 5.00, which is the published figure. DONE on branch
+   `fix/cap-provision-on-scan` (the merge record follows): `checkBudget` now provisions a missing
+   org at scan time and uses its cap, and a provisioning failure refuses the scan. After that lands
+   the env variable no longer sets any monthly cap; `FIXOR_DAILY_CAP_USD` still sets the daily one
+   for every installation. Owner action, optional: set Railway's `FIXOR_MONTHLY_CAP_USD` to `5` or
+   delete it, so a reader of the service variables is not misled; nothing breaks either way.
 10. **Public copy, one PR.** DONE on branch `docs/public-copy-and-248-row` (2026-09-25; the merge
     record follows). Every tier is now described by its model-spend cap, since nothing in `src/`
     counts scans or restricts repositories (free $5, indie $30, team $200, in `landing/index.html`,

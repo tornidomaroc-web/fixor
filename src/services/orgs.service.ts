@@ -9,8 +9,10 @@
  * Idempotent — duplicate webhook deliveries (GitHub retries) reuse the
  * existing org row and do NOT write a duplicate audit_log entry.
  *
- * 5B-3 added `resolveMonthlyCapForInstallation` so cost-store can
- * read per-org caps (still falling back to env when no org row exists).
+ * 5B-3 added `resolveMonthlyCapForInstallation` so cost-store can read
+ * per-org caps. Since 2026-09-25 an installation with no org row is
+ * provisioned by checkBudget at scan time (`provisionMissingOrg`), so the
+ * schema default cap governs it; FIXOR_MONTHLY_CAP_USD no longer does.
  */
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
