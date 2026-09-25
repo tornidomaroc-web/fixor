@@ -38,7 +38,10 @@ import { db } from "../db/client";
 import { costLedger, installations } from "../db/schema";
 import { logger } from "../lib/logger";
 import * as Sentry from "@sentry/node";
-import { resolveMonthlyCapForInstallation } from "./orgs.service";
+import {
+  provisionOrgForInstallation,
+  resolveMonthlyCapForInstallation,
+} from "./orgs.service";
 
 function startOfMonthUtc(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -189,7 +192,11 @@ export interface BudgetCheck {
 export interface BudgetReads {
   monthlySpend: number;
   dailySpend: number;
-  /** `null` when no org row exists — the env-default cap applies. */
+  /**
+   * `null` when no org row exists. checkBudget then provisions the org
+   * (`provisionMissingOrg`) and uses its cap: the published tier's figure,
+   * the schema default, never `FIXOR_MONTHLY_CAP_USD`.
+   */
   orgMonthlyCapUsd: number | null;
 }
 
@@ -200,10 +207,27 @@ export interface BudgetReads {
  */
 export interface BudgetCheckDeps {
   readBudget: (installationId: string) => Promise<BudgetReads>;
+  /**
+   * Creates the org row for an installation that has none and returns its
+   * monthly cap. Production: provisionOrgForInstallation, then a re-read.
+   * A throw refuses the scan (budget_unverifiable), never an env fallback.
+   */
+  provisionMissingOrg: (installationId: string) => Promise<number>;
   /** Per-attempt ceiling on one budget read, in ms. */
   timeoutMs: number;
   /** Delay before the single retry of a transient failure, in ms. */
   retryDelayMs: number;
+}
+
+async function provisionMissingOrgInDb(installationId: string): Promise<number> {
+  await provisionOrgForInstallation(installationId, "pull_request_scan");
+  const cap = await resolveMonthlyCapForInstallation(installationId);
+  if (cap === null) {
+    throw new Error(
+      `org row for installation ${installationId} still missing after provisioning`,
+    );
+  }
+  return cap;
 }
 
 async function readBudgetFromDb(installationId: string): Promise<BudgetReads> {
@@ -224,6 +248,7 @@ async function readBudgetFromDb(installationId: string): Promise<BudgetReads> {
  */
 export const defaultBudgetCheckDeps: BudgetCheckDeps = {
   readBudget: readBudgetFromDb,
+  provisionMissingOrg: provisionMissingOrgInDb,
   timeoutMs: 5_000,
   retryDelayMs: 500,
 };
@@ -404,7 +429,41 @@ export async function checkBudget(
   }
 
   const { monthlySpend, dailySpend } = reads;
-  const resolvedMonthlyCap = reads.orgMonthlyCapUsd ?? caps.monthlyCapUsd;
+  let resolvedMonthlyCap = reads.orgMonthlyCapUsd;
+  if (resolvedMonthlyCap === null) {
+    // No org row: the `installation` delivery was lost, or the install
+    // predates provisioning. Provision it now, so the published tier's cap
+    // (the schema default) governs. FIXOR_MONTHLY_CAP_USD used to govern
+    // such installations, and it is not the published figure (Railway had
+    // it at 3 against a published 5, tracker item 9). A provisioning
+    // failure refuses the scan like any other unreadable cap.
+    try {
+      resolvedMonthlyCap = await d.provisionMissingOrg(idStr);
+      logger.warn(
+        { installationId: idStr, monthlyCapUsd: resolvedMonthlyCap },
+        "checkBudget: no org row for this installation; provisioned it at the tier default cap",
+      );
+    } catch (err) {
+      const provisionKind = classifyBudgetReadFailure(err);
+      Sentry.captureException(err, {
+        tags: { "fixor.phase": "check_budget", "fixor.budget_failure": provisionKind },
+        extra: { installationId: idStr, step: "provision_missing_org" },
+      });
+      const refusal: BudgetCheck = {
+        withinBudget: false,
+        reason: "budget_unverifiable",
+        monthlySpend,
+        dailySpend,
+        caps,
+        failure: { kind: provisionKind, attempts },
+      };
+      logger.error(
+        { installationId: idStr, decision: refusal, err },
+        "checkBudget: no org row and provisioning failed; failing closed, scan refused",
+      );
+      return refusal;
+    }
+  }
 
   // The effective caps reflect what was actually applied — important
   // because the PR comment renders these (5A-10 wording). Daily cap

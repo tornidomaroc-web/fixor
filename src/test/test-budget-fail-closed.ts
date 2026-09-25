@@ -78,10 +78,13 @@ function section(name: string): void {
 
 const ID = "990001";
 const CAPS: BudgetCaps = { monthlyCapUsd: 5, dailyCapUsd: 2 };
+// A provisioned org: every org row carries a cap (schema default 5). A
+// reader that returns null stands for an installation with no org row,
+// which checkBudget provisions at scan time (section D2).
 const OK_READS: BudgetReads = {
   monthlySpend: 0.1,
   dailySpend: 0.05,
-  orgMonthlyCapUsd: null,
+  orgMonthlyCapUsd: 5,
 };
 
 // Error shapes as the driver produces them.
@@ -184,19 +187,24 @@ async function testRealClientUnreachable(): Promise<void> {
 
 async function testDatabaseAnswers(): Promise<void> {
   section("D. database answers -> existing cap semantics");
-  const within = await checkBudget(ID, CAPS, { readBudget: async () => OK_READS });
+  // A reader that reports no org row; the org is provisioned at the tier
+  // default (5) by the stub below, never read from the env caps.
+  const provisioned = async () => 5;
+  const within = await checkBudget(ID, CAPS, { readBudget: async () => OK_READS, provisionMissingOrg: provisioned });
   assertEq(within.withinBudget, true, "under both caps: proceeds");
   assertEq(within.reason, undefined, "no refusal reason");
   assertEq(within.failure, undefined, "no failure field");
-  assertEq(within.caps, CAPS, "env caps applied when no org row exists");
+  assertEq(within.caps, { monthlyCapUsd: 5, dailyCapUsd: CAPS.dailyCapUsd }, "the provisioned org's cap and the env daily cap apply");
 
   const monthly = await checkBudget(ID, CAPS, {
     readBudget: async () => ({ monthlySpend: 5, dailySpend: 0.1, orgMonthlyCapUsd: null }),
+    provisionMissingOrg: provisioned,
   });
   assertEq([monthly.withinBudget, monthly.reason], [false, "monthly_exceeded"], "at the monthly cap: refused as monthly_exceeded");
 
   const daily = await checkBudget(ID, CAPS, {
     readBudget: async () => ({ monthlySpend: 1, dailySpend: 2.5, orgMonthlyCapUsd: null }),
+    provisionMissingOrg: provisioned,
   });
   assertEq([daily.withinBudget, daily.reason], [false, "daily_exceeded"], "over the daily cap: refused as daily_exceeded");
 
@@ -205,6 +213,38 @@ async function testDatabaseAnswers(): Promise<void> {
   });
   assertEq(orgCap.withinBudget, true, "per-org cap overrides the env cap");
   assertEq(orgCap.caps.monthlyCapUsd, 50, "effective monthly cap is the org's");
+}
+
+// Tracker item 9: Railway's FIXOR_MONTHLY_CAP_USD was 3 against a published
+// free cap of 5, and governed any installation with no org row. Now the
+// missing row is provisioned at scan time and its schema default governs.
+async function testMissingOrgProvisioned(): Promise<void> {
+  section("D2. no org row -> provisioned at the tier default; the env monthly cap never governs");
+  const envCaps: BudgetCaps = { monthlyCapUsd: 3, dailyCapUsd: 2 };
+  const provisionedFor: string[] = [];
+  const provision = async (id: string) => { provisionedFor.push(id); return 5; };
+
+  const r = await checkBudget(ID, envCaps, {
+    readBudget: async () => ({ monthlySpend: 4, dailySpend: 0.1, orgMonthlyCapUsd: null }),
+    provisionMissingOrg: provision,
+  });
+  assertEq(provisionedFor, [ID], "the org was provisioned once, for this installation");
+  assertEq(r.caps.monthlyCapUsd, 5, "the effective cap is the provisioned org's (5), not the env's (3)");
+  assertEq(r.withinBudget, true, "spend of 4 proceeds under the published cap, where the env cap of 3 would have refused it");
+
+  provisionedFor.length = 0;
+  const present = await checkBudget(ID, envCaps, {
+    readBudget: async () => ({ monthlySpend: 4, dailySpend: 0.1, orgMonthlyCapUsd: 5 }),
+    provisionMissingOrg: provision,
+  });
+  assertEq(provisionedFor, [], "control: an installation with an org row is not provisioned again");
+  assertEq(present.caps.monthlyCapUsd, 5, "control: its own cap applies");
+
+  const failing = await checkBudget(ID, envCaps, {
+    readBudget: async () => ({ monthlySpend: 0, dailySpend: 0, orgMonthlyCapUsd: null }),
+    provisionMissingOrg: async () => { throw connRefused; },
+  });
+  assertEq([failing.withinBudget, failing.reason, failing.failure?.kind], [false, "budget_unverifiable", "connection"], "provisioning fails -> refused as unverifiable (connection), never run under the env cap");
 }
 
 async function testRetryPolicy(): Promise<void> {
@@ -395,7 +435,7 @@ async function testHandlerUnknownRefusal(): Promise<void> {
   assertEq(result.workflow.classifiedFindings, 0, "no scan ran");
 }
 
-const EXPECTED_SECTIONS = 11;
+const EXPECTED_SECTIONS = 12;
 
 async function main(): Promise<void> {
   // Zero-spend precondition, checked before anything else runs.
@@ -409,6 +449,7 @@ async function main(): Promise<void> {
   await testRealClientConfigMissing();
   await testRealClientUnreachable();
   await testDatabaseAnswers();
+  await testMissingOrgProvisioned();
   await testRetryPolicy();
   await testExemption();
   testApiMapping();
