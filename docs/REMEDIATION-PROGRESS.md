@@ -2401,6 +2401,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #246 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #247 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #248 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #249 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2646,6 +2647,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #246 | `e793c52` | 2026-09-25 02:14:57 | `docs/tracker-record-2026-09-25` (reflog: last move 01:05:07) | `1dbaff8b`, captured before | 404 on first read after the merge | `docs/tracker-record-2026-09-25` at `174eb0f` |
 | #247 | `157032e` | 2026-09-25 03:04:10 | `fix/dashboard-token-expiry` (reflog: last move 02:36:27) | `463abcce`, captured before | 404 on first read after the merge | `fix/dashboard-token-expiry` at `5c4b4ef` |
 | #248 | `d694fd1` | 2026-09-25 03:36:07 | `feat/ack-then-scan` (reflog: last move 03:23:00) | `a6643fe6`, captured before | 404 on first read after the merge | `feat/ack-then-scan` at `2748830` |
+| #249 | `8d10d77` | 2026-09-25 05:23:31 | `docs/public-copy-and-248-row` (reflog: last move 05:03:49) | `1f4ca04e`, recomputed 2026-09-25 from the PR head `6bfbe51` | not read at merge by this entry; 404 at 22:00 | `docs/public-copy-and-248-row` at `6bfbe51` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2750,6 +2752,17 @@ merge: `a6643fe6` on both. The squash `d694fd1` has the single parent `157032e`.
 record (2026-09-25):** the arm invoked FROM the merged branch reads 25 observations, 2 green and 23
 red; the THIRD-branch arm is unchanged at 5, all RED; the register carries 36 rows, 34 RED. No cause
 is named. **The merge of this entry will owe the next row.**
+
+**#249 (2026-09-25).** The owner ran `gh pr merge 249 --squash` against the head `6bfbe51` with HEAD
+on the merged branch; the reflog's last HEAD move before the merge is 05:03:49, and HEAD was still
+there until 22:00:06 that day. **RED**: the local ref survived at `6bfbe51`. Assertion 2 holds: the
+squash `8d10d77` carries the tree `1f4ca04e`, the same as the PR head `6bfbe51`; this entry recomputed
+it, and the owner reports the read-back clean. The squash has the single parent `d694fd1`, merged at
+05:23:31Z. The head ref answered 404 at 22:00, read by this entry, not at the merge. gh 2.91.0, git
+2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm invoked FROM the merged
+branch reads 26 observations, 2 green and 24 red; the THIRD-branch arm is unchanged at 5, all RED;
+the register carries 37 rows, 35 RED. No cause is named. **The merge of this entry will owe the next
+row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -2937,6 +2950,7 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   set) and a 502 delivery. `GITHUB_TOKEN` was removed from the Railway service on 2026-09-23
   (redeploy success 06:06:27Z; `/health` read `status: ok, db: ok, anthropic: ok` at 06:15:39Z). The
   expired token needs no revocation. **Whether `SENTRY_DSN` is set in production is not verified.**
+  *(Annotation 2026-09-25: the owner reports it set; see queue item 6. Not read by any entry.)*
 
 - **EVERY FIXOR REPORT COMMENT BEFORE #235 WAS POSTED UNDER THE OWNER'S PERSONAL ACCOUNT, NONE BY THE
   APP (recorded 2026-09-23).** A GitHub search for "Fixor Security Report" in comments, followed by a
@@ -3098,6 +3112,18 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #248 | `d694fd1` | 2026-09-25 03:37:34 | 03:36:59 | not triggered |
+
+  **#249 (added 2026-09-25).** CI (both Node jobs, `head=8d10d77`), the `secrets` workflow and
+  `Deploy Landing to GitHub Pages` concluded success on the merge commit; each job's log carries
+  `Ack-then-scan witness: PASS.`, `fail-closed witness: PASS.` and `lint:no-console: OK`. Deploy
+  times as reported by the owner. At 22:01:11 the backend answered `{"status":"ok","db":"ok",
+  "anthropic":"ok","uptime_s":59813}`, which dates the container to about 05:24:18, the deploy; the
+  dashboard answered `{"status":"ok","db":"ok"}`. The PR changed public copy and one dashboard label,
+  so these reads show only that nothing regressed; no page was read for the new wording.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #249 | `8d10d77` | 2026-09-25 05:24:27 | 05:24:08 | 05:23:55 |
 
 - **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
   owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to
@@ -3270,9 +3296,12 @@ were stated by the owner and not read by the entry that filed them.
    every scan is refused before the diff fetch. Fix before a positive cap or a second installation:
    a per-installation serial queue, or reserving an estimate against the cap before the first
    model call.
-6. **`SENTRY_DSN` in Railway: read whether it is set.** Not verified since 2026-09-23. #237 and #241
-   report refused GitHub calls and failed `scan_runs` writes to Sentry; without the DSN those reports
-   go nowhere.
+6. **`SENTRY_DSN` in Railway: read whether it is set.** CLOSED 2026-09-25, **as reported by the
+   owner, not read by this entry**: the variable is set in Railway, per a record from an earlier
+   session. No tracked record carries that reading; the only earlier commits naming the variable say
+   "not verified" (#239, #242) or show it empty in the field trial's local environment (#231), which
+   is not production. Nothing here has seen a Sentry event arrive. #237, #241 and #248 report refused
+   GitHub calls, failed `scan_runs` writes and scan deadlines there.
 7. **User-token expiry on the App and the history filter.** If the App's user tokens expire and
    Clerk returns an expired one, `listVisibleRepoNames` returns `error` and scan history shows
    nothing (fails closed, leaks nothing, looks broken). Read the App's "User-to-server token
@@ -3300,6 +3329,16 @@ were stated by the owner and not read by the entry that filed them.
     **Also found:** `status.fixor.dev` answered 404 on 2026-09-25 (with and without a browser
     agent), so the README's Status link is removed and its tech-stack row no longer claims a public
     page; the four monitors exist only as configuration until the page answers.
+10a. **Pricing decision, from a proper study (owner's decision; money; added 2026-09-25).** The
+    caps now stated in public copy (free $5, indie $30, team $200, from `tiers.ts` and the
+    `monthly_cap_usd` schema default) are true to the code but are not a pricing decision. Read
+    from those figures: a free installation earns $0 and may spend up to its $5 cap on model calls
+    every month, so each active free installation can cost up to $5 a month; the indie cap ($30)
+    exceeds the indie price ($29) and the team cap ($200) exceeds the team price ($199), so a paid
+    installation that uses its whole cap loses money before Paddle's fee and before any hosting
+    cost. The copy says the caps are current values that may change, and promises none as
+    permanent. Decide prices and caps before the App goes public; the schema default, `tiers.ts`,
+    `billing-events.ts` (`FREE_CAP_USD`) and the public pages must then change together.
 11. **Make the App public, last.**
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)

@@ -78,13 +78,15 @@ Snyk and Semgrep cover dependency CVEs and known injection patterns. Fixor cover
 
 Pricing happens **inside the Fixor dashboard** (not Marketplace), through Paddle as merchant of record. Paddle handles VAT / sales tax / chargebacks for us.
 
-| Tier | Price | Scans / month | Repos | Detectors |
+| Tier | Price | Monthly model-spend cap | Repos | Detectors |
 |---|---|---|---|---|
-| Free | $0 | 5 | Public only | All 6 |
-| Indie | $29/mo | 100 | 1 private + unlimited public | All 6 |
-| Team | $199/mo | 2,000 | Unlimited | All 6 + priority support |
+| Free | $0 | $5 | Public and private | All 6 |
+| Indie | $29/mo | $30 | Public and private | All 6 |
+| Team | $199/mo | $200 | Public and private | All 6 + priority support |
 
-Free tier is real — install, scan a public repo, decide later.
+The cap is the only limit: Fixor does not count scans or restrict repositories. Prices and caps are current values and may change; pricing is undecided (tracker pre-public item 10a), so this table must be re-read before the listing is submitted.
+
+Free tier is real — install, scan a repository, decide later.
 
 ### Support
 
@@ -99,7 +101,7 @@ Email **support@fixor.dev** or open an issue at <https://github.com/tornidomaroc
 3. **PDF report on every PR.** Branded, shareable, attachable to compliance tickets. SARIF output too.
 4. **Per-org cost cap.** Hard monthly Anthropic budget per org — Fixor stops before the bill surprises you.
 5. **Settings that ship to scans.** Severity threshold, ignored globs, detector allowlist, Slack webhook — all editable from the dashboard, applied to the next scan.
-6. **Free to start.** A $5/month model-spend cap, public and private repos, no card required. The cap is the only limit: Fixor does not count scans.
+6. **Free to start.** Currently a $5/month model-spend cap, public and private repos, no card required. The cap is the only limit: Fixor does not count scans. (Pricing is undecided; see the tracker's pre-public item 10a before this text is submitted.)
 
 ---
 
