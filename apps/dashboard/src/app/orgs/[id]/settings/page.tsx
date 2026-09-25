@@ -4,6 +4,7 @@ import { UserButton } from "@clerk/nextjs";
 import { TierBadge } from "@/components/tier-badge";
 import { SettingsForm } from "@/components/settings-form";
 import { OwnerOnlyNotice } from "@/components/owner-only-notice";
+import { SessionExpiredPage } from "@/components/session-expired";
 import { getOrgAccess } from "@/lib/org-access";
 import { getOrgSettings } from "@/lib/settings-data";
 
@@ -15,6 +16,7 @@ export default async function OrgSettingsPage({ params }: PageProps) {
   const { id: orgId } = await params;
 
   const access = await getOrgAccess(orgId);
+  if (access.status === "unauthorized") return <SessionExpiredPage />;
   if (access.status !== "ok") notFound();
   const { org, installation, role } = access;
 

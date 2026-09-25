@@ -33,8 +33,13 @@ export interface GitHubInstallation {
  * Returns:
  *   - `{ status: "ok", installations: [...] }` on success (may be empty)
  *   - `{ status: "no_token" }` if Clerk has no GitHub token (user
- *     signed in via a different provider, or token expired)
- *   - `{ status: "error", message }` on network / API failure
+ *     signed in via a different provider, or Clerk could not return one)
+ *   - `{ status: "unauthorized" }` when GitHub answers 401: the App user
+ *     token expired (eight hours, unless the App opts out) and was not
+ *     refreshed, or the user revoked the App's authorization. Only a new
+ *     sign-in fixes it, so the pages say so instead of 404 or "GitHub
+ *     didn't respond".
+ *   - `{ status: "error", message }` on network / other API failure
  *
  * The caller renders the "install on GitHub" CTA when installations
  * is empty OR status is anything other than "ok".
@@ -42,6 +47,7 @@ export interface GitHubInstallation {
 export type ListInstallationsResult =
   | { status: "ok"; installations: GitHubInstallation[] }
   | { status: "no_token" }
+  | { status: "unauthorized" }
   | { status: "error"; message: string };
 
 export async function listFixorInstallations(): Promise<ListInstallationsResult> {
@@ -64,18 +70,7 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
       "oauth_github",
     );
     githubToken = tokens.data[0]?.token;
-    console.error("[fixor-debug] clerk-tokens", {
-      userId,
-      tokenCount: tokens.data.length,
-      provider: tokens.data[0]?.provider,
-      scopes: tokens.data[0]?.scopes,
-      hasToken: Boolean(githubToken),
-    });
-  } catch (err) {
-    console.error("[fixor-debug] clerk-token-error", {
-      userId,
-      err: err instanceof Error ? err.message : String(err),
-    });
+  } catch {
     return { status: "no_token" };
   }
   if (!githubToken) return { status: "no_token" };
@@ -91,22 +86,14 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
       cache: "no-store",
     });
   } catch (err) {
-    console.error("[fixor-debug] github-fetch-throw", {
-      err: err instanceof Error ? err.message : String(err),
-    });
     return {
       status: "error",
       message: err instanceof Error ? err.message : "github fetch failed",
     };
   }
 
+  if (res.status === 401) return { status: "unauthorized" };
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    console.error("[fixor-debug] github-non-2xx", {
-      status: res.status,
-      statusText: res.statusText,
-      body: body.slice(0, 500),
-    });
     return {
       status: "error",
       message: `GitHub API ${res.status} ${res.statusText}`,
@@ -121,6 +108,8 @@ export async function listFixorInstallations(): Promise<ListInstallationsResult>
 
 export type VisibleReposResult =
   | { status: "ok"; repos: string[] }
+  /** GitHub answered 401 for the user's token; see ListInstallationsResult. */
+  | { status: "unauthorized" }
   | { status: "error" };
 
 /** Page cap: 30 x 100 repositories. Past it, the list is cut short. */
@@ -133,9 +122,10 @@ const MAX_REPO_PAGES = 30;
  * own GitHub token.
  *
  * Scan history is filtered to this list (scan-queries.ts). Any failure
- * returns `error` and the caller shows nothing: a partial or unknown list
- * must never widen what the user sees. A list cut short at the page cap
- * only hides scans, it never reveals one.
+ * returns `error` (or `unauthorized` for a 401, so the page can say the
+ * sign-in must be renewed) and the caller shows nothing: a partial or
+ * unknown list must never widen what the user sees. A list cut short at
+ * the page cap only hides scans, it never reveals one.
  */
 export async function listVisibleRepoNames(
   installationId: string,
@@ -162,6 +152,7 @@ export async function listVisibleRepoNames(
     } catch {
       return { status: "error" };
     }
+    if (res.status === 401) return { status: "unauthorized" };
     if (!res.ok) return { status: "error" };
     const data = (await res.json().catch(() => null)) as {
       repositories?: Array<{ full_name?: unknown }>;

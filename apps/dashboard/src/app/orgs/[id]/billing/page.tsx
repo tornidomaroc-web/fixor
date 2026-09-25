@@ -10,6 +10,7 @@ import {
   shouldShowBudgetWarning,
 } from "@/components/budget-warning-banner";
 import { OwnerOnlyNotice } from "@/components/owner-only-notice";
+import { SessionExpiredPage } from "@/components/session-expired";
 import { getOrgAccess } from "@/lib/org-access";
 import { getOrgSummaries } from "@/lib/orgs-data";
 import { TIERS, getTier, type Tier } from "@/lib/tiers";
@@ -29,6 +30,7 @@ export default async function OrgBillingPage({
   const justCheckedOut = checkout === "success";
 
   const access = await getOrgAccess(orgId);
+  if (access.status === "unauthorized") return <SessionExpiredPage />;
   if (access.status !== "ok") notFound();
   const { org, installation, role } = access;
   const isAdmin = role === "admin";

@@ -68,6 +68,9 @@ export async function POST(req: Request) {
   // 2) Auth scope check. The portal URLs cancel the org's subscription
   //    and change its payment method: installation owner only.
   const access = await getOrgAccess(orgId);
+  if (access.status === "unauthorized") {
+    return NextResponse.json({ error: "github_unauthorized" }, { status: 401 });
+  }
   if (access.status === "github_unavailable") {
     return NextResponse.json(
       { error: "github_unavailable" },
