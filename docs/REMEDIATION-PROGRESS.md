@@ -2392,6 +2392,18 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #236 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #237 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #238 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #239 | FROM the merged branch (reflog) | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #241 | FROM the merged branch (reflog) | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #242 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #243 | FROM the merged branch (reflog) | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #244 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #245 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+
+**ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
+under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
+filed only in the per-PR table under "#232 TO #238 ARE SEVEN OBSERVATIONS". A reader following the
+rule above counted 27. The rows are added here from that table's records, unchanged in substance;
+with them, both dated totals are true as of their dates, and neither is rewritten.
 
 **Totals: the arm invoked FROM the merged branch is 4 observations, 2 green and 2 red; the
 already-checked-out arm is 3 observations, 3 red.** One provenance note, so the table is not read as
@@ -2627,6 +2639,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #242 | `7201c67` | 2026-09-24 10:02:08 | `docs/tracker-record-2026-09-24` (read before and after) | `0dbe5525`, captured before | 404 on first read after 10:02:15 | `docs/tracker-record-2026-09-24` at `302a0fe` |
 | #243 | `35aca9b` | 2026-09-24 12:10:20 | `fix/ledger-write-fail-closed` (reflog: on it from 11:31:11 to 20:48:32) | `d8b37e23`, computed 2026-09-25 from the PR head `d9ada12` | not read at merge; 404 on 2026-09-25 | `fix/ledger-write-fail-closed` at `d9ada12` |
 | #244 | `e83cae7` | 2026-09-24 23:03:15 | `fix/org-settings-admin-only` (read before and after) | `0a77a8d7`, captured before | 404 on first read after the merge, before 23:04:59 | `fix/org-settings-admin-only` at `876eb61` |
+| #245 | `b0e8d82` | 2026-09-25 00:34:05 | `feat/ack-then-scan`, a THIRD branch (reflog: last move 00:32:35) | `14b7d6d0`, captured before | 404 on first read after the merge | `chore/dashboard-remove-debug-logging` at `1e06c7b` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2688,6 +2701,16 @@ read after the merge, before 23:04:59. gh 2.91.0, git 2.53.0.windows.2. **Totals
 record (2026-09-25):** the arm invoked FROM the merged branch reads 22 observations, 2 green and 20
 red; the register carries 32 rows, 30 RED. No cause is named. **The merge of this entry will owe the
 next row.**
+
+**#245 (2026-09-25).** The owner ran `gh pr merge 245 --squash --match-head-commit
+1e06c7be5f788bde14553fe158e14c731ca6882a` with HEAD on `feat/ack-then-scan`, neither the merged branch
+nor the base; the reflog's last HEAD move before the merge is 00:32:35, and HEAD was still there
+after it. **RED**: `gh` exited 0 and printed nothing; the local ref survived at `1e06c7b`. Assertion 2
+held against a tree captured before the merge: `14b7d6d0` on both. The head ref answered 404 on the
+first read after the merge. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record
+(2026-09-25):** the arm invoked FROM the merged branch is unchanged at 22 observations, 2 green and 20
+red; the THIRD-branch arm reads 5 observations (#221, #222, #224, #230, #245), all RED; the register
+carries 33 rows, 31 RED. No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -2990,6 +3013,17 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | #243 | `35aca9b` | 2026-09-24 12:11:17 | 12:11:06 | not triggered |
   | #244 | `e83cae7` | 2026-09-24 23:04:22 | 23:03:53 | not triggered |
 
+  **#245 (added 2026-09-25).** CI (both Node jobs, `head=b0e8d82`) and the `secrets` workflow
+  concluded success on the merge commit, and the CI log carries `lint:no-console: OK` once per job, so
+  the dashboard console rule guards `main`. About four minutes after the Railway deploy the backend
+  answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":260}`, which dates the container to
+  the deploy, and the dashboard `{"status":"ok","db":"ok"}`. Neither read shows the `[fixor-debug]`
+  lines gone from Vercel's logs; only the source is proven clean.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #245 | `b0e8d82` | 2026-09-25 00:34:31 | 00:34:42 | not triggered |
+
 - **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
   owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to
   0 by one guarded `UPDATE`, which returned one row, and `FIXOR_BUDGET_EXEMPT_INSTALLATIONS` in
@@ -3153,9 +3187,9 @@ were stated by the owner and not read by the entry that filed them.
    Clerk returns an expired one, `listVisibleRepoNames` returns `error` and scan history shows
    nothing (fails closed, leaks nothing, looks broken). Read the App's "User-to-server token
    expiration" setting and sign in more than 8 hours after the last sign-in.
-8. **Remove the `[fixor-debug]` logging in `apps/dashboard/src/lib/github.ts`** (from `0b2ee40`,
-   2026-04-28). It writes `userId` and token scopes, not the token, to Vercel logs on every home
-   page load. The root `lint:no-console` does not cover the dashboard.
+8. **Remove the `[fixor-debug]` logging.** DONE in #245 (`b0e8d82`, 2026-09-25): the four blocks
+   are gone and the root `lint:no-console` now walks `apps/dashboard/src`, allowlisting only the
+   Paddle webhook route and `lib/resend.ts`. Lines already written stay in Vercel's log retention.
 9. **Railway `FIXOR_MONTHLY_CAP_USD=3` against the published free cap of $5 (as reported).** The
    dashboard showed $5.00 for the owner's installation, and `checkBudget` prefers an org-level cap
    (`resolveMonthlyCapForInstallation`) over the env value. Which cap a new installation actually
