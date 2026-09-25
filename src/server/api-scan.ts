@@ -14,6 +14,7 @@
  */
 import { costContext, type CostContextStore } from "../lib/cost-context";
 import { logger } from "../lib/logger";
+import { scanQueue, type ScanQueue } from "../lib/scan-queue";
 import {
   budgetRefusalHttp,
   checkBudget,
@@ -33,11 +34,14 @@ export interface ApiScanResponse {
 export interface ApiScanDeps {
   checkBudget: (installationId: string) => Promise<BudgetCheck>;
   runWorkflow: (diff: string, metadata: ScanMetadata) => Promise<WorkflowResult>;
+  /** The queue the budget read and the scan run through, serial per installation. */
+  queue?: ScanQueue;
 }
 
 const defaultDeps: ApiScanDeps = {
   checkBudget,
   runWorkflow: runAuditorWorkflow,
+  queue: scanQueue,
 };
 
 export async function runApiScan(
@@ -62,13 +66,24 @@ export async function runApiScan(
     };
   }
 
-  const refusal = budgetRefusalHttp(await deps.checkBudget(installationId));
-  if (refusal) return { ...refusal, ran: false };
-
+  // The budget read and the scan share one queue slot per installation,
+  // with the webhook scans: a second request cannot read the ledger
+  // before the first has written to it (lib/scan-queue.ts).
+  const queue = deps.queue ?? scanQueue;
   const ctx: CostContextStore = { installationId };
-  const workflow = await costContext.run(ctx, () =>
-    deps.runWorkflow(diff, metadata),
-  );
+  type Gated =
+    | { refusal: NonNullable<ReturnType<typeof budgetRefusalHttp>> }
+    | { workflow: WorkflowResult };
+  const outcome = await queue.run<Gated>(installationId, async () => {
+    const refusal = budgetRefusalHttp(await deps.checkBudget(installationId));
+    if (refusal) return { refusal };
+    const workflow = await costContext.run(ctx, () =>
+      deps.runWorkflow(diff, metadata),
+    );
+    return { workflow };
+  });
+  if ("refusal" in outcome) return { ...outcome.refusal, ran: false };
+  const { workflow } = outcome;
 
   if (ctx.ledgerWriteFailed) {
     logger.error(
