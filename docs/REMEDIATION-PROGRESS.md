@@ -3251,7 +3251,13 @@ were stated by the owner and not read by the entry that filed them.
 4. **CKSE to its own database and role, then a drizzle `tablesFilter`.** See the DONE entry "THE
    PRODUCTION DATABASE IS SHARED WITH ANOTHER PROJECT". **Do it before CKSE is reconnected**: its
    connection still carries the old password (as reported), and giving it the new owner password
-   would re-open the shared-credential and `DROP TABLE` risks the move removes.
+   would re-open the shared-credential and `DROP TABLE` risks the move removes. **Designed
+   2026-09-25 in `docs/CKSE-SEPARATION.md`** (branch `chore/ckse-separation-design`): eight Neon
+   steps in order with the meaning of each result, $0 on the Free plan with a size check first, and
+   two paths (fresh schema, or a `dblink` copy through a throwaway role so no standing password is
+   typed into the SQL editor). The `tablesFilter` is in `drizzle.config.ts` on the same branch,
+   witnessed by `test-drizzle-config-filter.ts`; it changes nothing about `db:migrate`, which never
+   reads that file. The Neon steps themselves are owner actions and have not been run.
 5. **Acknowledge-then-scan**, with the agreed retry rules (at-least-once; re-run an unfinished row
    once at startup; on a second failure post the "did not scan" notice) and a sweeper for stale
    `pending` and `running` rows. #241 writes the row this builds on.
