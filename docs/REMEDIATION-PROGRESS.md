@@ -2400,6 +2400,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #245 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #246 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #247 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #248 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2644,6 +2645,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #245 | `b0e8d82` | 2026-09-25 00:34:05 | `feat/ack-then-scan`, a THIRD branch (reflog: last move 00:32:35) | `14b7d6d0`, captured before | 404 on first read after the merge | `chore/dashboard-remove-debug-logging` at `1e06c7b` |
 | #246 | `e793c52` | 2026-09-25 02:14:57 | `docs/tracker-record-2026-09-25` (reflog: last move 01:05:07) | `1dbaff8b`, captured before | 404 on first read after the merge | `docs/tracker-record-2026-09-25` at `174eb0f` |
 | #247 | `157032e` | 2026-09-25 03:04:10 | `fix/dashboard-token-expiry` (reflog: last move 02:36:27) | `463abcce`, captured before | 404 on first read after the merge | `fix/dashboard-token-expiry` at `5c4b4ef` |
+| #248 | `d694fd1` | 2026-09-25 03:36:07 | `feat/ack-then-scan` (reflog: last move 03:23:00) | `a6643fe6`, captured before | 404 on first read after the merge | `feat/ack-then-scan` at `2748830` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2738,6 +2740,16 @@ gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** 
 the merged branch reads 24 observations, 2 green and 22 red; the THIRD-branch arm is unchanged at 5,
 all RED; the register carries 35 rows, 33 RED. No cause is named. **The merge of this entry will owe
 the next row.**
+
+**#248 (2026-09-25).** The owner ran `gh pr merge 248 --squash --match-head-commit
+27488301892ce613341390db15641863d0f0f587` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 03:23:00, and HEAD was still there after it. **RED**: `gh` exited 0 and printed
+nothing; the local ref survived at `2748830`. Assertion 2 held against a tree captured before the
+merge: `a6643fe6` on both. The squash `d694fd1` has the single parent `157032e`. The head ref answered
+404 on the first read after the merge. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated
+record (2026-09-25):** the arm invoked FROM the merged branch reads 25 observations, 2 green and 23
+red; the THIRD-branch arm is unchanged at 5, all RED; the register carries 36 rows, 34 RED. No cause
+is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3072,6 +3084,21 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   |---|---|---|---|---|
   | #247 | `157032e` | 2026-09-25 03:05:31 | 03:04:54 | not triggered |
 
+  **#248 (added 2026-09-25).** CI (both Node jobs, `head=d694fd1`) and the `secrets` workflow
+  concluded success on the merge commit; each job's log carries `Ack-then-scan witness: PASS.`,
+  `Token-expiry witness: PASS.`, `Org-access witness: PASS.` and `lint:no-console: OK`. At 03:42:04
+  the backend answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":274}`, which dates the
+  container to about 03:37:30, the deploy; the dashboard answered `{"status":"ok","db":"ok"}`.
+  **Live at $0 the same day:** empty commit `2f9e67a` (zero files) was pushed to trial PR #1
+  (`trial/auth-route`) at 03:45:11Z; Fixor's comment 5789699725 was edited in place at 03:45:13Z to
+  name that commit with the $0.00 cap notice, spend unchanged at $5.04, still two comments on the
+  pull request. Not observed: the delivery's 202 in the App's log and the first sweep's report (the
+  owner skipped both reads).
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #248 | `d694fd1` | 2026-09-25 03:37:34 | 03:36:59 | not triggered |
+
 - **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
   owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to
   0 by one guarded `UPDATE`, which returned one row, and `FIXOR_BUDGET_EXEMPT_INSTALLATIONS` in
@@ -3257,18 +3284,17 @@ were stated by the owner and not read by the entry that filed them.
    dashboard showed $5.00 for the owner's installation, and `checkBudget` prefers an org-level cap
    (`resolveMonthlyCapForInstallation`) over the env value. Which cap a new installation actually
    gets must be read and made to match the published figure.
-10. **Public copy, one PR:**
-    - `landing/terms.html` and `apps/dashboard/src/lib/tiers.ts` promise the free tier "5 scans /
-      month" and "Public repos only". Nothing in `src/` enforces either; the budget cap is the only
-      limit, and the owner's free installation scans private repositories.
-    - `landing/privacy.html` and `landing/security.html` describe API tokens "you generate". No
-      self-service path exists; tokens come only from the `create-api-token` script, and until
-      2026-09-23 their table did not exist in production.
-    - `landing/security.html` still lists a `pro=$80` cap for a tier removed on 2026-05-31.
-    - `README.md` links `https://docs.fixor.dev`, which answers 404 (read 2026-09-24).
-    - The budget-reached PR comment (`comment-builder.ts`) says "Scans resume automatically next
-      month", false at a $0 cap, and tells the reader to set `FIXOR_MONTHLY_CAP_USD`, which an org's
-      own cap overrides. Seen on trial PR #1, 2026-09-24.
+10. **Public copy, one PR.** DONE on branch `docs/public-copy-and-248-row` (2026-09-25; the merge
+    record follows). Every tier is now described by its model-spend cap, since nothing in `src/`
+    counts scans or restricts repositories (free $5, indie $30, team $200, in `landing/index.html`,
+    `terms.html`, `security.html`, `tiers.ts`, the cancellation and limit-warning emails and
+    `docs/MARKETPLACE-LISTING.md`); the `scansPerMonth` field is removed. API tokens are "issued by
+    the operator on request", no self-service. The `pro=$80` cap and the `docs.fixor.dev` link are
+    gone. The budget comment now says scans resume on the 1st (UTC) only for a positive cap, that a
+    $0 cap stays paused, and points at the dashboard's billing page instead of an env variable.
+    **Also found:** `status.fixor.dev` answered 404 on 2026-09-25 (with and without a browser
+    agent), so the README's Status link is removed and its tech-stack row no longer claims a public
+    page; the four monitors exist only as configuration until the page answers.
 11. **Make the App public, last.**
 
 ### Priority 1 - F-004 remaining stages (HIGH; the READY gate)

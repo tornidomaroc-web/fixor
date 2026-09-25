@@ -184,11 +184,11 @@
       </div>
       <div class="practice">
         <h3>Hashed API tokens</h3>
-        <p>API tokens (the <code>fxr_*</code> values) are 256-bit random strings. We store only their SHA-256 hashes; the plain token is shown once at creation and never again. A leaked DB dump can&apos;t be used as tokens.</p>
+        <p>API tokens (the <code>fxr_*</code> values) are 256-bit random strings, issued by the Fixor operator on request; there is no self-service creation in the dashboard today. We store only their SHA-256 hashes; the plain token is shown once at creation and never again. A leaked DB dump can&apos;t be used as tokens.</p>
       </div>
       <div class="practice">
         <h3>Per-org budget caps</h3>
-        <p>Every org has a hard monthly Anthropic spend cap (free=$5, indie=$30, pro=$80, team=$200). Scans pause at 100% rather than overspending; an 80% nudge fires earlier in the PR comment + email + dashboard.</p>
+        <p>Every org has a hard monthly Anthropic spend cap (free=$5, indie=$30, team=$200), and a daily cap set by the operator ($2 unless changed). Scans pause at 100% rather than overspending; an 80% nudge fires earlier in the PR comment + email + dashboard. The cap is the only limit: Fixor does not count scans or restrict repositories.</p>
       </div>
       <div class="practice">
         <h3>Redacted structured logs</h3>

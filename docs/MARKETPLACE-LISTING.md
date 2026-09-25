@@ -99,7 +99,7 @@ Email **support@fixor.dev** or open an issue at <https://github.com/tornidomaroc
 3. **PDF report on every PR.** Branded, shareable, attachable to compliance tickets. SARIF output too.
 4. **Per-org cost cap.** Hard monthly Anthropic budget per org — Fixor stops before the bill surprises you.
 5. **Settings that ship to scans.** Severity threshold, ignored globs, detector allowlist, Slack webhook — all editable from the dashboard, applied to the next scan.
-6. **Free to start.** 5 scans/month on public repos, no card required.
+6. **Free to start.** A $5/month model-spend cap, public and private repos, no card required. The cap is the only limit: Fixor does not count scans.
 
 ---
 

@@ -164,7 +164,7 @@
           <td>Same as cost_ledger</td>
         </tr>
         <tr>
-          <td><code>api_tokens</code> &mdash; SHA-256 hashes of any API tokens you generate (the plain token is shown to you once and never stored)</td>
+          <td><code>api_tokens</code> &mdash; SHA-256 hashes of any API tokens issued to you on request (there is no self-service creation today; the plain token is shown to you once and never stored)</td>
           <td>Authenticate API calls</td>
           <td>Revoked tokens remain as unusable hashes until your org is deleted on request.</td>
         </tr>
@@ -228,7 +228,7 @@
       <li>Paddle webhooks are verified with HMAC-SHA256 against the Paddle webhook secret, with a 5-minute replay window.</li>
       <li>Installation tokens are short-lived (≤1 hour) and never stored.</li>
       <li>Database connections use TLS; report URLs are signed (1-hour TTL by default).</li>
-      <li>API token strings are stored only as SHA-256 hashes; the plain token is shown to you exactly once at creation.</li>
+      <li>API token strings are stored only as SHA-256 hashes; the plain token is shown to you exactly once when the operator issues it.</li>
     </ul>
 
     <h2>9. Contact</h2>

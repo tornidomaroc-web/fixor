@@ -79,9 +79,9 @@ export function renderCancellationEmail(
       fromLine,
       ``,
       `Your org has been moved to the free tier:`,
-      `  · 5 scans / month`,
-      `  · Public repos only`,
-      `  · $5/month Anthropic budget`,
+      `  · $5/month Anthropic budget cap`,
+      `  · Public and private repos`,
+      `  · All 6 detectors`,
       ``,
       `If you'd like to come back, you can re-subscribe any time:`,
       `${billingUrl}`,
@@ -144,8 +144,7 @@ export function renderScanLimitWarningEmail(
   if (suggestedUpgrade) {
     lines.push(
       `Need more headroom? Upgrade to ${suggestedUpgrade.label} for $${suggestedUpgrade.priceUsd}/mo:`,
-      `  · ${suggestedUpgrade.scansPerMonth.toLocaleString()} scans / month`,
-      `  · $${suggestedUpgrade.monthlyCapUsd.toFixed(2)} Anthropic budget`,
+      `  · $${suggestedUpgrade.monthlyCapUsd.toFixed(2)} Anthropic budget cap`,
       ``,
       `Upgrade: ${billingUrl}`,
     );

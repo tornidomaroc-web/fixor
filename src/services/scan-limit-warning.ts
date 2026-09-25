@@ -82,7 +82,6 @@ export interface SendLimitWarningInput {
    *  Caller computes; this module just renders. Null for Team. */
   suggestedUpgradeLabel: string | null;
   suggestedUpgradePriceUsd: number | null;
-  suggestedUpgradeScans: number | null;
   /** ISO date string (YYYY-MM-DD) of the next budget reset.
    *  Caller computes (start of next month UTC). */
   resetIsoDate: string;
@@ -189,8 +188,7 @@ export async function maybeSendLimitWarningEmail(
     ? [
         ``,
         `Need more headroom? Upgrade to ${input.suggestedUpgradeLabel} for $${input.suggestedUpgradePriceUsd?.toFixed(0)}/mo:`,
-        `  · ${input.suggestedUpgradeScans?.toLocaleString()} scans / month`,
-        `  · Higher Anthropic budget`,
+        `  · Higher Anthropic budget cap`,
         ``,
         `Upgrade: ${input.billingUrl}`,
       ]
@@ -239,13 +237,13 @@ export async function maybeSendLimitWarningEmail(
  */
 export const TIER_UPSELL: Record<
   string,
-  { label: string; priceUsd: number; scans: number } | null
+  { label: string; priceUsd: number } | null
 > = {
-  free: { label: "Indie", priceUsd: 29, scans: 100 },
+  free: { label: "Indie", priceUsd: 29 },
   // Indie upsells to Team (only purchasable tier above Indie); the
   // phantom "Pro $79" rung had no Paddle checkout. Whether a middle
   // tier should exist is a parked pricing-sweep question.
-  indie: { label: "Team", priceUsd: 199, scans: 2000 },
+  indie: { label: "Team", priceUsd: 199 },
   team: null,
 };
 
@@ -295,7 +293,6 @@ export async function triggerLimitWarningEmailIfNeeded(
     billingUrl,
     suggestedUpgradeLabel: upsell?.label ?? null,
     suggestedUpgradePriceUsd: upsell?.priceUsd ?? null,
-    suggestedUpgradeScans: upsell?.scans ?? null,
     resetIsoDate: startOfNextMonthIso(now),
     now,
   });
