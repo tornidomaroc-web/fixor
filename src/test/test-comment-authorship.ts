@@ -234,6 +234,8 @@ async function deliver(rows: Row[], installation = true) {
     usePrDiffFallback: true,
     resolveSemgrep: () => PR_DIFF,
     checkBudgetImpl: async () => WITHIN_BUDGET,
+    // Section I delivers with no installation (PAT mode): explicitly unpriced.
+    allowUnpricedScan: true,
     workflowMetadata: { scanId: "comment-authorship-witness" },
   });
   assertEq(unexpected, [], "no request outside the recorder's routes");

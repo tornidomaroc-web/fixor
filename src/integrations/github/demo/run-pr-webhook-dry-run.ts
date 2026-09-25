@@ -56,6 +56,8 @@ async function main() {
     dryRun: true,
     skipSignatureVerification: true,
     resolveSemgrep: sampleSemgrepPayload,
+    // The sample delivery names no installation: a demo, explicitly unpriced.
+    allowUnpricedScan: true,
     workflowMetadata: { scanId: "demo-local-scan" },
   });
 

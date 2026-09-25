@@ -187,6 +187,8 @@ function runHandler(installationId: number | null, budget: BudgetCheck) {
     usePrDiffFallback: true,
     resolveSemgrep: () => PR_DIFF,
     checkBudgetImpl: async () => budget,
+    // Section F delivers with no installation (PAT mode): explicitly unpriced.
+    allowUnpricedScan: true,
     workflowMetadata: { scanId: "comment-token-witness" },
   });
 }

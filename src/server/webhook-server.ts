@@ -8,11 +8,19 @@
 import "../instrument";
 import * as Sentry from "@sentry/node";
 import * as http from "http";
-import { handlePullRequestWebhook } from "../integrations/github/pr-webhook-handler";
+import {
+  acceptPullRequestDelivery,
+  handlePullRequestWebhook,
+  postInterruptedNotice,
+  rerunRecordedScanRun,
+} from "../integrations/github/pr-webhook-handler";
 import { routeGitHubWebhook } from "./github-webhook-route";
 import { logger } from "../lib/logger";
+import { InFlightTracker } from "../lib/in-flight";
 import { pingDb, runHealthChecks } from "../lib/health";
 import { provisionOrgForInstallation } from "../services/orgs.service";
+import { drizzleScanRunStore } from "../services/scan-run-store";
+import { scheduleStartupSweep } from "../services/scan-run-sweeper";
 import {
   getInstallationIdForOrg,
   markTokenUsed,
@@ -127,6 +135,11 @@ async function handleApiScan(
   }
   jsonResponse(res, result.status, result.body);
 }
+
+// Scans that outlive their webhook request. Shutdown waits for them (below).
+const inFlight = new InFlightTracker();
+/** How long shutdown waits for in-flight scans: one scan's worst case, comment included. */
+const DRAIN_TIMEOUT_MS = 150_000;
 
 function summarizeWebhookResult(
   result: Awaited<ReturnType<typeof handlePullRequestWebhook>>
@@ -243,6 +256,8 @@ async function main(): Promise<void> {
         skipSignatureVerification,
         deps: {
           provisionOrg: provisionOrgForInstallation,
+          // Kept for the route's synchronous path; production takes the
+          // accept-then-run path below.
           handlePullRequest: async ({ rawBody, payload, signatureHeader, deliveryId }) => {
             const dryRun = process.env.DRY_RUN?.trim() === "true";
             const result = await handlePullRequestWebhook({
@@ -257,6 +272,39 @@ async function main(): Promise<void> {
               deliveryId,
             });
             return summarizeWebhookResult(result);
+          },
+          acceptPullRequest: async ({ rawBody, payload, signatureHeader, deliveryId }) => {
+            const dryRun = process.env.DRY_RUN?.trim() === "true";
+            const accepted = await acceptPullRequestDelivery({
+              rawBody,
+              payload,
+              signatureHeader,
+              webhookSecret: webhookSecret || undefined,
+              skipSignatureVerification,
+              dryRun,
+              updateExisting: true,
+              usePrDiffFallback: true,
+              deliveryId,
+            });
+            if (!accepted.accepted) {
+              return { accepted: false, result: summarizeWebhookResult(accepted.result) };
+            }
+            return {
+              ...accepted,
+              run: async () => {
+                const result = await accepted.run();
+                const summary = summarizeWebhookResult(result);
+                if (result.ok) {
+                  logger.info({ scanRunId: accepted.scanRunId, ...summary }, "scan finished");
+                } else {
+                  logger.error({ scanRunId: accepted.scanRunId, ...summary }, "scan did not complete");
+                }
+                return summary;
+              },
+            };
+          },
+          runInBackground: (label, task) => {
+            void inFlight.track(label, task);
           },
         },
       });
@@ -274,10 +322,30 @@ async function main(): Promise<void> {
     logger.info({ port }, "Fixor webhook server listening");
   });
 
+  // Rows a previous process left unfinished: re-run once, then say so.
+  const scanRunStore = drizzleScanRunStore();
+  scheduleStartupSweep({
+    store: scanRunStore,
+    rerun: (row) => rerunRecordedScanRun(row, scanRunStore),
+    notify: (row) => postInterruptedNotice(row),
+  });
+
+  let shuttingDown = false;
   const shutdown = (): void => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    // Stop taking requests, then wait for the scans already accepted:
+    // server.close() alone returns as soon as the sockets are idle, and a
+    // scan runs after its response. Railway's own grace period bounds
+    // this wait; a scan killed anyway leaves its row for the sweeper.
     server.close(() => {
-      // Flush any pending Sentry events before the process exits.
-      void Sentry.close(2000).finally(() => process.exit(0));
+      void inFlight.drain(DRAIN_TIMEOUT_MS).then((drained) => {
+        if (!drained.drained) {
+          logger.error(drained, "shutdown: scans still in flight after the drain timeout");
+        }
+        // Flush any pending Sentry events before the process exits.
+        return Sentry.close(2000).finally(() => process.exit(0));
+      });
     });
   };
   process.on("SIGINT", shutdown);

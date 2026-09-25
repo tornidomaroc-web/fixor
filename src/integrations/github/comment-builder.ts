@@ -119,12 +119,15 @@ export function buildPullRequestCommentMarkdown(
   // false), and no internal detail about why the budget was unreadable.
   if (
     workflow.status === "budget_unverifiable" ||
-    workflow.status === "spend_unrecordable"
+    workflow.status === "spend_unrecordable" ||
+    workflow.status === "scan_interrupted"
   ) {
     const cause =
       workflow.status === "budget_unverifiable"
         ? "could not confirm this installation's usage budget"
-        : "could not record this scan's usage";
+        : workflow.status === "spend_unrecordable"
+          ? "could not record this scan's usage"
+          : "was interrupted before it finished, and its retry did not finish either,";
     lines.push(
       "",
       "> ⏸️ **Fixor did not scan this commit**",

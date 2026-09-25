@@ -29,7 +29,11 @@ export interface WorkflowResult {
     | "budget_unverifiable"
     // Not run: a write to the database failed just before the scan, so its
     // spend could not have been recorded against the budget.
-    | "spend_unrecordable";
+    | "spend_unrecordable"
+    // Not completed: the process died mid-scan and the one retry did not
+    // finish either (scan-run-sweeper.ts). Only the did-not-scan notice
+    // is ever built from it.
+    | "scan_interrupted";
   automationReady: boolean;
   /** Why automation is or is not allowed (patch quality + warnings + status). */
   automationDecisionReason: string;
