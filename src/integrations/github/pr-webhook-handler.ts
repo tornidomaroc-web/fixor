@@ -33,6 +33,7 @@ import {
   outcomeFromWorkflow,
   type ScanRunOutcome,
   type ScanRunStore,
+  type UnfinishedScanRun,
 } from "../../services/scan-run-store";
 import { logger } from "../../lib/logger";
 import { maybeSendFirstScanEmail } from "../../services/first-scan-email";
@@ -88,6 +89,19 @@ export type HandlePullRequestWebhookOptions = {
   deliveryId?: string | null;
   /** Test injection: the scan_runs writer. Production uses the Drizzle store. */
   scanRunStore?: ScanRunStore;
+  /**
+   * A delivery with no installation cannot be priced or capped, so it is
+   * refused unless the caller says so. Only demos and keyless tests set
+   * this; the webhook server never does.
+   */
+  allowUnpricedScan?: boolean;
+  /**
+   * How long one scan may take, everything included, before its row is
+   * closed as `timed_out` and the caller is answered. The work itself is
+   * not cancelled (GitHub fetches carry no timeout), but its row cannot
+   * stay `running` forever. Default DEFAULT_SCAN_DEADLINE_MS.
+   */
+  scanDeadlineMs?: number;
   pilotPersistence?: boolean;
   pilotStorePath?: string;
   forceRepost?: boolean;
@@ -123,7 +137,29 @@ export type HandlePullRequestWebhookFailure = {
    * the route answers 200 for it.
    */
   duplicateDelivery?: true;
+  /** The delivery names no installation and `allowUnpricedScan` is not set. */
+  unpricedRefused?: true;
+  /** The scan outlived `scanDeadlineMs`; its row is closed as timed out. */
+  timedOut?: true;
 };
+
+/** A delivery the webhook can acknowledge: its row exists (or its insert failed and the run will say so). */
+export type AcceptedPullRequestDelivery = {
+  accepted: true;
+  scanRunId: string | null;
+  /** False when the scan_runs insert failed: nothing durable records this delivery. */
+  recorded: boolean;
+  data: { owner: string; repo: string; pullNumber: number; headSha: string };
+  /** The scan, the comment and the row's final state. Call once. */
+  run: () => Promise<HandlePullRequestWebhookResult>;
+};
+
+export type AcceptPullRequestDeliveryResult =
+  | AcceptedPullRequestDelivery
+  | { accepted: false; result: HandlePullRequestWebhookFailure };
+
+/** Ten minutes: the 120 s workflow race plus every GitHub call, several times over. */
+export const DEFAULT_SCAN_DEADLINE_MS = 10 * 60_000;
 
 export type HandlePullRequestWebhookResult =
   | HandlePullRequestWebhookSuccess
@@ -132,6 +168,11 @@ export type HandlePullRequestWebhookResult =
 /**
  * Validates webhook payload (and optionally signature), resolves Semgrep JSON, runs Fixor workflow,
  * then builds and posts/updates the aggregated PR comment (or dry-run preview).
+ *
+ * The synchronous composition of acceptPullRequestDelivery and its `run`,
+ * for demos, tests and any caller that wants the result in one call. The
+ * webhook server uses the two halves: it acknowledges after accept and
+ * runs the scan afterwards (github-webhook-route.ts).
  */
 export async function handlePullRequestWebhook(
   options: HandlePullRequestWebhookOptions
@@ -145,7 +186,10 @@ export async function handlePullRequestWebhook(
         "fixor.skip_signature": options.skipSignatureVerification === true,
       },
     },
-    async () => handlePullRequestWebhookImpl(options),
+    async () => {
+      const accepted = await acceptPullRequestDelivery(options);
+      return accepted.accepted ? accepted.run() : accepted.result;
+    },
   );
 }
 
@@ -188,22 +232,31 @@ export function reportGitHubFailure(
   });
 }
 
-async function handlePullRequestWebhookImpl(
+/**
+ * The half of the handler that runs before the webhook is acknowledged:
+ * signature, payload, the installation, and the scan_runs row. Cheap and
+ * free of GitHub calls, budget reads and model calls, so the answer to
+ * GitHub arrives in well under its 10 s limit. Everything that can take
+ * long, or spend, is behind `run`.
+ */
+export async function acceptPullRequestDelivery(
   options: HandlePullRequestWebhookOptions,
-): Promise<HandlePullRequestWebhookResult> {
+): Promise<AcceptPullRequestDeliveryResult> {
   const dryRun = options.dryRun === true;
+  const refuse = (result: HandlePullRequestWebhookFailure): AcceptPullRequestDeliveryResult =>
+    ({ accepted: false, result });
 
   let signatureState: WebhookSignatureState = "skipped";
   if (!options.skipSignatureVerification) {
     const secret = options.webhookSecret?.trim();
     if (!secret) {
-      return {
+      return refuse({
         ok: false,
         dryRun,
         signatureState: "invalid",
         error:
           "Webhook signature verification required but GITHUB_WEBHOOK_SECRET (or webhookSecret) is missing",
-      };
+      });
     }
     const valid = verifyGitHubWebhookSignature256(
       options.rawBody,
@@ -212,24 +265,24 @@ async function handlePullRequestWebhookImpl(
     );
     signatureState = valid ? "valid" : "invalid";
     if (!valid) {
-      return {
+      return refuse({
         ok: false,
         dryRun,
         signatureState: "invalid",
         error: "Invalid or missing X-Hub-Signature-256",
-      };
+      });
     }
   }
 
   const validated = validateGitHubPullRequestPayload(options.payload);
   if (!validated.ok) {
-    return {
+    return refuse({
       ok: false,
       dryRun,
       signatureState,
       error: validated.error,
       missingFields: validated.missingFields,
-    };
+    });
   }
 
   const { owner, repo, pullNumber, headSha, action } = validated.data;
@@ -242,10 +295,28 @@ async function handlePullRequestWebhookImpl(
     ? installation.id
     : null;
 
+  // A delivery with no installation cannot be scoped to an org, so it has
+  // no budget, no ledger and no row. A GitHub App delivery always carries
+  // one; this is reachable only by a repository webhook configured with
+  // Fixor's secret, or a local demo. Refused unless the caller opted in.
+  if (installationId === null && options.allowUnpricedScan !== true) {
+    logger.warn(
+      { owner, repo, pullNumber, headSha },
+      "pull_request delivery names no installation: refused, it cannot be priced",
+    );
+    return refuse({
+      ok: false,
+      dryRun,
+      signatureState,
+      error: "Delivery names no installation; refused because it cannot be priced",
+      unpricedRefused: true,
+    });
+  }
+
   // One scan_runs row per delivery that names an installation, written
-  // before any GitHub call or budget read so every outcome below has a
-  // row to finish. A delivery with no installation cannot be scoped to an
-  // org, so it gets none.
+  // before the acknowledgement and before any GitHub call or budget read,
+  // so every outcome below has a row to finish and a process that dies
+  // leaves a row for the sweeper.
   const store = options.scanRunStore ?? drizzleScanRunStore();
   const run: ScanRunState = {
     id: null,
@@ -253,6 +324,7 @@ async function handlePullRequestWebhookImpl(
     spend: { usd: 0 },
     preScanWriteFailed: false,
     spendUnrecorded: false,
+    finished: false,
   };
   if (installationId !== null) {
     const deliveryId = options.deliveryId ?? null;
@@ -272,13 +344,13 @@ async function handlePullRequestWebhookImpl(
           { deliveryId, installationId, owner, repo, pullNumber, headSha },
           "pull_request delivery already recorded; not scanned again",
         );
-        return {
+        return refuse({
           ok: false,
           dryRun,
           signatureState,
           error: "Delivery already received; not scanned again",
           duplicateDelivery: true,
-        };
+        });
       }
       run.id = created.id;
     } catch (err) {
@@ -290,29 +362,189 @@ async function handlePullRequestWebhookImpl(
     }
   }
 
-  try {
-    return await scanDelivery(options, run, store, {
-      dryRun,
-      signatureState,
-      owner,
-      repo,
-      pullNumber,
-      headSha,
-      action,
-      installationId,
-    });
-  } finally {
+  const ctx: DeliveryContext = {
+    dryRun,
+    signatureState,
+    owner,
+    repo,
+    pullNumber,
+    headSha,
+    action,
+    installationId,
+  };
+  return {
+    accepted: true,
+    scanRunId: run.id,
+    recorded: installationId === null || !run.preScanWriteFailed,
+    data: { owner, repo, pullNumber, headSha },
+    run: () => runAccepted(options, run, store, ctx),
+  };
+}
+
+/**
+ * The scan, bounded by the deadline, with the row's final state written
+ * exactly once. When the deadline wins, the row is closed as `timed_out`
+ * and the caller is answered; the work is not cancelled, and whatever it
+ * writes afterwards is a no-op against the finished row.
+ */
+async function runAccepted(
+  options: HandlePullRequestWebhookOptions,
+  run: ScanRunState,
+  store: ScanRunStore,
+  ctx: DeliveryContext,
+): Promise<HandlePullRequestWebhookResult> {
+  const { owner, repo, pullNumber, headSha, installationId } = ctx;
+  const finishOnce = async (): Promise<void> => {
     // The ONLY place a row reaches its final state, exactly once. An
     // outcome left unset means the scan threw before it decided one.
-    if (run.id !== null) {
-      const outcome = run.outcome ?? emptyOutcome("failed", "internal_error");
-      try {
-        await store.finish(run.id, outcome, new Date());
-      } catch (err) {
-        reportScanRunFailure("finish", err, { installationId, owner, repo, pullNumber, headSha });
-      }
+    if (run.id === null || run.finished) return;
+    run.finished = true;
+    const outcome = run.outcome ?? emptyOutcome("failed", "internal_error");
+    try {
+      await store.finish(run.id, outcome, new Date());
+    } catch (err) {
+      reportScanRunFailure("finish", err, { installationId, owner, repo, pullNumber, headSha });
     }
+  };
+
+  const scan = (async () => {
+    try {
+      return await scanDelivery(options, run, store, ctx);
+    } finally {
+      await finishOnce();
+    }
+  })();
+
+  const deadlineMs = options.scanDeadlineMs ?? DEFAULT_SCAN_DEADLINE_MS;
+  let timer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<HandlePullRequestWebhookResult>((resolve) => {
+    timer = setTimeout(() => {
+      void (async () => {
+        if (run.finished) return;
+        run.outcome = emptyOutcome("failed", "timed_out");
+        logger.error(
+          { installationId, owner, repo, pullNumber, headSha, deadlineMs, scanRunId: run.id },
+          "scan did not finish within the deadline: its row is closed as timed out",
+        );
+        Sentry.captureMessage("scan deadline exceeded", {
+          level: "error",
+          tags: { "fixor.phase": "scan_deadline" },
+          extra: { installationId, owner, repo, pullNumber, headSha, deadlineMs },
+        });
+        await finishOnce();
+        // The late result, if any, must not become an unhandled rejection.
+        scan.catch((err) => {
+          logger.error({ err, owner, repo, pullNumber, headSha }, "scan failed after its deadline");
+        });
+        resolve({
+          ok: false,
+          dryRun: ctx.dryRun,
+          signatureState: ctx.signatureState,
+          error: `Scan did not finish within ${deadlineMs} ms`,
+          timedOut: true,
+        });
+      })();
+    }, deadlineMs);
+  });
+
+  try {
+    return await Promise.race([scan, deadline]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
+}
+
+/**
+ * Re-runs a recorded delivery from its row (scan-run-sweeper.ts). The row
+ * already exists, so nothing is inserted and the delivery id is not
+ * checked again; the store's own `markRunning` leaves a `retrying` row
+ * marked as the retry it is.
+ */
+export async function rerunRecordedScanRun(
+  row: UnfinishedScanRun,
+  store: ScanRunStore,
+  overrides: Partial<HandlePullRequestWebhookOptions> = {},
+): Promise<HandlePullRequestWebhookResult> {
+  const slash = row.repoFullName.indexOf("/");
+  const owner = row.repoFullName.slice(0, slash);
+  const repo = row.repoFullName.slice(slash + 1);
+  const installationId = Number.parseInt(row.installationId, 10);
+  if (slash <= 0 || !repo || !Number.isFinite(installationId)) {
+    throw new Error(`scan_runs row ${row.id} cannot be re-run: bad coordinates`);
+  }
+  const options: HandlePullRequestWebhookOptions = {
+    rawBody: "",
+    payload: null,
+    dryRun: false,
+    skipSignatureVerification: true,
+    updateExisting: true,
+    usePrDiffFallback: true,
+    deliveryId: row.deliveryId,
+    scanRunStore: store,
+    ...overrides,
+  };
+  const run: ScanRunState = {
+    id: row.id,
+    outcome: null,
+    spend: { usd: 0 },
+    preScanWriteFailed: false,
+    spendUnrecorded: false,
+    finished: false,
+  };
+  return runAccepted(options, run, store, {
+    dryRun: options.dryRun === true,
+    signatureState: "skipped",
+    owner,
+    repo,
+    pullNumber: row.pullNumber,
+    headSha: row.headSha,
+    action: undefined,
+    installationId,
+  });
+}
+
+/**
+ * The did-not-scan notice for a row given up on (scan-run-sweeper.ts):
+ * the process died mid-scan and the retry did not finish either. Posted
+ * with the installation token like every App comment.
+ */
+export async function postInterruptedNotice(
+  row: UnfinishedScanRun,
+  overrides: Partial<Pick<HandlePullRequestWebhookOptions, "token" | "apiBaseUrl" | "dryRun">> = {},
+): Promise<PostPrCommentResult> {
+  const slash = row.repoFullName.indexOf("/");
+  const owner = row.repoFullName.slice(0, slash);
+  const repo = row.repoFullName.slice(slash + 1);
+  const installationId = Number.parseInt(row.installationId, 10);
+  let token = overrides.token?.trim() ?? "";
+  let ownAppId: string | undefined;
+  if (!token) {
+    token = await getInstallationToken(installationId);
+    ownAppId = readAppId();
+  }
+  const metadata: ScanMetadata = { repoName: row.repoFullName, commitId: row.headSha };
+  const workflow: WorkflowResult = {
+    ...notRunWorkflow(metadata),
+    status: "scan_interrupted",
+    automationDecisionReason:
+      "Scan not completed: it was interrupted and its retry did not finish",
+    errors: [
+      {
+        message:
+          "Scan not completed: the scan was interrupted and its retry did not finish, so no result was produced",
+      },
+    ],
+  };
+  return postFixorPullRequestComment({
+    metadata: { owner, repo, pullNumber: row.pullNumber, commitSha: row.headSha },
+    workflow,
+    dryRun: overrides.dryRun === true,
+    token,
+    ownAppId,
+    apiBaseUrl: overrides.apiBaseUrl,
+    updateExisting: true,
+    executionKey: buildFixorExecutionKey(owner, repo, row.pullNumber, row.headSha, installationId),
+  });
 }
 
 /** Whole-file fetches or parent-layout guards that failed (H2, F-001). */
@@ -332,6 +564,8 @@ type ScanRunState = {
   preScanWriteFailed: boolean;
   /** A ledger write failed mid-scan, so later model calls were refused. */
   spendUnrecorded: boolean;
+  /** The final state was written (or attempted) once; never again. */
+  finished: boolean;
 };
 
 /**
@@ -420,122 +654,131 @@ async function scanDelivery(
     token = process.env.GITHUB_TOKEN?.trim() ?? "";
   }
 
-  let semgrepPayload: unknown;
-  try {
-    if (options.resolveSemgrep) {
-      semgrepPayload = await Promise.resolve(
-        options.resolveSemgrep({
-          owner,
-          repo,
-          pullNumber,
-          headSha,
-          action,
-        })
-      );
-      if (
-        (semgrepPayload === null || semgrepPayload === undefined) &&
-        options.usePrDiffFallback === true &&
-        token
-      ) {
-        const diffFindings = await analyzePrDiff(owner, repo, pullNumber, token);
-        if (diffFindings.length > 0) {
-          semgrepPayload = {
-            results: [],
-            findings: diffFindings,
-            _source: "pr-diff",
-          };
-        }
-      }
-    } else {
-      if (!token) {
-        run.outcome = emptyOutcome("failed", "internal_error");
-        return {
-          ok: false,
-          dryRun,
-          signatureState,
-          error:
-            "GITHUB_TOKEN (or token option) is required when resolveSemgrep is not provided",
-        };
-      }
-      semgrepPayload = await fetchPrDiff(
-        owner,
-        repo,
-        pullNumber,
-        token,
-        options.apiBaseUrl
-      );
-    }
-
-    // H2: upgrade a raw PR diff to whole-file scan input — the
-    // condition every detector baseline was measured under. Fetches
-    // each changed file at the PR head; fetch failures fall back to
-    // the diff slice AND surface as degraded scan input through the
-    // workflow's error machinery. Applies to the fetched-diff path and
-    // to resolver-supplied raw diff strings (deterministic demos via
-    // fetchFileAtRefImpl).
-    const enrichEligible =
-      (!options.resolveSemgrep || options.fetchFileAtRefImpl !== undefined) &&
-      typeof semgrepPayload === "string" &&
-      semgrepPayload.includes("diff --git");
-    if (enrichEligible) {
-      const fetchImpl =
-        options.fetchFileAtRefImpl ??
-        ((p: string) =>
-          fetchFileAtRef(owner, repo, p, headSha, token, options.apiBaseUrl));
-      const scanInput = await buildWholeFileScanInput(
-        semgrepPayload as string,
-        fetchImpl,
-      );
-      // F-001: resolve parent-layout route guards on the webhook path so
-      // Engine B clears layout-gated Remix/RR-v7 routes exactly as Engine A
-      // (cli/scan.ts) does. Additive — only /routes/ files with a PROVEN
-      // blocking ancestor layout get a sidecar; a non-404 layout fetch
-      // failure surfaces as a routeGuardError (fail-loud), never silently.
-      // Guard errors ride their OWN channel (not scanInputErrors) so H2's
-      // whole-file failure message stays byte-identical.
-      const guards = await resolveRouteGuardSidecars(
-        Object.keys(scanInput.changedLinesByPath),
-        fetchImpl,
-      );
-      semgrepPayload = {
-        ...scanInput,
-        sidecarsByPath: guards.sidecarsByPath,
-        routeGuardErrors: guards.routeGuardErrors,
-      };
-    }
-  } catch (e) {
-    if (e instanceof GitHubApiError) {
-      reportGitHubFailure("pr_fetch", e, { owner, repo, pullNumber, headSha, installationId });
-      run.outcome = emptyOutcome("failed", "pr_fetch_refused");
-      return {
-        ok: false,
-        dryRun,
-        signatureState,
-        error: e.message,
-        githubError: e.details,
-      };
-    }
-    throw e;
-  }
-
   const metadata: ScanMetadata = {
     ...options.workflowMetadata,
     repoName: `${owner}/${repo}`,
     commitId: headSha,
   };
 
+  // The budget gate runs BEFORE the pull request is fetched: a capped or
+  // unverifiable installation costs no diff fetch and no whole-file
+  // fetches, only the notice. (An installation at a $0 cap used to fetch
+  // every changed file first.)
+  const budgetGate = options.checkBudgetImpl ?? checkBudget;
+  let budget: BudgetCheck | null = null;
+  if (installationId !== null) {
+    budget = await budgetGate(installationId);
+  }
+  const refused = budget !== null && !budget.withinBudget;
+
+  let semgrepPayload: unknown = null;
+  if (!refused) {
+    try {
+      if (options.resolveSemgrep) {
+        semgrepPayload = await Promise.resolve(
+          options.resolveSemgrep({
+            owner,
+            repo,
+            pullNumber,
+            headSha,
+            action,
+          })
+        );
+        if (
+          (semgrepPayload === null || semgrepPayload === undefined) &&
+          options.usePrDiffFallback === true &&
+          token
+        ) {
+          const diffFindings = await analyzePrDiff(owner, repo, pullNumber, token);
+          if (diffFindings.length > 0) {
+            semgrepPayload = {
+              results: [],
+              findings: diffFindings,
+              _source: "pr-diff",
+            };
+          }
+        }
+      } else {
+        if (!token) {
+          run.outcome = emptyOutcome("failed", "internal_error");
+          return {
+            ok: false,
+            dryRun,
+            signatureState,
+            error:
+              "GITHUB_TOKEN (or token option) is required when resolveSemgrep is not provided",
+          };
+        }
+        semgrepPayload = await fetchPrDiff(
+          owner,
+          repo,
+          pullNumber,
+          token,
+          options.apiBaseUrl
+        );
+      }
+
+      // H2: upgrade a raw PR diff to whole-file scan input — the
+      // condition every detector baseline was measured under. Fetches
+      // each changed file at the PR head; fetch failures fall back to
+      // the diff slice AND surface as degraded scan input through the
+      // workflow's error machinery. Applies to the fetched-diff path and
+      // to resolver-supplied raw diff strings (deterministic demos via
+      // fetchFileAtRefImpl).
+      const enrichEligible =
+        (!options.resolveSemgrep || options.fetchFileAtRefImpl !== undefined) &&
+        typeof semgrepPayload === "string" &&
+        semgrepPayload.includes("diff --git");
+      if (enrichEligible) {
+        const fetchImpl =
+          options.fetchFileAtRefImpl ??
+          ((p: string) =>
+            fetchFileAtRef(owner, repo, p, headSha, token, options.apiBaseUrl));
+        const scanInput = await buildWholeFileScanInput(
+          semgrepPayload as string,
+          fetchImpl,
+        );
+        // F-001: resolve parent-layout route guards on the webhook path so
+        // Engine B clears layout-gated Remix/RR-v7 routes exactly as Engine A
+        // (cli/scan.ts) does. Additive — only /routes/ files with a PROVEN
+        // blocking ancestor layout get a sidecar; a non-404 layout fetch
+        // failure surfaces as a routeGuardError (fail-loud), never silently.
+        // Guard errors ride their OWN channel (not scanInputErrors) so H2's
+        // whole-file failure message stays byte-identical.
+        const guards = await resolveRouteGuardSidecars(
+          Object.keys(scanInput.changedLinesByPath),
+          fetchImpl,
+        );
+        semgrepPayload = {
+          ...scanInput,
+          sidecarsByPath: guards.sidecarsByPath,
+          routeGuardErrors: guards.routeGuardErrors,
+        };
+      }
+    } catch (e) {
+      if (e instanceof GitHubApiError) {
+        reportGitHubFailure("pr_fetch", e, { owner, repo, pullNumber, headSha, installationId });
+        run.outcome = emptyOutcome("failed", "pr_fetch_refused");
+        return {
+          ok: false,
+          dryRun,
+          signatureState,
+          error: e.message,
+          githubError: e.details,
+        };
+      }
+      throw e;
+    }
+  } // end of the fetch, skipped for a refused budget
+
   let workflow: WorkflowResult;
   if (installationId === null) {
-    // Should not happen for properly authenticated GitHub App webhooks,
-    // but degrade gracefully without recording cost. NOT guarded by the
-    // budget or the spend guard: nothing here can be priced. Reachable
-    // only by a delivery with no installation, i.e. a repository webhook
-    // the operator configured with this secret, or a local demo.
+    // Reachable only with `allowUnpricedScan` (acceptPullRequestDelivery
+    // refuses it otherwise): demos and keyless tests. NOT guarded by the
+    // budget or the spend guard: nothing here can be priced.
     workflow = await runAuditorWorkflow(semgrepPayload, metadata);
   } else {
-    const budgetGate = options.checkBudgetImpl ?? checkBudget;
-    const budget = await budgetGate(installationId);
-    if (!budget.withinBudget) {
+    if (budget !== null && !budget.withinBudget) {
       const notRun = notRunWorkflow(metadata);
       if (
         budget.reason === "monthly_exceeded" ||

@@ -21,6 +21,11 @@
  * acknowledged with 200 "ignored" and a reason, after the signature check
  * and before any token, diff fetch, budget read or scan, and leave nothing
  * on the pull request.
+ *
+ * ACKNOWLEDGE, THEN SCAN: with `deps.acceptPullRequest` the route answers
+ * 202 once the delivery's scan_runs row exists and runs the scan after the
+ * response (`deps.runInBackground`). GitHub's 10 s delivery limit is met
+ * by a row write; the scan takes as long as it takes.
  */
 import * as Sentry from "@sentry/node";
 
@@ -45,14 +50,36 @@ export interface WebhookRouteDeps {
    * constant-time comparison — redundant after this gate, kept as
    * defense in depth and for callers that invoke it directly.
    */
-  handlePullRequest: (args: {
-    rawBody: Buffer;
-    payload: unknown;
-    signatureHeader: string | null;
-    /** `X-GitHub-Delivery`, when present and well-formed; else null. */
-    deliveryId: string | null;
-  }) => Promise<unknown>;
+  handlePullRequest: (args: PullRequestArgs) => Promise<unknown>;
+  /**
+   * Acknowledge-then-scan. When present it is used instead of
+   * `handlePullRequest`: the delivery is accepted (row written) and
+   * answered, and `run` is handed to `runInBackground`. Production impl:
+   * acceptPullRequestDelivery.
+   */
+  acceptPullRequest?: (args: PullRequestArgs) => Promise<AcceptedForRoute>;
+  /** Runs the scan after the response. Production impl: the in-flight tracker. */
+  runInBackground?: (label: string, task: () => Promise<unknown>) => void;
 }
+
+export interface PullRequestArgs {
+  rawBody: Buffer;
+  payload: unknown;
+  signatureHeader: string | null;
+  /** `X-GitHub-Delivery`, when present and well-formed; else null. */
+  deliveryId: string | null;
+}
+
+/** The subset of AcceptPullRequestDeliveryResult the route reads. */
+export type AcceptedForRoute =
+  | {
+      accepted: true;
+      scanRunId: string | null;
+      recorded: boolean;
+      data: unknown;
+      run: () => Promise<unknown>;
+    }
+  | { accepted: false; result: unknown };
 
 export interface WebhookRouteOptions {
   rawBody: Buffer;
@@ -215,18 +242,53 @@ export async function routeGitHubWebhook(
     };
   }
 
-  const result = await opts.deps.handlePullRequest({
+  const args: PullRequestArgs = {
     rawBody: opts.rawBody,
     payload,
     signatureHeader,
     deliveryId: parseDeliveryId(opts.deliveryHeader),
-  });
-  // A handler failure (a GitHub call refused, a payload that did not
-  // validate) must not read as success: GitHub records a non-2xx as a
-  // failed delivery, visible in the App's Recent Deliveries. GitHub never
-  // retries on its own, so nothing runs twice because of this status.
-  // A delivery already recorded is not a failure: it was received once
-  // and deliberately not scanned again.
+  };
+
+  if (opts.deps.acceptPullRequest) {
+    const accepted = await opts.deps.acceptPullRequest(args);
+    if (!accepted.accepted) return answerFor(accepted.result);
+    // Answered before the scan: GitHub's 10 s limit is met by the row
+    // write alone. The scan, the comment and the row's final state follow
+    // in the background; a process that dies first leaves the row for the
+    // sweeper (scan-run-sweeper.ts).
+    const runInBackground =
+      opts.deps.runInBackground ??
+      ((label, task) => {
+        void task().catch((err: unknown) => {
+          logger.error({ err, label }, "background scan failed");
+        });
+      });
+    runInBackground(`scan ${accepted.scanRunId ?? "unrecorded"}`, accepted.run);
+    // With no row, nothing durable says this delivery arrived: 503 puts it
+    // in the App's failed deliveries, where the owner can redeliver it once
+    // the database is back. The run still posts the not-scanned notice.
+    return {
+      status: accepted.recorded ? 202 : 503,
+      body: {
+        status: accepted.recorded ? "accepted" : "not_recorded",
+        scanRunId: accepted.scanRunId,
+        data: accepted.data,
+      },
+    };
+  }
+
+  return answerFor(await opts.deps.handlePullRequest(args));
+}
+
+/**
+ * A handler failure (a GitHub call refused, a payload that did not
+ * validate, a delivery that cannot be priced) must not read as success:
+ * GitHub records a non-2xx as a failed delivery, visible in the App's
+ * Recent Deliveries. GitHub never retries on its own, so nothing runs
+ * twice because of this status. A delivery already recorded is not a
+ * failure: it was received once and deliberately not scanned again.
+ */
+function answerFor(result: unknown): WebhookRouteResponse {
   const r = result as { ok?: unknown; duplicateDelivery?: unknown } | null;
   const failed = r?.ok === false && r.duplicateDelivery !== true;
   return { status: failed ? 502 : 200, body: result };

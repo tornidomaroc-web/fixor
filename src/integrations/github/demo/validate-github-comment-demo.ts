@@ -175,6 +175,8 @@ async function main() {
     dryRun: effectiveDryRun,
     skipSignatureVerification: true,
     resolveSemgrep: () => semgrepObject,
+    // The sample delivery names no installation: a demo, explicitly unpriced.
+    allowUnpricedScan: true,
     workflowMetadata: {
       scanId: `demo-validate-${Date.now()}`,
     },

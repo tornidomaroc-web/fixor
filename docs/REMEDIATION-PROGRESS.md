@@ -2399,6 +2399,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #244 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #245 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #246 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #247 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2642,6 +2643,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #244 | `e83cae7` | 2026-09-24 23:03:15 | `fix/org-settings-admin-only` (read before and after) | `0a77a8d7`, captured before | 404 on first read after the merge, before 23:04:59 | `fix/org-settings-admin-only` at `876eb61` |
 | #245 | `b0e8d82` | 2026-09-25 00:34:05 | `feat/ack-then-scan`, a THIRD branch (reflog: last move 00:32:35) | `14b7d6d0`, captured before | 404 on first read after the merge | `chore/dashboard-remove-debug-logging` at `1e06c7b` |
 | #246 | `e793c52` | 2026-09-25 02:14:57 | `docs/tracker-record-2026-09-25` (reflog: last move 01:05:07) | `1dbaff8b`, captured before | 404 on first read after the merge | `docs/tracker-record-2026-09-25` at `174eb0f` |
+| #247 | `157032e` | 2026-09-25 03:04:10 | `fix/dashboard-token-expiry` (reflog: last move 02:36:27) | `463abcce`, captured before | 404 on first read after the merge | `fix/dashboard-token-expiry` at `5c4b4ef` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2725,6 +2727,17 @@ merge. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-
 invoked FROM the merged branch reads 23 observations, 2 green and 21 red; the THIRD-branch arm is
 unchanged at 5, all RED; the register carries 34 rows, 32 RED. No cause is named. **The merge of
 this entry will owe the next row.**
+
+**#247 (2026-09-25).** The owner ran `gh pr merge 247 --squash --match-head-commit
+5c4b4ef81f17d242bb773fef70eed5ec07d68287` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 02:36:27, and HEAD was still there after it. **RED**: `gh` exited 0 and printed
+nothing; the local ref survived at `5c4b4ef`. Assertion 2 held against a tree captured before the
+merge: `463abcce` on both. The squash `157032e` has the single parent `e793c52`, so neither of the
+branch's merge commits reached `main`. The head ref answered 404 on the first read after the merge.
+gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm invoked FROM
+the merged branch reads 24 observations, 2 green and 22 red; the THIRD-branch arm is unchanged at 5,
+all RED; the register carries 35 rows, 33 RED. No cause is named. **The merge of this entry will owe
+the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3048,6 +3061,17 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   |---|---|---|---|---|
   | #246 | `e793c52` | 2026-09-25 02:15:31 | 02:15:35 | not triggered |
 
+  **#247 (added 2026-09-25).** CI (both Node jobs, `head=157032e`) and the `secrets` workflow
+  concluded success on the merge commit, and the CI log carries `Token-expiry witness: PASS.` and
+  `Org-access witness: PASS.` once per job. At 03:08:55 the backend answered
+  `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":208}`, which dates the container to about
+  03:05:27, the deploy; the dashboard answered `{"status":"ok","db":"ok"}`. Not proven: the
+  sign-in-expired page in production, which renders only when GitHub answers 401 to the owner's token.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #247 | `157032e` | 2026-09-25 03:05:31 | 03:04:54 | not triggered |
+
 - **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
   owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to
   0 by one guarded `UPDATE`, which returned one row, and `FIXOR_BUDGET_EXEMPT_INSTALLATIONS` in
@@ -3204,6 +3228,21 @@ were stated by the owner and not read by the entry that filed them.
 5. **Acknowledge-then-scan**, with the agreed retry rules (at-least-once; re-run an unfinished row
    once at startup; on a second failure post the "did not scan" notice) and a sweeper for stale
    `pending` and `running` rows. #241 writes the row this builds on.
+5a. **Railway gives the old deployment 0 seconds after SIGTERM** (Railway's deployment reference,
+   read 2026-09-25: "By default, it is given 0 seconds to gracefully shutdown before being forcefully
+   stopped with a SIGKILL"), and `railway.json` sets no `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`. So
+   every deploy kills in-flight scans outright and the shutdown drain never gets to run; the
+   sweeper then re-runs each killed row once, ten minutes into the new process, and a `running` row
+   is charged a second time (bounded by the cap). Owner action, $0: set the service variable
+   `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=150` in the Railway dashboard, matching the drain timeout in
+   `webhook-server.ts`. Read the variable back before relying on the drain.
+5b. **No cap on concurrent scans, and the budget check races.** Each accepted delivery runs at once
+   in its own task, and `checkBudget` reads the ledger before any of them has spent, so N deliveries
+   arriving together can overshoot a positive cap by up to N scans. The same was true before
+   acknowledge-then-scan (the HTTP server ran concurrent synchronous scans). Harmless at a $0 cap:
+   every scan is refused before the diff fetch. Fix before a positive cap or a second installation:
+   a per-installation serial queue, or reserving an estimate against the cap before the first
+   model call.
 6. **`SENTRY_DSN` in Railway: read whether it is set.** Not verified since 2026-09-23. #237 and #241
    report refused GitHub calls and failed `scan_runs` writes to Sentry; without the DSN those reports
    go nowhere.

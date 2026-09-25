@@ -288,6 +288,8 @@ async function testEndToEndHandler(): Promise<void> {
     dryRun: true,
     skipSignatureVerification: true,
     resolveSemgrep: () => PR_DIFF,
+    // The sample payload names no installation: keyless, explicitly unpriced.
+    allowUnpricedScan: true,
     fetchFileAtRefImpl: async (p) => FILE_BY_PATH[p]!,
     workflowMetadata: { scanId: "h2-deterministic-test" },
   });

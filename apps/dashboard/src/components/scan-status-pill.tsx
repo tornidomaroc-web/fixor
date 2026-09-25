@@ -13,6 +13,9 @@ const STATUS_STYLES: Record<string, string> = {
     "bg-blue-100 text-blue-900 border-blue-200 dark:bg-blue-950 dark:text-blue-100 dark:border-blue-900",
   pending:
     "bg-blue-100 text-blue-900 border-blue-200 dark:bg-blue-950 dark:text-blue-100 dark:border-blue-900",
+  // Second attempt after the process died mid-scan (scan-run-sweeper.ts).
+  retrying:
+    "bg-blue-100 text-blue-900 border-blue-200 dark:bg-blue-950 dark:text-blue-100 dark:border-blue-900",
   failed:
     "bg-red-100 text-red-900 border-red-200 dark:bg-red-950 dark:text-red-100 dark:border-red-900",
   errored:
