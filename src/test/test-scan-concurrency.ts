@@ -273,15 +273,17 @@ async function testDeadlineStartsWhenScanStarts(): Promise<void> {
   const occupied = queue.run("other", () => blocker);
   await sleep(5);
   const store = new MemoryStore();
+  // The scan itself takes 60 ms against a 100 ms deadline: it completes
+  // only if none of the 150 ms spent waiting counted against it.
   const result = handlePullRequestWebhook(delivery(store, 3101, {
-    scanQueue: queue, scanDeadlineMs: 40,
-    checkBudgetImpl: async () => WITHIN, resolveSemgrep: async () => PR_DIFF,
+    scanQueue: queue, scanDeadlineMs: 100,
+    checkBudgetImpl: async () => WITHIN, resolveSemgrep: async () => { await sleep(60); return PR_DIFF; },
   }));
-  await sleep(120); // well past the 40 ms deadline, still waiting
+  await sleep(150); // well past the 100 ms deadline, still waiting
   releaseBlocker();
   await occupied;
   const r = await result;
-  console.log(`       waited ~120 ms with a 40 ms deadline: ok ${r.ok}, timedOut ${!r.ok && r.timedOut === true}; rows ${JSON.stringify(store.outcomes())}`);
+  console.log(`       waited ~150 ms with a 100 ms deadline, then a 60 ms scan: ok ${r.ok}, timedOut ${!r.ok && r.timedOut === true}; rows ${JSON.stringify(store.outcomes())}`);
   assertEq([r.ok, store.outcomes()], [true, ["completed/-"]], "the scan completed: the deadline began when it started, not when it was queued");
 }
 
