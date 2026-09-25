@@ -2398,6 +2398,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #243 | FROM the merged branch (reflog) | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #244 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #245 | from a THIRD branch, neither the merged branch nor the base | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #246 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2640,6 +2641,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #243 | `35aca9b` | 2026-09-24 12:10:20 | `fix/ledger-write-fail-closed` (reflog: on it from 11:31:11 to 20:48:32) | `d8b37e23`, computed 2026-09-25 from the PR head `d9ada12` | not read at merge; 404 on 2026-09-25 | `fix/ledger-write-fail-closed` at `d9ada12` |
 | #244 | `e83cae7` | 2026-09-24 23:03:15 | `fix/org-settings-admin-only` (read before and after) | `0a77a8d7`, captured before | 404 on first read after the merge, before 23:04:59 | `fix/org-settings-admin-only` at `876eb61` |
 | #245 | `b0e8d82` | 2026-09-25 00:34:05 | `feat/ack-then-scan`, a THIRD branch (reflog: last move 00:32:35) | `14b7d6d0`, captured before | 404 on first read after the merge | `chore/dashboard-remove-debug-logging` at `1e06c7b` |
+| #246 | `e793c52` | 2026-09-25 02:14:57 | `docs/tracker-record-2026-09-25` (reflog: last move 01:05:07) | `1dbaff8b`, captured before | 404 on first read after the merge | `docs/tracker-record-2026-09-25` at `174eb0f` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2711,6 +2713,18 @@ first read after the merge. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new d
 (2026-09-25):** the arm invoked FROM the merged branch is unchanged at 22 observations, 2 green and 20
 red; the THIRD-branch arm reads 5 observations (#221, #222, #224, #230, #245), all RED; the register
 carries 33 rows, 31 RED. No cause is named. **The merge of this entry will owe the next row.**
+
+**#246 (2026-09-25).** The owner ran `gh pr merge 246 --squash --match-head-commit
+174eb0f80413ce4ea0d3e29b3bd2cea2a686c778` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 01:05:07, and HEAD was still there after it. **RED**: `gh` exited 0 and printed
+nothing; the local ref survived at `174eb0f`. Assertion 2 held against a tree captured before the
+merge: `1dbaff8b` on both. The PR head was a merge of `main` into the branch (the rebase's
+force-push is denied on this machine by standing rule); the squash `e793c52` has the single parent
+`b0e8d82`, so no merge commit reached `main`. The head ref answered 404 on the first read after the
+merge. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm
+invoked FROM the merged branch reads 23 observations, 2 green and 21 red; the THIRD-branch arm is
+unchanged at 5, all RED; the register carries 34 rows, 32 RED. No cause is named. **The merge of
+this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3023,6 +3037,16 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #245 | `b0e8d82` | 2026-09-25 00:34:31 | 00:34:42 | not triggered |
+
+  **#246 (added 2026-09-25).** CI (both Node jobs, `head=e793c52`) and the `secrets` workflow
+  concluded success on the merge commit. At 02:18:53 the backend answered `{"status":"ok","db":"ok",
+  "anthropic":"ok","uptime_s":208}`, which dates the container to about 02:15:25, the deploy; the
+  dashboard answered `{"status":"ok","db":"ok"}`. The PR was docs only, so these reads show only that
+  nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #246 | `e793c52` | 2026-09-25 02:15:31 | 02:15:35 | not triggered |
 
 - **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
   owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to

@@ -4,6 +4,10 @@ import { UserButton } from "@clerk/nextjs";
 import { TierBadge } from "@/components/tier-badge";
 import { ScanStatusPill } from "@/components/scan-status-pill";
 import { TrendsChart } from "@/components/trends-chart";
+import {
+  SessionExpiredNotice,
+  SessionExpiredPage,
+} from "@/components/session-expired";
 import { listFixorInstallations, listVisibleRepoNames } from "@/lib/github";
 import {
   getOrgForUser,
@@ -20,6 +24,8 @@ export default async function OrgScansPage({ params }: PageProps) {
   const { id: orgId } = await params;
 
   const result = await listFixorInstallations();
+  // A token GitHub refuses is told apart: only a new sign-in fixes it.
+  if (result.status === "unauthorized") return <SessionExpiredPage />;
   // Auth gate: if we can't enumerate the user's installations we treat
   // the org as not-found. Same response whether the org is missing,
   // private, or the GitHub side is broken — keeps enumeration shut.
@@ -35,11 +41,13 @@ export default async function OrgScansPage({ params }: PageProps) {
 
   let scans: ScanRow[] = [];
   let trends: Trends | null = null;
-  let dbStatus: "ok" | "error" = "ok";
+  let dbStatus: "ok" | "error" | "unauthorized" = "ok";
   // History is limited to the repositories this user can open. If that
   // list cannot be read, show nothing rather than everything.
   const visible = await listVisibleRepoNames(org.installationId);
-  if (visible.status !== "ok") {
+  if (visible.status === "unauthorized") {
+    dbStatus = "unauthorized";
+  } else if (visible.status !== "ok") {
     dbStatus = "error";
   } else {
     try {
@@ -109,7 +117,9 @@ export default async function OrgScansPage({ params }: PageProps) {
           />
         ) : null}
 
-        {dbStatus === "error" ? (
+        {dbStatus === "unauthorized" ? (
+          <SessionExpiredNotice />
+        ) : dbStatus === "error" ? (
           <ErrorState />
         ) : scans.length === 0 ? (
           <EmptyState />

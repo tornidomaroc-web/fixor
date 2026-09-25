@@ -41,6 +41,8 @@ export type OrgAccess =
       role: OrgRole;
     }
   | { status: "not_found" }
+  /** GitHub refused the user's token (lib/github.ts): a new sign-in is needed. */
+  | { status: "unauthorized" }
   | { status: "github_unavailable" };
 
 function field(body: unknown, key: string): unknown {
@@ -81,6 +83,7 @@ export async function installationRole(
  */
 export async function getOrgAccess(orgId: string): Promise<OrgAccess> {
   const result = await listFixorInstallations();
+  if (result.status === "unauthorized") return { status: "unauthorized" };
   if (result.status !== "ok") return { status: "github_unavailable" };
   const allowed = result.installations.map((i) => String(i.id));
   const org = await getOrgForUser(orgId, allowed);

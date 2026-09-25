@@ -71,6 +71,9 @@ export async function POST(req: Request) {
   //    installation's owner may buy for the org: the checkout carries the
   //    org's Paddle customer.
   const access = await getOrgAccess(orgId);
+  if (access.status === "unauthorized") {
+    return NextResponse.json({ error: "github_unauthorized" }, { status: 401 });
+  }
   if (access.status === "github_unavailable") {
     return NextResponse.json(
       { error: "github_unavailable" },

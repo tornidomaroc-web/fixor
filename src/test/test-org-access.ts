@@ -35,13 +35,7 @@ process.env.FIXOR_GITHUB_APP_ID = "1111";
 process.env.PADDLE_PRICE_INDIE = "pri_witness_indie";
 process.env.PADDLE_PRICE_TEAM = "pri_witness_team";
 
-import * as fs from "fs";
-import * as path from "path";
-import * as ts from "typescript";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Module = require("module") as {
-  _resolveFilename: (req: string, parent: { filename?: string } | undefined, ...rest: unknown[]) => string;
-};
+import { installDashboardLoader, renderPage as renderDashboardPage } from "./lib/dashboard-loader";
 
 let failures = 0;
 function assert(cond: unknown, msg: string): void {
@@ -139,34 +133,9 @@ const emailStamps: string[][] = [];
 const settingsReads: string[] = [];
 
 // ---- module loader: dashboard source in, stubs for everything around it ------
-
-const DASH_SRC = path.join(process.cwd(), "apps", "dashboard", "src");
-const OUT_ROOT = path.join(process.cwd(), "dist", "test", "dashboard-org-access");
-
-class NotFound extends Error {}
-const marker = (name: string) => {
-  const f = (props: unknown) => ({ type: name, props });
-  Object.defineProperty(f, "name", { value: name });
-  (f as unknown as { __stub: true }).__stub = true;
-  return f;
-};
-const componentModule = new Proxy({}, {
-  get: (_t, key) => (key === "__esModule" ? true : typeof key === "string" && key !== "then" ? marker(key) : undefined),
-});
+// (src/test/lib/dashboard-loader.ts; only the data layer is stubbed here)
 
 const STUBS: Record<string, unknown> = {
-  "server-only": {},
-  "react/jsx-runtime": {
-    jsx: (type: unknown, props: unknown) => ({ type, props }),
-    jsxs: (type: unknown, props: unknown) => ({ type, props }),
-    Fragment: "Fragment",
-  },
-  "next/link": { __esModule: true, default: marker("Link") },
-  "next/navigation": { notFound: () => { throw new NotFound("NEXT_NOT_FOUND"); } },
-  "next/server": {
-    NextResponse: { json: (body: unknown, init?: { status?: number }) => ({ status: init?.status ?? 200, body }) },
-  },
-  "@clerk/nextjs": { UserButton: marker("UserButton") },
   "@clerk/nextjs/server": {
     auth: async () => ({ userId: `clerk_${current.githubId}` }),
     clerkClient: async () => ({
@@ -176,7 +145,6 @@ const STUBS: Record<string, unknown> = {
       },
     }),
   },
-  "@/lib/utils": { cn: (...a: unknown[]) => a.filter(Boolean).join(" ") },
   "@/lib/scans-data": {
     getOrgForUser: async (orgId: string, allowed: string[]) =>
       ORGS.find((o) => o.id === orgId && allowed.includes(o.installationId)) ?? null,
@@ -212,86 +180,21 @@ const STUBS: Record<string, unknown> = {
     },
   },
 };
-for (const [id, stub] of Object.entries(STUBS)) {
-  const key = `\0stub:${id}`;
-  (require.cache as Record<string, unknown>)[key] = { id: key, filename: key, loaded: true, exports: stub };
-}
-
-function sourceFor(abs: string): string | null {
-  for (const ext of [".ts", ".tsx"]) if (fs.existsSync(abs + ext)) return abs + ext;
-  return null;
-}
-function transpileTo(srcFile: string): string {
-  const rel = path.relative(DASH_SRC, srcFile).replace(/\.tsx?$/, ".js");
-  const out = path.join(OUT_ROOT, rel);
-  const text = ts.transpileModule(fs.readFileSync(srcFile, "utf8"), {
-    fileName: srcFile,
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX },
-  }).outputText;
-  fs.mkdirSync(path.dirname(out), { recursive: true });
-  fs.writeFileSync(out, text);
-  return out;
-}
-const origResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-  if (Object.prototype.hasOwnProperty.call(STUBS, request)) return `\0stub:${request}`;
-  if (request.startsWith("@/components/")) return "\0stub:@components";
-  let target: string | null = null;
-  if (request.startsWith("@/")) target = path.join(DASH_SRC, request.slice(2));
-  else if (request.startsWith(".") && parent?.filename?.startsWith(OUT_ROOT)) {
-    const parentSrc = path.join(DASH_SRC, path.relative(OUT_ROOT, path.dirname(parent.filename)));
-    target = path.join(parentSrc, request);
-  }
-  if (target) {
-    const src = sourceFor(target);
-    if (!src) throw new Error(`witness loader: no dashboard source for ${request}`);
-    return transpileTo(src);
-  }
-  return origResolve.call(this, request, parent, ...rest);
-};
-(require.cache as Record<string, unknown>)["\0stub:@components"] = { id: "c", filename: "c", loaded: true, exports: componentModule };
-
-function load<T>(rel: string): T {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require(`@/${rel}`) as T;
-}
+const { load } = installDashboardLoader({ outDirName: "dashboard-org-access", stubs: STUBS });
 
 // ---- running a route or a page as a persona -----------------------------------
 
 type RouteResult = { status: number; body: Record<string, unknown> };
 async function as<T>(p: Persona, fn: () => Promise<T>): Promise<T> {
   current = p;
-  const realErr = console.error;
-  console.error = (...a: unknown[]) => { if (!String(a[0]).startsWith("[fixor-debug]")) realErr(...a); };
-  try { return await fn(); } finally { console.error = realErr; }
+  return fn();
 }
 function req(url: string, body: unknown, method = "POST"): Request {
   return new Request(`https://dash.example${url}`, { method, body: JSON.stringify(body), headers: { "content-type": "application/json" } });
 }
 
-/** Expands the page's own function components; stubbed components stay as markers. */
-function expand(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(expand);
-  if (!node || typeof node !== "object") return node;
-  if (!("type" in node) || !("props" in node)) {
-    return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, expand(v)]));
-  }
-  const el = node as { type: unknown; props?: Record<string, unknown> };
-  if (typeof el.type === "function" && !(el.type as { __stub?: true }).__stub) {
-    return expand((el.type as (p: unknown) => unknown)(el.props ?? {}));
-  }
-  const props: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(el.props ?? {})) props[k] = expand(v);
-  return { type: typeof el.type === "function" ? (el.type as { name: string }).name : el.type, props };
-}
-async function renderPage(page: (a: unknown) => Promise<unknown>, id: string | null): Promise<string> {
-  try {
-    const tree = await page({ params: Promise.resolve({ id }), searchParams: Promise.resolve({}) });
-    return JSON.stringify(expand(tree));
-  } catch (err) {
-    if (err instanceof NotFound) return "404";
-    throw err;
-  }
+function renderPage(page: (a: unknown) => Promise<unknown>, id: string | null): Promise<string> {
+  return renderDashboardPage(page, { id });
 }
 const has = (tree: string, needle: string | number) =>
   tree.includes(typeof needle === "number" ? `:${needle}` : needle);
