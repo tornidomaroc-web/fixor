@@ -30,6 +30,7 @@ import {
   DEFAULT_SCAN_DEADLINE_MS,
   holdSlotUntilSettled,
   reportSlotLeak,
+  startSignal,
   withScanDeadline,
 } from "../../lib/scan-deadline";
 import { checkBudget, type BudgetCheck } from "../../services/cost-store";
@@ -439,6 +440,7 @@ async function runAccepted(
     installationId !== null ? String(installationId) : `unpriced:${owner}/${repo}`;
   const deadlineMs = options.scanDeadlineMs ?? DEFAULT_SCAN_DEADLINE_MS;
   const label = { installationId, owner, repo, pullNumber, headSha, scanRunId: run.id };
+  const clock = startSignal();
   let started: number | undefined;
   const scan = queue.run(
     queueKey,
@@ -447,6 +449,7 @@ async function runAccepted(
       graceMs: options.scanSlotGraceMs,
       work: async () => {
         started = Date.now();
+        clock.started();
         try {
           return await scanDelivery(options, run, store, ctx);
         } finally {
@@ -462,6 +465,7 @@ async function runAccepted(
     // was answered at the deadline long before, so that value is never seen.
     scan: scan as Promise<HandlePullRequestWebhookResult>,
     deadlineMs,
+    startsWhen: clock.whenStarted,
     cancel: run.cancel,
     label,
     onDeadline: async () => {

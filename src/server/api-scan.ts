@@ -18,6 +18,7 @@ import {
   DEFAULT_SCAN_DEADLINE_MS,
   holdSlotUntilSettled,
   reportSlotLeak,
+  startSignal,
   withScanDeadline,
 } from "../lib/scan-deadline";
 import { scanQueue, type ScanQueue } from "../lib/scan-queue";
@@ -94,6 +95,7 @@ export async function runApiScan(
     | { refusal: NonNullable<ReturnType<typeof budgetRefusalHttp>> }
     | { workflow: WorkflowResult }
     | { timedOut: true };
+  const clock = startSignal();
   let started: number | undefined;
   const scan = queue.run(
     installationId,
@@ -102,6 +104,7 @@ export async function runApiScan(
       graceMs: deps.slotGraceMs,
       work: async () => {
         started = Date.now();
+        clock.started();
         const refusal = budgetRefusalHttp(await deps.checkBudget(installationId));
         if (refusal) return { refusal };
         const workflow = await costContext.run(ctx, () =>
@@ -115,6 +118,7 @@ export async function runApiScan(
   const outcome = await withScanDeadline<Gated>({
     scan: scan as Promise<Gated>,
     deadlineMs,
+    startsWhen: clock.whenStarted,
     cancel,
     label,
     onDeadline: () => ({ timedOut: true }),

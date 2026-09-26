@@ -50,54 +50,76 @@ export interface ScanDeadlineOptions<T> {
   onDeadline: () => Promise<T> | T;
   /** For the log and Sentry lines. */
   label: Record<string, unknown>;
+  /**
+   * When the clock starts. The scan may wait in the queue before it runs,
+   * and waiting is not scanning: the deadline is armed only once this
+   * resolves (the queued work's first line). Omitted, it is armed at once.
+   */
+  startsWhen?: Promise<void>;
 }
 
 /**
- * Races `scan` against `deadlineMs`. Resolves with the scan's result if it
- * settles first, otherwise with `onDeadline()`'s result after cancelling
- * the scan's model calls. Never rejects on the deadline path; a late
- * rejection of the scan itself is logged, never unhandled.
+ * Races `scan` against `deadlineMs`, counted from `startsWhen`. Resolves
+ * with the scan's result if it settles first, otherwise with
+ * `onDeadline()`'s result after cancelling the scan's model calls. Never
+ * rejects on the deadline path; a late rejection of the scan itself is
+ * logged, never unhandled.
  */
 export function withScanDeadline<T>(opts: ScanDeadlineOptions<T>): Promise<T> {
   const { scan, deadlineMs, cancel, onDeadline, label } = opts;
   return new Promise<T>((resolve, reject) => {
     let settled = false;
-    const timer = setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = (): void => {
       if (settled) return;
-      settled = true;
-      cancel.cancelled = true;
-      logger.error(
-        { ...label, deadlineMs },
-        "scan did not finish within the deadline: its model calls are cancelled and the caller is answered",
-      );
-      Sentry.captureMessage("scan deadline exceeded", {
-        level: "error",
-        tags: { "fixor.phase": "scan_deadline" },
-        extra: { ...label, deadlineMs },
-      });
-      // The late result, if any, must not become an unhandled rejection.
-      scan.catch((err) => {
-        logger.error({ ...label, err }, "scan failed after its deadline");
-      });
-      Promise.resolve()
-        .then(onDeadline)
-        .then(resolve, reject);
-    }, deadlineMs);
+      timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cancel.cancelled = true;
+        logger.error(
+          { ...label, deadlineMs },
+          "scan did not finish within the deadline: its model calls are cancelled and the caller is answered",
+        );
+        Sentry.captureMessage("scan deadline exceeded", {
+          level: "error",
+          tags: { "fixor.phase": "scan_deadline" },
+          extra: { ...label, deadlineMs },
+        });
+        // The late result, if any, must not become an unhandled rejection.
+        scan.catch((err) => {
+          logger.error({ ...label, err }, "scan failed after its deadline");
+        });
+        Promise.resolve()
+          .then(onDeadline)
+          .then(resolve, reject);
+      }, deadlineMs);
+    };
+    if (opts.startsWhen) void opts.startsWhen.then(arm);
+    else arm();
     scan.then(
       (value) => {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         resolve(value);
       },
       (err) => {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         reject(err);
       },
     );
   });
+}
+
+/** A promise and the function that resolves it: the queued work calls `started()` on its first line. */
+export function startSignal(): { started: () => void; whenStarted: Promise<void> } {
+  let started!: () => void;
+  const whenStarted = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  return { started, whenStarted };
 }
 
 export interface HoldSlotOptions<T> {

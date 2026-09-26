@@ -324,6 +324,30 @@ async function testCallClaudeRefusesWhenCancelled(): Promise<void> {
   }
 }
 
+async function testApiDeadlineStartsWhenScanStarts(): Promise<void> {
+  section("H. API: a request that waits in the queue longer than its deadline is not timed out for waiting");
+  const queue = new ScanQueue(1);
+  let release!: () => void;
+  const blocker = new Promise<void>((r) => { release = r; });
+  const occupied = queue.run("7401", () => blocker);
+  await sleep(5);
+  const t0 = Date.now();
+  // The request waits ~150 ms behind the blocker, then its 40 ms workflow
+  // runs against a 100 ms deadline: it completes only if the wait did not
+  // count. (Section E of test-scan-concurrency guards the webhook path.)
+  const pending = runApiScan("7401", PR_DIFF, { repoName: "api/test", scanId: "h1" }, {
+    checkBudget: async () => WITHIN,
+    runWorkflow: async () => { await sleep(40); return emptyWorkflow(); },
+    queue, deadlineMs: 100,
+  });
+  await sleep(150);
+  release();
+  await occupied;
+  const r = await pending;
+  console.log(`       waited ~150 ms with a 100 ms deadline, then a 40 ms workflow: status ${r.status} at ${Date.now() - t0} ms`);
+  assertEq(r.status, 200, "the request completed: its deadline began when its scan started, not when it was queued");
+}
+
 function testWebhookPlumbsCancelFlag(): void {
   section("G. structural: the webhook handler hands its cancel flag to the workflow's cost context");
   const src = fs.readFileSync(path.join(process.cwd(), "src/integrations/github/pr-webhook-handler.ts"), "utf8");
@@ -333,7 +357,7 @@ function testWebhookPlumbsCancelFlag(): void {
   assert(deadlineUsesIt, "the deadline race is given the same `run.cancel` (read from source)");
 }
 
-const EXPECTED_SECTIONS = 7;
+const EXPECTED_SECTIONS = 8;
 
 async function main(): Promise<void> {
   if (getAnthropicClient() !== null) {
@@ -348,6 +372,7 @@ async function main(): Promise<void> {
     testApiDeadline,
     testApiControl,
     testCallClaudeRefusesWhenCancelled,
+    testApiDeadlineStartsWhenScanStarts,
     testWebhookPlumbsCancelFlag,
   ]) {
     try {
