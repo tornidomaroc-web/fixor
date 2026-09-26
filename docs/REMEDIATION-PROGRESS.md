@@ -2403,6 +2403,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #248 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #249 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #250 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #251 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2650,6 +2651,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #248 | `d694fd1` | 2026-09-25 03:36:07 | `feat/ack-then-scan` (reflog: last move 03:23:00) | `a6643fe6`, captured before | 404 on first read after the merge | `feat/ack-then-scan` at `2748830` |
 | #249 | `8d10d77` | 2026-09-25 05:23:31 | `docs/public-copy-and-248-row` (reflog: last move 05:03:49) | `1f4ca04e`, recomputed 2026-09-25 from the PR head `6bfbe51` | not read at merge by this entry; 404 at 22:00 | `docs/public-copy-and-248-row` at `6bfbe51` |
 | #250 | `8162a05` | 2026-09-25 22:30:23 | `fix/cap-provision-on-scan` (reflog: last move 22:02:15) | `5647d1f8`, captured before | 404 on first read after the merge, 22:30:44 | `fix/cap-provision-on-scan` at `748f7f8` |
+| #251 | `a96cb5e` | 2026-09-25 22:53:02 | `fix/scan-concurrency` (reflog: last move 22:41:05) | `03140c72`, captured before | 404 on first read after the merge, 22:53:10 | `fix/scan-concurrency` at `24053b4` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2775,6 +2777,17 @@ The head ref answered 404 on the first read after the merge, at 22:30:44. gh 2.9
 2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm invoked FROM the merged
 branch reads 27 observations, 2 green and 25 red; the THIRD-branch arm is unchanged at 5, all RED;
 the register carries 38 rows, 36 RED. No cause is named. **The merge of this entry will owe the next
+row.**
+
+**#251 (2026-09-25).** The owner ran `gh pr merge 251 --squash --match-head-commit
+24053b4211bf1b4dfc16bc285087db77082c1b31` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 22:41:05, and HEAD was still there after it. **RED**: `gh` exited 0 and printed
+nothing; the local ref survived at `24053b4`. Assertion 2 held against a tree captured before the
+merge: `03140c72` on both. The squash `a96cb5e` has the single parent `8162a05`, merged at 22:53:02Z.
+The head ref answered 404 on the first read after the merge, at 22:53:10. gh 2.91.0, git
+2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm invoked FROM the merged
+branch reads 28 observations, 2 green and 26 red; the THIRD-branch arm is unchanged at 5, all RED;
+the register carries 39 rows, 37 RED. No cause is named. **The merge of this entry will owe the next
 row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
@@ -3150,6 +3163,33 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   |---|---|---|---|---|
   | #250 | `8162a05` | 2026-09-25 22:32:17 | 22:31:15 | not triggered |
 
+  **#251 (added 2026-09-26).** CI (both Node jobs, `head=a96cb5e`) and the `secrets` workflow
+  concluded success on the merge commit; each job's log carries `Scan-concurrency witness: PASS.`
+  and `Budget fail-closed witness: PASS.` with `every section ran (expected 13, got 13)`, so section
+  D3 (a hung provisioning refused as timeout) ran on `main`. At 22:58:26 the backend answered
+  `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":255}`, which dates the container to about
+  22:54:11, the deploy; the dashboard answered `{"status":"ok","db":"ok"}`. Not observed: the queue
+  under a real burst, or a real hung provisioning.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #251 | `a96cb5e` | 2026-09-25 22:54:14 | 22:53:47 | not triggered |
+
+  **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
+  `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
+  a plain fast-forward to trial PR #1 (`trial/auth-route`, `2f9e67a..4417fa0`) at 23:15:41Z.
+  Fixor's comment 5789699725 (`fixor-security[bot]`) was edited in place at 23:15:44Z, three seconds
+  later, to name `4417fa0` and to read: "This installation has hit its $0.00 monthly cap (spent
+  $5.04 this month)", then "This installation's cap is $0, so scans stay paused until the cap is
+  raised." and "To raise the cap, contact the Fixor operator. The current cap is shown on your
+  dashboard's billing page." The old "Scans resume automatically next month." and the env-variable
+  line are gone. Spend unchanged at $5.04; PR #1 still has exactly two comments, and the owner's
+  planted marker comment 5789704598 is unedited (last updated 2026-09-23T05:41:07Z). What this shows
+  of each PR: #249's $0-cap wording is live; #250 and #251 did not break the refusal path (the
+  installation has an org row, so #250's provisioning branch was not exercised, and one delivery
+  exercises no queue ordering or concurrency). No model call was possible: the cap is $0 and the
+  commit carries no diff.
+
 - **THE OWNER'S INSTALLATION CAP IS $0, WITNESSED IN PRODUCTION (2026-09-24).** As reported by the
   owner, not read by this entry: `orgs.monthly_cap_usd` for installation 127676992 was set from 5 to
   0 by one guarded `UPDATE`, which returned one row, and `FIXOR_BUDGET_EXEMPT_INSTALLATIONS` in
@@ -3302,10 +3342,19 @@ were stated by the owner and not read by the entry that filed them.
 4. **CKSE to its own database and role, then a drizzle `tablesFilter`.** See the DONE entry "THE
    PRODUCTION DATABASE IS SHARED WITH ANOTHER PROJECT". **Do it before CKSE is reconnected**: its
    connection still carries the old password (as reported), and giving it the new owner password
-   would re-open the shared-credential and `DROP TABLE` risks the move removes.
+   would re-open the shared-credential and `DROP TABLE` risks the move removes. **Designed
+   2026-09-25 in `docs/CKSE-SEPARATION.md`, an INTERNAL document**: gitignored under the
+   internal-docs block and never published, because it names the database's role, hosting plan and
+   write limits; it exists only in the owner's checkout. It lays out eight Neon steps in order with
+   the meaning of each result, $0 with a size check first, and two paths (fresh schema, or a
+   `dblink` copy through a throwaway role so no standing password is typed into the SQL editor).
+   The `tablesFilter` is in `drizzle.config.ts`, landed in #252, witnessed by
+   `test-drizzle-config-filter.ts`; it changes nothing about `db:migrate`, which never reads that
+   file. The Neon steps themselves are owner actions and have not been run.
 5. **Acknowledge-then-scan**, with the agreed retry rules (at-least-once; re-run an unfinished row
    once at startup; on a second failure post the "did not scan" notice) and a sweeper for stale
-   `pending` and `running` rows. #241 writes the row this builds on.
+   `pending` and `running` rows. #241 writes the row this builds on. **DONE in #248** (`d694fd1`,
+   2026-09-25); see its deploy entry for the $0 live check of the same day. Residuals: 5a, 5c, 5d.
 5a. **Railway gives the old deployment 0 seconds after SIGTERM** (Railway's deployment reference,
    read 2026-09-25: "By default, it is given 0 seconds to gracefully shutdown before being forcefully
    stopped with a SIGKILL"), and `railway.json` sets no `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`. So
@@ -3320,7 +3369,31 @@ were stated by the owner and not read by the entry that filed them.
    acknowledge-then-scan (the HTTP server ran concurrent synchronous scans). Harmless at a $0 cap:
    every scan is refused before the diff fetch. Fix before a positive cap or a second installation:
    a per-installation serial queue, or reserving an estimate against the cap before the first
-   model call.
+   model call. **DONE in #251** (`a96cb5e`, 2026-09-25): `src/lib/scan-queue.ts` runs one scan at a
+   time per installation and at most three at once per process; the webhook handler and
+   `POST /api/v1/scan` share it, with the budget read inside the queued task. The same PR gives the
+   provisioning of a missing org the budget read's timeout. Two residuals follow as 5c and 5d.
+5c. **`POST /api/v1/scan` has no deadline inside its queued task (found 2026-09-25, #251 review).**
+   The webhook path races its scan against `DEFAULT_SCAN_DEADLINE_MS`; the API path awaits
+   `runWorkflow` with no bound, so a hung API scan holds its installation's chain and one of the three
+   global slots until the process restarts, and every later scan for that installation waits behind
+   it. Fix: race the queued task against the same deadline the handler uses, refuse with a 504-style
+   body, and witness it with a workflow that never settles. **Why it does not block now:** API tokens
+   are issued by the operator on request (item 10), and this file records no token issued to anyone
+   but the owner (not read from the `api_tokens` table); with
+   one installation at a $0 cap, `checkBudget` refuses inside the task before `runWorkflow` is ever
+   called, so no API scan can reach the unbounded step. It blocks issuing a token to a stranger.
+5d. **The webhook deadline frees the queue slot while the scan may still run (found 2026-09-25,
+   #251 review).** The queued task is `Promise.race([scan, deadline])`; when the deadline fires the
+   task resolves, the slot is released, and `scanDelivery` can keep running in the background. So
+   real concurrent work can exceed `MAX_CONCURRENT_SCANS`, and a late scan's model calls can overlap
+   the next scan for the same installation, which weakens 5b's per-installation ordering for that
+   pair. Spend stays ledgered and capped by `checkBudget` on the next read. Fix: carry an
+   `AbortSignal` from the deadline into the workflow and hold the slot until the scan has actually
+   settled (or its abort has landed), witnessed by a scan that ignores its deadline. **Why it does
+   not block now:** at a $0 cap every scan is refused before the diff fetch, so nothing runs long
+   enough to meet the deadline; with one installation there is no second tenant to crowd. It blocks
+   a positive cap or a second installation.
 6. **`SENTRY_DSN` in Railway: read whether it is set.** CLOSED 2026-09-25, **as reported by the
    owner, not read by this entry**: the variable is set in Railway, per a record from an earlier
    session. No tracked record carries that reading; the only earlier commits naming the variable say
