@@ -25,7 +25,13 @@ import {
   buildWholeFileScanInput,
   resolveRouteGuardSidecars,
 } from "./whole-file-scan-input";
-import { costContext, type CostContextStore, type ScanSpend } from "../../lib/cost-context";
+import { costContext, type CostContextStore, type ScanCancel, type ScanSpend } from "../../lib/cost-context";
+import {
+  DEFAULT_SCAN_DEADLINE_MS,
+  holdSlotUntilSettled,
+  reportSlotLeak,
+  withScanDeadline,
+} from "../../lib/scan-deadline";
 import { checkBudget, type BudgetCheck } from "../../services/cost-store";
 import {
   drizzleScanRunStore,
@@ -103,6 +109,12 @@ export type HandlePullRequestWebhookOptions = {
    * stay `running` forever. Default DEFAULT_SCAN_DEADLINE_MS.
    */
   scanDeadlineMs?: number;
+  /**
+   * How long past the deadline a timed-out scan keeps its queue slot while
+   * it settles; then the slot is released and the leak reported. Default:
+   * the deadline again (lib/scan-deadline.ts).
+   */
+  scanSlotGraceMs?: number;
   /** Test injection: the queue scans run through. Production uses the process-wide one. */
   scanQueue?: ScanQueue;
   pilotPersistence?: boolean;
@@ -161,8 +173,8 @@ export type AcceptPullRequestDeliveryResult =
   | AcceptedPullRequestDelivery
   | { accepted: false; result: HandlePullRequestWebhookFailure };
 
-/** Ten minutes: the 120 s workflow race plus every GitHub call, several times over. */
-export const DEFAULT_SCAN_DEADLINE_MS = 10 * 60_000;
+/** Ten minutes: the 120 s workflow race plus every GitHub call, several times over. Defined in lib/scan-deadline.ts, shared with the API path. */
+export { DEFAULT_SCAN_DEADLINE_MS };
 
 export type HandlePullRequestWebhookResult =
   | HandlePullRequestWebhookSuccess
@@ -328,6 +340,7 @@ export async function acceptPullRequestDelivery(
     preScanWriteFailed: false,
     spendUnrecorded: false,
     finished: false,
+    cancel: { cancelled: false },
   };
   if (installationId !== null) {
     const deliveryId = options.deliveryId ?? null;
@@ -414,55 +427,56 @@ async function runAccepted(
   // previous scan's ledger rows, and a bounded number at once overall
   // (lib/scan-queue.ts). The deadline starts when the scan starts, not
   // while it waits in the queue.
+  //
+  // The queued task is the scan itself, so the slot is held until the scan
+  // has settled (bounded by the grace in lib/scan-deadline.ts), and the
+  // deadline race sits OUTSIDE the queue: at the deadline the caller is
+  // answered, the row is closed as timed_out and the scan's model calls
+  // are cancelled, but its slot is not handed to the next scan while it
+  // still runs. The 202 was sent long before any of this (ack-then-scan).
   const queue = options.scanQueue ?? scanQueue;
   const queueKey =
     installationId !== null ? String(installationId) : `unpriced:${owner}/${repo}`;
-  return queue.run(queueKey, async () => {
-    const scan = (async () => {
-      try {
-        return await scanDelivery(options, run, store, ctx);
-      } finally {
+  const deadlineMs = options.scanDeadlineMs ?? DEFAULT_SCAN_DEADLINE_MS;
+  const label = { installationId, owner, repo, pullNumber, headSha, scanRunId: run.id };
+  let started: number | undefined;
+  const scan = queue.run(
+    queueKey,
+    holdSlotUntilSettled({
+      deadlineMs,
+      graceMs: options.scanSlotGraceMs,
+      work: async () => {
+        started = Date.now();
+        try {
+          return await scanDelivery(options, run, store, ctx);
+        } finally {
+          await finishOnce();
+        }
+      },
+      onLeak: () => reportSlotLeak(label, started === undefined ? 0 : Date.now() - started),
+    }),
+  );
+
+  return withScanDeadline<HandlePullRequestWebhookResult>({
+    // A leaked slot resolves the queue task with `undefined`; the caller
+    // was answered at the deadline long before, so that value is never seen.
+    scan: scan as Promise<HandlePullRequestWebhookResult>,
+    deadlineMs,
+    cancel: run.cancel,
+    label,
+    onDeadline: async () => {
+      if (!run.finished) {
+        run.outcome = emptyOutcome("failed", "timed_out");
         await finishOnce();
       }
-    })();
-
-    const deadlineMs = options.scanDeadlineMs ?? DEFAULT_SCAN_DEADLINE_MS;
-    let timer: NodeJS.Timeout | undefined;
-    const deadline = new Promise<HandlePullRequestWebhookResult>((resolve) => {
-      timer = setTimeout(() => {
-        void (async () => {
-          if (run.finished) return;
-          run.outcome = emptyOutcome("failed", "timed_out");
-          logger.error(
-            { installationId, owner, repo, pullNumber, headSha, deadlineMs, scanRunId: run.id },
-            "scan did not finish within the deadline: its row is closed as timed out",
-          );
-          Sentry.captureMessage("scan deadline exceeded", {
-            level: "error",
-            tags: { "fixor.phase": "scan_deadline" },
-            extra: { installationId, owner, repo, pullNumber, headSha, deadlineMs },
-          });
-          await finishOnce();
-          // The late result, if any, must not become an unhandled rejection.
-          scan.catch((err) => {
-            logger.error({ err, owner, repo, pullNumber, headSha }, "scan failed after its deadline");
-          });
-          resolve({
-            ok: false,
-            dryRun: ctx.dryRun,
-            signatureState: ctx.signatureState,
-            error: `Scan did not finish within ${deadlineMs} ms`,
-            timedOut: true,
-          });
-        })();
-      }, deadlineMs);
-    });
-
-    try {
-      return await Promise.race([scan, deadline]);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
+      return {
+        ok: false,
+        dryRun: ctx.dryRun,
+        signatureState: ctx.signatureState,
+        error: `Scan did not finish within ${deadlineMs} ms`,
+        timedOut: true,
+      };
+    },
   });
 }
 
@@ -502,6 +516,7 @@ export async function rerunRecordedScanRun(
     preScanWriteFailed: false,
     spendUnrecorded: false,
     finished: false,
+    cancel: { cancelled: false },
   };
   return runAccepted(options, run, store, {
     dryRun: options.dryRun === true,
@@ -578,6 +593,8 @@ type ScanRunState = {
   spendUnrecorded: boolean;
   /** The final state was written (or attempted) once; never again. */
   finished: boolean;
+  /** Set by the deadline; callClaude refuses this scan's later model calls. */
+  cancel: ScanCancel;
 };
 
 /**
@@ -862,6 +879,7 @@ async function scanDelivery(
           installationId,
           ...(run.id !== null ? { scanRunId: run.id } : {}),
           scanSpend: run.spend,
+          cancel: run.cancel,
         };
         workflow = await costContext.run(scanCtx, async () =>
           runAuditorWorkflow(semgrepPayload, metadata),
