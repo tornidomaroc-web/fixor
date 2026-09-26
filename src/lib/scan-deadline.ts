@@ -70,35 +70,45 @@ export function withScanDeadline<T>(opts: ScanDeadlineOptions<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const fireDeadline = (): void => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      cancel.cancelled = true;
+      logger.error(
+        { ...label, deadlineMs },
+        "scan did not finish within the deadline: its model calls are cancelled and the caller is answered",
+      );
+      Sentry.captureMessage("scan deadline exceeded", {
+        level: "error",
+        tags: { "fixor.phase": "scan_deadline" },
+        extra: { ...label, deadlineMs },
+      });
+      // The late result, if any, must not become an unhandled rejection.
+      scan.catch((err) => {
+        logger.error({ ...label, err }, "scan failed after its deadline");
+      });
+      Promise.resolve()
+        .then(onDeadline)
+        .then(resolve, reject);
+    };
     const arm = (): void => {
       if (settled) return;
-      timer = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        cancel.cancelled = true;
-        logger.error(
-          { ...label, deadlineMs },
-          "scan did not finish within the deadline: its model calls are cancelled and the caller is answered",
-        );
-        Sentry.captureMessage("scan deadline exceeded", {
-          level: "error",
-          tags: { "fixor.phase": "scan_deadline" },
-          extra: { ...label, deadlineMs },
-        });
-        // The late result, if any, must not become an unhandled rejection.
-        scan.catch((err) => {
-          logger.error({ ...label, err }, "scan failed after its deadline");
-        });
-        Promise.resolve()
-          .then(onDeadline)
-          .then(resolve, reject);
-      }, deadlineMs);
+      timer = setTimeout(fireDeadline, deadlineMs);
     };
     if (opts.startsWhen) void opts.startsWhen.then(arm);
     else arm();
     scan.then(
       (value) => {
         if (settled) return;
+        // A slot released by holdSlotUntilSettled settles with `undefined`:
+        // the scan is still running, so this is the deadline path, never a
+        // result for the caller (it can happen first only with a grace of
+        // zero or a timer race).
+        if (value === undefined) {
+          fireDeadline();
+          return;
+        }
         settled = true;
         if (timer) clearTimeout(timer);
         resolve(value);
