@@ -30,6 +30,7 @@ import {
   currentScanRunId,
   ledgerWriteFailed,
   markLedgerWriteFailed,
+  scanCancelled,
 } from "../lib/cost-context";
 import { calculateCost } from "../services/cost-tracking.service";
 import { recordCost } from "../services/cost-store";
@@ -123,7 +124,7 @@ export type MessagesCallResult =
   | { ok: true; message: Message; toolInput?: unknown; text: string }
   | {
       ok: false;
-      reason: "no_api_key" | "timeout" | "http_error" | "parse_error" | "spend_unrecorded";
+      reason: "no_api_key" | "timeout" | "http_error" | "parse_error" | "spend_unrecorded" | "scan_cancelled";
       error?: unknown;
     };
 
@@ -182,7 +183,7 @@ export async function callClaude(
   // signal that keeps "LLM call failed" from masquerading as "no findings"
   // downstream; see src/lib/llm-coverage.ts.
   const tally = (
-    reason?: "no_api_key" | "timeout" | "http_error" | "spend_unrecorded",
+    reason?: "no_api_key" | "timeout" | "http_error" | "spend_unrecorded" | "scan_cancelled",
   ): void => {
     if (opts.coverage === "auxiliary") return;
     recordLlmDetectionCall(
@@ -238,6 +239,21 @@ export async function callClaude(
   };
   if (ledgerWriteFailed()) return refuseUnrecordedSpend();
 
+  // A scan past its deadline makes no further model calls: its caller has
+  // been answered and its row closed as timed_out with the spend so far,
+  // so any later call would be spend the row never records and work no
+  // one reads (lib/scan-deadline.ts). Checked here and before every retry.
+  const refuseCancelled = (): MessagesCallResult => {
+    logger.warn(
+      { model: opts.model, caller: opts.callerId ?? "untagged" },
+      "callClaude refused: this scan passed its deadline",
+    );
+    tally("scan_cancelled");
+    recordLlmCall(null);
+    return { ok: false, reason: "scan_cancelled" };
+  };
+  if (scanCancelled()) return refuseCancelled();
+
   const client = _testDeps
     ? ({ messages: { create: _testDeps.create } } as unknown as Anthropic)
     : getAnthropicClient();
@@ -261,6 +277,7 @@ export async function callClaude(
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0 && ledgerWriteFailed()) return refuseUnrecordedSpend();
+    if (attempt > 0 && scanCancelled()) return refuseCancelled();
     attempts = attempt + 1;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);

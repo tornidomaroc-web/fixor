@@ -2404,6 +2404,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #249 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #250 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #251 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #252 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2652,6 +2653,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #249 | `8d10d77` | 2026-09-25 05:23:31 | `docs/public-copy-and-248-row` (reflog: last move 05:03:49) | `1f4ca04e`, recomputed 2026-09-25 from the PR head `6bfbe51` | not read at merge by this entry; 404 at 22:00 | `docs/public-copy-and-248-row` at `6bfbe51` |
 | #250 | `8162a05` | 2026-09-25 22:30:23 | `fix/cap-provision-on-scan` (reflog: last move 22:02:15) | `5647d1f8`, captured before | 404 on first read after the merge, 22:30:44 | `fix/cap-provision-on-scan` at `748f7f8` |
 | #251 | `a96cb5e` | 2026-09-25 22:53:02 | `fix/scan-concurrency` (reflog: last move 22:41:05) | `03140c72`, captured before | 404 on first read after the merge, 22:53:10 | `fix/scan-concurrency` at `24053b4` |
+| #252 | `05208a3` | 2026-09-26 01:18:32 | `chore/ckse-separation-design` (reflog: last move 2026-09-25 23:20:29) | `8e5f6b36`, captured before | 404 on first read after the merge, 01:18:41 | `chore/ckse-separation-design` at `9ce83eb` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2788,6 +2790,17 @@ The head ref answered 404 on the first read after the merge, at 22:53:10. gh 2.9
 2.53.0.windows.2. **Totals as a new dated record (2026-09-25):** the arm invoked FROM the merged
 branch reads 28 observations, 2 green and 26 red; the THIRD-branch arm is unchanged at 5, all RED;
 the register carries 39 rows, 37 RED. No cause is named. **The merge of this entry will owe the next
+row.**
+
+**#252 (2026-09-26).** The owner ran `gh pr merge 252 --squash --match-head-commit
+9ce83eb23a31b932b1d4425de7b01191e572baff` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 2026-09-25 23:20:29, and HEAD was still there after it. **RED**: `gh` exited 0
+and printed nothing; the local ref survived at `9ce83eb`. Assertion 2 held against a tree captured
+before the merge: `8e5f6b36` on both. The squash `05208a3` has the single parent `a96cb5e`, merged
+at 01:18:32Z. The head ref answered 404 on the first read after the merge, at 01:18:41. gh 2.91.0,
+git 2.53.0.windows.2. **Totals as a new dated record (2026-09-26):** the arm invoked FROM the merged
+branch reads 29 observations, 2 green and 27 red; the THIRD-branch arm is unchanged at 5, all RED;
+the register carries 40 rows, 38 RED. No cause is named. **The merge of this entry will owe the next
 row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
@@ -3174,6 +3187,19 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #251 | `a96cb5e` | 2026-09-25 22:54:14 | 22:53:47 | not triggered |
+
+  **#252 (added 2026-09-26).** CI (both Node jobs, `head=05208a3`) and the `secrets` workflow
+  concluded success on the merge commit; each job's log carries eleven `witness: PASS.` lines,
+  `Drizzle-config witness: PASS.` among them, and zero FAIL lines. `docs/CKSE-SEPARATION.md` is
+  absent from `main`'s tree, as the PR intended. At 01:22:14 the backend answered
+  `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":168}`, which dates the container to about
+  01:19:26, the deploy; the dashboard answered `{"status":"ok","db":"ok"}`. The `tablesFilter` is
+  read only by `drizzle-kit`, never by the running service, so these reads show only that nothing
+  regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #252 | `05208a3` | 2026-09-26 01:19:30 | 01:19:17 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
