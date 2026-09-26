@@ -27,6 +27,14 @@ export interface ScanSpend {
   usd: number;
 }
 
+/**
+ * The scan's cancellation flag, shared by reference between the deadline
+ * that sets it (lib/scan-deadline.ts) and the store that callClaude reads.
+ */
+export interface ScanCancel {
+  cancelled: boolean;
+}
+
 export interface CostContextStore {
   installationId: string | number;
   /** `scan_runs.id` of the PR scan in progress; absent when no row was written. */
@@ -35,6 +43,8 @@ export interface CostContextStore {
   scanSpend?: ScanSpend;
   /** Set once a ledger write failed; later model calls in this scan refuse. */
   ledgerWriteFailed?: boolean;
+  /** Set by the scan's deadline; later model calls in this scan refuse. */
+  cancel?: ScanCancel;
 }
 
 export const costContext = new AsyncLocalStorage<CostContextStore>();
@@ -62,4 +72,9 @@ export function markLedgerWriteFailed(): void {
 /** True once a ledger write in the current scan has failed. */
 export function ledgerWriteFailed(): boolean {
   return costContext.getStore()?.ledgerWriteFailed === true;
+}
+
+/** True once the current scan's deadline has passed; a no-op outside a scan. */
+export function scanCancelled(): boolean {
+  return costContext.getStore()?.cancel?.cancelled === true;
 }
