@@ -342,6 +342,7 @@ export async function acceptPullRequestDelivery(
     spendUnrecorded: false,
     finished: false,
     cancel: { cancelled: false },
+    costCtx: null,
   };
   if (installationId !== null) {
     const deliveryId = options.deliveryId ?? null;
@@ -470,14 +471,25 @@ async function runAccepted(
     label,
     onDeadline: async () => {
       if (!run.finished) {
+        // A ledger write that failed during the scan is the more serious
+        // truth than the timeout, so the row says that (tracker item 5f).
+        // Read from the workflow's cost context, which callClaude marks
+        // the moment a write fails; `run.spendUnrecorded` is set only
+        // once the workflow returns.
+        const unrecorded = run.spendUnrecorded || run.costCtx?.ledgerWriteFailed === true;
+        const closed = unrecorded
+          ? emptyOutcome("incomplete", "spend_unrecorded")
+          : emptyOutcome("failed", "timed_out");
         // The row keeps the spend up to the deadline, read from the
         // accumulator every ledger write also feeds (addScanSpend runs
-        // beside recordCost in callClaude), so the two records agree on
-        // every call that finished by now. A call still in flight at the
-        // deadline is neither cancelled nor waited for: it completes
-        // later, reaches the ledger and the caps, and never this row,
-        // which is final from here (finishOnce). Tracker item 5e (v).
-        run.outcome = { ...emptyOutcome("failed", "timed_out"), costUsd: run.spend.usd };
+        // before recordCost in callClaude), so the two records agree on
+        // every call whose write succeeded; a spend_unrecorded row also
+        // counts the call whose write failed, as scannedOutcome's does. A
+        // call still in flight at the deadline is neither cancelled nor
+        // waited for: it completes later, reaches the ledger and the caps,
+        // and never this row, which is final from here (finishOnce).
+        // Tracker items 5e (v) and 5f.
+        run.outcome = { ...closed, costUsd: run.spend.usd };
         await finishOnce();
       }
       return {
@@ -528,6 +540,7 @@ export async function rerunRecordedScanRun(
     spendUnrecorded: false,
     finished: false,
     cancel: { cancelled: false },
+    costCtx: null,
   };
   return runAccepted(options, run, store, {
     dryRun: options.dryRun === true,
@@ -606,6 +619,13 @@ type ScanRunState = {
   finished: boolean;
   /** Set by the deadline; callClaude refuses this scan's later model calls. */
   cancel: ScanCancel;
+  /**
+   * The cost context the workflow runs under; null until it starts.
+   * callClaude marks `ledgerWriteFailed` on it the moment a write fails,
+   * while `spendUnrecorded` above is set only once the workflow returns,
+   * which a scan past its deadline may never do (tracker item 5f).
+   */
+  costCtx: CostContextStore | null;
 };
 
 /**
@@ -892,6 +912,7 @@ async function scanDelivery(
           scanSpend: run.spend,
           cancel: run.cancel,
         };
+        run.costCtx = scanCtx;
         workflow = await costContext.run(scanCtx, async () =>
           runAuditorWorkflow(semgrepPayload, metadata),
         );

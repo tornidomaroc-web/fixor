@@ -52,8 +52,16 @@
  *      deadline completes later and reaches the ledger, never the row.
  *      (fails on main before this change: the row read 0)
  *
+ * Added with tracker item 5f:
+ *   M. a ledger write fails during the scan, then the deadline fires: the
+ *      row is closed incomplete/spend_unrecorded, the more serious truth,
+ *      not failed/timed_out, with cost_usd counting the call the ledger
+ *      lacks. (fails on main before this change: failed/timed_out; also
+ *      fails if the deadline reads only `run.spendUnrecorded`, which the
+ *      workflow sets only on return)
+ *
  * Keyless and $0: no key, no client (asserted first and last), dry-run
- * webhooks, stand-in workflows and a stand-in transport for F, J and L.
+ * webhooks, stand-in workflows and a stand-in transport for F, J, L and M.
  * Timing assertions are lower bounds or loose upper bounds only, so a
  * slow runner makes them later, never wrong.
  */
@@ -542,7 +550,49 @@ async function testTimedOutRowKeepsSpendUpToDeadline(): Promise<void> {
   }
 }
 
-const EXPECTED_SECTIONS = 12;
+async function testLedgerFailureThenDeadline(): Promise<void> {
+  section("M. a ledger write fails during the scan, then the deadline fires: the row says spend_unrecorded, not timed_out");
+  const queue = new ScanQueue(1);
+  const store = new MemoryStore();
+  const ledgerAttempts: number[] = [];
+  let creates = 0;
+  let budgetReads = 0;
+  let releaseAll!: () => void;
+  const released = new Promise<void>((r) => { releaseAll = r; });
+  setCallClaudeTestDeps({
+    async create() {
+      creates++;
+      if (creates === 1) return pricedMessage(); // finished; its ledger write fails below
+      await released; // any call already in flight stays in flight past the deadline
+      return pricedMessage();
+    },
+    async recordCost(_installationId, costUsd) {
+      ledgerAttempts.push(costUsd);
+      throw new Error("ledger insert refused (stand-in)");
+    },
+  });
+  try {
+    const r1 = await handlePullRequestWebhook(delivery(store, 5501, {
+      scanQueue: queue, scanDeadlineMs: 1_500, scanSlotGraceMs: 10_000,
+      resolveSemgrep: async () => TWO_CALL_DIFF,
+      // The pre-scan read passes; the post-scan re-read never settles, so
+      // the scan is past its deadline even if every later model call was
+      // refused and the workflow returned at once.
+      checkBudgetImpl: () => (++budgetReads === 1 ? Promise.resolve(WITHIN) : new Promise<BudgetCheck>(() => {})),
+    }));
+    const row = [...store.rows.values()][0];
+    console.log(`       at the deadline: row ${row?.status}/${row?.code} cost_usd ${row?.costUsd}; ledger attempts ${JSON.stringify(ledgerAttempts)}, none succeeded; calls started ${creates}; budget reads ${budgetReads}`);
+    assertEq([r1.ok, !r1.ok && r1.timedOut === true], [false, true], "the caller is still answered as timed out");
+    assertEq([row?.status, row?.code, store.finishCalls], ["incomplete", "spend_unrecorded", 1], "the row is incomplete/spend_unrecorded, finished once (fails on main before this change: failed/timed_out)");
+    assertEq(ledgerAttempts.length, 1, "exactly one ledger write was attempted, and it failed; every later model call was refused or held");
+    assertEq(row?.costUsd?.toFixed(6), (ledgerAttempts[0] ?? 0).toFixed(6), "cost_usd counts the call whose ledger write failed: the row holds spend the ledger lacks, as a spend_unrecorded row does by design");
+  } finally {
+    releaseAll();
+    setCallClaudeTestDeps(null);
+  }
+}
+
+const EXPECTED_SECTIONS = 13;
 
 async function main(): Promise<void> {
   if (getAnthropicClient() !== null) {
@@ -563,6 +613,7 @@ async function main(): Promise<void> {
     testRetryPathRefusesWhenCancelled,
     testApiGraceReleasesSlot,
     testTimedOutRowKeepsSpendUpToDeadline,
+    testLedgerFailureThenDeadline,
   ]) {
     try {
       await run();

@@ -2407,6 +2407,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #252 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #253 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #254 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #255 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2658,6 +2659,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #252 | `05208a3` | 2026-09-26 01:18:32 | `chore/ckse-separation-design` (reflog: last move 2026-09-25 23:20:29) | `8e5f6b36`, captured before | 404 on first read after the merge, 01:18:41 | `chore/ckse-separation-design` at `9ce83eb` |
 | #253 | `8b5f421` | 2026-09-26 22:53:44 | `fix/scan-deadline-slots` (reflog: last move 02:02:18) | `1682a7b0`, captured before | 404 on first read after the merge, 22:54:13 | `fix/scan-deadline-slots` at `dae7dad` |
 | #254 | `a007897` | 2026-09-27 01:23:23 | `docs/253-tracker-row` (reflog: last move 00:39:14) | `ebcb1012`, captured before | 404 on first read after the merge, 01:23:44 | `docs/253-tracker-row` at `1edf8ab` |
+| #255 | `0bec0b1` | 2026-09-27 02:40:24 | `fix/timed-out-row-spend` (reflog: last move 01:46:18) | `58da9ead`, captured before | 404 on first read after the merge, 02:40:47 | `fix/timed-out-row-spend` at `6349844` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2827,6 +2829,17 @@ The head ref answered 404 on the first read after the merge, at 01:23:44. gh 2.9
 2.53.0.windows.2. **Totals as a new dated record (2026-09-27), counted from the register table:** the
 arm invoked FROM the merged branch reads 31 observations, 2 green and 29 red; the THIRD-branch arm is
 unchanged at 5, all RED; the register carries 42 rows, 40 RED. No cause is named. **The merge of this
+entry will owe the next row.**
+
+**#255 (2026-09-27).** The owner ran `gh pr merge 255 --squash --match-head-commit
+634984432026ef7a9f0c4b49c2369e4ebf2164f1` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 01:46:18, and HEAD was still there after it. **RED**: `gh` exited 0 and printed
+nothing; the local ref survived at `6349844`. Assertion 2 held against a tree captured before the
+merge: `58da9ead` on both. The squash `0bec0b1` has the single parent `a007897`, merged at 02:40:24Z.
+The head ref answered 404 on the first read after the merge, at 02:40:47. gh 2.91.0, git
+2.53.0.windows.2. **Totals as a new dated record (2026-09-27), counted from the register table:** the
+arm invoked FROM the merged branch reads 32 observations, 2 green and 30 red; the THIRD-branch arm is
+unchanged at 5, all RED; the register carries 43 rows, 41 RED. No cause is named. **The merge of this
 entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
@@ -3254,6 +3267,21 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   |---|---|---|---|---|
   | #254 | `a007897` | 2026-09-27 01:23:46 | 01:24:16 | not triggered |
 
+  **#255 (added 2026-09-27).** CI (both Node jobs, `head=0bec0b1`) and the `secrets` workflow
+  concluded success on the merge commit; the CI log carries twenty-four `witness: PASS.` lines, two
+  `every section ran (expected 12, got 12)` lines for the scan-deadline witness, and zero `[FAIL]`
+  lines. The Railway and Vercel times are the `success` statuses of their GitHub deployments for
+  `0bec0b1`, posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or dashboard was read.
+  At 02:46:11 the backend answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":293}`,
+  which dates the container to about 02:41:18, the deploy; the dashboard answered
+  `{"status":"ok","db":"ok"}`. Not observed: a real scan meeting its deadline, so the row's new
+  `cost_usd` has not been seen in production. At the $0 cap no scan reaches a model call; these
+  reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #255 | `0bec0b1` | 2026-09-27 02:41:19 | 02:40:58 | not triggered |
+
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
   a plain fast-forward to trial PR #1 (`trial/auth-route`, `2f9e67a..4417fa0`) at 23:15:41Z.
@@ -3541,6 +3569,50 @@ were stated by the owner and not read by the entry that filed them.
    every retry reached the transport); with `onDeadline` reverted to `emptyOutcome`, which is
    `main`'s behaviour at `a007897`, section L fails twice (row `cost_usd` `0.000000`, expected
    `0.004500`, the one ledgered call).
+   **DONE in #255** (`0bec0b1`, 2026-09-27). **Qualification, 2026-09-27:** the two sentences above
+   that the row and the ledger "carry the same figure for every call finished by the deadline" and
+   that the ledger's total "exceeds the row's by exactly the in-flight calls" hold only while every
+   ledger write in the scan succeeds. `addScanSpend` runs before the ledger write, so a call whose
+   write fails is in the row's `cost_usd` and not in the ledger; the row can then exceed the ledger.
+   That case is 5f.
+5f. **A ledger write fails during a scan, then the deadline fires (found 2026-09-27, #255 review;
+   owner's decision 2026-09-27).** Before this item the row read `failed/timed_out`, because
+   `run.spendUnrecorded` is set only when the workflow returns, which a scan past its deadline may
+   never do, so the deadline never saw the failure. **Decision:** the row must say the more serious
+   truth: `incomplete/spend_unrecorded`, the same pairing `scannedOutcome` writes when the workflow
+   does return after a failed write. The ledger, the caps and #243's fail-closed guard are unchanged.
+   **DONE on branch `fix/spend-unrecorded-at-deadline` (2026-09-27; PR in review, so by this file's
+   own rule the item is in review, not done, until its squash lands; the merge entry owes the SHA).**
+   `onDeadline` (`pr-webhook-handler.ts`) reads `ledgerWriteFailed` from the workflow's cost
+   context, which `callClaude` marks the moment a write fails, and keeps `run.spendUnrecorded` as a
+   second source for a workflow that has returned. **What `cost_usd` holds:** `run.spend.usd` at the
+   deadline, exactly as for a `timed_out` row (5e), so it INCLUDES the call whose ledger write
+   failed. The row therefore claims spend the ledger lacks, by exactly the failed write(s); that is
+   the existing convention for every `spend_unrecorded` row ("its `cost_usd` still counts the
+   unrecorded calls"), and the caps under-see that spend, which is #243's recorded residual, not a
+   new one. **The reverse ordering, ruled 2026-09-27, no change made:** the deadline fires first, and
+   an in-flight call's ledger write fails afterwards. The row is already final (`finishOnce` is
+   write-once, and the sweeper relies on a finished row), so it stays `failed/timed_out` with the
+   spend up to the deadline; that call is in neither record, and its only trace is #243's Sentry
+   event and log line (`recordCost failed`, `fixor.spend_guard: tripped`). Reopening a finished row
+   was rejected: it would break the write-once invariant the sweeper and #248's retry rules rest on.
+   **What the row no longer says:** the timeout. The deadline's own Sentry event ("scan deadline
+   exceeded") and log line still fire before the row is closed, so the timeout is visible there and
+   nowhere on the row; `status` and `code` are `text` columns, so a combined code would need no
+   migration if the owner ever wants one. Consumers checked: the dashboard's status pill styles
+   `incomplete`, and the row's `error_message` is `SCAN_RUN_MESSAGES.spend_unrecorded`; the sweeper
+   lists only unfinished rows; nothing branches on `timed_out`. **Witnessed by section M of
+   `test-scan-deadline.ts`** (thirteen sections, in `test:ci`, keyless): one priced call whose
+   ledger write throws, every later call held or refused, the post-scan budget re-read never
+   settling, deadline 1.5 s. The run's own log shows the workflow had not returned at the deadline
+   (one budget read, two calls held), so the cost-context read is what decided the code. **Mutation
+   evidence, 2026-09-27, on the branch, each run exiting 1 and the intact tree exiting 0:** with
+   `onDeadline` reverted to unconditional `timed_out` (`main`'s behaviour at `0bec0b1`), M fails
+   (`["failed","timed_out",1]`); with the cost-context read dropped so only `run.spendUnrecorded` is
+   consulted, M fails the same way. **Note for the monthly digest:** `renderMonthlyDigestEmail`
+   (`apps/dashboard/src/lib/email-templates.ts`) has no caller yet; when it is wired up, its
+   "Anthropic spend" line must be summed from `cost_ledger`, never from `scan_runs.cost_usd`, which
+   for `spend_unrecorded` rows exceeds the ledger and for `timed_out` rows omits in-flight calls.
 6. **`SENTRY_DSN` in Railway: read whether it is set.** CLOSED 2026-09-25, **as reported by the
    owner, not read by this entry**: the variable is set in Railway, per a record from an earlier
    session. No tracked record carries that reading; the only earlier commits naming the variable say
