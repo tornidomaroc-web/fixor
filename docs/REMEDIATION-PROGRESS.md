@@ -5276,9 +5276,22 @@ because that widening is on the READING side and this argument turns on the RUNN
   template-context secret, none of them regex-shaped. Of the five held-out cases still unreached,
   no per-case cause is asserted, because opening those files to explain them would end their
   held-out status; the next reach change re-earns its baseline on a NEW held-out set. And reach is
-  not detection: the five Arm A cases that already reached the model were answered "not
-  vulnerable" 35 times out of 35, so the binding constraint on the field-trial verdict is the
-  model stage, not the prefilter; that is the recommendation carried in this PR's report.
+  not detection: the Arm A cases that reached the model were answered "not vulnerable" 35 times
+  out of 35.
+
+  **CORRECTED 2026-09-28, before this entry merged.** As first pushed, this paragraph concluded
+  that "the binding constraint on the field-trial verdict is the model stage, not the prefilter",
+  and the PR's report recommended a paid re-run of the same prompt on the same cases. A $0 read of
+  the 35 recorded answers (`docs/measurements/arm-a-verdict-read-2026-09-28/verdict-read-2026-09-28.md`)
+  refutes that reading: of the 17 vulnerable-side verdicts, 5 came from a lane whose question
+  cannot express the defect while the owning lane never called, 9 were on files that did not
+  contain the defect, 2 needed a route list declared in another file, and 1 (FUXA's
+  `url.includes('/dashboard')` gate, seen and called intentional) is a candidate genuine miss. The
+  constraint is routing and context, not the model's judgment and not the prompt. The next paid
+  question is pre-registered, not run: `forced-routing-prereg-2026-09-28.md` in the same directory
+  (owning lane, shipped prompts, judged on the held-out ten, 30 clean files for false positives,
+  350 calls, projected $14.21, hard ceiling $18.00). Also recorded there: the admission file's
+  "All 14 blobs" is a prose miscount; the manifest has 15 files and all 15 were hash-checked.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
