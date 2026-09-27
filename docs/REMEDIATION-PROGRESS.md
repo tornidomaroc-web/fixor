@@ -3455,30 +3455,40 @@ were stated by the owner and not read by the entry that filed them.
    enough to meet the deadline; with one installation there is no second tenant to crowd. It blocks
    a positive cap or a second installation.
    **DONE in #253** (`8b5f421`, 2026-09-26), by a different mechanism from the fix proposed above: no
-   `AbortSignal` reaches the workflow. At the deadline the caller is answered, the webhook row is
-   closed `failed/timed_out`, and the scan's cost context is marked cancelled, so `callClaude`
-   refuses, before the transport and with reason `scan_cancelled`, every call and every retry that
-   would START after the deadline. **No model call starts after the deadline; this is not zero
-   spend after it.** A call already in flight at the deadline is not aborted: it completes, is
-   billed, and is recorded in the ledger, so the budget caps count it; it is not in the scan row,
-   which was closed at the deadline. The queue slot is held until the scan settles, bounded by a
+   `AbortSignal` reaches the workflow. At the deadline the caller is answered, the webhook row (when
+   one was written) is closed `failed/timed_out`, and the scan's cost context is marked cancelled, so
+   `callClaude` refuses, before the transport and with reason `scan_cancelled`, every call and every
+   retry that would START after the deadline. **No model call starts after the deadline; this is not
+   zero spend after it.** A call already in flight at the deadline is not aborted: it completes, is
+   billed, and is written to the ledger, so the budget caps count it (unless that write fails, which
+   trips #243's fail-closed guard). **The scan row records none of a timed-out scan's spend, before
+   or after the deadline:** the row is closed through `emptyOutcome`, which writes `cost_usd` 0. That
+   is older than #253 and unchanged by it; for a timed-out scan the ledger is the only spend record.
+   The queue slot is held until the scan settles, bounded by a
    grace (default: the deadline again, ten minutes; no production caller overrides it); when the
    grace runs out the slot is released with a Sentry error and the task runs on, unable to start a
    model call. Per-call timeouts are at most 60 s (`config/models.ts`), so under the defaults no call
    from before the deadline is still in flight when the slot is released. GitHub fetches are still
    not abortable. Witnessed by sections A, B, C, F and G of `test-scan-deadline.ts`; G is structural,
    read from the handler's source. Follow-up owed: 5e.
-5e. **Follow-up owed on #253 (found 2026-09-26, #253 review).** (i) The module comment in
-   `src/lib/scan-deadline.ts` says "Spend after the deadline is therefore zero". That is false as
-   written (5d): a call in flight at the deadline completes and is billed. Correct the comment.
-   (ii) The `dae7dad` fix is unwitnessed: no section runs a grace of zero, so deleting the
-   `value === undefined` branch in `withScanDeadline` still passes the suite. The branch is
-   unreachable under the default grace. (iii) The retry-path refusal
-   (`attempt > 0 && scanCancelled()` in `anthropic-client.ts`) is unwitnessed; section F covers only
-   the first attempt. (iv) The API path's grace release is unwitnessed (5c); section B covers it on
-   the webhook path through the same `holdSlotUntilSettled`. **Why it does not block now:** the code
-   behaves as 5d says; these are a wrong comment and missing witnesses. At a $0 cap no scan reaches a
-   model call. One PR, before a positive cap or a second installation.
+5e. **Follow-up owed on #253 (found 2026-09-26, #253 review; extended 2026-09-27).** (i) Two code
+   comments misstate the spend (5d). `src/lib/scan-deadline.ts` says "Spend after the deadline is
+   therefore zero, which is what the row's `timed_out` outcome records"; a call in flight at the
+   deadline completes and is billed, and the row records $0 for the whole scan. `callClaude`'s
+   comment in `anthropic-client.ts` says the row is "closed as timed_out with the spend so far"; it
+   is closed with `cost_usd` 0. Correct both. (ii) The `dae7dad` fix is unwitnessed: no section
+   runs a grace of zero. Mutation, 2026-09-27, at `8b5f421`: with the `value === undefined` branch
+   in `withScanDeadline` deleted, `npm test` exits 0 with zero `[FAIL]` lines. The branch is
+   unreachable under the default grace. (iii) The retry-path refusal is unwitnessed; section F
+   covers only the first attempt. Mutation, same day and SHA: with `attempt > 0 && scanCancelled()`
+   deleted from `anthropic-client.ts`, `npm test` exits 0 with zero `[FAIL]` lines. (iv) The API
+   path's grace release is unwitnessed (5c); section B covers it on the webhook path through the
+   same `holdSlotUntilSettled`. Not verified by mutation. (v) **Owner's decision, not a defect
+   fix:** whether a `timed_out` row should carry the scan's spend so far (`run.spend.usd` at the
+   deadline) instead of 0. Today the row reads $0 for a scan that may have spent, so row-based spend
+   reporting under-counts, while the ledger and the caps do not. **Why it does not block now:** the
+   code refuses and holds slots as 5d says; the ledger carries the spend; at a $0 cap no scan reaches
+   a model call. One PR, before a positive cap or a second installation.
 6. **`SENTRY_DSN` in Railway: read whether it is set.** CLOSED 2026-09-25, **as reported by the
    owner, not read by this entry**: the variable is set in Railway, per a record from an earlier
    session. No tracked record carries that reading; the only earlier commits naming the variable say
