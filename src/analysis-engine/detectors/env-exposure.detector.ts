@@ -84,8 +84,19 @@ const PREFILTER_PATTERNS: { id: string; re: RegExp }[] = [
   { id: "go_iter_environ",        re: /\bos\.Environ\s*\(\s*\)/ },
 ];
 
+// Widened 2026-09-27 to the exact copy secrets-exposure has carried since
+// 2026-09-12 (e2e segments, api/app test dirs, `*.test.*` / `*.spec.*`
+// names, Go `_test.go`), so the six detectors are byte-identical again. The
+// measurement that forced it: widening the route-declaration regex without
+// this rule sent 304 supertest files (`server.post("/auth/x"`, chained
+// `.get('/v1/x')` under e2e/ and *.test.ts) in two clean repositories to the
+// model, about $11 per full scan at the trial's per-call rate. Record:
+// docs/measurements/detector-reach-2026-09-27/. The 2026-09-12 reason for
+// leaving these five copies narrow (fix-pair measurements in flight on the
+// old rule) expired with the 2026-09-14 walk.
 const SKIP_PATH_RE =
-  /(^|\/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(\/|$)/i;
+  /(^|\/)(test|tests|__tests__|spec|fixtures|examples?|scripts?|dev-tools|migrations?|seed|seeds|demo|e2e|e2e-[a-z0-9-]+|api[_-]tests|app-tests)(\/|$)/i;
+const SKIP_FILE_RE = /(\.(test|spec)\.[a-z]+|_test\.go)$/i;
 
 const SERVER_ONLY_RE = /^\s*import\s+["']server-only["']\s*;?\s*$/m;
 
@@ -461,7 +472,7 @@ export class EnvExposureDetector implements Detector {
 
   private shouldSkipPath(filePath: string): boolean {
     const normalized = filePath.replace(/\\/g, "/");
-    return SKIP_PATH_RE.test(normalized);
+    return SKIP_PATH_RE.test(normalized) || SKIP_FILE_RE.test(normalized);
   }
 
   private hasServerOnlyMarker(content: string): boolean {

@@ -166,6 +166,31 @@ const SOURCE_PATTERNS: PrefilterPattern[] = [
   // Go HTTP routers
   { id: "go_chi_urlparam",         re: /\bchi\.URLParam\s*\(/ },
   { id: "go_mux_vars",             re: /\bmux\.Vars\s*\(/ },
+  // --- Added 2026-09-27 (detector-reach work; record and fixtures under
+  // docs/measurements/detector-reach-2026-09-27/ and fixtures/reach/idor/).
+  // Each is a request accessor CodeQL's JavaScript RemoteFlowSource models
+  // treat as tainted and the patterns above did not spell. JS/TS only.
+  //
+  // An id-named key DESTRUCTURED out of the request object:
+  // `const { fileId, keyId } = req.body || {}` (Arm A case 04 read every
+  // id this way, so `express_body_id` never saw a `req.body.<id>` access),
+  // `const { id } = await req.json()` (App Router), `ctx.request.body`
+  // (Koa). The key set is the same `\w*[iI]d\b` express_body_id accepts.
+  {
+    id: "destructured_request_id",
+    re: /\{[^{}]*\b\w*[iI]d\b[^{}]*\}\s*=\s*(?:await\s+)?(?:(?:req|request|ctx(?:\.request)?)\.(?:params|query|body)\b|(?:req|request)\.json\s*\(\s*\))/,
+    lang: ["js", "jsx", "ts", "tsx"],
+  },
+  // Fastify names the request `request`; the Express patterns above only
+  // know `req`.
+  { id: "fastify_request_params",  re: /\brequest\.(?:params|query)\.\w+/, lang: ["js", "jsx", "ts", "tsx"] },
+  // Next.js App Router GET handlers read ids from the URL:
+  // `req.nextUrl.searchParams.get("id")`. Id-named keys only.
+  {
+    id: "searchparams_get_id",
+    re: /searchParams\.get\s*\(\s*['"](?:id|\w+[_-]?[iI]d)['"]\s*\)/,
+    lang: ["js", "jsx", "ts", "tsx"],
+  },
 ];
 
 /**
@@ -202,10 +227,55 @@ const SINK_PATTERNS: PrefilterPattern[] = [
   { id: "go_db_queryrow",          re: /\b(?:db|tx)\.(?:QueryRow|Query|Exec)(?:Context)?\s*\(/ },
   // Raw SELECT ... WHERE id (multi-line, bounded)
   { id: "raw_sql_where_id",        re: /\bSELECT\b[\s\S]{0,200}?\bWHERE\s+\w*[iI][dD]\s*=/i },
+  // --- Added 2026-09-27 (detector-reach work; record and fixtures under
+  // docs/measurements/detector-reach-2026-09-27/ and fixtures/reach/idor/).
+  // Every sink above is a READ by identifier on a handful of ORMs. Arm A
+  // case 07's IDOR was a Drizzle `.delete().where(eq(...))` and none of
+  // these matched. The set below is limited, deliberately, to shapes that
+  // occur in NONE of the 26 frozen replay fixtures under fixtures/idor/,
+  // so every recorded request key is unchanged: the generic ORM write
+  // verbs `.update(`, `.delete(`, `.updateMany(` and `.save(` are NOT
+  // here, because seven recorded fixtures contain them and adding them
+  // moves seven keys. That deferral is on the record in the measurement
+  // directory; it is the owner's paid call to re-record, never this file's.
+  //
+  // Drizzle: `.where(eq(t.id, id))` and the `db.select/update/delete(`
+  // builders.
+  { id: "drizzle_where_eq",        re: /\.where\s*\(\s*(?:eq|and|or|inArray)\s*\(/ },
+  { id: "drizzle_db_builder",      re: /\bdb\.(?:select|update|delete)\s*\(/ },
+  // Knex: `knex("table")` and `.where("id", id)` / `.where({ id })`.
+  { id: "knex_table",              re: /\bknex\s*\(\s*['"]\w+['"]\s*\)/ },
+  { id: "knex_where_id",           re: /\.where\s*\(\s*(?:\{\s*)?['"]?\w*[iI]d\b['"]?\s*[,:}]/ },
+  // Mongoose write-by-id and TypeORM find-by.
+  { id: "mongoose_write_by_id",    re: /\.(?:findOneAndUpdate|findByIdAndUpdate|findByIdAndDelete|findOneAndDelete|findOneAndReplace|updateOne|deleteOne)\s*\(/ },
+  { id: "typeorm_find_by",         re: /\.(?:findOneBy|findBy|findOneOrFail|findOneByOrFail)\s*\(/ },
+  // Sequelize `Model.destroy({ where })`: the options-object form only, so
+  // `socket.destroy()` and `stream.destroy()` do not match.
+  { id: "sequelize_destroy",       re: /\.destroy\s*\(\s*\{/ },
+  // Prisma write verbs absent from the frozen fixtures.
+  { id: "prisma_upsert_delete_many", re: /\.(?:upsert|deleteMany)\s*\(/ },
+  // Kysely table builders and Supabase's `.from("t").select/update/delete(`.
+  { id: "kysely_table_op",         re: /\.(?:selectFrom|updateTable|deleteFrom)\s*\(\s*['"]/ },
+  { id: "supabase_from_table",     re: /\.from\s*\(\s*['"]\w+['"]\s*\)\s*\.(?:select|update|delete|upsert|insert)\s*\(/ },
+  // The raw-SQL escape hatch of each ORM is a bare driver call by another
+  // name (the CodeQL framing): Prisma `$queryRaw`/`$executeRaw`, Knex and
+  // Sequelize `.raw(`, `sequelize.query(`.
+  { id: "orm_raw_escape_hatch",    re: /\$(?:queryRaw|executeRaw)(?:Unsafe)?\b|\b(?:knex|db|sequelize|connection)\.raw\s*\(|\bsequelize\.query\s*\(/ },
 ];
 
+// Widened 2026-09-27 to the exact copy secrets-exposure has carried since
+// 2026-09-12 (e2e segments, api/app test dirs, `*.test.*` / `*.spec.*`
+// names, Go `_test.go`), so the six detectors are byte-identical again. The
+// measurement that forced it: widening the route-declaration regex without
+// this rule sent 304 supertest files (`server.post("/auth/x"`, chained
+// `.get('/v1/x')` under e2e/ and *.test.ts) in two clean repositories to the
+// model, about $11 per full scan at the trial's per-call rate. Record:
+// docs/measurements/detector-reach-2026-09-27/. The 2026-09-12 reason for
+// leaving these five copies narrow (fix-pair measurements in flight on the
+// old rule) expired with the 2026-09-14 walk.
 const SKIP_PATH_RE =
-  /(^|\/)(test|tests|__tests__|spec|fixtures|examples?|scripts|dev-tools|migrations?|seed|seeds|demo)(\/|$)/i;
+  /(^|\/)(test|tests|__tests__|spec|fixtures|examples?|scripts?|dev-tools|migrations?|seed|seeds|demo|e2e|e2e-[a-z0-9-]+|api[_-]tests|app-tests)(\/|$)/i;
+const SKIP_FILE_RE = /(\.(test|spec)\.[a-z]+|_test\.go)$/i;
 
 const SERVER_ONLY_RE = /^\s*import\s+["']server-only["']\s*;?\s*$/m;
 
@@ -526,6 +596,23 @@ function findPatternHits(
     }
   }
   return hits;
+}
+
+/**
+ * Test-only view of the prefilter stage: every SOURCE and SINK hit with its
+ * pattern id, plus the pairs `analyzeFile` would judge. No model call, no
+ * diagnostics. Exists so the free reach gate (`test:reach-prefilter`) can
+ * pin each pattern id to the fixture that exercises it; production callers
+ * go through `detect()`.
+ */
+export function idorPrefilterHits(
+  content: string,
+  lang: SupportedLang,
+): { sources: PatternHit[]; sinks: PatternHit[]; pairs: IdorPrefilterHit[] } {
+  const sources = findPatternHits(content, SOURCE_PATTERNS, lang);
+  const sinks = findPatternHits(content, SINK_PATTERNS, lang);
+  const { pairs } = enumerateSinkPairs(sources, sinks);
+  return { sources, sinks, pairs };
 }
 
 /**
@@ -1003,7 +1090,7 @@ export class IdorDetector implements Detector {
 
   private shouldSkipPath(filePath: string): boolean {
     const normalized = filePath.replace(/\\/g, "/");
-    return SKIP_PATH_RE.test(normalized);
+    return SKIP_PATH_RE.test(normalized) || SKIP_FILE_RE.test(normalized);
   }
 
   private hasServerOnlyMarker(content: string): boolean {

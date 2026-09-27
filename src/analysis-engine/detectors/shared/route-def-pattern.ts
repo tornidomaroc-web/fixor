@@ -40,9 +40,31 @@
  * Detectors using this should keep the sentinel id stable as
  * `"express_route_def"` so test diagnostics and analyzeFile post-
  * filtering remain symmetric.
+ *
+ * Widened 2026-09-27 (detector-reach work, docs/measurements/
+ * detector-reach-2026-09-27/) with three more declaration shapes, each
+ * requiring a path literal that starts with `/` so that a chained
+ * `.get("https://...")` on an HTTP client or a `map.get("key")` does not
+ * match:
+ *   - a CHAINED declaration, the method call at the start of its own line
+ *     (`router\n  .get("/api/x", ...)`, the koa-router / Express
+ *     `router.route()` idiom; Arm A case 02 was declared this way and no
+ *     detector read it). The path may follow on the SAME line or the
+ *     call may end the line with an open paren (`  .get(` then the path
+ *     on the next line, which is how prettier lays the chain out and how
+ *     case 02 reads); auth-bypass tests one line at a time, so the
+ *     open-paren form is what lets that detector see the chain at all;
+ *   - the identifiers `server` and `fastify` (Fastify, Hapi and restify
+ *     declare on `server`/`fastify`, not `app`/`router`; CodeQL's
+ *     JavaScript RemoteFlowSource models enumerate those frameworks);
+ *   - the `route` verb (`app.route("/x").get(...)`) and Hapi's object form
+ *     `server.route({ method: ..., path: ... })`.
+ * The original alternative is byte-identical and still comes first, so the
+ * frozen replay fixtures match at the same line as before (checked by the
+ * three replay gates in test:ci).
  */
 export const EXPRESS_ROUTE_DEF_RE =
-  /\b(?:router|app|api|[A-Za-z_$][A-Za-z0-9_$]*(?:Router|App|Api))\.(?:get|post|put|delete|patch|use|all)\s*\(\s*["'`]/;
+  /\b(?:router|app|api|[A-Za-z_$][A-Za-z0-9_$]*(?:Router|App|Api))\.(?:get|post|put|delete|patch|use|all|route)\s*\(\s*["'`]|\b(?:server|fastify)\.(?:get|post|put|delete|patch|all|route)\s*\(\s*["'`]\/|\b(?:server|app|fastify)\.route\s*\(\s*[[{]|(?<![^\r\n])[ \t]*\.(?:get|post|put|delete|patch|all)\s*\(\s*(?:["'`]\/|(?![^\r\n]))/;
 
 /**
  * Catches a file-system-routed HTTP-method-named handler export in

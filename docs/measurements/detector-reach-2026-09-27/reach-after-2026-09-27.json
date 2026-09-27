@@ -1,0 +1,1070 @@
+{
+  "measurement": "detector reach AFTER the 2026-09-27 prefilter change, on the same instrument and corpora as reach-baseline-2026-09-27.json",
+  "date": "2026-09-27",
+  "spend_usd": 0,
+  "instrument": {
+    "script": "src/test/measure-trial-triggers.ts",
+    "method": "shipped detect() under the canned-client spy; zero transport",
+    "model": "claude-sonnet-4-6",
+    "fixorTree": "the commit carrying this file (branch feat/detector-reach-heldout on c3646bd); the intermediate figures were taken from the working tree between the pattern edit and the skip-list edit"
+  },
+  "rate": {
+    "usdPerCall": 0.03548,
+    "provenance": "Arm A measured observer cost $0.9579 over 27 calls (arm-a-result-2026-09-19.json); mean, real files; a projection when applied to other files"
+  },
+  "whatChanged": {
+    "routeDeclarationRegex": "EXPRESS_ROUTE_DEF_RE (shared by auth-bypass and admin-check): chained method call at line start (same-line path or open paren), server/fastify identifiers with a / path, the route verb, Hapi server.route({ / [",
+    "idorSources": [
+      "destructured_request_id",
+      "fastify_request_params",
+      "searchparams_get_id"
+    ],
+    "idorSinks": [
+      "drizzle_where_eq",
+      "drizzle_db_builder",
+      "knex_table",
+      "knex_where_id",
+      "mongoose_write_by_id",
+      "typeorm_find_by",
+      "sequelize_destroy",
+      "prisma_upsert_delete_many",
+      "kysely_table_op",
+      "supabase_from_table",
+      "orm_raw_escape_hatch"
+    ],
+    "idorSinksDeferred": {
+      "patterns": [
+        ".update(",
+        ".delete(",
+        ".updateMany(",
+        ".save("
+      ],
+      "why": "present in 7 of the 26 frozen idor replay fixtures (.update( in positive 01, 04, 05, 08 and negative 07; .delete( in negative 06; .updateMany( in negative 08; .save( in positive 02, 06 and negative 02, 05), so adding them moves those request keys and the replay gate fails; re-recording is a paid owner decision (last full idor re-record measured $0.28092, record-idor-fixtures.ts header)",
+      "reachNotMeasured": "the counterfactual reach of the deferred set was NOT measured; Arm A case 04 (filesService.update(fileId, ...)) is the one known case it would touch"
+    },
+    "skipPathRule": "the five model-reaching detectors adopted secrets-exposure's 2026-09-12 copy byte for byte (adds e2e, e2e-*, api_tests/api-tests, app-tests segments, script/ singular, and *.test.*, *.spec.*, _test.go names); all six copies are identical again",
+    "proximityThreshold": "unchanged at 200; the only Arm A case it would have admitted (10, pair 322 lines apart) has its defect about 1250 lines from that pair, so a wider window would report reach without the model seeing the defect",
+    "systemPrompts": "untouched; every SYSTEM_PROMPT_FINGERPRINT is as on main; all five replay gates green with the recorded keys"
+  },
+  "intermediate_patternsOnly_oldSkipList": {
+    "note": "the working tree after the pattern change and BEFORE the skip-list change; kept because it is the evidence for the skip-list change",
+    "armA": {
+      "reachedByLaneFamily": 6,
+      "of": 12
+    },
+    "heldOut": {
+      "reachedByLaneFamily": 5,
+      "of": 10
+    },
+    "fixorNegatives": {
+      "modelCalls": 160
+    },
+    "cleanLiveRepos": {
+      "filesReachingModel": 1465,
+      "modelCalls": 3835,
+      "byRepo": {
+        "docmost": 65,
+        "umami": 454,
+        "outline": 234,
+        "dub": 1566,
+        "medusa": 1200,
+        "novu": 316
+      },
+      "newCallsVsBaseline": 318,
+      "lostCallsVsBaseline": 0,
+      "attribution": "of the new route-def (file,detector) pairs, novu's 101 files all matched the chained shape in *.e2e.ts files (supertest .get('/v1/...')), outline's 51 of 57 matched server.post/get(\"/...\" in *.test.ts files (supertest); the widening exposed TEST files the old skip list never dropped"
+    }
+  },
+  "final": {
+    "armA": {
+      "reachedByLaneFamily": 6,
+      "of": 12,
+      "cases": {
+        "01": {
+          "filesEnumerated": 4,
+          "filesReachingModel": 1,
+          "modelCalls": 1,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 1,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "02": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 2,
+          "laneFamilyCalls": 2,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 0
+          }
+        },
+        "03": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "04": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 2,
+          "laneFamilyCalls": 2,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 0
+          }
+        },
+        "05": {
+          "filesEnumerated": 2,
+          "filesReachingModel": 2,
+          "modelCalls": 4,
+          "laneFamilyCalls": 4,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 2,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 2,
+            "idor-multi": 0
+          }
+        },
+        "06": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "07": {
+          "filesEnumerated": 6,
+          "filesReachingModel": 2,
+          "modelCalls": 2,
+          "laneFamilyCalls": 2,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 2
+          }
+        },
+        "08": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "09": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 2,
+          "laneFamilyCalls": 2,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 0
+          }
+        },
+        "10": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 3,
+          "laneFamilyCalls": 3,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 1
+          }
+        },
+        "11": {
+          "filesEnumerated": 4,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "12": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        }
+      },
+      "case05RootCauseSupplement": {
+        "filesEnumerated": 1,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        }
+      }
+    },
+    "heldOut": {
+      "reachedByLaneFamily": 5,
+      "of": 10,
+      "cases": {
+        "01": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "02": {
+          "filesEnumerated": 3,
+          "filesReachingModel": 1,
+          "modelCalls": 1,
+          "laneFamilyCalls": 1,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "03": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 3,
+          "laneFamilyCalls": 3,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 1
+          }
+        },
+        "04": {
+          "filesEnumerated": 3,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "05": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 2,
+          "laneFamilyCalls": 2,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 0
+          }
+        },
+        "06": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 2,
+          "laneFamilyCalls": 2,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 0
+          }
+        },
+        "07": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "08": {
+          "filesEnumerated": 2,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        },
+        "09": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 1,
+          "modelCalls": 2,
+          "laneFamilyCalls": 2,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 1,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 1,
+            "idor-multi": 0
+          }
+        },
+        "10": {
+          "filesEnumerated": 1,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        }
+      }
+    },
+    "fixorNegatives": {
+      "filesEnumerated": 101,
+      "filesReachingModel": 70,
+      "modelCalls": 160,
+      "byDir": {
+        "auth-bypass": {
+          "filesEnumerated": 22,
+          "filesReachingModel": 17,
+          "modelCalls": 33,
+          "laneFamilyCalls": 28,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 15,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 5,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 13,
+            "idor-multi": 0
+          }
+        },
+        "admin-check": {
+          "filesEnumerated": 22,
+          "filesReachingModel": 19,
+          "modelCalls": 40,
+          "laneFamilyCalls": 36,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 11,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 4,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 18,
+            "idor-multi": 7
+          }
+        },
+        "idor": {
+          "filesEnumerated": 10,
+          "filesReachingModel": 9,
+          "modelCalls": 25,
+          "laneFamilyCalls": 23,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 7,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 2,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 7,
+            "idor-multi": 9
+          }
+        },
+        "idor-tenant": {
+          "filesEnumerated": 3,
+          "filesReachingModel": 3,
+          "modelCalls": 9,
+          "laneFamilyCalls": 9,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 3,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 3,
+            "idor-multi": 3
+          }
+        },
+        "env-exposure": {
+          "filesEnumerated": 8,
+          "filesReachingModel": 7,
+          "modelCalls": 19,
+          "laneFamilyCalls": 14,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 7,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 5,
+            "admin-check-multi": 7,
+            "idor-multi": 0
+          }
+        },
+        "webhook-unverified": {
+          "filesEnumerated": 18,
+          "filesReachingModel": 15,
+          "modelCalls": 34,
+          "laneFamilyCalls": 19,
+          "reachedByLaneFamily": true,
+          "byDetector": {
+            "auth-bypass-multi": 7,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 15,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 12,
+            "idor-multi": 0
+          }
+        },
+        "secrets-exposure": {
+          "filesEnumerated": 18,
+          "filesReachingModel": 0,
+          "modelCalls": 0,
+          "laneFamilyCalls": 0,
+          "reachedByLaneFamily": false,
+          "byDetector": {
+            "auth-bypass-multi": 0,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 0,
+            "idor-multi": 0
+          }
+        }
+      }
+    },
+    "cleanLiveRepos": {
+      "filesEnumerated": 27949,
+      "filesFailed": 0,
+      "filesReachingModel": 1271,
+      "modelCalls": 3449,
+      "projectedUsdAtArmARate": 122.36,
+      "byRepo": {
+        "docmost": {
+          "filesEnumerated": 1437,
+          "filesFailed": 0,
+          "filesReachingModel": 37,
+          "modelCalls": 65,
+          "byDetector": {
+            "auth-bypass-multi": 29,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 0,
+            "env-exposure-multi": 2,
+            "admin-check-multi": 30,
+            "idor-multi": 4
+          }
+        },
+        "umami": {
+          "filesEnumerated": 1386,
+          "filesFailed": 0,
+          "filesReachingModel": 152,
+          "modelCalls": 454,
+          "byDetector": {
+            "auth-bypass-multi": 151,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 150,
+            "env-exposure-multi": 1,
+            "admin-check-multi": 150,
+            "idor-multi": 2
+          }
+        },
+        "outline": {
+          "filesEnumerated": 2535,
+          "filesFailed": 0,
+          "filesReachingModel": 69,
+          "modelCalls": 126,
+          "byDetector": {
+            "auth-bypass-multi": 17,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 3,
+            "env-exposure-multi": 0,
+            "admin-check-multi": 63,
+            "idor-multi": 43
+          }
+        },
+        "dub": {
+          "filesEnumerated": 4402,
+          "filesFailed": 0,
+          "filesReachingModel": 529,
+          "modelCalls": 1502,
+          "byDetector": {
+            "auth-bypass-multi": 486,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 500,
+            "env-exposure-multi": 2,
+            "admin-check-multi": 492,
+            "idor-multi": 22
+          }
+        },
+        "medusa": {
+          "filesEnumerated": 9534,
+          "filesFailed": 0,
+          "filesReachingModel": 410,
+          "modelCalls": 1200,
+          "byDetector": {
+            "auth-bypass-multi": 399,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 393,
+            "env-exposure-multi": 7,
+            "admin-check-multi": 399,
+            "idor-multi": 2
+          }
+        },
+        "novu": {
+          "filesEnumerated": 8655,
+          "filesFailed": 0,
+          "filesReachingModel": 74,
+          "modelCalls": 102,
+          "byDetector": {
+            "auth-bypass-multi": 18,
+            "secrets-exposure-multi": 0,
+            "webhook-unverified-multi": 20,
+            "env-exposure-multi": 20,
+            "admin-check-multi": 16,
+            "idor-multi": 28
+          }
+        }
+      }
+    }
+  },
+  "finalDeltaVsBaseline": {
+    "armA": "5 -> 6 of 12 (case 02, the koa-router chain, is the gain)",
+    "heldOut": "5 -> 5 of 10 (no case gained; case 03 gained an idor call beside its existing auth-bypass and admin-check calls)",
+    "fixorNegatives": "158 -> 160 calls (admin-check negatives 05 and 08 now also pair for idor)",
+    "cleanLiveRepos": {
+      "filesReachingModel": "1304 -> 1271",
+      "modelCalls": "3517 -> 3449",
+      "newCalls": 15,
+      "lostCalls": 83,
+      "usdPerFullScanOfTheSixAtArmARate": "124.78 -> 122.36 (-2.41)",
+      "residual": "3 novu *.e2e.ts files not under an e2e/ directory and libs/testing/src/user.session.ts still reach (6 calls); *.e2e.* names are not in the shared rule"
+    },
+    "newCallsFinal": {
+      "docmost": [],
+      "umami": [],
+      "outline": [
+        [
+          "app\\stores\\base\\Store.ts",
+          "admin-check-multi"
+        ],
+        [
+          "app\\stores\\base\\Store.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "server\\middlewares\\authentication.ts",
+          "idor-multi"
+        ],
+        [
+          "server\\tools\\fetch.ts",
+          "idor-multi"
+        ]
+      ],
+      "dub": [
+        [
+          "apps\\web\\app\\(ee)\\api\\admin\\impersonate\\route.ts",
+          "idor-multi"
+        ],
+        [
+          "apps\\web\\app\\api\\og\\analytics\\route.tsx",
+          "idor-multi"
+        ],
+        [
+          "apps\\web\\lib\\discounts\\delete-discount-code.ts",
+          "idor-multi"
+        ],
+        [
+          "apps\\web\\lib\\jobs\\handlers\\queue-partner-program-summary-job.ts",
+          "idor-multi"
+        ]
+      ],
+      "medusa": [
+        [
+          "packages\\modules\\fulfillment\\src\\services\\fulfillment-module-service.ts",
+          "idor-multi"
+        ]
+      ],
+      "novu": [
+        [
+          "apps\\api\\src\\app\\environments-v1\\usecases\\update-environment\\update-environment.e2e.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\api\\src\\app\\environments-v1\\usecases\\update-environment\\update-environment.e2e.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\api\\src\\app\\subscribers-v2\\subscribers.controller.e2e.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\api\\src\\app\\subscribers-v2\\subscribers.controller.e2e.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "libs\\testing\\src\\user.session.ts",
+          "admin-check-multi"
+        ],
+        [
+          "libs\\testing\\src\\user.session.ts",
+          "auth-bypass-multi"
+        ]
+      ]
+    },
+    "lostCallsFinal": {
+      "docmost": [],
+      "umami": [],
+      "outline": [
+        [
+          "plugins\\slack\\server\\api\\hooks.test.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "server\\routes\\api\\collections\\collections.test.ts",
+          "admin-check-multi"
+        ]
+      ],
+      "dub": [
+        [
+          "apps\\web\\app\\(ee)\\api\\cron\\cleanup\\e2e-tests\\route.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\cron\\cleanup\\e2e-tests\\route.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\cron\\cleanup\\e2e-tests\\route.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\bounties\\[bountyId]\\route.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\bounties\\[bountyId]\\route.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\bounties\\[bountyId]\\route.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\partners\\pending-program-application\\route.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\partners\\pending-program-application\\route.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\partners\\pending-program-application\\route.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\trigger-merge-accounts\\route.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\trigger-merge-accounts\\route.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\trigger-merge-accounts\\route.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\workflows\\[workflowId]\\route.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\workflows\\[workflowId]\\route.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\workflows\\[workflowId]\\route.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\workflows\\route.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\workflows\\route.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\app\\(ee)\\api\\e2e\\workflows\\route.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\bounties\\bounties.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\bounties\\bounties.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\campaigns\\campaigns.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\campaigns\\campaigns.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\campaigns\\send-campaign-workflow.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\campaigns\\send-campaign-workflow.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\commissions\\clawbacks.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\commissions\\clawbacks.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\commissions\\commissions-create.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\commissions\\commissions-create.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\commissions\\commissions-list.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\customers\\customers-pagination.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\customers\\customers-reattribute.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\customers\\customers-reattribute.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\customers\\customers.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\customers\\customers.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\discount-codes\\discount-codes.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\discount-codes\\discount-codes.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\discounts\\discounts.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\discounts\\discounts.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\domains\\domains.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\domains\\domains.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\domains\\program-domain.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\domains\\program-domain.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\embed\\referrals-links.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\embed\\referrals-links.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\folders\\folders.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\folders\\folders.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\groups\\move-group-workflow.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\groups\\move-group-workflow.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\links\\links-bulk.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\links\\links-bulk.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partner-applications\\partner-applications.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partner-applications\\partner-applications.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partner-profile\\links.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partner-profile\\links.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partners\\ban-partner.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partners\\ban-partner.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partners\\partners.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\partners\\partners.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\tags\\tags.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\tags\\tags.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\utm\\utm.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\utm\\utm.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\workspaces\\workspaces.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\web\\playwright\\api\\workspaces\\workspaces.spec.ts",
+          "auth-bypass-multi"
+        ]
+      ],
+      "medusa": [],
+      "novu": [
+        [
+          "apps\\api\\src\\app\\agents\\e2e\\helpers\\bridge-server.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\api\\src\\app\\agents\\e2e\\managed-agent-human.e2e.ts",
+          "idor-multi"
+        ],
+        [
+          "apps\\api\\src\\app\\agents\\e2e\\mock-agent-handler.ts",
+          "admin-check-multi"
+        ],
+        [
+          "apps\\api\\src\\app\\workflows-v2\\e2e\\test-http-endpoint.e2e.ts",
+          "env-exposure-multi"
+        ],
+        [
+          "libs\\application-generic\\src\\utils\\template-parser\\new-liquid-parser.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\connect\\pipeline\\chat-sdk\\detect-wiring.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\connect\\pipeline\\chat-sdk\\detect-wiring.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\connect\\pipeline\\chat-sdk\\detect-wiring.spec.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\connect\\pipeline\\chat-sdk\\requirements.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\connect\\pipeline\\chat-sdk\\requirements.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\connect\\pipeline\\chat-sdk\\requirements.spec.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\wizard\\context\\detect-project.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\wizard\\context\\detect-project.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "packages\\novu\\src\\commands\\wizard\\context\\detect-project.spec.ts",
+          "webhook-unverified-multi"
+        ],
+        [
+          "packages\\providers\\src\\lib\\email\\mailgun\\mailgun.provider.spec.ts",
+          "admin-check-multi"
+        ],
+        [
+          "packages\\providers\\src\\lib\\email\\mailgun\\mailgun.provider.spec.ts",
+          "auth-bypass-multi"
+        ],
+        [
+          "packages\\stateless\\src\\lib\\handler\\email.handler.spec.ts",
+          "admin-check-multi"
+        ]
+      ]
+    }
+  }
+}
