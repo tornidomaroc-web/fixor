@@ -1,0 +1,1399 @@
+{
+  "measurement": "detector reach baseline BEFORE any prefilter change",
+  "date": "2026-09-27",
+  "spend_usd": 0,
+  "instrument": {
+    "script": "src/test/measure-trial-triggers.ts",
+    "method": "shipped detect() under the canned-client spy; zero transport",
+    "fixorTree": "c3646bd11ab81b1b1053f6b92c7e28a28008e8e4 (main, #256 squash)",
+    "model": "claude-sonnet-4-6"
+  },
+  "laneFamily": "auth-bypass-multi + admin-check-multi + idor-multi; a case is 'reached' when any of the three calls on any of its files (the Arm A pre-registration's family rule)",
+  "rate": {
+    "usdPerCall": 0.03548,
+    "provenance": "Arm A measured observer cost $0.9579 over 27 calls (arm-a-result-2026-09-19.json); mean, real files; a projection when applied to other files"
+  },
+  "armA": {
+    "reachedByLaneFamily": 5,
+    "of": 12,
+    "cases": {
+      "01": {
+        "filesEnumerated": 4,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 1,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 1,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "packages\\frontend\\editor-ui\\src\\features\\settings\\users\\users.store.ts",
+            "webhook-unverified-multi"
+          ]
+        ]
+      },
+      "02": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "03": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "04": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "packages\\sync-server\\src\\app-sync.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "packages\\sync-server\\src\\app-sync.ts",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "05": {
+        "filesEnumerated": 2,
+        "filesFailed": 0,
+        "filesReachingModel": 2,
+        "modelCalls": 4,
+        "laneFamilyCalls": 4,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 2,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 2,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "server\\api\\command\\index.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "server\\api\\command\\index.js",
+            "admin-check-multi"
+          ],
+          [
+            "server\\integrations\\node-red\\index.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "server\\integrations\\node-red\\index.js",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "06": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "07": {
+        "filesEnumerated": 6,
+        "filesFailed": 0,
+        "filesReachingModel": 2,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 2
+        },
+        "callsPerFile": [
+          [
+            "src\\server\\routers\\lambda\\file.ts",
+            "idor-multi"
+          ],
+          [
+            "src\\server\\services\\file\\index.ts",
+            "idor-multi"
+          ]
+        ]
+      },
+      "08": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "09": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "src\\tokensecurity.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "src\\tokensecurity.js",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "10": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "packages\\apostrophe\\modules\\@apostrophecms\\page\\index.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "packages\\apostrophe\\modules\\@apostrophecms\\page\\index.js",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "11": {
+        "filesEnumerated": 4,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "12": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      }
+    },
+    "case05RootCauseSupplement": {
+      "file": "server/runtime/scripts/index.js @ 61b5cf41 (blob fbe59de1b7c5873e05f190799702944b2d1fa80e), fetched 2026-09-27, NOT part of the frozen Arm A corpus",
+      "result": {
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      }
+    }
+  },
+  "heldOut": {
+    "reachedByLaneFamily": 5,
+    "of": 10,
+    "cases": {
+      "01": {
+        "advisory": "GHSA-89vx-jh4q-vg3w",
+        "repo": "deepstreamIO/deepstream.io",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "02": {
+        "advisory": "GHSA-7rhv-xm4q-wh42",
+        "repo": "erxes/erxes",
+        "filesEnumerated": 3,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 1,
+        "laneFamilyCalls": 1,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "packages\\gateway\\src\\middlewares\\userMiddleware.ts",
+            "auth-bypass-multi"
+          ]
+        ]
+      },
+      "03": {
+        "advisory": "GHSA-c7hf-c5p5-5g6h",
+        "repo": "louislam/uptime-kuma",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "server\\routers\\api-router.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "server\\routers\\api-router.js",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "04": {
+        "advisory": "GHSA-496g-mmpw-j9x3",
+        "repo": "misskey-dev/misskey",
+        "filesEnumerated": 3,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "05": {
+        "advisory": "GHSA-qwc3-h9mg-4582",
+        "repo": "parse-community/parse-dashboard",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "Parse-Dashboard\\app.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "Parse-Dashboard\\app.js",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "06": {
+        "advisory": "GHSA-hpm8-9qx6-jvwv",
+        "repo": "parse-community/parse-server",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "src\\Routers\\FilesRouter.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "src\\Routers\\FilesRouter.js",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "07": {
+        "advisory": "GHSA-5ffh-6f9q-5hhr",
+        "repo": "Unleash/unleash",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "08": {
+        "advisory": "GHSA-6j36-r6pr-59x4",
+        "repo": "vendurehq/vendure",
+        "filesEnumerated": 2,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      },
+      "09": {
+        "advisory": "GHSA-v667-gc2r-2xm7",
+        "repo": "whyour/qinglong",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 1,
+        "modelCalls": 2,
+        "laneFamilyCalls": 2,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 1,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 1,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "back\\loaders\\express.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "back\\loaders\\express.ts",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "10": {
+        "advisory": "GHSA-5cf7-cxrf-mq73",
+        "repo": "Yonle/bostr",
+        "filesEnumerated": 1,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      }
+    }
+  },
+  "fixorNegatives": {
+    "filesEnumerated": 101,
+    "filesReachingModel": 69,
+    "modelCalls": 158,
+    "byDir": {
+      "auth-bypass": {
+        "filesEnumerated": 22,
+        "filesFailed": 0,
+        "filesReachingModel": 17,
+        "modelCalls": 33,
+        "laneFamilyCalls": 28,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 15,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 5,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 13,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "01-anon-public-data.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "02-internal-dev-tool.ts",
+            "admin-check-multi"
+          ],
+          [
+            "03-defense-in-depth-role.ts",
+            "admin-check-multi"
+          ],
+          [
+            "04-jwt-verify-rethrows.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "05-default-id-in-seed.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "06-flask-anon-static.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "06-flask-anon-static.py",
+            "admin-check-multi"
+          ],
+          [
+            "07-jwt-verify-false-tests.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "11-router-properly-guarded.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "11-router-properly-guarded.ts",
+            "admin-check-multi"
+          ],
+          [
+            "12-app-router-with-auth-wrapper.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "12-app-router-with-auth-wrapper.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "12-app-router-with-auth-wrapper.ts",
+            "admin-check-multi"
+          ],
+          [
+            "13-app-router-with-session-for-auth.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "13-app-router-with-session-for-auth.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "13-app-router-with-session-for-auth.ts",
+            "admin-check-multi"
+          ],
+          [
+            "14-app-router-bare-public-readonly.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "14-app-router-bare-public-readonly.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "14-app-router-bare-public-readonly.ts",
+            "admin-check-multi"
+          ],
+          [
+            "15-app-router-with-account-api-key-enforces.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "15-app-router-with-account-api-key-enforces.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "15-app-router-with-account-api-key-enforces.ts",
+            "admin-check-multi"
+          ],
+          [
+            "16-app-router-with-stats-api-key-enforces.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "16-app-router-with-stats-api-key-enforces.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "16-app-router-with-stats-api-key-enforces.ts",
+            "admin-check-multi"
+          ],
+          [
+            "20-fastapi-depends-current-user.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "20-fastapi-depends-current-user.py",
+            "admin-check-multi"
+          ],
+          [
+            "21-fastapi-security-current-user.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "21-fastapi-security-current-user.py",
+            "admin-check-multi"
+          ],
+          [
+            "22-flask-login-required.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "22-flask-login-required.py",
+            "admin-check-multi"
+          ],
+          [
+            "23-flask-shorthand-login-required.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "23-flask-shorthand-login-required.py",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "admin-check": {
+        "filesEnumerated": 22,
+        "filesFailed": 0,
+        "filesReachingModel": 18,
+        "modelCalls": 38,
+        "laneFamilyCalls": 34,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 11,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 4,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 18,
+          "idor-multi": 5
+        },
+        "callsPerFile": [
+          [
+            "01-db-role-lookup.ts",
+            "admin-check-multi"
+          ],
+          [
+            "02-org-membership-rbac.ts",
+            "admin-check-multi"
+          ],
+          [
+            "04-jwt-claims-server-issued.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "04-jwt-claims-server-issued.ts",
+            "admin-check-multi"
+          ],
+          [
+            "05-db-role-on-delete.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "05-db-role-on-delete.js",
+            "admin-check-multi"
+          ],
+          [
+            "05-db-role-on-delete.js",
+            "idor-multi"
+          ],
+          [
+            "06-claims-middleware.js",
+            "admin-check-multi"
+          ],
+          [
+            "08-flask-db-role.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "08-flask-db-role.py",
+            "admin-check-multi"
+          ],
+          [
+            "08-flask-db-role.py",
+            "idor-multi"
+          ],
+          [
+            "09-fastapi-rbac-dep.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "09-fastapi-rbac-dep.py",
+            "admin-check-multi"
+          ],
+          [
+            "10-go-rbac-from-db.go",
+            "admin-check-multi"
+          ],
+          [
+            "11-router-properly-admin-gated.ts",
+            "admin-check-multi"
+          ],
+          [
+            "11-router-properly-admin-gated.ts",
+            "idor-multi"
+          ],
+          [
+            "12-app-router-with-admin-wrapper.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "12-app-router-with-admin-wrapper.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "12-app-router-with-admin-wrapper.ts",
+            "admin-check-multi"
+          ],
+          [
+            "13-app-router-with-auth-plus-inline-role-check.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "13-app-router-with-auth-plus-inline-role-check.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "13-app-router-with-auth-plus-inline-role-check.ts",
+            "admin-check-multi"
+          ],
+          [
+            "14-app-router-bare-non-admin-read.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "14-app-router-bare-non-admin-read.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "14-app-router-bare-non-admin-read.ts",
+            "admin-check-multi"
+          ],
+          [
+            "15-app-router-with-auth-plus-helper-admin-check.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "15-app-router-with-auth-plus-helper-admin-check.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "15-app-router-with-auth-plus-helper-admin-check.ts",
+            "admin-check-multi"
+          ],
+          [
+            "17-remix-loader-db-role-check.ts",
+            "admin-check-multi"
+          ],
+          [
+            "19-fastapi-require-admin.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "19-fastapi-require-admin.py",
+            "admin-check-multi"
+          ],
+          [
+            "19-fastapi-require-admin.py",
+            "idor-multi"
+          ],
+          [
+            "20-fastapi-superuser-inline.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "20-fastapi-superuser-inline.py",
+            "admin-check-multi"
+          ],
+          [
+            "20-fastapi-superuser-inline.py",
+            "idor-multi"
+          ],
+          [
+            "21-flask-admin-required.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "21-flask-admin-required.py",
+            "admin-check-multi"
+          ],
+          [
+            "22-sms-email-helper.ts",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "idor": {
+        "filesEnumerated": 10,
+        "filesFailed": 0,
+        "filesReachingModel": 9,
+        "modelCalls": 25,
+        "laneFamilyCalls": 23,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 7,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 2,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 7,
+          "idor-multi": 9
+        },
+        "callsPerFile": [
+          [
+            "01-public-resource-no-owner.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "01-public-resource-no-owner.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "01-public-resource-no-owner.ts",
+            "admin-check-multi"
+          ],
+          [
+            "01-public-resource-no-owner.ts",
+            "idor-multi"
+          ],
+          [
+            "02-admin-via-middleware.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "02-admin-via-middleware.ts",
+            "admin-check-multi"
+          ],
+          [
+            "02-admin-via-middleware.ts",
+            "idor-multi"
+          ],
+          [
+            "03-postgres-rls.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "03-postgres-rls.ts",
+            "admin-check-multi"
+          ],
+          [
+            "03-postgres-rls.ts",
+            "idor-multi"
+          ],
+          [
+            "04-supabase-policy.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "04-supabase-policy.ts",
+            "admin-check-multi"
+          ],
+          [
+            "04-supabase-policy.ts",
+            "idor-multi"
+          ],
+          [
+            "05-admin-via-decorator.ts",
+            "idor-multi"
+          ],
+          [
+            "06-role-check-in-handler.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "06-role-check-in-handler.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "06-role-check-in-handler.ts",
+            "admin-check-multi"
+          ],
+          [
+            "06-role-check-in-handler.ts",
+            "idor-multi"
+          ],
+          [
+            "07-rls-via-prisma-extension.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "07-rls-via-prisma-extension.ts",
+            "admin-check-multi"
+          ],
+          [
+            "07-rls-via-prisma-extension.ts",
+            "idor-multi"
+          ],
+          [
+            "08-trpc-with-ctx-scoping.ts",
+            "idor-multi"
+          ],
+          [
+            "09-fastapi-ownership-check.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "09-fastapi-ownership-check.py",
+            "admin-check-multi"
+          ],
+          [
+            "09-fastapi-ownership-check.py",
+            "idor-multi"
+          ]
+        ]
+      },
+      "idor-tenant": {
+        "filesEnumerated": 3,
+        "filesFailed": 0,
+        "filesReachingModel": 3,
+        "modelCalls": 9,
+        "laneFamilyCalls": 9,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 3,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 3,
+          "idor-multi": 3
+        },
+        "callsPerFile": [
+          [
+            "01-express-prisma-query-scope.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "01-express-prisma-query-scope.ts",
+            "admin-check-multi"
+          ],
+          [
+            "01-express-prisma-query-scope.ts",
+            "idor-multi"
+          ],
+          [
+            "02-express-prisma-membership.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "02-express-prisma-membership.ts",
+            "admin-check-multi"
+          ],
+          [
+            "02-express-prisma-membership.ts",
+            "idor-multi"
+          ],
+          [
+            "03-fastapi-sqlalchemy-postfetch.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "03-fastapi-sqlalchemy-postfetch.py",
+            "admin-check-multi"
+          ],
+          [
+            "03-fastapi-sqlalchemy-postfetch.py",
+            "idor-multi"
+          ]
+        ]
+      },
+      "env-exposure": {
+        "filesEnumerated": 8,
+        "filesFailed": 0,
+        "filesReachingModel": 7,
+        "modelCalls": 19,
+        "laneFamilyCalls": 14,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 7,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 5,
+          "admin-check-multi": 7,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "01-admin-env-gated.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "01-admin-env-gated.ts",
+            "admin-check-multi"
+          ],
+          [
+            "02-public-config.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "02-public-config.ts",
+            "admin-check-multi"
+          ],
+          [
+            "04-dev-env-keys-only.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "04-dev-env-keys-only.ts",
+            "env-exposure-multi"
+          ],
+          [
+            "04-dev-env-keys-only.ts",
+            "admin-check-multi"
+          ],
+          [
+            "05-healthz-specific-fields.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "05-healthz-specific-fields.js",
+            "env-exposure-multi"
+          ],
+          [
+            "05-healthz-specific-fields.js",
+            "admin-check-multi"
+          ],
+          [
+            "06-logger-only-env.js",
+            "auth-bypass-multi"
+          ],
+          [
+            "06-logger-only-env.js",
+            "env-exposure-multi"
+          ],
+          [
+            "06-logger-only-env.js",
+            "admin-check-multi"
+          ],
+          [
+            "08-flask-env-keys-only.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "08-flask-env-keys-only.py",
+            "env-exposure-multi"
+          ],
+          [
+            "08-flask-env-keys-only.py",
+            "admin-check-multi"
+          ],
+          [
+            "09-fastapi-runtime-specific.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "09-fastapi-runtime-specific.py",
+            "env-exposure-multi"
+          ],
+          [
+            "09-fastapi-runtime-specific.py",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "webhook-unverified": {
+        "filesEnumerated": 18,
+        "filesFailed": 0,
+        "filesReachingModel": 15,
+        "modelCalls": 34,
+        "laneFamilyCalls": 19,
+        "reachedByLaneFamily": true,
+        "byDetector": {
+          "auth-bypass-multi": 7,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 15,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 12,
+          "idor-multi": 0
+        },
+        "callsPerFile": [
+          [
+            "01-stripe-construct-event.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "01-stripe-construct-event.ts",
+            "admin-check-multi"
+          ],
+          [
+            "02-github-timing-safe-equal.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "02-github-timing-safe-equal.ts",
+            "admin-check-multi"
+          ],
+          [
+            "03-custom-strict-hmac.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "03-custom-strict-hmac.ts",
+            "admin-check-multi"
+          ],
+          [
+            "04-stripe-verify-middleware.js",
+            "webhook-unverified-multi"
+          ],
+          [
+            "04-stripe-verify-middleware.js",
+            "admin-check-multi"
+          ],
+          [
+            "05-github-octokit-webhooks.js",
+            "webhook-unverified-multi"
+          ],
+          [
+            "06-twilio-validate-request.js",
+            "webhook-unverified-multi"
+          ],
+          [
+            "06-twilio-validate-request.js",
+            "admin-check-multi"
+          ],
+          [
+            "07-flask-stripe-construct-event.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "07-flask-stripe-construct-event.py",
+            "webhook-unverified-multi"
+          ],
+          [
+            "07-flask-stripe-construct-event.py",
+            "admin-check-multi"
+          ],
+          [
+            "08-flask-github-compare-digest.py",
+            "auth-bypass-multi"
+          ],
+          [
+            "08-flask-github-compare-digest.py",
+            "webhook-unverified-multi"
+          ],
+          [
+            "08-flask-github-compare-digest.py",
+            "admin-check-multi"
+          ],
+          [
+            "09-go-subtle-constant-time.go",
+            "webhook-unverified-multi"
+          ],
+          [
+            "10-go-slack-hmac-equal.go",
+            "webhook-unverified-multi"
+          ],
+          [
+            "11-app-router-cache-key-hashing.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "11-app-router-cache-key-hashing.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "11-app-router-cache-key-hashing.ts",
+            "admin-check-multi"
+          ],
+          [
+            "12-app-router-stripe-construct-event-proper.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "12-app-router-stripe-construct-event-proper.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "12-app-router-stripe-construct-event-proper.ts",
+            "admin-check-multi"
+          ],
+          [
+            "13-app-router-content-addressed-storage.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "13-app-router-content-addressed-storage.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "13-app-router-content-addressed-storage.ts",
+            "admin-check-multi"
+          ],
+          [
+            "14-app-router-apple-cross-file-verifier-helper.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "14-app-router-apple-cross-file-verifier-helper.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "14-app-router-apple-cross-file-verifier-helper.ts",
+            "admin-check-multi"
+          ],
+          [
+            "15-app-router-graph-clientstate-challenge.ts",
+            "auth-bypass-multi"
+          ],
+          [
+            "15-app-router-graph-clientstate-challenge.ts",
+            "webhook-unverified-multi"
+          ],
+          [
+            "15-app-router-graph-clientstate-challenge.ts",
+            "admin-check-multi"
+          ]
+        ]
+      },
+      "secrets-exposure": {
+        "filesEnumerated": 18,
+        "filesFailed": 0,
+        "filesReachingModel": 0,
+        "modelCalls": 0,
+        "laneFamilyCalls": 0,
+        "reachedByLaneFamily": false,
+        "byDetector": {
+          "auth-bypass-multi": 0,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 0,
+          "idor-multi": 0
+        },
+        "callsPerFile": []
+      }
+    }
+  },
+  "cleanLiveRepos": {
+    "heads": "field-trial-corpus-2026-09-19 live-heads (medusa 48a8812, novu 36c5c0c, outline f9ae2dc, umami ec0ff50, dub 66223ae, docmost 6205bbe)",
+    "filesEnumerated": 27949,
+    "filesFailed": 0,
+    "filesReachingModel": 1304,
+    "modelCalls": 3517,
+    "projectedUsdAtArmARate": 124.78,
+    "byRepo": {
+      "docmost": {
+        "filesEnumerated": 1437,
+        "filesFailed": 0,
+        "filesReachingModel": 37,
+        "modelCalls": 65,
+        "byDetector": {
+          "auth-bypass-multi": 29,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 0,
+          "env-exposure-multi": 2,
+          "admin-check-multi": 30,
+          "idor-multi": 4
+        }
+      },
+      "dub": {
+        "filesEnumerated": 4402,
+        "filesFailed": 0,
+        "filesReachingModel": 557,
+        "modelCalls": 1562,
+        "byDetector": {
+          "auth-bypass-multi": 514,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 506,
+          "env-exposure-multi": 2,
+          "admin-check-multi": 522,
+          "idor-multi": 18
+        }
+      },
+      "medusa": {
+        "filesEnumerated": 9534,
+        "filesFailed": 0,
+        "filesReachingModel": 409,
+        "modelCalls": 1199,
+        "byDetector": {
+          "auth-bypass-multi": 399,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 393,
+          "env-exposure-multi": 7,
+          "admin-check-multi": 399,
+          "idor-multi": 1
+        }
+      },
+      "novu": {
+        "filesEnumerated": 8655,
+        "filesFailed": 0,
+        "filesReachingModel": 81,
+        "modelCalls": 113,
+        "byDetector": {
+          "auth-bypass-multi": 19,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 23,
+          "env-exposure-multi": 21,
+          "admin-check-multi": 21,
+          "idor-multi": 29
+        }
+      },
+      "outline": {
+        "filesEnumerated": 2535,
+        "filesFailed": 0,
+        "filesReachingModel": 68,
+        "modelCalls": 124,
+        "byDetector": {
+          "auth-bypass-multi": 16,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 4,
+          "env-exposure-multi": 0,
+          "admin-check-multi": 63,
+          "idor-multi": 41
+        }
+      },
+      "umami": {
+        "filesEnumerated": 1386,
+        "filesFailed": 0,
+        "filesReachingModel": 152,
+        "modelCalls": 454,
+        "byDetector": {
+          "auth-bypass-multi": 151,
+          "secrets-exposure-multi": 0,
+          "webhook-unverified-multi": 150,
+          "env-exposure-multi": 1,
+          "admin-check-multi": 150,
+          "idor-multi": 2
+        }
+      }
+    }
+  }
+}
