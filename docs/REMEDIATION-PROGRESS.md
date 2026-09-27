@@ -2405,6 +2405,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #250 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #251 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #252 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #253 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2654,6 +2655,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #250 | `8162a05` | 2026-09-25 22:30:23 | `fix/cap-provision-on-scan` (reflog: last move 22:02:15) | `5647d1f8`, captured before | 404 on first read after the merge, 22:30:44 | `fix/cap-provision-on-scan` at `748f7f8` |
 | #251 | `a96cb5e` | 2026-09-25 22:53:02 | `fix/scan-concurrency` (reflog: last move 22:41:05) | `03140c72`, captured before | 404 on first read after the merge, 22:53:10 | `fix/scan-concurrency` at `24053b4` |
 | #252 | `05208a3` | 2026-09-26 01:18:32 | `chore/ckse-separation-design` (reflog: last move 2026-09-25 23:20:29) | `8e5f6b36`, captured before | 404 on first read after the merge, 01:18:41 | `chore/ckse-separation-design` at `9ce83eb` |
+| #253 | `8b5f421` | 2026-09-26 22:53:44 | `fix/scan-deadline-slots` (reflog: last move 02:02:18) | `1682a7b0`, captured before | 404 on first read after the merge, 22:54:13 | `fix/scan-deadline-slots` at `dae7dad` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2802,6 +2804,17 @@ git 2.53.0.windows.2. **Totals as a new dated record (2026-09-26):** the arm inv
 branch reads 29 observations, 2 green and 27 red; the THIRD-branch arm is unchanged at 5, all RED;
 the register carries 40 rows, 38 RED. No cause is named. **The merge of this entry will owe the next
 row.**
+
+**#253 (2026-09-26).** The owner ran `gh pr merge 253 --squash --match-head-commit
+dae7dad96cce403dbbf8f6ed783243440e20036c` with HEAD on the merged branch; the reflog's last HEAD move
+before the merge is 02:02:18, and HEAD was still there after it. **RED**: `gh` exited 0 and printed
+nothing; the local ref survived at `dae7dad`. Assertion 2 held against a tree captured before the
+merge: `1682a7b0` on both. The squash `8b5f421` has the single parent `05208a3`, merged at 22:53:44Z.
+The head ref answered 404 on the first read after the merge, at 22:54:13. gh 2.91.0, git
+2.53.0.windows.2. **Totals as a new dated record (2026-09-26), counted from the register table:** the
+arm invoked FROM the merged branch reads 30 observations, 2 green and 28 red; the THIRD-branch arm is
+unchanged at 5, all RED; the register carries 41 rows, 39 RED. No cause is named. **The merge of this
+entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3201,6 +3214,20 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   |---|---|---|---|---|
   | #252 | `05208a3` | 2026-09-26 01:19:30 | 01:19:17 | not triggered |
 
+  **#253 (added 2026-09-26).** CI (both Node jobs, `head=8b5f421`) and the `secrets` workflow
+  concluded success on the merge commit; each job's log carries twelve `witness: PASS.` lines,
+  `Scan-deadline witness: PASS.` among them with `every section ran (expected 8, got 8)`, and zero
+  `[FAIL]` lines. The Railway and Vercel times are the `success` statuses of their GitHub deployments
+  for `8b5f421`, posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or dashboard was read.
+  At 23:31:32 the backend answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":2193}`, which
+  dates the container to about 22:54:59, the deploy; the dashboard answered `{"status":"ok","db":"ok"}`.
+  Not observed: a real scan meeting its deadline. At the $0 cap every scan is refused before the diff
+  fetch, so these reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #253 | `8b5f421` | 2026-09-26 22:54:59 | 22:54:31 | not triggered |
+
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
   a plain fast-forward to trial PR #1 (`trial/auth-route`, `2f9e67a..4417fa0`) at 23:15:41Z.
@@ -3409,6 +3436,13 @@ were stated by the owner and not read by the entry that filed them.
    but the owner (not read from the `api_tokens` table); with
    one installation at a $0 cap, `checkBudget` refuses inside the task before `runWorkflow` is ever
    called, so no API scan can reach the unbounded step. It blocks issuing a token to a stranger.
+   **DONE in #253** (`8b5f421`, 2026-09-26): `POST /api/v1/scan` runs under the webhook's
+   `DEFAULT_SCAN_DEADLINE_MS` (now in `src/lib/scan-deadline.ts`), counted from when its queued work
+   starts, and answers 504 `scan_timed_out` with `ran: true` at the deadline. An API scan has no
+   `scan_runs` row, so the timeout is recorded only in the log and Sentry. Witnessed by sections D, E
+   and H of `test-scan-deadline.ts`; D's workflow settles after its deadline, so the API path's grace
+   release (a workflow that never settles) is not witnessed there (5e). Who gets a token is still
+   item 10.
 5d. **The webhook deadline frees the queue slot while the scan may still run (found 2026-09-25,
    #251 review).** The queued task is `Promise.race([scan, deadline])`; when the deadline fires the
    task resolves, the slot is released, and `scanDelivery` can keep running in the background. So
@@ -3420,6 +3454,41 @@ were stated by the owner and not read by the entry that filed them.
    not block now:** at a $0 cap every scan is refused before the diff fetch, so nothing runs long
    enough to meet the deadline; with one installation there is no second tenant to crowd. It blocks
    a positive cap or a second installation.
+   **DONE in #253** (`8b5f421`, 2026-09-26), by a different mechanism from the fix proposed above: no
+   `AbortSignal` reaches the workflow. At the deadline the caller is answered, the webhook row (when
+   one was written) is closed `failed/timed_out`, and the scan's cost context is marked cancelled, so
+   `callClaude` refuses, before the transport and with reason `scan_cancelled`, every call and every
+   retry that would START after the deadline. **No model call starts after the deadline; this is not
+   zero spend after it.** A call already in flight at the deadline is not aborted: it completes, is
+   billed, and is written to the ledger, so the budget caps count it (unless that write fails, which
+   trips #243's fail-closed guard). **The scan row records none of a timed-out scan's spend, before
+   or after the deadline:** the row is closed through `emptyOutcome`, which writes `cost_usd` 0. That
+   is older than #253 and unchanged by it; for a timed-out scan the ledger is the only spend record.
+   The queue slot is held until the scan settles, bounded by a
+   grace (default: the deadline again, ten minutes; no production caller overrides it); when the
+   grace runs out the slot is released with a Sentry error and the task runs on, unable to start a
+   model call. Per-call timeouts are at most 60 s (`config/models.ts`), so under the defaults no call
+   from before the deadline is still in flight when the slot is released. GitHub fetches are still
+   not abortable. Witnessed by sections A, B, C, F and G of `test-scan-deadline.ts`; G is structural,
+   read from the handler's source. Follow-up owed: 5e.
+5e. **Follow-up owed on #253 (found 2026-09-26, #253 review; extended 2026-09-27).** (i) Two code
+   comments misstate the spend (5d). `src/lib/scan-deadline.ts` says "Spend after the deadline is
+   therefore zero, which is what the row's `timed_out` outcome records"; a call in flight at the
+   deadline completes and is billed, and the row records $0 for the whole scan. `callClaude`'s
+   comment in `anthropic-client.ts` says the row is "closed as timed_out with the spend so far"; it
+   is closed with `cost_usd` 0. Correct both. (ii) The `dae7dad` fix is unwitnessed: no section
+   runs a grace of zero. Mutation, 2026-09-27, at `8b5f421`: with the `value === undefined` branch
+   in `withScanDeadline` deleted, `npm test` exits 0 with zero `[FAIL]` lines. The branch is
+   unreachable under the default grace. (iii) The retry-path refusal is unwitnessed; section F
+   covers only the first attempt. Mutation, same day and SHA: with `attempt > 0 && scanCancelled()`
+   deleted from `anthropic-client.ts`, `npm test` exits 0 with zero `[FAIL]` lines. (iv) The API
+   path's grace release is unwitnessed (5c); section B covers it on the webhook path through the
+   same `holdSlotUntilSettled`. Not verified by mutation. (v) **Owner's decision, not a defect
+   fix:** whether a `timed_out` row should carry the scan's spend so far (`run.spend.usd` at the
+   deadline) instead of 0. Today the row reads $0 for a scan that may have spent, so row-based spend
+   reporting under-counts, while the ledger and the caps do not. **Why it does not block now:** the
+   code refuses and holds slots as 5d says; the ledger carries the spend; at a $0 cap no scan reaches
+   a model call. One PR, before a positive cap or a second installation.
 6. **`SENTRY_DSN` in Railway: read whether it is set.** CLOSED 2026-09-25, **as reported by the
    owner, not read by this entry**: the variable is set in Railway, per a record from an earlier
    session. No tracked record carries that reading; the only earlier commits naming the variable say
