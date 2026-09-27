@@ -239,10 +239,11 @@ export async function callClaude(
   };
   if (ledgerWriteFailed()) return refuseUnrecordedSpend();
 
-  // A scan past its deadline makes no further model calls: its caller has
-  // been answered and its row closed as timed_out with the spend so far,
-  // so any later call would be spend the row never records and work no
-  // one reads (lib/scan-deadline.ts). Checked here and before every retry.
+  // A scan past its deadline starts no further model calls: its caller has
+  // been answered and its row (webhook scans) closed as timed_out with the
+  // spend up to the deadline, so any later call would be work no one reads
+  // and spend only the ledger records (lib/scan-deadline.ts). Checked here
+  // and before every retry; a call already in flight is left to finish.
   const refuseCancelled = (): MessagesCallResult => {
     logger.warn(
       { model: opts.model, caller: opts.callerId ?? "untagged" },

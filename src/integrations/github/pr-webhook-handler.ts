@@ -470,7 +470,14 @@ async function runAccepted(
     label,
     onDeadline: async () => {
       if (!run.finished) {
-        run.outcome = emptyOutcome("failed", "timed_out");
+        // The row keeps the spend up to the deadline, read from the
+        // accumulator every ledger write also feeds (addScanSpend runs
+        // beside recordCost in callClaude), so the two records agree on
+        // every call that finished by now. A call still in flight at the
+        // deadline is neither cancelled nor waited for: it completes
+        // later, reaches the ledger and the caps, and never this row,
+        // which is final from here (finishOnce). Tracker item 5e (v).
+        run.outcome = { ...emptyOutcome("failed", "timed_out"), costUsd: run.spend.usd };
         await finishOnce();
       }
       return {

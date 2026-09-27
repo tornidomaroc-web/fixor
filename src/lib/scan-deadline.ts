@@ -6,8 +6,13 @@
  *   2. Cancels the scan's model calls: `cancel.cancelled` is set, and
  *      callClaude (anthropic-client.ts) refuses every later call in that
  *      scan before it reaches the network, the same way it refuses after a
- *      ledger write failed. Spend after the deadline is therefore zero,
- *      which is what the row's `timed_out` outcome records.
+ *      ledger write failed. No model call STARTS after the deadline. A
+ *      call already in flight at the deadline is not aborted: it
+ *      completes, is billed, and reaches the ledger (so the caps count
+ *      it). The webhook row is closed at the deadline with the spend up
+ *      to that moment (pr-webhook-handler.ts, onDeadline); the in-flight
+ *      call lands after the row is final, so the ledger is the only
+ *      record of it.
  *   3. Does NOT free the scan's queue slot (lib/scan-queue.ts). The slot is
  *      held until the scan settles, so `MAX_CONCURRENT_SCANS` bounds the
  *      scans that are actually running, not the ones whose caller stopped
@@ -19,10 +24,12 @@
  * forever would starve every later scan for that installation and, with
  * three of them, the whole process. So the slot is held for at most
  * `graceMs` after the deadline (default: the deadline again); then it is
- * released with a Sentry error, and the hung task runs on with no model
- * calls possible (rule 2), so it costs nothing and counts against no cap.
- * The bound of `MAX_CONCURRENT_SCANS` thus holds for every scan that can
- * spend; only a cancelled, spend-free task can ever exceed it.
+ * released with a Sentry error, and the hung task runs on unable to start
+ * a model call (rule 2). Per-call timeouts (config/models.ts) are far
+ * shorter than the default grace, so under the defaults no call from
+ * before the deadline is still in flight when the slot is released. The
+ * bound of `MAX_CONCURRENT_SCANS` thus holds for every scan that can
+ * start a model call; only a cancelled task can ever exceed it.
  *
  * Why not cancel the I/O itself: the scan's fetches are not abortable
  * today (no AbortSignal reaches them), and making them so touches every
