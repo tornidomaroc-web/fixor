@@ -35,9 +35,27 @@
  *      context: read from the handler's source, because a keyless dry run
  *      reaches no model call through which to observe it. Structural, and
  *      said so.
+ *   H. API: waiting in the queue does not count against the deadline.
+ *
+ * Added with tracker item 5e (the follow-up to #253):
+ *   I. a queue task that settles with `undefined` (a slot released by a
+ *      grace of zero) is the deadline path, never the caller's answer.
+ *      (fails with the `value === undefined` branch of withScanDeadline
+ *      deleted: the unit call resolves undefined, and the API call throws)
+ *   J. a scan cancelled while a call waits to retry: the retry is refused
+ *      before the transport. (fails with `attempt > 0 && scanCancelled()`
+ *      deleted from callClaude: the retry reaches the transport)
+ *   K. API: a workflow that never settles gives its slot up only after
+ *      deadline + grace. (B's counterpart on the API path)
+ *   L. a timed-out scan's row records the spend up to the deadline, read
+ *      from the accumulator the ledger shares; a call in flight at the
+ *      deadline completes later and reaches the ledger, never the row.
+ *      (fails on main before this change: the row read 0)
  *
  * Keyless and $0: no key, no client (asserted first and last), dry-run
- * webhooks, stand-in workflows and a stand-in transport for F.
+ * webhooks, stand-in workflows and a stand-in transport for F, J and L.
+ * Timing assertions are lower bounds or loose upper bounds only, so a
+ * slow runner makes them later, never wrong.
  */
 delete process.env.ANTHROPIC_API_KEY;
 delete process.env.DATABASE_URL;
@@ -63,7 +81,8 @@ import {
   handlePullRequestWebhook,
   type HandlePullRequestWebhookOptions,
 } from "../integrations/github/pr-webhook-handler";
-import { costContext, scanCancelled } from "../lib/cost-context";
+import { costContext, scanCancelled, type ScanCancel } from "../lib/cost-context";
+import { withScanDeadline } from "../lib/scan-deadline";
 import { ScanQueue } from "../lib/scan-queue";
 import { runApiScan } from "../server/api-scan";
 import type { BudgetCheck } from "../services/cost-store";
@@ -115,12 +134,14 @@ const SAMPLE = JSON.parse(
 ) as Record<string, unknown>;
 const WITHIN: BudgetCheck = { withinBudget: true, monthlySpend: 0.1, dailySpend: 0.05, caps: { monthlyCapUsd: 5, dailyCapUsd: 2 } };
 
-interface MemRow extends ScanRunStart { id: string; status: string; code: string | null; finishedAt: Date | null }
+interface MemRow extends ScanRunStart { id: string; status: string; code: string | null; costUsd: number; finishedAt: Date | null }
 class MemoryStore implements ScanRunStore {
   rows = new Map<string, MemRow>();
+  /** Every `finish` call, including any the store ignores: the handler must make exactly one. */
+  finishCalls = 0;
   async createPending(s: ScanRunStart): Promise<ScanRunCreateResult> {
     const id = randomUUID();
-    this.rows.set(id, { ...s, id, status: "pending", code: null, finishedAt: null });
+    this.rows.set(id, { ...s, id, status: "pending", code: null, costUsd: 0, finishedAt: null });
     return { created: true, id };
   }
   async markRunning(id: string): Promise<void> {
@@ -128,9 +149,10 @@ class MemoryStore implements ScanRunStore {
     if (r && r.status === "pending") r.status = "running";
   }
   async finish(id: string, o: ScanRunOutcome, at: Date): Promise<void> {
+    this.finishCalls++;
     const r = this.rows.get(id);
     if (!r || r.finishedAt !== null) return;
-    Object.assign(r, { status: o.status, code: o.code, finishedAt: at });
+    Object.assign(r, { status: o.status, code: o.code, costUsd: o.costUsd, finishedAt: at });
   }
   outcomes(): string[] {
     return [...this.rows.values()].map((r) => `${r.status}/${r.code ?? "-"}`).sort();
@@ -357,7 +379,170 @@ function testWebhookPlumbsCancelFlag(): void {
   assert(deadlineUsesIt, "the deadline race is given the same `run.cancel` (read from source)");
 }
 
-const EXPECTED_SECTIONS = 8;
+// ---- sections added with tracker item 5e ---------------------------------------
+
+const CANNED_OPTS: MessagesCallOptions = {
+  model: "claude-sonnet-4-6",
+  system: "scan deadline witness",
+  messages: [{ role: "user", content: "canned" }],
+  callerId: "test:scan-deadline",
+};
+
+/** A priced response: usage present and non-zero, so the call is a ledger write. */
+function pricedMessage(): Message {
+  return {
+    id: "msg_scan_deadline_priced", type: "message", role: "assistant", model: "claude-sonnet-4-6",
+    content: [{ type: "text", text: "canned" }], stop_reason: "end_turn", stop_sequence: null,
+    usage: { input_tokens: 1000, output_tokens: 100, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+  } as unknown as Message;
+}
+
+/** One IDOR-shaped FastAPI file: clears the IDOR detector's prefilter, so the scan makes model calls for it. */
+function idorFileDiff(relPath: string): string {
+  const lines = [
+    "from fastapi import APIRouter, Depends",
+    "from app.db import get_session",
+    "router = APIRouter()",
+    '@router.get("/items/{item_id}")',
+    "def read_item(item_id: int, session = Depends(get_session)):",
+    "    item = session.get(Item, item_id)",
+    "    return item",
+  ];
+  return [
+    `diff --git a/${relPath} b/${relPath}`,
+    "new file mode 100644",
+    "--- /dev/null",
+    `+++ b/${relPath}`,
+    `@@ -0,0 +1,${lines.length} @@`,
+    ...lines.map((l) => `+${l}`),
+    "",
+  ].join("\n");
+}
+const TWO_CALL_DIFF = idorFileDiff("app/routers/items.py") + idorFileDiff("app/routers/orders.py");
+
+async function testUndefinedSettlementIsTheDeadlinePath(): Promise<void> {
+  section("I. a queue task that settles with undefined (a slot released by a grace of zero) is the deadline path, never the caller's answer");
+  // Unit, no timers: the scan promise settles with undefined at once.
+  const cancel: ScanCancel = { cancelled: false };
+  const answer = { timedOut: true as const };
+  const unit = await withScanDeadline<typeof answer>({
+    scan: Promise.resolve(undefined as unknown as typeof answer),
+    deadlineMs: 10_000,
+    cancel,
+    onDeadline: () => answer,
+    label: { section: "I" },
+  });
+  assertEq([unit === answer, cancel.cancelled], [true, true], "withScanDeadline: undefined from the scan resolves with onDeadline's answer and cancels the scan (fails with the value === undefined branch deleted)");
+
+  // Integrated: the API path with a grace of zero and a workflow that never
+  // settles. The slot's release and the deadline fall due together; the
+  // caller must get the timed-out answer, never the released slot's undefined.
+  const r = await runApiScan("7501", PR_DIFF, { repoName: "api/test", scanId: "i1" }, {
+    checkBudget: async () => WITHIN,
+    runWorkflow: () => new Promise<WorkflowResult>(() => {}),
+    queue: new ScanQueue(1), deadlineMs: 50, slotGraceMs: 0,
+  });
+  assertEq([r.status, (r.body as { error?: string }).error, r.ran], [504, "scan_timed_out", true], "API, grace 0: answered 504 scan_timed_out (fails with the branch deleted: runApiScan reads a field of undefined and throws)");
+}
+
+async function testRetryPathRefusesWhenCancelled(): Promise<void> {
+  section("J. a scan cancelled while a call waits to retry: the retry is refused before the transport");
+  const cancel: ScanCancel = { cancelled: false };
+  let creates = 0;
+  setCallClaudeTestDeps({
+    async create() {
+      creates++;
+      // The first attempt fails with a retryable status and Retry-After: 1
+      // (a one-second backoff). The deadline passes during that wait.
+      cancel.cancelled = true;
+      throw Object.assign(new Error("rate limited (stand-in)"), { status: 429, headers: { "retry-after": "1" } });
+    },
+    async recordCost() { /* no ledger in this process */ },
+  });
+  try {
+    const r = await costContext.run({ installationId: "7601", cancel }, () => callClaude(CANNED_OPTS));
+    assertEq([r.ok, !r.ok ? r.reason : null, creates], [false, "scan_cancelled", 1], "after one failed attempt the retry is refused with reason scan_cancelled; the transport saw one call (fails with the retry-path check deleted: every retry reaches the transport)");
+  } finally {
+    setCallClaudeTestDeps(null);
+  }
+}
+
+async function testApiGraceReleasesSlot(): Promise<void> {
+  section("K. API: a workflow that never settles gives its slot up only after deadline + grace; the next request for the installation runs then");
+  const queue = new ScanQueue(1);
+  const t0 = Date.now();
+  const seen = { secondStartedAt: -1 };
+  const hung = runApiScan("7701", PR_DIFF, { repoName: "api/test", scanId: "k1" }, {
+    checkBudget: async () => WITHIN,
+    runWorkflow: () => new Promise<WorkflowResult>(() => {}),
+    queue, deadlineMs: 50, slotGraceMs: 100,
+  });
+  await sleep(5);
+  const next = runApiScan("7701", PR_DIFF, { repoName: "api/test", scanId: "k2" }, {
+    checkBudget: async () => WITHIN,
+    runWorkflow: async () => { seen.secondStartedAt = Date.now() - t0; return emptyWorkflow(); },
+    queue, deadlineMs: 10_000,
+  });
+  const r1 = await hung;
+  const r2 = await next;
+  console.log(`       deadline 50 + grace 100; first answered ${r1.status}; second started at ${seen.secondStartedAt} ms and answered ${r2.status}`);
+  assertEq([r1.status, (r1.body as { error?: string }).error], [504, "scan_timed_out"], "the hung request is answered 504 scan_timed_out");
+  // Lower bound only: a slow runner fires timers later, never earlier.
+  assert(seen.secondStartedAt >= 140, `the second request waited for the grace, not just the deadline (started at ${seen.secondStartedAt} ms; deadline 50 + grace 100)`);
+  assert(seen.secondStartedAt < 10_000, `the slot was released after the grace, not pinned (started at ${seen.secondStartedAt} ms)`);
+  assertEq(r2.status, 200, "the second request then ran normally");
+}
+
+async function testTimedOutRowKeepsSpendUpToDeadline(): Promise<void> {
+  section("L. a timed-out scan's row records the spend up to the deadline; a call in flight at the deadline reaches the ledger, not the row");
+  const queue = new ScanQueue(1);
+  const store = new MemoryStore();
+  const ledger: number[] = [];
+  let creates = 0;
+  let releaseSecond!: () => void;
+  const secondReleased = new Promise<void>((r) => { releaseSecond = r; });
+  setCallClaudeTestDeps({
+    async create() {
+      creates++;
+      if (creates === 1) return pricedMessage(); // finished before the deadline
+      await secondReleased; // in flight at the deadline, released by the test afterwards
+      return pricedMessage();
+    },
+    async recordCost(_installationId, costUsd) { ledger.push(costUsd); },
+  });
+  try {
+    const r1 = await handlePullRequestWebhook(delivery(store, 5401, {
+      scanQueue: queue, scanDeadlineMs: 1_500, scanSlotGraceMs: 10_000,
+      resolveSemgrep: async () => TWO_CALL_DIFF,
+    }));
+    const row = [...store.rows.values()][0];
+    const atDeadline = { costUsd: row?.costUsd, ledger: [...ledger], creates, finishCalls: store.finishCalls };
+    console.log(`       at the deadline: row ${row?.status}/${row?.code} cost_usd ${atDeadline.costUsd}; ledger ${JSON.stringify(atDeadline.ledger)}; calls started ${creates}`);
+    assertEq([r1.ok, !r1.ok && r1.timedOut === true], [false, true], "the caller is answered as timed out");
+    assertEq([row?.status, row?.code, atDeadline.finishCalls], ["failed", "timed_out", 1], "the row is failed/timed_out, finished once");
+    // How many calls the detectors make for two files is theirs to decide;
+    // what matters is that exactly one finished before the deadline and the
+    // rest were in flight at it.
+    assert(atDeadline.creates >= 2, `at least two model calls started before the deadline (${atDeadline.creates})`);
+    assertEq(atDeadline.ledger.length, 1, "exactly one call finished and was ledgered before the deadline; the others are in flight");
+    assert((atDeadline.ledger[0] ?? 0) > 0, "the finished call was priced");
+    assertEq(atDeadline.costUsd?.toFixed(6), (atDeadline.ledger[0] ?? 0).toFixed(6), "the row's cost_usd is the spend up to the deadline, the same figure the ledger was given (fails on main before this change: the row read 0)");
+
+    releaseSecond();
+    // Generous wait for the in-flight call to land and the scan to settle.
+    const until = Date.now() + 10_000;
+    while (ledger.length < atDeadline.creates && Date.now() < until) await sleep(10);
+    await sleep(50);
+    assertEq(ledger.length, atDeadline.creates, "every in-flight call completed after the deadline and reached the ledger");
+    assertEq([row?.costUsd?.toFixed(6), store.finishCalls], [(atDeadline.ledger[0] ?? 0).toFixed(6), 1], "the row is unchanged: finished once, cost_usd still the spend up to the deadline; the in-flight calls are in the ledger only");
+    const ledgerTotal = ledger.reduce((sum, usd) => sum + usd, 0);
+    assert(ledgerTotal > (row?.costUsd ?? 0), `the ledger's total for this scan (${ledgerTotal.toFixed(6)}) exceeds the row's (${row?.costUsd}) by the in-flight calls`);
+  } finally {
+    setCallClaudeTestDeps(null);
+  }
+}
+
+const EXPECTED_SECTIONS = 12;
 
 async function main(): Promise<void> {
   if (getAnthropicClient() !== null) {
@@ -374,6 +559,10 @@ async function main(): Promise<void> {
     testCallClaudeRefusesWhenCancelled,
     testApiDeadlineStartsWhenScanStarts,
     testWebhookPlumbsCancelFlag,
+    testUndefinedSettlementIsTheDeadlinePath,
+    testRetryPathRefusesWhenCancelled,
+    testApiGraceReleasesSlot,
+    testTimedOutRowKeepsSpendUpToDeadline,
   ]) {
     try {
       await run();
