@@ -5353,6 +5353,15 @@ because that widening is on the READING side and this argument turns on the RUNN
   paid run happens only on the owner's named approval of $18.00; the launch command is in the
   runner's header and in the PR that landed it.
 
+  **OWNER'S RULING 2026-09-28, which supersedes the sentence above: no paid Anthropic API run,
+  at any amount.** The $18.00 run is withdrawn and must not be requested again, nor a smaller
+  paid run proposed, nor `FIXOR_PARKED_KEY` loaded. The question is to be answered on a PROXY
+  instrument at no API cost: one headless Claude Code process per mock-mode request, on the
+  owner's subscription, with the shipped system prompt, no tools, the shipped output schema,
+  and none of the case labels. Design, deviations and the labelling rule:
+  `docs/measurements/forced-routing-2026-09-28/proxy-judge-design-2026-09-28.md`. Not built, not
+  run. Its result, when it exists, is labelled PROXY and counts for no gate and no public claim.
+
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
 Same `L-` namespace as Priority 1d, 1e and 1f (found by RUNNING the detector), and a deliberately
