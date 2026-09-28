@@ -1,0 +1,21 @@
+# Held-out corpus manifest, 2026-09-27. One row per corpus file, vulnerable PARENT side only.
+# The corpus itself is NOT committed (third-party source; public repo). blob_sha1 is what
+# `gh api repos/<repo>/contents/<path>?ref=<parent> --jq .sha` returns. Files the fix commit
+# ADDED do not exist at the parent and are listed with status=added and no blob.
+case	advisory	repo	fix_commit	parent_commit	path	status	blob_sha1	bytes
+01	GHSA-89vx-jh4q-vg3w	deepstreamIO/deepstream.io	1c2adde6581c53ef47e204364bc740bc3c2e2e2a	3abde8de3df91e1b6d18f719d9e38e94bfa314f6	src/services/permission/valve/rules-map.ts	modified	cc75f0f7d4dcc02749240f5f9b4c9fe33b80bfcb	3861
+02	GHSA-7rhv-xm4q-wh42	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	8d2a9ee8ca8cf3f59852c1dcfdec674e934d5605	packages/core/src/data/resolvers/queries/users.ts	modified	93bcb29844bf3af1d8dc34b0632b184614514898	9175
+02	GHSA-7rhv-xm4q-wh42	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	8d2a9ee8ca8cf3f59852c1dcfdec674e934d5605	packages/gateway/src/index.ts	modified	59dffea06813f5fcc1809b885b346ce12124ed30	2376
+02	GHSA-7rhv-xm4q-wh42	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	8d2a9ee8ca8cf3f59852c1dcfdec674e934d5605	packages/gateway/src/middlewares/userMiddleware.ts	modified	42af81360033adbe7d774cda6cedf8c419d79db6	5354
+03	GHSA-c7hf-c5p5-5g6h	louislam/uptime-kuma	303a609c05d0b174a5045c90f53c2b557d4febae	3aea1dfaaf2598cfa2fe5658c5d918aea2548917	server/routers/api-router.js	modified	459da83e80c078fa2a2d2b8e0c8a7a54ac50454a	24439
+04	GHSA-496g-mmpw-j9x3	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	2d0dae236fd828e4c071fa1fce4dc559d78f6e91	packages/backend/src/core/entities/NoteEntityService.ts	modified	6871ba2c7219d5b6728ec19a4cb9c244def92135	22878
+04	GHSA-496g-mmpw-j9x3	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	2d0dae236fd828e4c071fa1fce4dc559d78f6e91	packages/backend/src/misc/should-hide-note-by-time.ts	added		
+04	GHSA-496g-mmpw-j9x3	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	2d0dae236fd828e4c071fa1fce4dc559d78f6e91	packages/backend/src/queue/processors/ExportClipsProcessorService.ts	modified	486dc4c01f759a75b93debfcb5971ec1a199210e	6202
+04	GHSA-496g-mmpw-j9x3	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	2d0dae236fd828e4c071fa1fce4dc559d78f6e91	packages/backend/src/queue/processors/ExportFavoritesProcessorService.ts	modified	7918c8ccb507659f3038d046581b7d0ef29d1c87	4981
+05	GHSA-qwc3-h9mg-4582	parse-community/parse-dashboard	f92a9ef5246d57e51696bd881a15f3b133b2bb50	8a34c2f0d6af5ad11793f49b9427dad4b26f1b81	Parse-Dashboard/app.js	modified	a79133f46d3a15e883aacd0e2ed66906d504cfa6	46044
+06	GHSA-hpm8-9qx6-jvwv	parse-community/parse-server	053109b3ee71815bc39ed84116c108ff9edbf337	83e794919635ff8b6c86bed8b640222d1c973e03	src/Routers/FilesRouter.js	modified	0f4dbfda86eae00c20e24755d05cca8064c2b741	12047
+07	GHSA-5ffh-6f9q-5hhr	Unleash/unleash	43e8db37b846921c8a94db58b44935ecbd15d9d1	b38bf1ec4b8c6fd8d82396fa73e7086ad1815826	src/lib/features/feature-toggle/feature-toggle-service.ts	modified	bf76b09d4a6c691c633d7591b1fcee7e1f9ac667	84187
+08	GHSA-6j36-r6pr-59x4	vendurehq/vendure	3bb04718ea4f9395fda731bd2a4bcfc3afb0a485	537b51486fe3fc9bdd0491e6192126b300e39453	packages/core/src/common/error/errors.ts	modified	bf592e504e362c0f997a79d86440b350ec0d3cb1	2900
+08	GHSA-6j36-r6pr-59x4	vendurehq/vendure	3bb04718ea4f9395fda731bd2a4bcfc3afb0a485	537b51486fe3fc9bdd0491e6192126b300e39453	packages/core/src/service/helpers/external-authentication/external-authentication.service.ts	modified	c36735b3034130025bcb8c2b5b107c1bcf312206	10315
+09	GHSA-v667-gc2r-2xm7	whyour/qinglong	6bec52dca158481258315ba0fc2f11206df7b719	ce599d306f81e3ebb0f6eaa5b540d701a6d4085d	back/loaders/express.ts	modified	2807ece0a18b8cb375fd05a70197247eb569042f	5916
+10	GHSA-5cf7-cxrf-mq73	Yonle/bostr	49181f4ec9ae1472c6675cab56bbc01e723855af	8b131e239b92db889ac5d8fd02bee1d3a035fd9d	auth.js	modified	1352e3a1221da32b42243a97de8f2fb8ee2407c5	1496

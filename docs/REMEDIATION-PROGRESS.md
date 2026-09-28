@@ -2408,6 +2408,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #253 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #254 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #255 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #256 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2660,6 +2661,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #253 | `8b5f421` | 2026-09-26 22:53:44 | `fix/scan-deadline-slots` (reflog: last move 02:02:18) | `1682a7b0`, captured before | 404 on first read after the merge, 22:54:13 | `fix/scan-deadline-slots` at `dae7dad` |
 | #254 | `a007897` | 2026-09-27 01:23:23 | `docs/253-tracker-row` (reflog: last move 00:39:14) | `ebcb1012`, captured before | 404 on first read after the merge, 01:23:44 | `docs/253-tracker-row` at `1edf8ab` |
 | #255 | `0bec0b1` | 2026-09-27 02:40:24 | `fix/timed-out-row-spend` (reflog: last move 01:46:18) | `58da9ead`, captured before | 404 on first read after the merge, 02:40:47 | `fix/timed-out-row-spend` at `6349844` |
+| #256 | `c3646bd` | 2026-09-27 03:42:53 | `fix/spend-unrecorded-at-deadline` (reflog: last move 03:20:17) | `dcdb2396`, captured before | 404 on first read after the merge, 03:43:04 | `fix/spend-unrecorded-at-deadline` at `36bbc0b` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2841,6 +2843,17 @@ The head ref answered 404 on the first read after the merge, at 02:40:47. gh 2.9
 arm invoked FROM the merged branch reads 32 observations, 2 green and 30 red; the THIRD-branch arm is
 unchanged at 5, all RED; the register carries 43 rows, 41 RED. No cause is named. **The merge of this
 entry will owe the next row.**
+
+**#256 (2026-09-27).** The owner ran `gh pr merge 256 --squash` with HEAD on the merged branch;
+the reflog's last HEAD move before the merge is 03:20:17, and HEAD was still there after it.
+**RED**: `gh` exited 0 and printed nothing; the local ref survived at `36bbc0b`. Assertion 2 held
+against a tree captured before the merge: `dcdb2396` on both. The squash `c3646bd` has the single
+parent `0bec0b1`, merged at 03:42:53Z (`mergedAt` read back from the API by the entry that files
+this row, 2026-09-27). The head ref answered 404 on the first read after the merge, at 03:43:04.
+gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-27), counted from the
+register table:** the arm invoked FROM the merged branch reads 33 observations, 2 green and 31
+red; the THIRD-branch arm is unchanged at 5, all RED; the register carries 44 rows, 42 RED. No
+cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3282,6 +3295,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   |---|---|---|---|---|
   | #255 | `0bec0b1` | 2026-09-27 02:41:19 | 02:40:58 | not triggered |
 
+  **#256 (added 2026-09-27).** CI (run 36292208691, both Node jobs, `head=c3646bd`) and the
+  `secrets` workflow (run 36292208696) concluded success on the merge commit; the merging session
+  recorded twenty-four `witness: PASS.` lines and zero `[FAIL]` lines in the CI log, and this entry
+  re-read only the two runs' conclusions. The Railway and Vercel times are the `success` statuses
+  of their GitHub deployments for `c3646bd` (ids 6687634006 and 6687637617), posted by
+  `railway-app[bot]` and `vercel[bot]`; no Railway CLI or dashboard was read. The merging session
+  read the backend health endpoint at 03:47:39 with `uptime_s` 231, which dates the container to
+  about 03:43:48, the deploy; this entry did not re-read it. Not observed: a scan whose ledger
+  write fails before its deadline, so the row's new `incomplete/spend_unrecorded` pairing has not
+  been seen in production. At the $0 cap no scan reaches a model call; these reads show only that
+  nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #256 | `c3646bd` | 2026-09-27 03:43:49 | 03:43:28 | not triggered |
+
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
   a plain fast-forward to trial PR #1 (`trial/auth-route`, `2f9e67a..4417fa0`) at 23:15:41Z.
@@ -3581,8 +3610,9 @@ were stated by the owner and not read by the entry that filed them.
    never do, so the deadline never saw the failure. **Decision:** the row must say the more serious
    truth: `incomplete/spend_unrecorded`, the same pairing `scannedOutcome` writes when the workflow
    does return after a failed write. The ledger, the caps and #243's fail-closed guard are unchanged.
-   **DONE on branch `fix/spend-unrecorded-at-deadline` (2026-09-27; PR in review, so by this file's
-   own rule the item is in review, not done, until its squash lands; the merge entry owes the SHA).**
+   **DONE in #256 (`c3646bd`, merged 2026-09-27 03:42:53Z; the branch was
+   `fix/spend-unrecorded-at-deadline`, and the sentence this replaces said "in review" until the
+   squash landed).**
    `onDeadline` (`pr-webhook-handler.ts`) reads `ledgerWriteFailed` from the workflow's cost
    context, which `callClaude` marks the moment a write fails, and keeps `run.spendUnrecorded` as a
    second source for a workflow that has returned. **What `cost_usd` holds:** `run.spend.usd` at the
@@ -5173,6 +5203,95 @@ because that widening is on the READING side and this argument turns on the RUNN
   rests here: the one demonstrated HIGH is the FastAPI path-param to `session.get` idiom, and
   L-013 is the evidence that the prefilter does not cleanly reach the non-FastAPI idioms, so that
   single success does not generalize across frameworks.
+
+- **L-025 (2026-09-27; REACH, measured at zero spend on the shipped `detect()` with
+  `measure-trial-triggers.ts`; NON-gating; NO RATE ASSERTED; record
+  `docs/measurements/detector-reach-2026-09-27/`) - the reach work the owner directed after Arm A,
+  done against a HELD-OUT set frozen and committed first, with the Arm A figure and the held-out
+  figure reported separately and only the second counted as evidence.**
+
+  **What was frozen first (commit `5c2e7c2`, before any detector changed).** Ten GitHub-reviewed
+  npm advisories, none of the twelve Arm A cases and none from a repository named in the tracked
+  tree, admitted under Arm A's rule with two stated deviations (`held-out-admission-2026-09-27.md`;
+  the corpus stays outside the repository, the manifest carries every blob sha). Baseline at `main`
+  `c3646bd` (`reach-baseline-2026-09-27.json`): Arm A 5 of 12 reached by the access-control family,
+  held-out 5 of 10, Fixor's 101 negative fixtures 158 calls, six clean live repositories (medusa,
+  novu, outline, umami, dub, docmost; 27,949 files) 3,517 calls, reproducing the 2026-09-19 dry run
+  exactly. Arm A case 05's root-cause file under `server/runtime/scripts/` was fetched beside the
+  frozen corpus and triggers NOTHING even when its path is not skipped: the `scripts` rule was not
+  what hid it from the model; its shape (an authorisation predicate that returns `true` when the
+  named script does not exist) matches no prefilter, and no regex was written for it.
+
+  **What changed (this PR), and what was looked at outward first.** Semgrep's public rules and
+  CodeQL's JavaScript library were read for the three access-control lanes (CodeQL MIT; the
+  semgrep-rules repository is under the Semgrep Rules License v1.0, not LGPL, so nothing was taken
+  from it beyond the observation that its IDOR rules are described by Semgrep itself as
+  educational). Neither ships a canned IDOR or missing-authorisation query for JavaScript; both
+  defer the ownership-filter question to dataflow, which in Fixor is the model's job. What was
+  taken, as ideas: CodeQL's per-framework `RemoteFlowSource` list (Express, Koa, Hapi, Fastify,
+  Next, Nest, restify, Sails) for the SOURCE side, and its framing that every ORM's raw escape
+  hatch is a bare driver call for the SINK side. Landed: (1) `EXPRESS_ROUTE_DEF_RE` (shared by
+  auth-bypass and admin-check) also matches a chained declaration at line start (Arm A case 02),
+  `server`/`fastify` identifiers with a `/` path, the `route` verb and Hapi's object form; (2) idor
+  gained three sources (destructured request id, Fastify `request.params`, Next.js
+  `searchParams.get`) and eleven sinks (Drizzle, Knex, Mongoose writes, TypeORM find-by,
+  Sequelize destroy, Prisma upsert/deleteMany, Kysely, Supabase, raw escape hatches); (3) one
+  fixture per pattern under `fixtures/reach/` with the free gate `test:reach-prefilter` in
+  `test:ci`, which fails on any pattern with no fixture and carries the R12 second-way controls;
+  (4) the five model-reaching detectors adopted secrets-exposure's 2026-09-12 skip rule byte for
+  byte, so all six copies are identical again (see below for why). NOT changed: any
+  `SYSTEM_PROMPT` (all five replay gates green on the recorded keys); `PROXIMITY_THRESHOLD` (the
+  one Arm A case a wider window admits, 10, has its defect about 1,250 lines from the nearest
+  pair, so the file would reach the model without the defect in the payload); the generic ORM
+  write verbs `.update(`, `.delete(`, `.updateMany(`, `.save(` as idor sinks, which sit in seven
+  of the 26 frozen idor replay fixtures and would move seven recorded keys, so they are DEFERRED
+  to the owner's paid re-record (last full idor re-record measured $0.28092); this is the
+  read-side companion of L-006's ORM-write sink gap and does not close it.
+
+  **Measured, same instrument, same corpora (`reach-after-2026-09-27.json`).**
+
+  | set | before | after |
+  |---|---|---|
+  | Arm A, reached by the access-control family | 5 of 12 | 6 of 12 (case 02) |
+  | held-out, reached by the access-control family | 5 of 10 | 5 of 10 |
+  | Fixor negatives, model calls | 158 | 160 |
+  | six clean repositories, files reaching the model | 1,304 | 1,271 |
+  | six clean repositories, model calls | 3,517 | 3,449 |
+  | projected spend per full scan of the six at the Arm A rate ($0.9579 / 27 calls) | $124.78 | $122.36 |
+
+  **The number that decided the skip rule, kept on the record.** With the new patterns and the OLD
+  skip rule the six repositories went to 3,835 calls (+318): novu's 101 new route-def files were
+  all `*.e2e.ts` supertest files matching the chained `.get('/v1/...')` shape, outline's 51 of 57
+  were `*.test.ts` supertest files matching `server.post("/...")`; test code the old rule never
+  dropped because it had no route-declaration shape before. The wider rule drops 83 such pairs and
+  the new patterns add 15 production ones, net -68. The 2026-09-12 reason for leaving the five
+  copies narrow expired with the 2026-09-14 walk. Residual, measured: six calls on novu `*.e2e.ts`
+  files outside any `e2e/` directory and on `libs/testing/src/user.session.ts`.
+
+  **Reading, stated plainly.** The held-out figure did not move. Reach on real code is bounded by
+  shapes the three lanes' prefilters cannot express at all: of the seven unreached Arm A cases,
+  one (02) is now reached; 04 needs the deferred write verbs; 03, 06, 07, 08, 11, 12 are a
+  service-layer method, an Effect `HttpApiBuilder` group, a model class with no request source, a
+  TypeORM access-control decorator, a client-supplied identifier inside an auth helper, and a
+  template-context secret, none of them regex-shaped. Of the five held-out cases still unreached,
+  no per-case cause is asserted, because opening those files to explain them would end their
+  held-out status; the next reach change re-earns its baseline on a NEW held-out set. And reach is
+  not detection: the Arm A cases that reached the model were answered "not vulnerable" 35 times
+  out of 35.
+
+  **CORRECTED 2026-09-28, before this entry merged.** As first pushed, this paragraph concluded
+  that "the binding constraint on the field-trial verdict is the model stage, not the prefilter",
+  and the PR's report recommended a paid re-run of the same prompt on the same cases. A $0 read of
+  the 35 recorded answers (`docs/measurements/arm-a-verdict-read-2026-09-28/verdict-read-2026-09-28.md`)
+  refutes that reading: of the 17 vulnerable-side verdicts, 5 came from a lane whose question
+  cannot express the defect while the owning lane never called, 9 were on files that did not
+  contain the defect, 2 needed a route list declared in another file, and 1 (FUXA's
+  `url.includes('/dashboard')` gate, seen and called intentional) is a candidate genuine miss. The
+  constraint is routing and context, not the model's judgment and not the prompt. The next paid
+  question is pre-registered, not run: `forced-routing-prereg-2026-09-28.md` in the same directory
+  (owning lane, shipped prompts, judged on the held-out ten, 30 clean files for false positives,
+  350 calls, projected $14.21, hard ceiling $18.00). Also recorded there: the admission file's
+  "All 14 blobs" is a prose miscount; the manifest has 15 files and all 15 were hash-checked.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
