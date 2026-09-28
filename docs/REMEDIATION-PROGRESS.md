@@ -2410,6 +2410,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #255 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #256 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #257 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #258 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2664,6 +2665,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #255 | `0bec0b1` | 2026-09-27 02:40:24 | `fix/timed-out-row-spend` (reflog: last move 01:46:18) | `58da9ead`, captured before | 404 on first read after the merge, 02:40:47 | `fix/timed-out-row-spend` at `6349844` |
 | #256 | `c3646bd` | 2026-09-27 03:42:53 | `fix/spend-unrecorded-at-deadline` (reflog: last move 03:20:17) | `dcdb2396`, captured before | 404 on first read after the merge, 03:43:04 | `fix/spend-unrecorded-at-deadline` at `36bbc0b` |
 | #257 | `05c5792` | 2026-09-28 00:36:12 | `feat/detector-reach-heldout` (reflog: last move 2026-09-27 23:33:28) | `3422b8f1`, captured before | 404 on first read after the merge, 00:36:30 | `feat/detector-reach-heldout` at `1d7311b` |
+| #258 | `0101587` | 2026-09-28 01:59:21 | `feat/forced-routing-runner` (reflog: last move 01:36:57) | `eed5e351`, captured before by the merging session; recomputed by the filing entry from the PR head `49a578e`, equal | 404 on first read after the merge, 01:59:32 (merging session); 404 again when filed | `feat/forced-routing-runner` at `49a578e` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2867,6 +2869,19 @@ the merge, at 00:36:30. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated
 (2026-09-28), counted from the register table:** the arm invoked FROM the merged branch reads 34
 observations, 2 green and 32 red; the THIRD-branch arm is unchanged at 5, all RED; the register
 carries 45 rows, 43 RED. No cause is named. **The merge of this entry will owe the next row.**
+
+**#258 (2026-09-28).** The owner ran `gh pr merge 258 --squash --match-head-commit` from the
+prompt with HEAD on the merged branch; the reflog's last HEAD move before the merge is 01:36:57,
+and HEAD was still there after it. **RED**: `gh` exited 0 and printed nothing; the local ref
+survived at `49a578e`, and was still present when this row was filed. Assertion 2 held: the
+merging session captured `eed5e351` before the merge, and the filing entry recomputed the same
+tree from the PR head `49a578e` and from `main`. The squash `0101587` has the single parent
+`05c5792`, merged at 01:59:21Z (`mergedAt` read back from the API by the filing entry). The head
+ref answered 404 on the first read after the merge, at 01:59:32, and 404 again when filed. gh
+2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-28), counted from the
+register table:** the arm invoked FROM the merged branch reads 35 observations, 2 green and 33
+red; the THIRD-branch arm is unchanged at 5, all RED; the register carries 46 rows, 44 RED. No
+cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3339,6 +3354,25 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #257 | `05c5792` | 2026-09-28 00:37:24 | 00:36:51 | not triggered |
+
+  **#258 (added 2026-09-28).** CI (run 36368062907, both Node jobs, `head=0101587`) and the
+  `secrets` workflow (run 36368062903) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: forced-routing rehearsal` lines (the gate #258
+  added, once per Node job) and zero `[FAIL]` lines, re-read by the filing entry. The Railway and
+  Vercel times are the `success` statuses of their GitHub deployments for `0101587` (ids 6700851596
+  and 6700857165), posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or dashboard was
+  read. The merging session read the backend health endpoint at 02:05:34 with `uptime_s` 281,
+  which dates the container to about 02:00:53, the deploy, and the dashboard's `{"status":"ok",
+  "db":"ok"}` at 02:05:36. The filing entry re-read both on 2026-09-28: at 13:43:39Z the backend
+  answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":42164}`, which dates the same
+  container to 02:00:55, and the dashboard answered `{"status":"ok","db":"ok"}` at 13:43:41Z. Not
+  observed: anything in production, because #258 changed nothing under `src/` outside
+  `src/test/`. At the $0 cap no scan reaches a model call; these reads show only that nothing
+  regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #258 | `0101587` | 2026-09-28 02:01:01 | 02:00:00 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5361,6 +5395,57 @@ because that widening is on the READING side and this argument turns on the RUNN
   and none of the case labels. Design, deviations and the labelling rule:
   `docs/measurements/forced-routing-2026-09-28/proxy-judge-design-2026-09-28.md`. Not built, not
   run. Its result, when it exists, is labelled PROXY and counts for no gate and no public claim.
+
+  **PROXY JUDGE BUILT AND REHEARSED, 2026-09-28, $0; NOT RUN.** `src/test/proxy-judge.ts` with
+  `src/test/lib/proxy-judge.ts` and the stub `src/test/lib/proxy-judge-stub.ts` (nothing under
+  `src/test` ships). It reads the 70 first-pass request files of a mock run and starts one
+  `claude -p` per request and pass with exactly `--model <the request's model> --tools ""
+  --strict-mcp-config --setting-sources "" --no-session-persistence --max-turns 1 --output-format
+  json --system-prompt <the request's system text> --json-schema <the shipped tool's
+  input_schema>`, the user message on stdin, from a fresh empty directory under a work root
+  outside the repository, with a whitelisted environment. It refuses before reading anything when
+  any `ANTHROPIC_*`, `AWS_*`, `CLAUDE_CODE_USE_*` or `sk-ant-`-shaped value is in the
+  environment, or when the user `settings.json` sets `apiKeyHelper` or a credential under `env`;
+  `--bare` and `--fallback-model` are never passed and are refused as arguments. Every call
+  records the answering model from the result's `modelUsage`; a model other than the request's
+  writes a `.model-mismatch.json`, stops the run, and blocks a restart until the owner removes the
+  file. A process that fails writes no file; the same command resumes from the files on disk.
+  Verdicts reach `results.json` through the pre-registered `score()` unchanged.
+  **Rehearsal `test:proxy-judge-rehearsal`, in `test:ci`, keyless, no model, no network, no
+  timing bounds:** (A) six refusals (`ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`,
+  `CLAUDE_CODE_USE_BEDROCK`, a key-shaped value under another name, a work root inside the
+  repository, `--bare`) each exit 3 with nothing written and no process started; (B) a stub
+  answering as `claude-sonnet-4-5` stops on call 1 with the mismatch file and no verdict file, and
+  the next invocation refuses to start; (C) a stub cut off after 100 calls leaves exactly 100
+  verdict files, and the resume finishes 140 of 140 with 141 stub invocations, one per (request,
+  pass) plus the failed one; (D) 350 of 350 verdict files, results complete, the scorer registers
+  10 of 10 held-out hits and 0 of 30 clean flags on the stub's parent-side marker, label
+  `STUB/PROXY-PASS`; (E) over all 350 captures, argv is byte-for-byte the fixed flags plus the
+  request's system prompt and schema, stdin is byte-for-byte the user message, every cwd is a
+  fresh empty directory outside the repository, the requests and the corpus, the environment
+  carries no credential-shaped name or value, and no context-block field (set, case, side, lane,
+  repo, commit, blob sha, anchor line), corpus path, requests path or forbidden flag reaches the
+  process. **Volume, measured with the stub over the blob-verified real corpora (70 requests, no
+  model):** 1,960,965 characters per pass, system 824,444 and user 1,136,521, about 560,000 tokens
+  at 3.5 characters per token (an estimate; no tokenizer was called), about 2.8 million over five
+  passes; the design's 2,162,901 counted the request files' JSON, this counts the text the process
+  receives. The longest argv is 16,289 characters, under the Windows command-line limit.
+  **Labelling rule:** a proxy result is reported ONLY as PROXY-PASS, PROXY-FAIL or
+  PROXY-INCONCLUSIVE (PROXY-INCOMPLETE until every request has five verdicts), with the noise
+  result beside it and the words "PROXY, Claude Code headless on the owner's subscription,
+  temperature uncontrolled; NOT the pre-registered forced-routing measurement"; it counts for no
+  gate, no stage-3 green, no F-004 movement and no public claim. **Residuals stated before any
+  run:** (1) the script cannot see whether the subscription's extra usage is enabled, and with it
+  enabled an exhausted window bills usage credits instead of rate-limiting, so the owner confirms
+  it is OFF at claude.ai before the run; (2) `--setting-sources ""` is passed to keep the user
+  settings and CLAUDE.md out of the process, but whether an empty value is honoured has not been
+  verified, because verifying it needs a model call; if it is not, the user-level CLAUDE.md
+  (machine notes, nothing about Fixor cases) may be attached; (3) the user settings on the build
+  machine set `fallbackModel`, which the judge reports at start and the per-call model check
+  would stop; (4) the trigger line is a hint no router has and public advisories may be
+  memorised, so PROXY-PASS is a ceiling and PROXY-FAIL is the decisive reading, as the design
+  says. The owner's commands are in the PR that landed this entry and in the header of
+  `proxy-judge.ts`; nothing has been run.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
