@@ -58,6 +58,16 @@ async function main(): Promise<number> {
     out.write("usage: forced-routing-runner --mode live|mock --out <dir> [--key-file <path>] ...\n");
     return 3;
   }
+  // The key gate comes before anything is read: a live run with no key file
+  // is refused without touching the inputs or the corpus.
+  if (mode === "live" && !arg("--key-file")) {
+    out.write("refused: --mode live needs --key-file; the key is taken from that file and from nowhere else\n");
+    return 3;
+  }
+  if (mode === "mock" && arg("--key-file")) {
+    out.write("refused: --key-file is not accepted in --mode mock\n");
+    return 3;
+  }
   const repoRoot = process.cwd();
   const corpusRoot = resolve(arg("--corpus-root") ?? join(repoRoot, ".."));
 
@@ -86,14 +96,6 @@ async function main(): Promise<number> {
       out.write(`refused: ${lane} SYSTEM_PROMPT_FINGERPRINT ${v} differs from the pinned ${pinnedFp[lane]}\n`);
       return 3;
     }
-  }
-  if (mode === "live" && !arg("--key-file")) {
-    out.write("refused: --mode live needs --key-file; the key is taken from that file and from nowhere else\n");
-    return 3;
-  }
-  if (mode === "mock" && arg("--key-file")) {
-    out.write("refused: --key-file is not accepted in --mode mock\n");
-    return 3;
   }
   if (existsSync(outDir) && existsSync(join(outDir, "calls.jsonl"))) {
     out.write(`refused: ${outDir} already holds a run; choose a fresh directory\n`);

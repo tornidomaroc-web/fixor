@@ -131,19 +131,30 @@ async function main(): Promise<void> {
 
   await requestIdentity();
 
+  // The real corpora live outside the repository and are absent on CI, so
+  // every runner invocation here points at a synthetic corpus of the same
+  // layout; the refusals under test must fire regardless of corpus state.
+  const corpus = syntheticCorpus();
+  const dirOut = (tag: string): string => join(tmpdir(), `fr-${tag}-${Date.now()}`);
+
   out.write("\nB. refusals\n");
-  const noKey = runRunner(["--mode", "live", "--out", join(tmpdir(), "fr-nokey-" + Date.now())]);
-  if (noKey.status === 3 && /key-file/.test(noKey.stdout + noKey.stderr)) pass("live without --key-file exits 3 before any run");
+  const noKey = runRunner(["--mode", "live", "--out", dirOut("nokey"), "--corpus-root", corpus]);
+  if (noKey.status === 3 && /key-file/.test(noKey.stdout + noKey.stderr)) pass("live without --key-file exits 3 before any run, before inputs or corpus are read");
   else fail(`live without --key-file: status ${noKey.status} ${noKey.stdout}${noKey.stderr}`);
-  const ambient = runRunner(["--mode", "mock", "--out", join(tmpdir(), "fr-ambient-" + Date.now()), "--allow-unverified-corpus"], { ANTHROPIC_API_KEY: "sk-ant-not-a-real-key" });
+  const noKeyNoCorpus = runRunner(["--mode", "live", "--out", dirOut("nokey2"), "--corpus-root", join(tmpdir(), "fr-absent-" + Date.now())]);
+  if (noKeyNoCorpus.status === 3 && /key-file/.test(noKeyNoCorpus.stdout + noKeyNoCorpus.stderr)) pass("live without --key-file is refused on the key, not on a missing corpus");
+  else fail(`live without --key-file, absent corpus: status ${noKeyNoCorpus.status} ${noKeyNoCorpus.stdout}${noKeyNoCorpus.stderr}`);
+  const ambient = runRunner(["--mode", "mock", "--out", dirOut("ambient"), "--corpus-root", corpus, "--allow-unverified-corpus"], { ANTHROPIC_API_KEY: "sk-ant-not-a-real-key" });
   if (ambient.status === 3 && /ANTHROPIC_API_KEY is set/.test(ambient.stdout + ambient.stderr)) pass("ambient ANTHROPIC_API_KEY refused in mock mode");
   else fail(`ambient key: status ${ambient.status} ${ambient.stdout}${ambient.stderr}`);
-  const over = runRunner(["--mode", "mock", "--out", join(tmpdir(), "fr-over-" + Date.now()), "--ceiling-usd", String(prereg.ceilingUsd + 1)]);
+  const over = runRunner(["--mode", "mock", "--out", dirOut("over"), "--corpus-root", corpus, "--allow-unverified-corpus", "--ceiling-usd", String(prereg.ceilingUsd + 1)]);
   if (over.status === 3 && /pre-registered/.test(over.stdout)) pass(`a ceiling above the pre-registered $${prereg.ceilingUsd} is refused`);
   else fail(`raised ceiling: status ${over.status} ${over.stdout}`);
+  const unverified = runRunner(["--mode", "mock", "--out", dirOut("unverified"), "--corpus-root", corpus]);
+  if (unverified.status === 3 && /blob sha/.test(unverified.stdout)) pass("a corpus that fails its blob-sha check is refused unless the rehearsal flag is given");
+  else fail(`unverified corpus: status ${unverified.status} ${unverified.stdout}`);
 
   out.write("\nC. full dry run over a synthetic corpus\n");
-  const corpus = syntheticCorpus();
   const targets = readTargets(process.cwd(), corpus);
   const planned = targets.length * prereg.runs;
   const dir = join(tmpdir(), "fr-dry-" + Date.now());
