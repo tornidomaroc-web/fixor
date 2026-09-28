@@ -1,0 +1,17 @@
+# Held-out corpus, FIX side, fetched 2026-09-28 for the forced-routing runner. Same columns as the parent manifest.
+case	advisory	repo	fix_commit	path	blob_sha1	bytes
+01	GHSA-89vx-jh4q-vg3w	deepstreamIO/deepstream.io	1c2adde6581c53ef47e204364bc740bc3c2e2e2a	src/services/permission/valve/rules-map.ts	3008f0e8ded2344715119c11df861ea62389d2e7	3914
+02	GHSA-7rhv-xm4q-wh42	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	packages/core/src/data/resolvers/queries/users.ts	f7afc4356de04280fefea61ed2a1b8a8f92775c0	9287
+02	GHSA-7rhv-xm4q-wh42	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	packages/gateway/src/index.ts	3e3ba68779f2d503c8c5e81e249102eedd357eb3	2506
+02	GHSA-7rhv-xm4q-wh42	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	packages/gateway/src/middlewares/userMiddleware.ts	bb382d673875d686173bbd9e270b62f51d498061	5428
+03	GHSA-c7hf-c5p5-5g6h	louislam/uptime-kuma	303a609c05d0b174a5045c90f53c2b557d4febae	server/routers/api-router.js	2752593f7cd0e68da806c51a241227588fbb80bd	24016
+04	GHSA-496g-mmpw-j9x3	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	packages/backend/src/core/entities/NoteEntityService.ts	e7847ba74e181eec5fb0f529293b9903e031248e	22541
+04	GHSA-496g-mmpw-j9x3	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	packages/backend/src/queue/processors/ExportClipsProcessorService.ts	be7d4e9e2139927c885040c67a4a2cd01bc5e3dc	6694
+04	GHSA-496g-mmpw-j9x3	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	packages/backend/src/queue/processors/ExportFavoritesProcessorService.ts	87a8ded30723698271fdde8f85d2ae6c805d8cf1	5529
+05	GHSA-qwc3-h9mg-4582	parse-community/parse-dashboard	f92a9ef5246d57e51696bd881a15f3b133b2bb50	Parse-Dashboard/app.js	c22df1af93780e1999bac1d6cda398724f3dd248	48436
+06	GHSA-hpm8-9qx6-jvwv	parse-community/parse-server	053109b3ee71815bc39ed84116c108ff9edbf337	src/Routers/FilesRouter.js	192b14afd0e2a6b7e19e5b3b8e2d4718524519fd	12919
+07	GHSA-5ffh-6f9q-5hhr	Unleash/unleash	43e8db37b846921c8a94db58b44935ecbd15d9d1	src/lib/features/feature-toggle/feature-toggle-service.ts	93b1fcb7e1f0284b33fbe1735952274681360581	84501
+08	GHSA-6j36-r6pr-59x4	vendurehq/vendure	3bb04718ea4f9395fda731bd2a4bcfc3afb0a485	packages/core/src/common/error/errors.ts	686f3150bd6de573c6b539063bfa618d2e04a6bc	3572
+08	GHSA-6j36-r6pr-59x4	vendurehq/vendure	3bb04718ea4f9395fda731bd2a4bcfc3afb0a485	packages/core/src/service/helpers/external-authentication/external-authentication.service.ts	27e8b6a6b47913c847810e0868c0fd1adc2d830f	11456
+09	GHSA-v667-gc2r-2xm7	whyour/qinglong	6bec52dca158481258315ba0fc2f11206df7b719	back/loaders/express.ts	b5bf221b44c70b6355c4e119a595e560b3cb5a44	6019
+10	GHSA-5cf7-cxrf-mq73	Yonle/bostr	49181f4ec9ae1472c6675cab56bbc01e723855af	auth.js	6d66662da0937a1d0e578fd5f6a61521b63c099b	1550

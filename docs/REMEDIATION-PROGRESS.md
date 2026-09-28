@@ -2409,6 +2409,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #254 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #255 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #256 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #257 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2662,6 +2663,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #254 | `a007897` | 2026-09-27 01:23:23 | `docs/253-tracker-row` (reflog: last move 00:39:14) | `ebcb1012`, captured before | 404 on first read after the merge, 01:23:44 | `docs/253-tracker-row` at `1edf8ab` |
 | #255 | `0bec0b1` | 2026-09-27 02:40:24 | `fix/timed-out-row-spend` (reflog: last move 01:46:18) | `58da9ead`, captured before | 404 on first read after the merge, 02:40:47 | `fix/timed-out-row-spend` at `6349844` |
 | #256 | `c3646bd` | 2026-09-27 03:42:53 | `fix/spend-unrecorded-at-deadline` (reflog: last move 03:20:17) | `dcdb2396`, captured before | 404 on first read after the merge, 03:43:04 | `fix/spend-unrecorded-at-deadline` at `36bbc0b` |
+| #257 | `05c5792` | 2026-09-28 00:36:12 | `feat/detector-reach-heldout` (reflog: last move 2026-09-27 23:33:28) | `3422b8f1`, captured before | 404 on first read after the merge, 00:36:30 | `feat/detector-reach-heldout` at `1d7311b` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2854,6 +2856,17 @@ gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-09-27), co
 register table:** the arm invoked FROM the merged branch reads 33 observations, 2 green and 31
 red; the THIRD-branch arm is unchanged at 5, all RED; the register carries 44 rows, 42 RED. No
 cause is named. **The merge of this entry will owe the next row.**
+
+**#257 (2026-09-28).** The owner ran `gh pr merge 257 --squash --match-head-commit
+1d7311b45403767617cd7368ddd7a6ed60a6d33e` from the prompt with HEAD on the merged branch; the
+reflog's last HEAD move before the merge is 2026-09-27 23:33:28, and HEAD was still there after
+it. **RED**: `gh` exited 0 and printed nothing; the local ref survived at `1d7311b`. Assertion 2
+held against a tree captured before the merge: `3422b8f1` on both. The squash `05c5792` has the
+single parent `c3646bd`, merged at 00:36:12Z. The head ref answered 404 on the first read after
+the merge, at 00:36:30. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record
+(2026-09-28), counted from the register table:** the arm invoked FROM the merged branch reads 34
+observations, 2 green and 32 red; the THIRD-branch arm is unchanged at 5, all RED; the register
+carries 45 rows, 43 RED. No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3310,6 +3323,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #256 | `c3646bd` | 2026-09-27 03:43:49 | 03:43:28 | not triggered |
+
+  **#257 (added 2026-09-28).** CI (run 36362819711, both Node jobs, `head=05c5792`) and the
+  `secrets` workflow (run 36362819715) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: reach prefilter gate` lines (the gate #257
+  added, once per Node job) and zero `[FAIL]` lines. The Railway and Vercel times are the
+  `success` statuses of their GitHub deployments for `05c5792` (ids 6700009080 and 6700014361),
+  posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or dashboard was read. At
+  00:45:33 the backend answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":491}`,
+  which dates the container to about 00:37:22, the deploy; the dashboard answered
+  `{"status":"ok","db":"ok"}`. Not observed: any scan under the widened prefilters, so their
+  effect on a real PR has not been seen in production. At the $0 cap no scan reaches a model
+  call; these reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #257 | `05c5792` | 2026-09-28 00:37:24 | 00:36:51 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5292,6 +5321,46 @@ because that widening is on the READING side and this argument turns on the RUNN
   (owning lane, shipped prompts, judged on the held-out ten, 30 clean files for false positives,
   350 calls, projected $14.21, hard ceiling $18.00). Also recorded there: the admission file's
   "All 14 blobs" is a prose miscount; the manifest has 15 files and all 15 were hash-checked.
+
+  **RUNNER BUILT AND REHEARSED, 2026-09-28, $0; NOT RUN.** `src/test/forced-routing-runner.ts`
+  with `src/test/lib/forced-routing.ts` (no production code touched; nothing under src/test is
+  shipped). It reads the case list and lane mapping from the sha256-pinned admission table and
+  pre-registration, the anchors, the fix-side manifest and the seeded 30-file clean draw from
+  `docs/measurements/forced-routing-2026-09-28/`, verifies every corpus file's git blob sha and
+  the three shipped prompt fingerprints before the first call, refuses an ambient
+  `ANTHROPIC_API_KEY` (the key comes from `--key-file` only), and enforces the pre-registered
+  $18.00 ceiling at the SDK boundary before every attempt, production retries included, from
+  measured spend (production `calculateCost`, cross-checked call by call against callClaude's own
+  `lastCallCost`) plus a request-derived bound or the largest cost yet seen, whichever is larger.
+  Every request is on disk before the network is touched; every response after. The shipped
+  model stage is reached by running the real `analyzeFile` with only the private prefilter
+  swapped (auth-bypass, admin-check) and the real `callLlm` with one injected pair (idor).
+  **Rehearsal `test:forced-routing-rehearsal`, in `test:ci`, keyless:** (A) on a fixture that
+  triggers naturally, the forced request equals the shipped request byte for byte in all three
+  lanes; (B) live without a key file exits 3 with no run, an ambient key is refused, a ceiling
+  above $18.00 is refused; (C) a full mock dry run over a synthetic corpus makes all 350 calls,
+  350 request and 350 response files, complete results, the scorer registering 10 of 10 held-out
+  hits when the mock flags parent files and 0 of 30 clean flags; (D) a mock reporting 40x usage
+  is stopped at call 10 with $17.4150 measured, under the ceiling, partial results marked
+  INCOMPLETE. A second full dry run over the REAL corpora (blob-verified, mock model) also made
+  350 of 350 calls. **Amendment A1** (same directory): the pre-registered anchor rule, read
+  literally, points at an added `import` line in six files; as run, the anchor is the first
+  changed non-import, non-blank, non-comment line. **Two cautions carried to the owner:** the
+  anchor line and its text go into the prompt as the trigger, a hint no router has, so a hit
+  here is a ceiling and a miss here is decisive; and the mock at its canned usage came to $16.93
+  of the $18.00, so if the real mean per call passes about $0.051 (trial mean $0.0355, projection
+  $0.041) the run stops INCOMPLETE and a second, separately approved run would be needed. The
+  paid run happens only on the owner's named approval of $18.00; the launch command is in the
+  runner's header and in the PR that landed it.
+
+  **OWNER'S RULING 2026-09-28, which supersedes the sentence above: no paid Anthropic API run,
+  at any amount.** The $18.00 run is withdrawn and must not be requested again, nor a smaller
+  paid run proposed, nor `FIXOR_PARKED_KEY` loaded. The question is to be answered on a PROXY
+  instrument at no API cost: one headless Claude Code process per mock-mode request, on the
+  owner's subscription, with the shipped system prompt, no tools, the shipped output schema,
+  and none of the case labels. Design, deviations and the labelling rule:
+  `docs/measurements/forced-routing-2026-09-28/proxy-judge-design-2026-09-28.md`. Not built, not
+  run. Its result, when it exists, is labelled PROXY and counts for no gate and no public claim.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 

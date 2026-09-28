@@ -1,0 +1,33 @@
+# Clean draw for the forced-routing run, computed 2026-09-28 before any run. seed=forced-routing-2026-09-28
+# Order: ascending sha256(seed + repo + path) over supported files the shipped skip rule keeps; first 10 route-shape -> auth-bypass, next 10 -> admin-check, first 10 with an idor SINK hit -> idor.
+lane	repo	head	path	blob_sha1	anchor_line	draw_key
+auth-bypass	novu	36c5c0cefa400e8edc6ec8b18ac4574288eabd03	libs/testing/src/user.session.ts	c368a8af2ddaca78bf17f73e742eee1128485010	196	003bb982ffbcffc8
+auth-bypass	outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788	server/routes/api/integrations/integrations.ts	9a6ed70292c4e542e7b1e1f3d8ff61e8867cbc17	19	004f6a8ef6bec356
+auth-bypass	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/admin/translations/settings/route.ts	658f847488882170950e828880ec07450c2884e9	21	008c56607bcc5693
+auth-bypass	dub	66223ae22cdec9960897507cf86c551b4e333562	apps/web/app/(ee)/api/cron/export/events/workspace/route.ts	fc51b3a142ec69ebc732551ed461a4496963cf73	31	00eaa649728a95df
+auth-bypass	docmost	6205bbeb908fe846f87dd6a2cbf562e24777db38	apps/client/src/features/space/services/space-service.ts	c3dbb2d0187d5ec7037e145ccbb29a43ca5303b4	16	0109eb298d6188a1
+auth-bypass	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/admin/search/route.ts	805338a67ff70f91306774c3c526545aa938edf9	26	014b5eda34782efa
+auth-bypass	outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788	plugins/figma/server/api/figma.ts	02ed820c6877ef5c3d2d1ba65fa2b7dfcdbaebfb	24	017ee9538ff0f386
+auth-bypass	dub	66223ae22cdec9960897507cf86c551b4e333562	apps/web/app/(ee)/api/partners/analytics/route.ts	6ad6b0f1c0a4d686698da81be6a3883fe2ccf734	18	019acfddfe6dc4e6
+auth-bypass	outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788	server/routes/api/groups/groups.ts	5682ffc71dcd1806a45eb84763d31ba72a43ae75	47	022040c2bf7e1cde
+auth-bypass	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/admin/campaigns/[id]/route.ts	596e2255b1062deaf8b0f17c67213963e0b4d623	14	02662e48f295b1d3
+admin-check	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/store/customers/route.ts	ee892c36e34074a4aad53b1996df286eeef924f8	11	02680a75b937db04
+admin-check	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/admin/shipping-options/[id]/route.ts	9d4f0cb47c51eda532e07d29806e8cfd2224a4fc	13	026addeb025e077c
+admin-check	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/admin/draft-orders/[id]/edit/request/route.ts	cfa0dd19f2ad5d4361232315584d3cb54e783876	8	027173b90c5a5014
+admin-check	dub	66223ae22cdec9960897507cf86c551b4e333562	apps/web/app/(ee)/api/cron/bounties/queue-sync-social-metrics/route.ts	973bbe81c2aa7bf2e1444b821d4eb0d92ee6fd06	12	02b1ef68e5342bf3
+admin-check	outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788	server/routes/api/collections/collections.ts	0bd839e67f855ecb38e1a06d2fef5804345dfce6	59	02c676ae97825cab
+admin-check	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/store/currencies/[code]/route.ts	c1bfab577584c316998c6abcd08382e5c9bb93f9	9	0375ffb6fce17312
+admin-check	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/admin/draft-orders/[id]/edit/confirm/route.ts	d9535da5776daa3e799ac3ef4ccb505c1d367c22	8	03cb147647db0477
+admin-check	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/medusa/src/api/admin/price-preferences/route.ts	8811733461e999e06696a65d54656dc08786f3a8	10	047b3427411c7761
+admin-check	umami	ec0ff50388c264ed8ce46f00967e92f7e71476ae	src/app/api/websites/[websiteId]/session-data/array-series/route.ts	e25bdef692520621f0630b703b1f312ae192f6b4	9	04b24418aa63cbc7
+admin-check	docmost	6205bbeb908fe846f87dd6a2cbf562e24777db38	apps/client/src/ee/scim/services/scim-token-service.ts	df54cb2ff196cbde8be17d16f2cd131db8c9207a	13	05217915c0089d6d
+idor	dub	66223ae22cdec9960897507cf86c551b4e333562	apps/web/app/(ee)/api/stripe/integration/webhook/promotion-code-updated.ts	8b5a3664b1aef03d27b71021d84323b0a1f1bd33	29	00246d7d2c5840ce
+idor	docmost	6205bbeb908fe846f87dd6a2cbf562e24777db38	apps/server/src/database/repos/page/page-history.repo.ts	d452cf69760a1843816ea340d63d73fa9758f4e5	49	002595b007caa97f
+idor	outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788	server/commands/groupsSyncer.ts	10a6c197c56b6fe0a83f38172a892ea5f89e04ff	79	00352206972d63b8
+idor	medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492	packages/core/modules-sdk/src/medusa-app.ts	75b693464ec3db18b821ab590217ab50d842123f	88	00a09c7dc940f7f6
+idor	outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788	server/queues/tasks/InviteReminderTask.ts	0074d7536d3baea0be1906bae23ef6d760959139	25	00bf3a50d9f6741c
+idor	dub	66223ae22cdec9960897507cf86c551b4e333562	apps/web/lib/auth/options.ts	b7e8423935ab952ccaecc66f1894cb0a392c0d3e	147	00f2aa1ad4a966c5
+idor	outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788	server/tools/documents.ts	1354592d268d595629d59ee470022f8977180f29	126	00fa778aa49c2097
+idor	novu	36c5c0cefa400e8edc6ec8b18ac4574288eabd03	apps/api/src/app/telegram-linking/link-telegram-chat-to-subscriber/link-telegram-chat-to-subscriber.usecase.ts	4018ebf4bd3953344018fd430d694b34ab571b14	45	012756c3f3394321
+idor	novu	36c5c0cefa400e8edc6ec8b18ac4574288eabd03	apps/api/src/app/telegram-linking/process-integration-telegram-webhook/process-integration-telegram-webhook.usecase.ts	d9eef07c0d444702e7b9911f11d51681988fccb9	41	015b49f05d0a9388
+idor	novu	36c5c0cefa400e8edc6ec8b18ac4574288eabd03	apps/api/src/app/subscriptions/usecases/get-subscription/get-subscription.usecase.ts	53d08cef5bd5353e2fd2e9a048c56c8449d55817	64	017ca0aa085b5c3f
