@@ -239,7 +239,14 @@ function main(): void {
     for (const s of forbiddenStrings) if (everything.includes(s)) e.leak++;
     // The context block itself, and each of its scoring values as a labelled field.
     if (everything.includes(raw)) e.leak++;
-    for (const [k, v] of Object.entries(JSON.parse(raw).target as Record<string, unknown>)) {
+    const tgt = JSON.parse(raw).target as Record<string, unknown>;
+    // Bare values that cannot occur by accident: the commit and the blob sha (40 hex).
+    for (const k of ["commit", "blobSha"]) {
+      const v = String(tgt[k] ?? "");
+      if (!/^[0-9a-f]{40}$/.test(v)) e.leak++;
+      else if (everything.includes(v)) e.leak++;
+    }
+    for (const [k, v] of Object.entries(tgt)) {
       if (k === "path") continue; // the file path is part of the shipped user message by design
       if (everything.includes(`"${k}":${JSON.stringify(v)}`) || everything.includes(`"${k}": ${JSON.stringify(v)}`) || everything.includes(`${k}: ${String(v)}`)) e.leak++;
     }
@@ -253,7 +260,7 @@ function main(): void {
   else fail(`cwd violated on ${e.cwd} calls`);
   if (e.env === 0) pass("the environment carries no credential-shaped name or value");
   else fail(`environment carried credential-shaped entries on ${e.env} calls`);
-  if (e.leak === 0) pass("no context-block value, label, corpus path, requests path, repository path or forbidden flag reached argv, stdin, cwd or env");
+  if (e.leak === 0) pass("no context-block field as a labelled field, no bare commit or blob sha, no set label, corpus path, requests path, repository path or forbidden flag reached argv, stdin, cwd or env");
   else fail(`${e.leak} leak(s) of context, label or path`);
   // Sanity: the marker the stub flags on IS in the parent-side stdin and NOT in the others.
   const markerOk = caps.every((cap, i) => cap.stdin.includes(MARKER) === (byN.get((i % targets.length) + 1)!.target.side === "parent"));

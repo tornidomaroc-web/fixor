@@ -214,10 +214,13 @@ export const FORBIDDEN_FLAGS = ["--bare", "--fallback-model", "--dangerously-ski
  * The exact argv of every process. `-p` with no positional prompt reads the
  * prompt from stdin; `--tools ""` disables every built-in tool;
  * `--strict-mcp-config` with no `--mcp-config` loads no MCP server;
- * `--setting-sources ""` loads no settings file and no CLAUDE.md;
+ * `--setting-sources ""` loads no user, project or local settings (whether
+ * it also keeps the user CLAUDE.md out is unverified without a model call);
  * `--system-prompt` REPLACES Claude Code's own system prompt;
  * `--json-schema` makes the shipped tool's input schema the required output
- * shape. No `--bare`, no `--fallback-model`.
+ * shape. No `--bare`, no `--fallback-model`, and no `--max-turns`: the
+ * design does not specify one, and a turn cap could cut off the structured
+ * output answer; with no tools the process has nothing to loop on.
  */
 export function judgeArgv(req: { model: string; system: string; schema: unknown }): string[] {
   return [
@@ -227,7 +230,6 @@ export function judgeArgv(req: { model: string; system: string; schema: unknown 
     "--strict-mcp-config",
     "--setting-sources", "",
     "--no-session-persistence",
-    "--max-turns", "1",
     "--output-format", "json",
     "--system-prompt", req.system,
     "--json-schema", JSON.stringify(req.schema),

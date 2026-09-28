@@ -5400,10 +5400,10 @@ because that widening is on the READING side and this argument turns on the RUNN
   `src/test/lib/proxy-judge.ts` and the stub `src/test/lib/proxy-judge-stub.ts` (nothing under
   `src/test` ships). It reads the 70 first-pass request files of a mock run and starts one
   `claude -p` per request and pass with exactly `--model <the request's model> --tools ""
-  --strict-mcp-config --setting-sources "" --no-session-persistence --max-turns 1 --output-format
-  json --system-prompt <the request's system text> --json-schema <the shipped tool's
-  input_schema>`, the user message on stdin, from a fresh empty directory under a work root
-  outside the repository, with a whitelisted environment. It refuses before reading anything when
+  --strict-mcp-config --setting-sources "" --no-session-persistence --output-format json
+  --system-prompt <the request's system text> --json-schema <the shipped tool's input_schema>`,
+  the user message on stdin, from a fresh empty directory under a work root outside the
+  repository, with a whitelisted environment. It refuses before reading any request file when
   any `ANTHROPIC_*`, `AWS_*`, `CLAUDE_CODE_USE_*` or `sk-ant-`-shaped value is in the
   environment, or when the user `settings.json` sets `apiKeyHelper` or a credential under `env`;
   `--bare` and `--fallback-model` are never passed and are refused as arguments. Every call
@@ -5423,13 +5423,18 @@ because that widening is on the READING side and this argument turns on the RUNN
   `STUB/PROXY-PASS`; (E) over all 350 captures, argv is byte-for-byte the fixed flags plus the
   request's system prompt and schema, stdin is byte-for-byte the user message, every cwd is a
   fresh empty directory outside the repository, the requests and the corpus, the environment
-  carries no credential-shaped name or value, and no context-block field (set, case, side, lane,
-  repo, commit, blob sha, anchor line), corpus path, requests path or forbidden flag reaches the
-  process. **Volume, measured with the stub over the blob-verified real corpora (70 requests, no
+  carries no credential-shaped name or value, and none of the following reaches the process: any
+  context-block field as a labelled field (set, case, side, lane, repo, commit, blob sha, anchor
+  line), the bare commit or blob sha, the set labels, the corpus path, the requests path, the
+  repository path, or a forbidden flag. Bare values of side, lane and repo are NOT checked,
+  because words like `idor` or a repository name can occur in a shipped prompt or in the file
+  itself; the lane is in any case revealed by design, since each lane has its own shipped prompt. **Volume, measured with the stub over the blob-verified real corpora (70 requests, no
   model):** 1,960,965 characters per pass, system 824,444 and user 1,136,521, about 560,000 tokens
   at 3.5 characters per token (an estimate; no tokenizer was called), about 2.8 million over five
-  passes; the design's 2,162,901 counted the request files' JSON, this counts the text the process
-  receives. The longest argv is 16,289 characters, under the Windows command-line limit.
+  passes. This counts the text the process receives. The design's 2,162,901 is not reproduced by
+  any count tried on the 2026-09-28 mock requests: the request files' text is 2,269,376 characters
+  and the request bodies' JSON 2,158,636. The longest argv is 16,271 characters by the script's
+  own count, before Windows quoting, about half the 32,767-character command-line limit.
   **Labelling rule:** a proxy result is reported ONLY as PROXY-PASS, PROXY-FAIL or
   PROXY-INCONCLUSIVE (PROXY-INCOMPLETE until every request has five verdicts), with the noise
   result beside it and the words "PROXY, Claude Code headless on the owner's subscription,
