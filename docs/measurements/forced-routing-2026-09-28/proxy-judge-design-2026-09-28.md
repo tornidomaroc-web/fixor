@@ -1,4 +1,14 @@
-# Forced routing, PROXY judge on the owner's subscription: design, 2026-09-28. NOT BUILT, NOT RUN.
+# Forced routing, PROXY judge on the owner's subscription: design, 2026-09-28. BUILT AND REHEARSED AT $0 (see the tracker's forced-routing entry for the PR), NOT RUN.
+
+**Status line, added when the judge was built (2026-09-28):** `src/test/proxy-judge.ts` implements
+this design; `test:proxy-judge-rehearsal` in `test:ci` rehearses it with a stub executable. Two
+things the build settled that this design left open: the process is also started with
+`--strict-mcp-config` (no MCP server from any configuration) and `--setting-sources ""` (no user,
+project or local settings if an empty value is honoured; whether it also keeps the user
+CLAUDE.md out is unverified without a model call); no `--max-turns` is passed, as below;
+and the run refuses to start on any API credential (`ANTHROPIC_*`, `AWS_*`, `CLAUDE_CODE_USE_*`, a
+`sk-ant-` shaped value, `apiKeyHelper` or a credential under `env` in the user settings), not only
+on `ANTHROPIC_API_KEY`. Everything below is otherwise as written before the build.
 
 ## The owner's ruling, recorded so no session asks again
 
