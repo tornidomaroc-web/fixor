@@ -5566,6 +5566,19 @@ because that widening is on the READING side and this argument turns on the RUNN
   PROXY-PRELIMINARY. Both fixes are rehearsed in `test:ci`, and each rehearsal assertion was shown
   to fail with its fix reverted in the compiled output.
 
+  **OPUS ARM, PRE-REGISTERED 2026-09-29, NOT RUN.** By the owner's decision, the same 70
+  requests go to `claude-opus-5-5` as judge, five passes, the same criteria, before any prompt
+  revision. The pre-registration is `opus-arm-prereg-2026-09-29.md` beside the design. It pins
+  CLI 2.1.284 by sha256, the request files by a manifest hash, the effort at high and the output
+  cap at 32,000. It is labelled separately and never pooled with the Sonnet arm. It fixes the
+  reading in advance: an Opus FAIL is decisive; an Opus PASS is an upper bound, because seven of
+  the ten cases were fully public before the model's stated June 2026 cutoff, and it counts
+  toward a model switch only if reproduced on a held-out set dated after that cutoff. The judge
+  gained `--judge-model`, `--effort` and `--max-output-tokens`, rehearsed at $0 in section F of
+  `test:proxy-judge-rehearsal`, with each new guard shown to fail with its fix reverted in the
+  compiled output. One trivial non-case probe confirmed `claude-opus-5-5` answers through the
+  subscription login with `apiKeySource none`. No case request has been sent to an Opus model.
+
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
 Same `L-` namespace as Priority 1d, 1e and 1f (found by RUNNING the detector), and a deliberately
