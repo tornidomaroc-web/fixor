@@ -31,6 +31,7 @@ import { delimiter, isAbsolute, join, resolve, sep } from "node:path";
 
 import {
   FORBIDDEN_FLAGS,
+  WORK_ROOT_FORBIDDEN,
   WIN_ARGV_LIMIT,
   argvChars,
   assembleResults,
@@ -109,9 +110,17 @@ function main(): number {
   }
   const stub = arg("--stub");
   const repoRoot = process.cwd();
-  const workRoot = resolve(arg("--work-root") ?? join(tmpdir(), "fixor-proxy-judge"));
+  // The CLI shows the model its working directory, so the default is a
+  // neutral name and any work root naming the product, the judge or a case
+  // set is refused. The first real call ran under a default that contained
+  // "fixor-proxy-judge"; it was overridden by hand (tracker, 2026-09-29).
+  const workRoot = resolve(arg("--work-root") ?? join(tmpdir(), "w"));
   if (isInside(workRoot, repoRoot) || isInside(workRoot, requestsDir)) {
     out.write(`refused: --work-root ${workRoot} is inside the repository or the requests directory; the process must start from an empty folder outside both\n`);
+    return 3;
+  }
+  if (WORK_ROOT_FORBIDDEN.test(workRoot)) {
+    out.write(`refused: --work-root ${workRoot} names the product, the judge or a case set, and the CLI shows the model its working directory; choose a neutral path\n`);
     return 3;
   }
   for (const f of FORBIDDEN_FLAGS) {
