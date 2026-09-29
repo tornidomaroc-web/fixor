@@ -1,4 +1,4 @@
-# Forced routing, PROXY judge on the owner's subscription: design, 2026-09-28. BUILT AND REHEARSED AT $0 (see the tracker's forced-routing entry for the PR), NOT RUN.
+# Forced routing, PROXY judge on the owner's subscription: design, 2026-09-28. BUILT AND REHEARSED AT $0 (see the tracker's forced-routing entry for the PR). RUN 2026-09-29: PROXY-FAIL, held-out 1 of 10; results in `proxy-run-2026-09-29/`, reading in the tracker.
 
 **Status line, added when the judge was built (2026-09-28):** `src/test/proxy-judge.ts` implements
 this design; `test:proxy-judge-rehearsal` in `test:ci` rehearses it with a stub executable. Two

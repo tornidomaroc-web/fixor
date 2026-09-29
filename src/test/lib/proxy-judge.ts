@@ -362,15 +362,33 @@ export function assembleResults(reqs: JudgeRequest[], proxyDir: string, passes: 
   });
 }
 
-export type ProxyLabel = "PROXY-PASS" | "PROXY-FAIL" | "PROXY-INCONCLUSIVE" | "PROXY-INCOMPLETE";
+export type ProxyLabel = "PROXY-PASS" | "PROXY-FAIL" | "PROXY-INCONCLUSIVE" | "PROXY-INCOMPLETE" | "PROXY-PRELIMINARY";
 
-/** The pre-registered criteria, unchanged, reported under the PROXY labels. */
+/** The pre-registered n. A label from fewer passes is not a result (design, "Repeats"). */
+export const PREREGISTERED_PASSES = 5;
+
+/**
+ * The pre-registered criteria, unchanged, reported under the PROXY labels.
+ * PROXY-PASS, PROXY-FAIL and PROXY-INCONCLUSIVE are applied ONLY when every
+ * request has all five verdicts. Fewer passes, even complete ones, are
+ * PROXY-PRELIMINARY: the scorer's figures are printed, no label is applied.
+ */
 export function proxyLabel(results: FileResult[], passes: number): { label: ProxyLabel; summary: Record<string, unknown> } {
   const summary = score(results, passes);
   const recall = summary["recallVerdict"];
-  const label: ProxyLabel = recall === "PASS" ? "PROXY-PASS" : recall === "FAIL" ? "PROXY-FAIL" : recall === "INCONCLUSIVE" ? "PROXY-INCONCLUSIVE" : "PROXY-INCOMPLETE";
+  let label: ProxyLabel;
+  if (recall === "INCOMPLETE") label = "PROXY-INCOMPLETE";
+  else if (passes !== PREREGISTERED_PASSES) label = "PROXY-PRELIMINARY";
+  else label = recall === "PASS" ? "PROXY-PASS" : recall === "FAIL" ? "PROXY-FAIL" : "PROXY-INCONCLUSIVE";
   return { label, summary };
 }
+
+/**
+ * Words that must not appear in the work root: the CLI tells the model its
+ * working directory, so a path naming the product, the judge or a case set
+ * is context the design withholds. Found on the first real call, 2026-09-29.
+ */
+export const WORK_ROOT_FORBIDDEN = /fixor|proxy|judge|forced|routing|held-?out|arm-?a|clean|known-answer|advisor|ghsa|vuln|security|audit/i;
 
 /** Characters the process receives per pass, and the token estimate the design used (3.5 chars/token). */
 export function volume(reqs: JudgeRequest[]): { requests: number; systemChars: number; userChars: number; totalChars: number; estimatedTokens: number; maxArgvChars: number } {

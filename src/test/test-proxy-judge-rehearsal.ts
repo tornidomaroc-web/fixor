@@ -35,7 +35,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import { readTargets } from "./lib/forced-routing";
-import { FORBIDDEN_FLAGS, extractRequest, judgeArgv, type JudgeRequest } from "./lib/proxy-judge";
+import { FORBIDDEN_FLAGS, WORK_ROOT_FORBIDDEN, extractRequest, judgeArgv, type JudgeRequest } from "./lib/proxy-judge";
 
 const out = process.stdout;
 let failures = 0;
@@ -128,11 +128,12 @@ function main(): void {
     { name: "a key-shaped value under another name", env: { SOME_UNRELATED_NAME: "prefix sk-ant-not-a-real-key" }, expect: /shaped like an Anthropic API key/ },
     { name: "a work root inside the repository", extra: ["--work-root", join(REPO, "tmp-judge")], expect: /inside the repository/ },
     { name: "--bare", extra: ["--bare"], expect: /--bare is never passed/ },
+    { name: "a work root whose path names the product", extra: ["--work-root", join(tmpdir(), "fixor-proxy-judge")], expect: /names the product, the judge or a case set/ },
   ];
   for (const r of refusals) {
     const dir = fresh("refuse");
     const args = ["--requests", mockDir, "--out", dir, "--work-root", workRoot, "--stub", stub.script, ...(r.extra ?? [])];
-    if (r.name === "a work root inside the repository") args.splice(args.indexOf("--work-root"), 2);
+    if (r.name === "a work root inside the repository" || r.name === "a work root whose path names the product") args.splice(args.indexOf("--work-root"), 2);
     const res = run(JUDGE, args, r.env);
     const wrote = existsSync(dir);
     if (res.status === 3 && r.expect.test(res.stdout + res.stderr) && !wrote && stub.count() === 0) pass(`${r.name}: exit 3, refused before anything was written or any process started`);
@@ -175,9 +176,12 @@ function main(): void {
   const names2 = new Set(fc2.verdicts);
   if (names2.size === fc2.verdicts.length && [...names2].every((f) => /^\d{4}-p[12]\.json$/.test(f))) pass("every (request, pass) pair has exactly one verdict file");
   else fail("duplicate or out-of-range verdict files after resume");
-  const r2 = JSON.parse(readFileSync(join(dirC, "results.json"), "utf8")) as { judgedTotal: number; judgedThisInvocation: number };
+  const r2 = JSON.parse(readFileSync(join(dirC, "results.json"), "utf8")) as { judgedTotal: number; judgedThisInvocation: number; label: string };
   if (r2.judgedTotal === planned2 && r2.judgedThisInvocation === planned2 - 100) pass(`results.json: judged ${r2.judgedTotal} in all, ${r2.judgedThisInvocation} by the resuming invocation`);
   else fail(`results.json after resume: ${JSON.stringify(r2)}`);
+  // A COMPLETE run of fewer than five passes applies no pre-registered label.
+  if (r2.label === "STUB/PROXY-PRELIMINARY" && /^STUB\/PROXY-PRELIMINARY \|/m.test(c2.stdout) && !/PROXY-(PASS|FAIL|INCONCLUSIVE)/.test(c2.stdout)) pass("a complete two-pass run is labelled PROXY-PRELIMINARY; no PASS, FAIL or INCONCLUSIVE is printed below five passes");
+  else fail(`label below five passes: ${r2.label}; stdout ${c2.stdout.split("\n").find((l) => /PROXY/.test(l))}`);
 
   out.write("\nD. full five-pass dry run\n");
   stub.reset();
@@ -229,7 +233,7 @@ function main(): void {
     if (JSON.stringify(cap.argv) !== JSON.stringify(judgeArgv(req))) e.argv++;
     if (cap.stdin !== req.user) e.stdin++;
     const cwd = resolve(cap.cwd);
-    if (!cwd.startsWith(workRoot) || cwd.startsWith(REPO) || cwd.startsWith(resolve(mockDir)) || cwd.startsWith(resolve(corpus)) || cap.cwdEntries.length !== 0 || cwdSeen.has(cwd)) e.cwd++;
+    if (!cwd.startsWith(workRoot) || cwd.startsWith(REPO) || cwd.startsWith(resolve(mockDir)) || cwd.startsWith(resolve(corpus)) || cap.cwdEntries.length !== 0 || cwdSeen.has(cwd) || WORK_ROOT_FORBIDDEN.test(cwd)) e.cwd++;
     cwdSeen.add(cwd);
     for (const [k, v] of Object.entries(cap.env)) {
       if (/^(ANTHROPIC_|AWS_|CLAUDE_CODE_USE_|FIXOR_)/i.test(k) || /sk-ant-/.test(v)) e.env++;
@@ -256,7 +260,7 @@ function main(): void {
   else fail(`argv differed on ${e.argv} calls`);
   if (e.stdin === 0) pass("stdin is byte-for-byte the request's user message on every call");
   else fail(`stdin differed on ${e.stdin} calls`);
-  if (e.cwd === 0) pass("every cwd is a fresh, empty directory under the work root, outside the repository, the requests and the corpus");
+  if (e.cwd === 0) pass("every cwd is a fresh, empty directory under the work root, outside the repository, the requests and the corpus, and names neither the product, the judge nor a case set");
   else fail(`cwd violated on ${e.cwd} calls`);
   if (e.env === 0) pass("the environment carries no credential-shaped name or value");
   else fail(`environment carried credential-shaped entries on ${e.env} calls`);
