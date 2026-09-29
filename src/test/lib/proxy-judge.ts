@@ -107,7 +107,7 @@ export const ENV_PASSTHROUGH = [
   "XDG_CONFIG_HOME", "CLAUDE_CONFIG_DIR",
 ];
 
-export function scrubbedEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+export function scrubbedEnv(env: NodeJS.ProcessEnv, maxOutputTokens?: number): Record<string, string> {
   const out: Record<string, string> = {};
   const want = new Set(ENV_PASSTHROUGH);
   for (const [k, v] of Object.entries(env)) {
@@ -115,6 +115,7 @@ export function scrubbedEnv(env: NodeJS.ProcessEnv): Record<string, string> {
   }
   out["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1";
   out["DISABLE_AUTOUPDATER"] = "1";
+  if (maxOutputTokens !== undefined) out["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = String(maxOutputTokens);
   return out;
 }
 
@@ -222,19 +223,38 @@ export const FORBIDDEN_FLAGS = ["--bare", "--fallback-model", "--dangerously-ski
  * design does not specify one, and a turn cap could cut off the structured
  * output answer; with no tools the process has nothing to loop on.
  */
-export function judgeArgv(req: { model: string; system: string; schema: unknown }): string[] {
+export function judgeArgv(req: { model: string; system: string; schema: unknown }, arm: JudgeArm = {}): string[] {
   return [
     "-p",
-    "--model", req.model,
+    "--model", arm.judgeModel ?? req.model,
     "--tools", "",
     "--strict-mcp-config",
     "--setting-sources", "",
     "--no-session-persistence",
+    ...(arm.effort ? ["--effort", arm.effort] : []),
     "--output-format", "json",
     "--system-prompt", req.system,
     "--json-schema", JSON.stringify(req.schema),
   ];
 }
+
+/**
+ * A second model arm (Opus arm pre-registration, 2026-09-29). All three
+ * fields absent is the shipped-model arm, whose argv and environment are
+ * byte-identical to the 2026-09-29 Sonnet run's. `judgeModel` replaces the
+ * request's model in `--model` and in the per-call identity check;
+ * `effort` pins `--effort` (the CLI's default effort can differ by model);
+ * `maxOutputTokens` sets CLAUDE_CODE_MAX_OUTPUT_TOKENS (the CLI's default
+ * cap differs by model: 32,000 was seen on claude-sonnet-4-6, 128,000 on
+ * claude-opus-5-5) and every result must REPORT that cap, or the run stops.
+ */
+export interface JudgeArm {
+  judgeModel?: string;
+  effort?: string;
+  maxOutputTokens?: number;
+}
+export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"];
+export const JUDGE_MODEL_SHAPE = /^claude-[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /** Windows CreateProcess takes at most 32,767 characters of command line. */
 export const WIN_ARGV_LIMIT = 32_000;
@@ -247,6 +267,10 @@ export interface ParsedResult {
   /** Every model the result reports usage for. */
   models: string[];
   usage: { input: number; output: number; cacheWrite: number; cacheRead: number };
+  /** Output cap the result reports per answering model (`modelUsage[m].maxOutputTokens`), null where absent. */
+  maxOutputTokens: Record<string, number | null>;
+  /** `usage.output_tokens_details.thinking_tokens`, null where absent. */
+  thinkingTokens: number | null;
   structuredOutput: unknown;
   reportedCostUsd: number | null;
   sessionId: string | null;
@@ -273,10 +297,18 @@ export function parseResult(stdout: string): ResultParse {
     return { ok: false, reason: "the result carries no structured_output object" };
   }
   const u = (r["usage"] ?? {}) as Record<string, number>;
+  const maxOut: Record<string, number | null> = {};
+  for (const m of models) {
+    const v = (mu[m] as Record<string, unknown> | null)?.["maxOutputTokens"];
+    maxOut[m] = typeof v === "number" ? v : null;
+  }
+  const td = (r["usage"] as Record<string, unknown> | undefined)?.["output_tokens_details"] as Record<string, unknown> | undefined;
   return {
     ok: true,
     models,
     usage: { input: u["input_tokens"] ?? 0, output: u["output_tokens"] ?? 0, cacheWrite: u["cache_creation_input_tokens"] ?? 0, cacheRead: u["cache_read_input_tokens"] ?? 0 },
+    maxOutputTokens: maxOut,
+    thinkingTokens: typeof td?.["thinking_tokens"] === "number" ? (td["thinking_tokens"] as number) : null,
     structuredOutput: r["structured_output"],
     reportedCostUsd: typeof r["total_cost_usd"] === "number" ? (r["total_cost_usd"] as number) : null,
     sessionId: typeof r["session_id"] === "string" ? (r["session_id"] as string) : null,
@@ -315,7 +347,14 @@ export interface JudgeRecord {
   n: number;
   pass: number;
   target: JudgeTarget;
+  /** The model this call had to be answered by: the judge model on a second arm, else the shipped one. */
   model: string;
+  /** Present on a second arm only: the request's shipped model, and the pinned effort and output cap. */
+  shippedModel?: string;
+  effort?: string;
+  maxOutputTokensPinned?: number;
+  maxOutputTokensReported?: number | null;
+  thinkingTokens?: number | null;
   modelsReported: string[];
   toolName: string;
   usage: ParsedResult["usage"];

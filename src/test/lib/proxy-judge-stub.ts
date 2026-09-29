@@ -10,6 +10,9 @@
  *   reportModel  the model to report in modelUsage (default: the --model argv)
  *   failAfter    exit 1 with no output once more than N calls have been made
  *   flagWhen     answer vulnerable/high when stdin contains this string
+ *   reportMaxOutput  the maxOutputTokens to report (default: what the real
+ *                CLI does, CLAUDE_CODE_MAX_OUTPUT_TOKENS if the judge set it,
+ *                else 32000; the one environment value it reads)
  *
  * The rehearsal copies the compiled file into a temporary directory and
  * writes the config there; nothing is written under the repository.
@@ -19,7 +22,7 @@ import { join } from "node:path";
 
 const here = __dirname;
 const cfgPath = join(here, "stub-config.json");
-const cfg = (existsSync(cfgPath) ? JSON.parse(readFileSync(cfgPath, "utf8")) : {}) as { reportModel?: string; failAfter?: number; flagWhen?: string };
+const cfg = (existsSync(cfgPath) ? JSON.parse(readFileSync(cfgPath, "utf8")) : {}) as { reportModel?: string; failAfter?: number; flagWhen?: string; reportMaxOutput?: number };
 
 const argv = process.argv.slice(2);
 const stdin = readFileSync(0, "utf8");
@@ -50,6 +53,7 @@ const structured_output = schema.properties && "verdicts" in schema.properties
 
 const inputTokens = Math.ceil((system.length + stdin.length) / 3.5);
 const outputTokens = 120;
+const maxOutputTokens = cfg.reportMaxOutput ?? (process.env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] ? Number(process.env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"]) : 32000);
 process.stdout.write(
   JSON.stringify({
     type: "result",
@@ -60,8 +64,8 @@ process.stdout.write(
     result: "",
     session_id: "stub-session",
     total_cost_usd: 0,
-    usage: { input_tokens: inputTokens, output_tokens: outputTokens, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
-    modelUsage: { [model]: { inputTokens, outputTokens, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUSD: 0 } },
+    usage: { input_tokens: inputTokens, output_tokens: outputTokens, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens_details: { thinking_tokens: 0 } },
+    modelUsage: { [model]: { inputTokens, outputTokens, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUSD: 0, maxOutputTokens } },
     structured_output,
   }) + "\n",
 );

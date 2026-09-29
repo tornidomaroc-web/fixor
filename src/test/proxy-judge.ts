@@ -11,6 +11,8 @@
  *        [--passes 5] [--claude <path to claude.exe or cli.js>]
  *        [--work-root <dir outside the repository>] [--max-calls N]
  *        [--stub <stub script.js>]          (rehearsal only; no model)
+ *        [--judge-model <claude-id>] [--effort <level>] [--max-output-tokens N]
+ *                                           (a second model arm; its own --out)
  *
  * BEFORE A REAL RUN THE OWNER: (1) confirms at claude.ai that extra usage /
  * usage credits are OFF, because this script cannot see that setting and a
@@ -25,12 +27,14 @@
  * model-mismatch file was written; 3 refused to start, nothing written.
  */
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, isAbsolute, join, resolve, sep } from "node:path";
 
 import {
+  EFFORT_LEVELS,
   FORBIDDEN_FLAGS,
+  JUDGE_MODEL_SHAPE,
   WORK_ROOT_FORBIDDEN,
   WIN_ARGV_LIMIT,
   argvChars,
@@ -47,6 +51,7 @@ import {
   settingsGate,
   verdictFrom,
   volume,
+  type JudgeArm,
   type JudgeRecord,
   type JudgeRequest,
 } from "./lib/proxy-judge";
@@ -129,6 +134,35 @@ function main(): number {
       return 3;
     }
   }
+  // A second model arm. None of the three flags: the shipped-model arm,
+  // argv and environment unchanged.
+  const arm: JudgeArm = {};
+  const jm = arg("--judge-model");
+  if (jm !== undefined) {
+    if (!JUDGE_MODEL_SHAPE.test(jm)) {
+      out.write(`refused: --judge-model ${jm} is not a full model id (claude-...); an alias could resolve to another model between passes\n`);
+      return 3;
+    }
+    arm.judgeModel = jm;
+  }
+  const ef = arg("--effort");
+  if (ef !== undefined) {
+    if (!EFFORT_LEVELS.includes(ef)) {
+      out.write(`refused: --effort ${ef} is not one of ${EFFORT_LEVELS.join(", ")}\n`);
+      return 3;
+    }
+    arm.effort = ef;
+  }
+  const mo = arg("--max-output-tokens");
+  if (mo !== undefined) {
+    const v = Number(mo);
+    if (!Number.isInteger(v) || v < 1) {
+      out.write(`refused: --max-output-tokens ${mo} is not a positive integer\n`);
+      return 3;
+    }
+    arm.maxOutputTokens = v;
+  }
+  const secondArm = arm.judgeModel !== undefined || arm.effort !== undefined || arm.maxOutputTokens !== undefined;
 
   // 3. The executable.
   let cmd: string;
@@ -180,20 +214,39 @@ function main(): number {
     out.write(`refused: ${proxyDir} holds ${prior.mismatches.length} model-mismatch file(s) (${prior.mismatches.slice(0, 3).join(", ")}); the subscription answered on another model. The owner decides whether a different-model proxy is wanted; remove the files to resume\n`);
     return 3;
   }
+  // One output directory holds one arm. A second arm's settings are written
+  // to arm.json on its first start and must match on every resume; a
+  // directory with verdicts but no arm.json belongs to the shipped-model arm
+  // and a second arm never writes into it, and the reverse. This is what
+  // keeps a second arm's figures from being merged with the first's.
+  const armFile = join(outDir, "arm.json");
+  const armWant = JSON.stringify(arm);
+  if (existsSync(armFile)) {
+    const have = JSON.stringify(JSON.parse(readFileSync(armFile, "utf8")));
+    if (have !== armWant) {
+      out.write(`refused: ${armFile} records arm ${have}, this invocation asks for ${armWant}; one output directory holds one arm\n`);
+      return 3;
+    }
+  } else if (prior.done.size > 0 && secondArm) {
+    out.write(`refused: ${proxyDir} holds ${prior.done.size} verdict(s) from the shipped-model arm (no arm.json); a second arm needs its own --out\n`);
+    return 3;
+  }
   mkdirSync(proxyDir, { recursive: true });
   mkdirSync(workRoot, { recursive: true });
+  if (secondArm && !existsSync(armFile)) writeFileSync(armFile, armWant);
   const shippedModels = new Set(reqs.map((r) => r.model));
   const startedAt = new Date().toISOString();
   const runFile = join(outDir, "judge-run.json");
   writeFileSync(
     runFile,
-    JSON.stringify({ instrument: "PROXY", stub: !!stub, startedAt, requestsDir: resolve(requestsDir), passes, requests: reqs.length, callsPlanned: reqs.length * passes, doneBefore: prior.done.size, shippedModels: [...shippedModels], executable: stub ? `stub ${stub}` : cmd, argvTemplate: judgeArgv({ model: "<model>", system: "<system>", schema: "<schema>" }), envPassthrough: Object.keys(scrubbedEnv(process.env)), volumePerPass: vol }, null, 2),
+    JSON.stringify({ instrument: "PROXY", stub: !!stub, startedAt, requestsDir: resolve(requestsDir), passes, requests: reqs.length, callsPlanned: reqs.length * passes, doneBefore: prior.done.size, shippedModels: [...shippedModels], ...(secondArm ? { arm } : {}), executable: stub ? `stub ${stub}` : cmd, argvTemplate: judgeArgv({ model: "<model>", system: "<system>", schema: "<schema>" }, arm), envPassthrough: Object.keys(scrubbedEnv(process.env, arm.maxOutputTokens)), volumePerPass: vol }, null, 2),
   );
   out.write(`proxy-judge${stub ? " [STUB REHEARSAL: no model, no network]" : ""}: ${reqs.length} requests x ${passes} passes; ${prior.done.size} already judged; shipped model ${[...shippedModels].join(", ")}\n`);
+  if (secondArm) out.write(`second arm: ${armWant}; a separate arm, never merged with the shipped-model arm's figures\n`);
   out.write(`volume per pass: ${vol.requests} requests, ${vol.totalChars} chars (system ${vol.systemChars}, user ${vol.userChars}), ~${vol.estimatedTokens} tokens at 3.5 chars/token (estimate, no tokenizer); longest argv ${vol.maxArgvChars} chars\n`);
 
   // 5. Passes outer, requests inner; every verdict on disk as it arrives.
-  const env = scrubbedEnv(process.env);
+  const env = scrubbedEnv(process.env, arm.maxOutputTokens);
   const log = (line: string): void => appendFileSync(join(outDir, "judge.log"), `${new Date().toISOString()} ${line}\n`);
   const st: { stop: string | null } = { stop: null };
   let judgedNow = 0;
@@ -203,7 +256,8 @@ function main(): number {
     const dir = mkdtempSync(join(workRoot, "call-"));
     try {
       if (readdirSync(dir).length !== 0) throw new Error(`${dir} is not empty`);
-      const argv = judgeArgv(r);
+      const argv = judgeArgv(r, arm);
+      const expected = arm.judgeModel ?? r.model;
       const t0 = Date.now();
       const startedCall = new Date().toISOString();
       const p = spawnSync(cmd, [...cmdArgsPrefix, ...argv], { cwd: dir, env, input: r.user, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, windowsHide: true });
@@ -224,7 +278,10 @@ function main(): number {
         n: r.n,
         pass,
         target: r.target,
-        model: r.model,
+        model: expected,
+        ...(secondArm
+          ? { shippedModel: r.model, effort: arm.effort, maxOutputTokensPinned: arm.maxOutputTokens, maxOutputTokensReported: parsed.maxOutputTokens[parsed.models[0] ?? ""] ?? null, thinkingTokens: parsed.thinkingTokens }
+          : {}),
         modelsReported: parsed.models,
         toolName: r.toolName,
         usage: parsed.usage,
@@ -238,10 +295,17 @@ function main(): number {
         startedAt: startedCall,
         endedAt: new Date().toISOString(),
       };
-      const mismatch = parsed.models.length !== 1 || parsed.models[0] !== r.model;
+      const mismatch = parsed.models.length !== 1 || parsed.models[0] !== expected;
       if (mismatch) {
         writeFileSync(join(proxyDir, mismatchName(r.n, pass)), JSON.stringify(rec, null, 2));
-        st.stop = `model mismatch: call n=${r.n} pass ${pass} was answered by ${parsed.models.join("+")}, not ${r.model}; not substituted, run stopped`;
+        st.stop = `model mismatch: call n=${r.n} pass ${pass} was answered by ${parsed.models.join("+")}, not ${expected}; not substituted, run stopped`;
+        log(`STOP ${st.stop}`);
+        return "stop";
+      }
+      // A pinned output cap the result does not report is an instrument
+      // change: no file is written, so the verdict is never read or scored.
+      if (arm.maxOutputTokens !== undefined && rec.maxOutputTokensReported !== arm.maxOutputTokens) {
+        st.stop = `instrument mismatch: call n=${r.n} pass ${pass} reported maxOutputTokens ${String(rec.maxOutputTokensReported)}, pinned ${arm.maxOutputTokens}; no file written, run stopped`;
         log(`STOP ${st.stop}`);
         return "stop";
       }
@@ -274,12 +338,14 @@ function main(): number {
 
   // 6. Score what is on disk; print the label.
   const results = assembleResults(reqs, proxyDir, passes);
-  const { label, summary } = proxyLabel(results, passes);
+  const proxy = proxyLabel(results, passes);
+  const summary = proxy.summary;
+  const label = arm.judgeModel !== undefined ? `${proxy.label} [judge ${arm.judgeModel}, not the shipped ${[...shippedModels].join(", ")}]` : secondArm ? `${proxy.label} [second arm ${armWant}]` : proxy.label;
   const judgedTotal = results.reduce((a, r) => a + r.verdicts.length, 0);
   const usageByPass = Object.fromEntries([...passUsage.entries()].map(([k, v]) => [k, v]));
   writeFileSync(
     join(outDir, "results.json"),
-    JSON.stringify({ instrument: "PROXY", stub: !!stub, label: stub ? `STUB/${label}` : label, startedAt, updatedAt: new Date().toISOString(), passes, requests: reqs.length, callsPlanned: reqs.length * passes, judgedTotal, judgedThisInvocation: judgedNow, modelsSeenThisInvocation: Object.fromEntries(modelsSeen), usageThisInvocationByPass: usageByPass, stop: st.stop, volumePerPass: vol, summary, results }, null, 2),
+    JSON.stringify({ instrument: "PROXY", stub: !!stub, label: stub ? `STUB/${label}` : label, ...(secondArm ? { arm } : {}), startedAt, updatedAt: new Date().toISOString(), passes, requests: reqs.length, callsPlanned: reqs.length * passes, judgedTotal, judgedThisInvocation: judgedNow, modelsSeenThisInvocation: Object.fromEntries(modelsSeen), usageThisInvocationByPass: usageByPass, stop: st.stop, volumePerPass: vol, summary, results }, null, 2),
   );
   const modelLine = [...modelsSeen.entries()].map(([m, c]) => `${m} on ${c}`).join(", ") || "no call";
   out.write(
