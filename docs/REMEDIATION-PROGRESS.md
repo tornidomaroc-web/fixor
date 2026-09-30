@@ -2412,6 +2412,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #257 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #258 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #259 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #260 | from a THIRD branch, a descendant of the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2668,6 +2669,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #257 | `05c5792` | 2026-09-28 00:36:12 | `feat/detector-reach-heldout` (reflog: last move 2026-09-27 23:33:28) | `3422b8f1`, captured before | 404 on first read after the merge, 00:36:30 | `feat/detector-reach-heldout` at `1d7311b` |
 | #258 | `0101587` | 2026-09-28 01:59:21 | `feat/forced-routing-runner` (reflog: last move 01:36:57) | `eed5e351`, captured before by the merging session; recomputed by the filing entry from the PR head `49a578e`, equal | 404 on first read after the merge, 01:59:32 (merging session); 404 again when filed | `feat/forced-routing-runner` at `49a578e` |
 | #259 | `9843ec8` | 2026-09-29 00:05:25 | `feat/proxy-judge` (reflog: last move 2026-09-28 23:33:42) | `27bd80fd`, captured before | 404 on first read after the merge, 00:05:54 | `feat/proxy-judge` at `98592ac` |
+| #260 | `ec7a97b` | 2026-09-29 23:45:06 | `measure/opus-arm-prereg-2026-09-29`, a THIRD branch stacked on the merged one (reflog: last move 23:08:48) | `bd4c24bf`, captured before | 404 on first read after the merge, 23:45:18 | `measure/proxy-judge-run-2026-09-29` at `7bde6f4` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2895,6 +2897,20 @@ the merge, at 00:05:54. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated
 (2026-09-29), counted from the register table:** the arm invoked FROM the merged branch reads 36
 observations, 2 green and 34 red; the THIRD-branch arm is unchanged at 5, all RED; the register
 carries 47 rows, 45 RED. No cause is named. **The merge of this entry will owe the next row.**
+
+**#260 (2026-09-29).** The owner ran `gh pr merge 260 --squash --match-head-commit
+7bde6f4bf039bf4b10f26ecab3d27275425c5512` from the prompt with HEAD on
+`measure/opus-arm-prereg-2026-09-29`, the branch of the next PR, stacked on the merged branch; the
+reflog's last HEAD move before the merge is 23:08:48, and HEAD was still there after it. That is
+the arm #221 opened: a THIRD branch, a descendant of the merged branch. **RED**: `gh` exited 0 and
+printed nothing; the local ref `measure/proxy-judge-run-2026-09-29` survived at `7bde6f4`.
+Assertion 2 held against a tree captured before the merge: `bd4c24bf` on both. The squash
+`ec7a97b` has the single parent `9843ec8`, merged at 23:45:06Z. The head ref answered 404 on the
+first read after the merge, at 23:45:18. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated
+record (2026-09-29), counted from the register table:** the arm invoked FROM the merged branch is
+unchanged at 36 observations, 2 green and 34 red; the THIRD-branch arm reads 6, all RED; the
+register carries 48 rows, 46 RED. No cause is named. **The merge of this entry will owe the next
+row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3402,6 +3418,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #259 | `9843ec8` | 2026-09-29 00:06:41 | 00:06:08 | not triggered |
+
+  **#260 (added 2026-09-29).** CI (run 36646845769, both Node jobs, `head=ec7a97b`) and the
+  `secrets` workflow (run 36646845756) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal` lines and two `PASS:
+  forced-routing rehearsal` lines (once per Node job) and zero `[FAIL]` lines. The Railway and
+  Vercel times are the `success` statuses of their GitHub deployments for `ec7a97b` (ids
+  6748000050 and 6748012349), posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or
+  dashboard was read. At 23:49:26 the backend answered `{"status":"ok","db":"ok","anthropic":"ok",
+  "uptime_s":80}`, which dates the container to about 23:48:06, the deploy; the dashboard answered
+  `{"status":"ok","db":"ok"}` at 23:49:28. Not observed: anything in production, because #260
+  changed nothing under `src/` outside `src/test/`. At the $0 cap no scan reaches a model call;
+  these reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #260 | `ec7a97b` | 2026-09-29 23:48:13 | 23:46:06 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5565,6 +5597,32 @@ because that widening is on the READING side and this argument turns on the RUNN
   judge printed a PROXY label after one complete pass; below five passes it now prints
   PROXY-PRELIMINARY. Both fixes are rehearsed in `test:ci`, and each rehearsal assertion was shown
   to fail with its fix reverted in the compiled output.
+
+  **OPUS ARM, PRE-REGISTERED 2026-09-29, NOT RUN.** By the owner's decision, the same 70
+  requests go to `claude-opus-5-5` as judge, five passes, the same criteria, before any prompt
+  revision. The pre-registration is `opus-arm-prereg-2026-09-29.md` beside the design. It pins
+  CLI 2.1.284 by sha256, the request files by a manifest hash, the effort at high and the output
+  cap at 32,000. It is labelled separately and never pooled with the Sonnet arm. It fixes the
+  reading in advance: an Opus FAIL is decisive; an Opus PASS is an upper bound, because seven of
+  the ten cases were fully public before the model's stated June 2026 cutoff, and it counts
+  toward a model switch only if reproduced on a held-out set dated after that cutoff. The judge
+  gained `--judge-model`, `--effort` and `--max-output-tokens`, rehearsed at $0 in section F of
+  `test:proxy-judge-rehearsal`, with each new guard shown to fail with its fix reverted in the
+  compiled output. One trivial non-case probe confirmed `claude-opus-5-5` answers through the
+  subscription login with `apiKeySource none`. No case request has been sent to an Opus model.
+
+  **OPUS ARM AMENDMENT A1, 2026-09-30, filed before any case request, owner-approved:**
+  `opus-arm-amendment-A1-2026-09-30.md`. A local-recorder check (both arms, request `0001`, a
+  server that answered 400, no model reached) confirmed the following on the wire: `max_tokens`
+  32000, adaptive thinking, effort high, OAuth-only authorisation, no CLAUDE.md, settings,
+  skills or MCP content, and case content byte-identical between the arms. It also found a
+  difference the pre-registration missed. The CLI sends Opus the environment, identity, budget
+  and date after the case, as a system-role message, where Sonnet gets them before the case, and
+  Opus carries three extra beta flags. No flag controls this, so arm differences are read as
+  model plus message shape. Sonnet 4.6's self-stated cutoff is August 2025. **The entry above
+  says "seven of the ten"; the correct count is six**, from the pre-registration's own date
+  table: 2 of 10 cases were fully public for Sonnet, 6 of 10 for Opus. The criteria and the
+  command are unchanged.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 

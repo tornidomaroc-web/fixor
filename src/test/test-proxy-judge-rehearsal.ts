@@ -28,6 +28,15 @@
  *      set, case, side, lane, commit, blob sha, anchor line as a field),
  *      the requests directory or a forbidden flag appears anywhere in what
  *      the process received.
+ *   F. A second model arm (--judge-model, --effort, --max-output-tokens):
+ *      with no arm flags the argv is the 2026-09-29 run's; an alias, an
+ *      unknown effort, or a second arm pointed at the shipped-model arm's
+ *      directory is refused with no process started; the arm's argv
+ *      carries the judge model and the effort, every process receives the
+ *      pinned cap, every record and the label name the judge model beside
+ *      the shipped one; the arm's directory cannot be resumed without its
+ *      flags; an answer from another model, or a result reporting another
+ *      output cap, stops the run on the first call.
  */
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -76,7 +85,7 @@ function run(cmd: string, args: string[], env: Record<string, string> = {}): { s
 interface Stub {
   dir: string;
   script: string;
-  config: (c: { reportModel?: string; failAfter?: number; flagWhen?: string }) => void;
+  config: (c: { reportModel?: string; failAfter?: number; flagWhen?: string; reportMaxOutput?: number }) => void;
   count: () => number;
   captures: () => Array<{ argv: string[]; stdin: string; cwd: string; cwdEntries: string[]; env: Record<string, string> }>;
   reset: () => void;
@@ -276,6 +285,62 @@ function main(): void {
   else fail(`requests dir now has ${reqAfter} files (was ${reqFiles.length * 2})`);
   if (readdirSync(workRoot).length === 0) pass("every per-call working directory was removed");
   else fail(`work root still holds ${readdirSync(workRoot).length} entries`);
+
+  out.write("\nF. a second model arm: its own model, effort and output cap, its own directory, its own label\n");
+  const JM = "claude-opus-5-5";
+  const armFlags = ["--judge-model", JM, "--effort", "high", "--max-output-tokens", "32000"];
+  const armArgv = (r: JudgeRequest): string[] => judgeArgv(r, { judgeModel: JM, effort: "high", maxOutputTokens: 32000 });
+  // The shipped-model arm's argv is unchanged by the second-arm code: no --effort, the request's model.
+  const plain = judgeArgv(requests[0]!);
+  if (!plain.includes("--effort") && plain[plain.indexOf("--model") + 1] === requests[0]!.model) pass("with no arm flags the argv carries the request's model and no --effort, as in the 2026-09-29 run");
+  else fail(`shipped-arm argv changed: ${JSON.stringify(plain.slice(0, 12))}`);
+  const armRefusals: Array<{ name: string; outDir: string; extra: string[]; expect: RegExp }> = [
+    { name: "a second arm into the shipped-model arm's directory", outDir: dirD, extra: armFlags, expect: /from the shipped-model arm \(no arm\.json\)/ },
+    { name: "an alias as --judge-model", outDir: fresh("arm-alias"), extra: ["--judge-model", "opus"], expect: /not a full model id/ },
+    { name: "an unknown --effort", outDir: fresh("arm-effort"), extra: ["--judge-model", JM, "--effort", "extreme"], expect: /--effort extreme is not one of/ },
+  ];
+  stub.reset();
+  stub.config({ flagWhen: MARKER });
+  const dVerdictsBefore = proxyFiles(dirD).verdicts.length;
+  for (const r of armRefusals) {
+    const res = run(JUDGE, judgeArgs(r.outDir, r.extra));
+    if (res.status === 3 && r.expect.test(res.stdout) && stub.count() === 0) pass(`${r.name}: exit 3, no process started`);
+    else fail(`${r.name}: status ${res.status}, calls ${stub.count()}: ${res.stdout}${res.stderr}`);
+  }
+  if (!existsSync(join(dirD, "arm.json")) && proxyFiles(dirD).verdicts.length === dVerdictsBefore) pass("the shipped-model arm's directory was left untouched");
+  else fail("the refused second arm wrote into the shipped-model arm's directory");
+  const dirF = fresh("arm");
+  const f1 = run(JUDGE, judgeArgs(dirF, [...armFlags, "--passes", "1"]));
+  const ff = proxyFiles(dirF);
+  const capsF = stub.captures();
+  const argvOk = capsF.length === targets.length && capsF.every((cap, i) => JSON.stringify(cap.argv) === JSON.stringify(armArgv(byN.get(i + 1)!)));
+  if (f1.status === 0 && ff.verdicts.length === targets.length && argvOk) pass(`${targets.length} calls, each argv byte-for-byte judgeArgv with --model ${JM} and --effort high`);
+  else fail(`second arm: status ${f1.status}, verdicts ${ff.verdicts.length}, captures ${capsF.length}, argv ok ${argvOk}: ${f1.stdout}${f1.stderr}`);
+  if (capsF.every((cap) => cap.env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] === "32000")) pass("every process received CLAUDE_CODE_MAX_OUTPUT_TOKENS=32000");
+  else fail("the pinned output cap did not reach every process");
+  const rf = JSON.parse(readFileSync(join(dirF, "results.json"), "utf8")) as { label: string; arm?: Record<string, unknown>; modelsSeenThisInvocation: Record<string, number> };
+  const recF = JSON.parse(readFileSync(join(dirF, "proxy", ff.verdicts[0] ?? "x"), "utf8")) as { model: string; shippedModel?: string; maxOutputTokensReported?: number; effort?: string };
+  if (rf.label.startsWith(`STUB/PROXY-PRELIMINARY [judge ${JM}, not the shipped ${requests[0]!.model}]`) && rf.arm?.["judgeModel"] === JM && rf.modelsSeenThisInvocation[JM] === targets.length) pass(`labelled ${rf.label}`);
+  else fail(`second-arm label or arm record: ${JSON.stringify({ label: rf.label, arm: rf.arm, seen: rf.modelsSeenThisInvocation })}`);
+  if (recF.model === JM && recF.shippedModel === requests[0]!.model && recF.maxOutputTokensReported === 32000 && recF.effort === "high") pass("each verdict file records the judge model, the shipped model, the effort and the reported cap");
+  else fail(`second-arm record: ${JSON.stringify(recF)}`);
+  stub.reset();
+  const f2 = run(JUDGE, judgeArgs(dirF, ["--passes", "1"]));
+  if (f2.status === 3 && /records arm/.test(f2.stdout) && stub.count() === 0) pass("resuming the second arm's directory without its flags is refused");
+  else fail(`resume without arm flags: status ${f2.status}, calls ${stub.count()}: ${f2.stdout}`);
+  stub.reset();
+  stub.config({ reportModel: requests[0]!.model, flagWhen: MARKER });
+  const dirF3 = fresh("arm-model");
+  const f3 = run(JUDGE, judgeArgs(dirF3, armFlags));
+  if (f3.status === 2 && /model mismatch/.test(f3.stdout) && proxyFiles(dirF3).verdicts.length === 0 && stub.count() === 1) pass(`an answer from the shipped ${requests[0]!.model} stops the ${JM} arm on the first call`);
+  else fail(`second-arm model mismatch: status ${f3.status}, calls ${stub.count()}: ${f3.stdout}`);
+  stub.reset();
+  stub.config({ reportMaxOutput: 128000, flagWhen: MARKER });
+  const dirF4 = fresh("arm-cap");
+  const f4 = run(JUDGE, judgeArgs(dirF4, armFlags));
+  const ff4 = proxyFiles(dirF4);
+  if (f4.status === 2 && /instrument mismatch/.test(f4.stdout) && ff4.verdicts.length === 0 && ff4.mismatches.length === 0 && stub.count() === 1) pass("a result reporting another output cap stops the run on the first call and writes no file");
+  else fail(`output-cap mismatch: status ${f4.status}, verdicts ${ff4.verdicts.length}, calls ${stub.count()}: ${f4.stdout}`);
 
   out.write(`\n${failures === 0 ? "PASS" : "FAIL"}: proxy-judge rehearsal (${failures} failure(s))\n`);
   process.exit(failures === 0 ? 0 : 1);
