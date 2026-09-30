@@ -5611,6 +5611,19 @@ because that widening is on the READING side and this argument turns on the RUNN
   compiled output. One trivial non-case probe confirmed `claude-opus-5-5` answers through the
   subscription login with `apiKeySource none`. No case request has been sent to an Opus model.
 
+  **OPUS ARM AMENDMENT A1, 2026-09-30, filed before any case request, owner-approved:**
+  `opus-arm-amendment-A1-2026-09-30.md`. A local-recorder check (both arms, request `0001`, a
+  server that answered 400, no model reached) confirmed the following on the wire: `max_tokens`
+  32000, adaptive thinking, effort high, OAuth-only authorisation, no CLAUDE.md, settings,
+  skills or MCP content, and case content byte-identical between the arms. It also found a
+  difference the pre-registration missed. The CLI sends Opus the environment, identity, budget
+  and date after the case, as a system-role message, where Sonnet gets them before the case, and
+  Opus carries three extra beta flags. No flag controls this, so arm differences are read as
+  model plus message shape. Sonnet 4.6's self-stated cutoff is August 2025. **The entry above
+  says "seven of the ten"; the correct count is six**, from the pre-registration's own date
+  table: 2 of 10 cases were fully public for Sonnet, 6 of 10 for Opus. The criteria and the
+  command are unchanged.
+
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
 Same `L-` namespace as Priority 1d, 1e and 1f (found by RUNNING the detector), and a deliberately
