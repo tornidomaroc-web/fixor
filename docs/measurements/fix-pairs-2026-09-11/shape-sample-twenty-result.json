@@ -54,40 +54,35 @@
    "class": "admin-check",
    "keyword_candidate": false,
    "subject": "fix: prevent anonymous users from bypassing workspace creation restriction (#17635)",
-   "reason": "Workspace creation restricted to server admins could be bypassed by any user with no workspaces yet; fix limits the bypass to system bootstrap and adds an explicit canAccessFullAdminPanel check on sign-up.",
-   "answer_lines_hint": "-    if (await this.isFirstWorkspaceForUser(currentUser.id)) return; / +    if (await this.isFirstWorkspaceInSystem()) return; / +      if (!isExistingAdmin) { throw new AuthException('Workspace creation is restricted to admins'"
+   "reason": "Workspace creation restricted to server admins could be bypassed by any user with no workspaces yet; fix limits the bypass to system bootstrap and adds an explicit canAccessFullAdminPanel check on sign-up."
   },
   {
    "sha": "23aa859502a802e7c116bfb6d5586ce5379338a7",
    "class": "idor",
    "keyword_candidate": false,
    "subject": "refactor: scope ApplicationRegistrationService findOneById to tenant rows (#20408)",
-   "reason": "findOneById scoped by ownerWorkspaceId also matched registrations with a NULL owner, letting any workspace act on registrations it does not own; fix removes the IsNull fallback so the lookup is strictly tenant-scoped.",
-   "answer_lines_hint": "-      where: [ { id, ownerWorkspaceId }, { id, ownerWorkspaceId: IsNull() } ], / +      where: { id, ownerWorkspaceId },"
+   "reason": "findOneById scoped by ownerWorkspaceId also matched registrations with a NULL owner, letting any workspace act on registrations it does not own; fix removes the IsNull fallback so the lookup is strictly tenant-scoped."
   },
   {
    "sha": "77574594f2d652d9204f2aaef874a660bd16b197",
    "class": "admin-check",
    "keyword_candidate": false,
    "subject": "admin panel fast follows (#10723)",
-   "reason": "Admin-panel queries exposing environment variables, system health and queue metrics were gated only by ImpersonateGuard (canImpersonate), not by an admin-panel authorization check; the commit swaps in a new AdminPanelGuard requiring canAccessFullAdminPanel.",
-   "answer_lines_hint": "-  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, ImpersonateGuard) / +  @UseGuards(WorkspaceAuthGuard, UserAuthGuard, AdminPanelGuard) on getEnvironmentVariablesGrouped; +return request.user.canAccessFullAdminPanel === true;"
+   "reason": "Admin-panel queries exposing environment variables, system health and queue metrics were gated only by ImpersonateGuard (canImpersonate), not by an admin-panel authorization check; the commit swaps in a new AdminPanelGuard requiring canAccessFullAdminPanel."
   },
   {
    "sha": "921a0f01c8a9c78dd56ca0b237855cf5190c3ff5",
    "class": "idor",
    "keyword_candidate": false,
    "subject": "Forbid permissions update cross app role retarget (#19982)",
-   "reason": "Update validators for fieldPermission, objectPermission and permissionFlag only checked that the referenced role existed and was editable, never that the role belonged to the calling application; the commit adds validateRoleBelongsToCallerApplication to each update path so one application cannot target another application's role.",
-   "answer_lines_hint": "-    } else if (!referencedRole.isEditable) { / +    } else { validationResult.errors.push(...validateRoleBelongsToCallerApplication({ referencedRole, buildOptions })); (in flat-field-permission, flat-object-permission, flat-permission-flag validators)"
+   "reason": "Update validators for fieldPermission, objectPermission and permissionFlag only checked that the referenced role existed and was editable, never that the role belonged to the calling application; the commit adds validateRoleBelongsToCallerApplication to each update path so one application cannot target another application's role."
   },
   {
    "sha": "cdd667b1066e96e52352fdc1d100e4d1af67ca00",
    "class": "auth-bypass",
    "keyword_candidate": false,
    "subject": "fix(server): restrict /webhooks/server dispatch to server-route-exposed functions (#22469)",
-   "reason": "The public (unauthenticated) server-route trigger could dispatch resolver logic functions flagged isAuthRequired; the commit adds a check that rejects them with RESOLVER_REQUIRES_AUTHENTICATION (403).",
-   "answer_lines_hint": "+    if (resolver.httpRouteTriggerSettings?.isAuthRequired === true) { throw new ServerRouteTriggerException(`... requires authentication and cannot be dispatched through the public server route`, ServerRouteTriggerExceptionCode.RESOLVER_REQUIRES_AUTHENTICATION)"
+   "reason": "The public (unauthenticated) server-route trigger could dispatch resolver logic functions flagged isAuthRequired; the commit adds a check that rejects them with RESOLVER_REQUIRES_AUTHENTICATION (403)."
   }
  ],
  "keywordCandidatesInSampleLabelledNone": [

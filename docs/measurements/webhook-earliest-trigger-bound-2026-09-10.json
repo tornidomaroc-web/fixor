@@ -13,12 +13,12 @@
   "result": {
     "file": "apps/web/app/api/recorded-daily-video/route.ts",
     "totalLines": 239,
-    "routeDefExport": { "line": 239, "text": "export const POST = defaultResponderForAppDir(postHandler);" },
-    "selectedTrigger": { "patternId": "webhook_lib_import", "line": 36, "text": "} from \"@calcom/web/lib/daily-webhook/triggerWebhooks\";" },
+    "routeDefExport": { "line": 239 },
+    "selectedTrigger": { "patternId": "webhook_lib_import", "line": 36 },
     "payloadSent": { "firstLine": 28, "lastLine": 51, "lines": 24, "wholeFile": false },
     "outsidePayload": {
-      "handlerStart": { "line": 54, "text": "export async function postHandler(request: NextRequest) {" },
-      "signatureCompare": { "lines": "71-73", "text": "if (headersList.get(\"x-webhook-signature\") !== computed_signature) {" }
+      "handlerStart": { "line": 54 },
+      "signatureCompare": { "lines": "71-73" }
     },
     "note": "No verdict was obtained and none is claimed; the measurement is of the payload the model would receive, which excludes the handler and its verification."
   },

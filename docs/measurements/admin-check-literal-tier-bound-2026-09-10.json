@@ -16,7 +16,6 @@
   "result": {
     "file": "packages/lib/isSmsCalEmail.ts",
     "lines": 3,
-    "content": "export default function isSmsCalEmail(email: string) {\n  return email.endsWith(\"@sms.cal.com\");\n}",
     "emitted": {
       "type": "admin_check_risk",
       "line": 2,

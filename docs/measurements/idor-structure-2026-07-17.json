@@ -42,9 +42,7 @@
         {
           "pairIndex": 0,
           "sourceLine": 13,
-          "sourceText": "const documentId = req.params.id;",
-          "sinkLine": 28,
-          "sinkText": "const summary = await prisma.usageStats.findFirst({"
+          "sinkLine": 28
         }
       ],
       "crossHandler": true,
@@ -131,7 +129,6 @@
         "path": "listeners_test.go",
         "lang": "go",
         "line": 612,
-        "text": "actual := tc.input.Expand()",
         "kind": "non-typescript-language"
       },
       {
@@ -139,7 +136,6 @@
         "path": "modules/caddyhttp/matchers_test.go",
         "lang": "go",
         "line": 1037,
-        "text": "tc.input.ServeHTTP(httptest.NewRecorder(), req, emptyHandler)",
         "kind": "non-typescript-language"
       },
       {
@@ -147,7 +143,6 @@
         "path": "modules/caddyhttp/rewrite/rewrite_test.go",
         "lang": "go",
         "line": 356,
-        "text": "urlCopy := *tc.input.URL",
         "kind": "non-typescript-language"
       },
       {
@@ -155,7 +150,6 @@
         "path": "modules_test.go",
         "lang": "go",
         "line": 109,
-        "text": "actualNamespace := tc.input.Namespace()",
         "kind": "non-typescript-language"
       },
       {
@@ -163,7 +157,6 @@
         "path": "frontend/asset-processor/postcss-variable-prefixer.js",
         "lang": "js",
         "line": 28,
-        "text": "hash = hashString(root.source.input.css);",
         "kind": "non-typescript-language"
       },
       {
@@ -171,7 +164,6 @@
         "path": "frontend/asset-processor/postcss.js",
         "lang": "js",
         "line": 24,
-        "text": "from: \"input.css\",",
         "kind": "non-typescript-language"
       },
       {
@@ -179,7 +171,6 @@
         "path": "packages/app-tests/e2e/envelope-editor-v2/envelope-items.spec.ts",
         "lang": "ts",
         "line": 108,
-        "text": "await input.setInputFiles(files);",
         "kind": "ts-without-trpc-marker"
       },
       {
@@ -187,7 +178,6 @@
         "path": "packages/lib/constants/time-zones.ts",
         "lang": "ts",
         "line": 37,
-        "text": "const [timeZone] = input.split('(');",
         "kind": "ts-without-trpc-marker"
       },
       {
@@ -195,7 +185,6 @@
         "path": "packages/lib/utils/sanitize-branding-css.ts",
         "lang": "ts",
         "line": 274,
-        "text": "if (input.trim() === '') {",
         "kind": "ts-without-trpc-marker"
       },
       {
@@ -203,7 +192,6 @@
         "path": "packages/ui/primitives/multiselect.tsx",
         "lang": "tsx",
         "line": 205,
-        "text": "if (input.value === '' && selected.length > 0) {",
         "kind": "ts-without-trpc-marker"
       },
       {
@@ -211,7 +199,6 @@
         "path": "web_src/js/features/admin/common.ts",
         "lang": "ts",
         "line": 83,
-        "text": "input.removeAttribute('required');",
         "kind": "ts-without-trpc-marker"
       },
       {
@@ -219,7 +206,6 @@
         "path": "web_src/js/features/admin/users.ts",
         "lang": "ts",
         "line": 16,
-        "text": "input.checked = true;",
         "kind": "ts-without-trpc-marker"
       }
     ]

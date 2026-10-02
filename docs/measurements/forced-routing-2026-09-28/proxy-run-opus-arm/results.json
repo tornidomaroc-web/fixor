@@ -1,44 +1,49 @@
 {
   "instrument": "PROXY",
   "stub": false,
-  "label": "PROXY-FAIL",
-  "startedAt": "2026-09-29T01:16:45.992Z",
-  "updatedAt": "2026-09-29T03:29:12.592Z",
+  "label": "PROXY-INCONCLUSIVE [judge claude-opus-5-5, not the shipped claude-sonnet-4-6]",
+  "arm": {
+    "judgeModel": "claude-opus-5-5",
+    "effort": "high",
+    "maxOutputTokens": 32000
+  },
+  "startedAt": "2026-10-02T11:32:28.522Z",
+  "updatedAt": "2026-10-02T12:02:28.528Z",
   "passes": 5,
   "requests": 70,
   "callsPlanned": 350,
   "judgedTotal": 350,
   "judgedThisInvocation": 280,
   "modelsSeenThisInvocation": {
-    "claude-sonnet-4-6": 280
+    "claude-opus-5-5": 280
   },
   "usageThisInvocationByPass": {
     "2": {
-      "input": 210,
-      "output": 121956,
-      "cacheWrite": 361101,
-      "cacheRead": 261902,
+      "input": 140,
+      "output": 37302,
+      "cacheWrite": 14620,
+      "cacheRead": 803416,
       "calls": 70
     },
     "3": {
-      "input": 210,
-      "output": 127965,
-      "cacheWrite": 361089,
-      "cacheRead": 261902,
+      "input": 140,
+      "output": 34899,
+      "cacheWrite": 14629,
+      "cacheRead": 803416,
       "calls": 70
     },
     "4": {
-      "input": 210,
-      "output": 131333,
-      "cacheWrite": 361090,
-      "cacheRead": 261902,
+      "input": 140,
+      "output": 35892,
+      "cacheWrite": 14622,
+      "cacheRead": 803416,
       "calls": 70
     },
     "5": {
-      "input": 210,
-      "output": 122420,
-      "cacheWrite": 361091,
-      "cacheRead": 261902,
+      "input": 140,
+      "output": 35119,
+      "cacheWrite": 14619,
+      "cacheRead": 803416,
       "calls": 70
     }
   },
@@ -65,12 +70,12 @@
       "held-out|04|packages/backend/src/queue/processors/ExportFavoritesProcessorService.ts": false,
       "held-out|05|Parse-Dashboard/app.js": true,
       "held-out|06|src/Routers/FilesRouter.js": false,
-      "held-out|07|src/lib/features/feature-toggle/feature-toggle-service.ts": false,
+      "held-out|07|src/lib/features/feature-toggle/feature-toggle-service.ts": true,
       "held-out|08|packages/core/src/common/error/errors.ts": false,
       "held-out|08|packages/core/src/service/helpers/external-authentication/external-authentication.service.ts": false,
       "held-out|09|back/loaders/express.ts": false,
       "held-out|10|auth.js": false,
-      "arm-a-diagnostic|02|packages/worker/src/api/routes/global/groups.ts": true,
+      "arm-a-diagnostic|02|packages/worker/src/api/routes/global/groups.ts": false,
       "arm-a-diagnostic|04|packages/sync-server/src/app-sync.ts": true,
       "arm-a-diagnostic|07|packages/database/src/models/knowledgeBase.ts": true,
       "arm-a-diagnostic|10|packages/apostrophe/modules/@apostrophecms/page/index.js": false,
@@ -83,24 +88,21 @@
       "held-out|04": false,
       "held-out|05": true,
       "held-out|06": false,
-      "held-out|07": false,
+      "held-out|07": true,
       "held-out|08": false,
       "held-out|09": false,
       "held-out|10": false,
-      "arm-a-diagnostic|02": true,
+      "arm-a-diagnostic|02": false,
       "arm-a-diagnostic|04": true,
       "arm-a-diagnostic|07": true,
       "arm-a-diagnostic|10": false,
       "arm-a-diagnostic|05": false
     },
-    "heldOutCaseHits": 1,
+    "heldOutCaseHits": 2,
     "heldOutCases": 10,
-    "recallVerdict": "FAIL",
-    "cleanFlags": [
-      "medusa:packages/medusa/src/api/admin/draft-orders/[id]/edit/request/route.ts",
-      "docmost:apps/server/src/database/repos/page/page-history.repo.ts"
-    ],
-    "cleanFlagCount": 2,
+    "recallVerdict": "INCONCLUSIVE",
+    "cleanFlags": [],
+    "cleanFlagCount": 0,
     "noiseVerdict": "ok",
     "fixSideFlags": []
   },
@@ -119,10 +121,6 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": false,
           "confidence": "low"
         },
         {
@@ -131,7 +129,11 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         }
       ]
     },
@@ -175,23 +177,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "medium"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -205,11 +207,11 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -221,7 +223,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -235,15 +237,15 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -265,23 +267,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -294,24 +296,24 @@
       "path": "packages/gateway/src/middlewares/userMiddleware.ts",
       "verdicts": [
         {
-          "isVulnerable": true,
-          "confidence": "medium"
-        },
-        {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
           "confidence": "medium"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "medium"
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         }
       ]
     },
@@ -325,23 +327,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -355,23 +357,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "medium"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -385,23 +387,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -431,7 +433,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -453,7 +455,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -479,7 +481,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -539,7 +541,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -547,7 +549,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -573,7 +575,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -629,7 +631,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -637,11 +639,11 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -667,11 +669,11 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -718,16 +720,16 @@
           "confidence": "medium"
         },
         {
-          "isVulnerable": false,
-          "confidence": "low"
+          "isVulnerable": true,
+          "confidence": "medium"
         },
         {
-          "isVulnerable": false,
-          "confidence": "low"
+          "isVulnerable": true,
+          "confidence": "medium"
         },
         {
-          "isVulnerable": false,
-          "confidence": "low"
+          "isVulnerable": true,
+          "confidence": "medium"
         },
         {
           "isVulnerable": true,
@@ -783,11 +785,11 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -835,11 +837,11 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -851,7 +853,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -865,7 +867,11 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -873,11 +879,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -899,7 +901,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "medium"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -907,11 +909,11 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -925,6 +927,14 @@
       "verdicts": [
         {
           "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
           "confidence": "medium"
         },
         {
@@ -933,15 +943,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": false,
-          "confidence": "low"
-        },
-        {
-          "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "medium"
         }
       ]
     },
@@ -959,19 +961,19 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "medium"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "medium"
+          "confidence": "low"
         }
       ]
     },
@@ -985,23 +987,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
+          "confidence": "high"
+        },
+        {
+          "isVulnerable": false,
           "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "medium"
-        },
-        {
-          "isVulnerable": true,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1014,24 +1016,24 @@
       "path": "packages/worker/src/api/routes/global/groups.ts",
       "verdicts": [
         {
-          "isVulnerable": true,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": true,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": true,
-          "confidence": "high"
-        },
-        {
           "isVulnerable": false,
           "confidence": "low"
         },
         {
           "isVulnerable": true,
           "confidence": "medium"
+        },
+        {
+          "isVulnerable": true,
+          "confidence": "medium"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         }
       ]
     },
@@ -1045,11 +1047,11 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1075,7 +1077,7 @@
       "verdicts": [
         {
           "isVulnerable": true,
-          "confidence": "high"
+          "confidence": "medium"
         },
         {
           "isVulnerable": true,
@@ -1083,15 +1085,15 @@
         },
         {
           "isVulnerable": true,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": false,
           "confidence": "medium"
         },
         {
           "isVulnerable": true,
-          "confidence": "high"
+          "confidence": "medium"
+        },
+        {
+          "isVulnerable": true,
+          "confidence": "medium"
         }
       ]
     },
@@ -1105,7 +1107,7 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1113,7 +1115,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1135,7 +1137,7 @@
       "verdicts": [
         {
           "isVulnerable": true,
-          "confidence": "high"
+          "confidence": "medium"
         },
         {
           "isVulnerable": true,
@@ -1211,7 +1213,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1229,7 +1231,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "isVulnerable": false,
@@ -1263,15 +1265,15 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1285,23 +1287,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1315,7 +1317,7 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1345,7 +1347,7 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1353,11 +1355,11 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1405,23 +1407,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1443,7 +1445,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1451,7 +1453,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1469,7 +1471,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "medium"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1495,23 +1497,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
           "confidence": "medium"
-        },
-        {
-          "isVulnerable": false,
-          "confidence": "low"
-        },
-        {
-          "isVulnerable": false,
-          "confidence": "low"
-        },
-        {
-          "isVulnerable": false,
-          "confidence": "high"
         }
       ]
     },
@@ -1555,23 +1557,23 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1585,7 +1587,7 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1656,8 +1658,8 @@
           "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1674,20 +1676,20 @@
       "path": "packages/medusa/src/api/admin/draft-orders/[id]/edit/request/route.ts",
       "verdicts": [
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "high"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1739,7 +1741,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1747,7 +1749,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1769,10 +1771,6 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": false,
           "confidence": "low"
         },
         {
@@ -1781,7 +1779,11 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         }
       ]
     },
@@ -1794,8 +1796,12 @@
       "path": "packages/medusa/src/api/admin/draft-orders/[id]/edit/confirm/route.ts",
       "verdicts": [
         {
-          "isVulnerable": true,
-          "confidence": "high"
+          "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1806,12 +1812,8 @@
           "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
-        },
-        {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         }
       ]
     },
@@ -1828,8 +1830,8 @@
           "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1871,7 +1873,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -1919,7 +1921,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -1944,24 +1946,24 @@
       "path": "apps/server/src/database/repos/page/page-history.repo.ts",
       "verdicts": [
         {
-          "isVulnerable": true,
-          "confidence": "medium"
-        },
-        {
-          "isVulnerable": true,
-          "confidence": "high"
-        },
-        {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
           "confidence": "low"
         },
         {
-          "isVulnerable": true,
-          "confidence": "medium"
+          "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
+        },
+        {
+          "isVulnerable": false,
+          "confidence": "low"
         }
       ]
     },
@@ -2017,7 +2019,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -2039,7 +2041,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -2047,7 +2049,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -2073,7 +2075,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -2111,7 +2113,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -2141,7 +2143,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         }
       ]
     },
@@ -2159,7 +2161,7 @@
         },
         {
           "isVulnerable": false,
-          "confidence": "high"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
@@ -2185,7 +2187,7 @@
       "verdicts": [
         {
           "isVulnerable": false,
-          "confidence": "medium"
+          "confidence": "low"
         },
         {
           "isVulnerable": false,
