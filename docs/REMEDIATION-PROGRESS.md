@@ -5689,12 +5689,14 @@ because that widening is on the READING side and this argument turns on the RUNN
   `%USERPROFILE%\.local\share\claude-pinned\2.1.284\claude.exe`, outside the updater's folder;
   there is no PATH lookup. Request 0001 will be judged again in pass 1, and the amendment says
   why that selects nothing. Rehearsed in sections F, G and H of `test:proxy-judge-rehearsal`
-  (89 assertions); 24 guards were reverted one at a time in the compiled output and each
-  made the rehearsal fail (table in the amendment). A real wire check with the pinned build
-  passed on 2026-10-02 with no model reached, for both arms' settings, and reproduced A1's
-  capture: the message-shape confound stands. **What a passing wire check does not show is in
-  the amendment's section 5: the checked process carries `ANTHROPIC_BASE_URL` and the judged one
-  does not; only a process's first request is recorded; it samples one request per pass.** The
+  (89 assertions in the whole rehearsal); 24 guards were reverted one at a time in the compiled output and each
+  made the rehearsal fail (table in the amendment). On 2026-10-02, with no model reached, the
+  judge's own `--wire-check-only` passed with the pinned build under the Opus arm's settings, and
+  a scratch script calling the same check functions passed under each arm's settings; the
+  captures reproduced A1's: the message-shape confound stands. **What a passing wire check does
+  not show is in the amendment's section 5: the checked process carries `ANTHROPIC_BASE_URL` and
+  has its stdout and stderr discarded, and the judged one does neither; only a process's first
+  request is recorded; it samples one request per pass.** The
   Opus arm has not been resumed. No Opus verdict exists.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs

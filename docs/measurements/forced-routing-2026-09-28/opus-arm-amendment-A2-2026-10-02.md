@@ -24,9 +24,10 @@ STOP instrument mismatch: call n=1 pass 1 reported maxOutputTokens 128000, pinne
 **What exists of that call:** the stop line, and "answered by claude-opus-5-5 on 1". Nothing
 else. The judge writes no file on that stop, so the model's structured answer was held in
 memory by a process that exited: it was never written, printed, scored or read by anyone. Its
-token usage was discarded with it and is not known. The output directory holds `arm.json` and
-an empty `proxy/`; the attempt's `judge.log`, `judge-run.json` and its `results.json` (zero
-verdicts) are copied to `stopped-2026-10-02/` beside them.
+token usage was discarded with it and is not known. The output directory holds `arm.json`, an
+empty `proxy/`, and the attempt's `judge.log`, `judge-run.json` and `results.json` (zero
+verdicts). Copies of those three are in `stopped-2026-10-02/` beside them, because the resumed
+run overwrites the last two and appends to the first.
 
 **Request 0001 will be judged again as part of pass 1.** The discarded answer was never
 observed and the stop fired on a field that is constant for the model (section 2), so the stop
@@ -84,9 +85,10 @@ each verdict file as information. The pre-registration's sentence "Every result 
 
 **4.2 A wire check replaces it, before the first call of every pass and of every resume.** One
 process is started exactly as a judge call is: the same executable, argv, stdin, whitelisted
-environment and a fresh empty working directory, for the request about to be judged. The single
-addition is `ANTHROPIC_BASE_URL`, pointing at a recorder on 127.0.0.1 that answers 400 to
-everything, so no model is reached. The recorded `POST /v1/messages` must show all of:
+environment and a fresh empty working directory, for the request about to be judged. It
+differs from a judge call in two ways: `ANTHROPIC_BASE_URL` is added, pointing at a recorder on
+127.0.0.1 that answers 400 to everything, so no model is reached; and the process's stdout and
+stderr are discarded, where a judge call's are piped back and read. The recorded `POST /v1/messages` must show all of:
 
 | checked | required |
 |---|---|
@@ -108,15 +110,16 @@ building it, each because the check could otherwise pass on a request that diffe
 pinned one.
 
 **The request shape is held to a baseline.** The first passing check in an output directory
-writes `wire-baseline.json`: model, cap, thinking, effort, the set of body keys, the tool
-names, the beta flags, the API version, the login class, and the roles and block counts of the
-messages. Every later check must equal it. A1 found that the CLI gives Opus a different message
+writes `wire-baseline.json`: model, cap, thinking, effort, whether a temperature is sent,
+`stream`, the set of body keys, the tool names, the beta flags, the API version, the login
+class, whether an `x-api-key` is sent, the number of system blocks, and the roles and block
+counts of the messages. Every later check must equal it. A1 found that the CLI gives Opus a different message
 shape than Sonnet; the baseline is what stops that shape from changing between passes unseen.
 
 A failed check before any call of an invocation refuses the start or the resume (exit 3, no
 judge process, no verdict). A failed check before a later pass stops the run with the earlier
-passes on disk (exit 2). Either way the baseline file stays, so the same command is refused
-again until the request is back to the baseline; anything else goes to the owner.
+passes on disk (exit 2). Either way the same command is refused again until the check passes;
+where a baseline exists it stays. Anything else goes to the owner.
 
 **4.3 Output above the cap stops the run.** A result reporting more than 32,000 output tokens
 means the cap was not applied or the call took more than one request. No file is written. Each
@@ -149,7 +152,10 @@ A pass of the check is evidence about the request that was recorded, and about n
    above the cap, never a cap that was silently lower.
 3. **It samples.** One request per pass and per resume, at most a few per run of 350 calls. A
    change that appears and disappears between two checks is not seen.
-4. **Not rehearsed:** the recomputation of the hash before each check (no rehearsal changes
+4. **Its output streams are not the judge call's.** The checked process's stdout and stderr
+   go nowhere; a judge call's are pipes the judge reads. Nothing recorded suggests the CLI
+   builds its request differently by where its output goes, and nothing rules it out.
+5. **Not rehearsed:** the recomputation of the hash before each check (no rehearsal changes
    the binary between two checks of one invocation), the 180-second hang guard, and a process
    that fails to start. The code is there; nothing in `test:ci` shows it working.
 
@@ -159,7 +165,9 @@ wire check at all during its 350 calls.
 ## 6. Comparability with the Sonnet arm, as measured on 2026-10-02
 
 Three captures against the recorder, no model reached, the pinned build from the stable path,
-request `0001`:
+request `0001`. The first two came from a scratch script that called the judge's own
+`judgeArgv`, `scrubbedEnv`, `captureWire` and `checkWire` (both passed `checkWire` against
+their own arm's pins); it printed shapes and lengths, never content:
 
 | | Opus arm settings | Sonnet arm settings (control) |
 |---|---|---|
@@ -172,7 +180,7 @@ request `0001`:
 | system blocks | 3, the third the request's prompt | 3, the third the request's prompt |
 | messages | user (2 blocks), then a system-role message (1 block) | user (6 blocks) |
 | beta flags | 11 | 8, a subset of the 11 |
-| other requests | `HEAD /api/hello`, unauthenticated | the same |
+| other requests | `HEAD /api/hello`, unauthenticated | the same, per A1, not re-read on 2026-10-02 |
 
 The third capture is the judge's own `--wire-check-only` run with the command of section 8 and
 a scratch output directory outside the repository: passed, and the baseline it wrote equals the

@@ -9,11 +9,12 @@
  * is applied to the request. So the field is recorded and never compared,
  * and the request itself is read instead.
  *
- * WHAT THE WIRE CHECK IS. One process, started exactly as a judge call is
- * (same executable, argv, stdin, whitelisted environment, fresh empty
- * working directory), with ONE addition: ANTHROPIC_BASE_URL pointing at a
- * recorder on 127.0.0.1 that answers 400 to everything. No model is
- * reached. The recorded POST /v1/messages must carry the pinned model, the
+ * WHAT THE WIRE CHECK IS. One process, started as a judge call is (same
+ * executable, argv, stdin, whitelisted environment, fresh empty working
+ * directory), with two differences: ANTHROPIC_BASE_URL is added, pointing at
+ * a recorder on 127.0.0.1 that answers 400 to everything, so no model is
+ * reached; and its stdout and stderr are discarded, where a judge call's
+ * are piped back and read. The recorded POST /v1/messages must carry the pinned model, the
  * pinned `max_tokens`, adaptive thinking, the pinned effort, an OAuth
  * bearer and no `x-api-key`, no temperature, the request's own system
  * prompt, user message and schema, and nothing naming the repository, the
@@ -32,6 +33,9 @@
  *      pinned cap, which bounds this from one side only.
  *   3. It samples: one request before the first call of every pass and of
  *      every resume, not every call.
+ *   4. Its output streams are not the judge call's (above). Nothing recorded
+ *      suggests the CLI builds its request differently by where its output
+ *      goes, and nothing rules it out.
  *
  * The Authorization value never leaves the request handler: it is reduced
  * there to a class, and no header value other than `anthropic-beta` and
