@@ -145,8 +145,6 @@
           "pairIndex": 0,
           "isVulnerable": true,
           "confidence": "high",
-          "reasoning": "The request-derived `req.params.id` flows directly into the `findOne` query with no ownership filter (e.g., `userId`) and no post-fetch ownership check comparing the order's owner to the authenticated session user. The `requireAuth` middleware only validates session authenticity, not object-level access.",
-          "suggestedFix": "Add an ownership filter to the query, e.g. `where: { id: req.params.id, userId: req.user.id }`, or after fetching the order, explicitly check `if (order.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });`.",
           "callerAuth": "unclear",
           "operationClass": "user_resource"
         },
@@ -154,8 +152,6 @@
           "pairIndex": 1,
           "isVulnerable": true,
           "confidence": "high",
-          "reasoning": "The request-derived `req.params.id` flows directly into the `findOne` query for the cancel operation with no ownership filter and no post-fetch ownership check; any authenticated user can cancel any other user's order by supplying its ID. The `requireAuth` middleware only enforces session validity, not object-level authorization.",
-          "suggestedFix": "Add an ownership filter to the query, e.g. `where: { id: req.params.id, userId: req.user.id }`, or after fetching the order, explicitly check `if (order.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });`.",
           "callerAuth": "unclear",
           "operationClass": "user_resource"
         }

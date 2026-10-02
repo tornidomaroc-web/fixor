@@ -13,11 +13,10 @@
   "result": {
     "file": "lib/index.js",
     "totalLines": 138,
-    "selectedTrigger": { "patternId": "jwt_verify", "line": 100, "text": "jwt.verify(token, secret, options, function(err, decoded) {" },
+    "selectedTrigger": { "patternId": "jwt_verify", "line": 100 },
     "payloadSent": { "firstLine": 92, "lastLine": 115, "lines": 24, "wholeFile": false },
     "defectOutsidePayload": {
       "line": 20,
-      "text": "if (!options || !options.secret) throw new Error('secret should be set');",
       "reading": "The only validation the options object receives. No algorithms requirement; options is then passed verbatim to jwt.verify at line 100, so the token's own alg header selects the verification algorithm. This is the shape fixed in express-jwt 6.0.0 by requiring options.algorithms (CVE-2020-15084).",
       "distanceAboveWindowFirstLine": 72
     },

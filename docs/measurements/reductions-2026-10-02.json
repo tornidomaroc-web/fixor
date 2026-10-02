@@ -1,0 +1,173 @@
+{
+  "note": "Run artifacts under docs/ reduced on 2026-10-02 (PR #263): model reasoning, reader prose and quoted third-party code removed; every other field kept. The originals are outside the repository and remain in git history, which is not rewritten. committedSha256 is the sha256 of the file as committed (LF); gitBlob is its blob id in the commit the reduction started from (de5943a, which carries main 4cedf0c plus PR #263).",
+  "files": [
+    {
+      "file": "docs/measurements/forced-routing-2026-09-28/proxy-run-opus-arm/results.json",
+      "gitBlob": "e95d310c8c2cccbe9f0b382cd3ded0cc2857f272",
+      "committedSha256": "2e556ec4f80668655371701b2e0c3d1d7d9d7390603bf6362f7ba37a1648230d",
+      "valuesRemoved": 350,
+      "fieldsRemoved": "results[].verdicts[] reduced to {isVulnerable, confidence}: reasoning and extra.* removed"
+    },
+    {
+      "file": "docs/measurements/forced-routing-2026-09-28/proxy-run-2026-09-29/results.json",
+      "gitBlob": "13366ab5121ef5e429047a461ef53ab93434e32b",
+      "committedSha256": "a7a71a295f916e2c5d194aa70f8a123ccf58583fb4aae9ec21eab92ffb54f6ef",
+      "valuesRemoved": 350,
+      "fieldsRemoved": "results[].verdicts[] reduced to {isVulnerable, confidence}: reasoning and extra.* removed"
+    },
+    {
+      "file": "docs/measurements/auth-bypass-pending-pairs-2026-08-16/recordings/1ae4bed41ee13bb3d6a6d4a5876c2383b11148c39a43afd05f7dbe263b9767f2.json",
+      "gitBlob": "aab658e8b72b7b5cc32d34eacd633e7fd9041b39",
+      "committedSha256": "ca4988b227d2a072304a839e2d06187e49f16f51501db8407164cb8648ac6040",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "request.messages[].content (scanned third-party file context); response.toolInput.{reasoning,suggestedFix,vulnerableRoute}; response.text"
+    },
+    {
+      "file": "docs/measurements/auth-bypass-pending-pairs-2026-08-16/recordings/537ca3ee5137ff9e8f5e6d56f2a7f74740f767d4feb87ba30b90e2a1a33a9841.json",
+      "gitBlob": "a7e9cc00c5463d8a29e4746d5b058f8641aaf70f",
+      "committedSha256": "352efd87c7903492a2691a1b1a646336255907f67c4613efa4f6bdd375d347d6",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "request.messages[].content (scanned third-party file context); response.toolInput.{reasoning,suggestedFix,vulnerableRoute}; response.text"
+    },
+    {
+      "file": "docs/measurements/auth-bypass-pending-pairs-2026-08-16/recordings/5d474660cdf4e7e909d2c515a67751cbeaced9634e8c42bc1023ca4bbe6c5a07.json",
+      "gitBlob": "89b04b388b6b467606fc2d79156360a31f32221e",
+      "committedSha256": "9b806a8f1202dce3cc467d02c4a4c1808f29044969fc29ec21c264b101c9aaa2",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "request.messages[].content (scanned third-party file context); response.toolInput.{reasoning,suggestedFix,vulnerableRoute}; response.text"
+    },
+    {
+      "file": "docs/measurements/auth-bypass-pending-pairs-2026-08-16/recordings/e4e624a0228d5c339772146bab2d3dd2ce0a758c417acf7e1f264349cba6e5a0.json",
+      "gitBlob": "85e5f1c5a2c062fb57dcc5ece2c243c39059b975",
+      "committedSha256": "9320eeae77ce2ae1215119548c0ca4784e47c151298a891cf2221ae1308996be",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "request.messages[].content (scanned third-party file context); response.toolInput.{reasoning,suggestedFix,vulnerableRoute}; response.text"
+    },
+    {
+      "file": "docs/measurements/field-trial-2026-09-19/arm-a-observer-2026-09-19.jsonl",
+      "gitBlob": "1707f3e59951ed0cc0e2b1e5afb966ff42296a95",
+      "committedSha256": "f43a74b188c09d3e2c0e588be6212f563730c785578e6789d512f6abd18ba1e0",
+      "valuesRemoved": 90,
+      "fieldsRemoved": "toolInput.{reasoning,suggestedFix,vulnerableRoute}; toolInput.verdicts[].{reasoning,suggestedFix}"
+    },
+    {
+      "file": "docs/measurements/idor-percall-2026-07-22.json",
+      "gitBlob": "acd868d824dabdb3e669f63b4f0582b424a7204f",
+      "committedSha256": "84edd9326df386c12125413bcb29d77f4f4ed1a75bbd053913b7a728d8018b93",
+      "valuesRemoved": 4,
+      "fieldsRemoved": "replayStability.recordedToolInputVerbatim.verdicts[].{reasoning,suggestedFix}"
+    },
+    {
+      "file": "docs/measurements/admin-check-literal-tier-bound-2026-09-10.json",
+      "gitBlob": "0beb9d4c187db511c895db41e168b9fcbddee494",
+      "committedSha256": "ed1eebb97a7fa9b3114065c884b16895db30165c9c0bc2461063008464fe86e7",
+      "valuesRemoved": 1,
+      "fieldsRemoved": "result.content (cal.com source)"
+    },
+    {
+      "file": "docs/measurements/auth-bypass-sentinel-window-bound-2026-09-10.json",
+      "gitBlob": "1b935b27b6872d8926b5564ffe62ec9a24a0fccc",
+      "committedSha256": "97a44f4848a6d4a7ee9f793933d319d2586d8a12dcc87a6e408084d82dc4130d",
+      "valuesRemoved": 2,
+      "fieldsRemoved": "result.selectedTrigger.text, result.defectOutsidePayload.text (express-jwt source lines)"
+    },
+    {
+      "file": "docs/measurements/webhook-earliest-trigger-bound-2026-09-10.json",
+      "gitBlob": "f86e47e8b5df40a67c4063ef1d6cd2279cbc2182",
+      "committedSha256": "c14014b261760a7b822b8e6ec93a710cfff69b92b08f60f16735d537395075ea",
+      "valuesRemoved": 4,
+      "fieldsRemoved": "every result.*.text (cal.com source lines)"
+    },
+    {
+      "file": "docs/measurements/idor-structure-2026-07-17.json",
+      "gitBlob": "f6e777237d29ef64c5a28b9e63e035702ff3fff8",
+      "committedSha256": "d0526b738f248bf2b70bc25a0492923da31a42df653c35b8ab590b01f7e4a367",
+      "valuesRemoved": 14,
+      "fieldsRemoved": "witnesses.l009.pairs[].{sourceText,sinkText}; trpcSpecificity.examples[].text (third-party source lines)"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/pairs/twenty--0edc3a385c0c--sign-in-up.json",
+      "gitBlob": "89cdb7672a6245868ff4d7216f4f9e85865e190d",
+      "committedSha256": "533e20fae78a23777c1283b3272cc0a2e712038142561d4dbda029ce9847573f",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "diffHunk; secondReader.{sentence,answerLinesHint}; measuringSessionReading.grounds; childSafetyAssertingComment.quotes"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/pairs/twenty--23aa859502a8--application-registration.json",
+      "gitBlob": "e1513ff315c53e4e992429e2d17667127bbcf5d1",
+      "committedSha256": "166069d30534592d4aa8769cb12b4ba5c74db9fc0f86b8ee20609ed7aeccdb82",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "diffHunk; secondReader.{sentence,answerLinesHint}; measuringSessionReading.grounds; childSafetyAssertingComment.quotes"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/pairs/twenty--77574594f2d6--admin-panel.json",
+      "gitBlob": "704f40a91e7c254c2781607c9f52e998432541f4",
+      "committedSha256": "596bf29d6493fbeefa937b2d2ed13a687d9da673472a7e140b547ce5c8f9c5a8",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "diffHunk; secondReader.{sentence,answerLinesHint}; measuringSessionReading.grounds; childSafetyAssertingComment.quotes"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/pairs/twenty--921a0f01c8a9--flat-field-permission-validator.json",
+      "gitBlob": "c928958e9af8b12238d4f0b8a838679843667caf",
+      "committedSha256": "92ee79860e2612b17b0cad41010908e0a02dc93385f2ef4cf5974055007d1e97",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "diffHunk; secondReader.{sentence,answerLinesHint}; measuringSessionReading.grounds; childSafetyAssertingComment.quotes"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/pairs/twenty--921a0f01c8a9--flat-object-permission-validator.json",
+      "gitBlob": "6669c0f4b316f8e347c2e023081a4b91ee1c1879",
+      "committedSha256": "f594ec4281029865a7f184270d8f925d807fe4c1a51c3bbcbf587ce0a56b17ba",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "diffHunk; secondReader.{sentence,answerLinesHint}; measuringSessionReading.grounds; childSafetyAssertingComment.quotes"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/pairs/twenty--921a0f01c8a9--flat-permission-flag-validator.json",
+      "gitBlob": "946a488926907cb285e1ca08ac97b245acb505b4",
+      "committedSha256": "c28c21a4502522a463075f41f24c112ebde3f5f95865256903c7e14f0859bcaa",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "diffHunk; secondReader.{sentence,answerLinesHint}; measuringSessionReading.grounds; childSafetyAssertingComment.quotes"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/pairs/twenty--cdd667b1066e--server-route-trigger.json",
+      "gitBlob": "40cb5052a622eeaeb816f02b98a9d2b98918eadd",
+      "committedSha256": "94d01813cd76b62ce163581826613b7d73462bb892d91d23d4409a2141bb8216",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "diffHunk; secondReader.{sentence,answerLinesHint}; measuringSessionReading.grounds; childSafetyAssertingComment.quotes"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/shape-sample-twenty-result.json",
+      "gitBlob": "7493ec0b1fa53940c472e4756f2b91fc71273912",
+      "committedSha256": "c70b82b7c8e30856d40459cb61a0a57889a52dd3329d7c6a6a6d7d7b6e256713",
+      "valuesRemoved": 5,
+      "fieldsRemoved": "fixesFound[].answer_lines_hint"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/shape-sample-twenty.verdicts.json",
+      "gitBlob": "92b7142aab6a956d3ada342139c21bfd6309d9e7",
+      "committedSha256": "ee8c948cbe2e502f2697fbb43557a55292f9f6ff3fdd69134d0f0c2197b72164",
+      "valuesRemoved": 448,
+      "fieldsRemoved": "verdicts[].{reason,answer_lines_hint}"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/webhook-keyword-97-2026-09-12.json",
+      "gitBlob": "3c2ce42b7b13f1fa217292a4f90f99c45ff9328d",
+      "committedSha256": "a23f4045dabad95e4b22ad66b7a40b32acdd9201236c786814d04dd589433561",
+      "valuesRemoved": 410,
+      "fieldsRemoved": "readers.*.{reason,defect_lines} in verdicts[] and readerControlsR12.results[]"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/secrets-false-alarms-2026-09-12.json",
+      "gitBlob": "e844fb487484611c5ecf5f5ced9a8afbc9a4f83e",
+      "committedSha256": "d591e421ef0cbfa83733509d422cbc34720f32d56aeee36189b219d013bad6b5",
+      "valuesRemoved": 406,
+      "fieldsRemoved": "reading.verdicts[].{flaggedLineMasked, readers.*.grounds, audit.*.note}"
+    },
+    {
+      "file": "docs/measurements/fix-pairs-2026-09-11/secrets-shape-coverage-2026-09-12.json",
+      "gitBlob": "d4bba49af8b0611ae4dc4e7c19be88bc3fd45c31",
+      "committedSha256": "840d188ef5ef27d9b4b46ffd24c22863bcbfa5309622acd7a21633329045d54c",
+      "valuesRemoved": 22,
+      "fieldsRemoved": "method.samples[].lineShape (third-party lines, value masked)"
+    }
+  ]
+}

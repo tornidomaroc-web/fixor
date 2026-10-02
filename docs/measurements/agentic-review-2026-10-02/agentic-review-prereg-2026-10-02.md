@@ -11,9 +11,14 @@ spans several files. A reviewer that reads the change inside its whole repositor
 them.
 
 **What the record already says, before any agentic run.**
-- 7 of the 10 held-out fixes change a single file, and it is the file the forced-routing proxy
-  handed the model whole (`held-out-fix-side-manifest-2026-09-28.tsv`: cases 01, 03, 05, 06, 07,
-  09 and 10 have one fix file; 02 and 04 have three; 08 has two). On the shipped model the
+- 7 of 10 fix commits change a single non-test source file, the one the lanes were given: the
+  forced-routing proxy handed the model that file whole. Read from the fix commits on GitHub on
+  2026-10-02: cases 01, 03, 09 and 10 change exactly one file; 05, 06 and 07 change one source
+  file and one test file; 02 changes three source files; 04 changes four source files, of which
+  the corpus kept three, plus one test file; 08 changes two source files and a translation file
+  plus two test files. (Corrected 2026-10-02 before any run: this line
+  first read "7 of the 10 held-out fixes change a single file", counted from the corpus manifest,
+  which is literally false for 05, 06 and 07.) On the shipped model the
   proxy flagged 1 of 10 (`proxy-run-2026-09-29/`). For those seven, the defect was correctable
   inside the file the model already had. That does not prove the evidence for SEEING the defect
   was local: whether a route needs a guard can depend on middleware or roles declared
@@ -31,9 +36,10 @@ Source: `anthropics/claude-code-security-review`, commit
 
 **The GitHub Action** (`claudecode/github_action_audit.py`, `claudecode/prompts.py`):
 - Runs `claude --output-format json --model <model> --disallowed-tools "Bash(ps:*)"` with the
-  prompt on stdin and the PR's checkout as the working directory. Every other tool is
-  available, Bash included. Default model `claude-opus-4-1-20250805`; timeout 20 minutes; up
-  to three retries.
+  prompt on stdin and the PR's checkout as the working directory. That is its only tool flag;
+  which tools a headless run may then use depends on the CLI's permission defaults, which were
+  not established here. Default model `claude-opus-4-1-20250805`; timeout 20 minutes; three
+  attempts in total (`range(3)`).
 - The prompt carries the PR number, title, author, the repository's full name, the changed
   files and the unified diff, and says: "focus ONLY on security implications newly added by
   this PR. Do not comment on existing security concerns."
@@ -43,8 +49,15 @@ Source: `anthropics/claude-code-security-review`, commit
   Claude Code usage"). Its README states it "is not hardened against prompt injection attacks
   and should only be used to review trusted PRs".
 
-**The `/security-review` command** (`.claude/commands/security-review.md`, and built into
-Claude Code: the pinned CLI 2.1.284 binary contains its text):
+**The `/security-review` command** (`.claude/commands/security-review.md` in the repository;
+a version is built into Claude Code). The published file is described below. The built-in in
+the pinned CLI 2.1.284 differs from it in two ways, read from the binary on 2026-10-02: 117 of
+the published file's 119 lines of 25 or more characters occur in the binary verbatim; the
+other two are (1) the diff expansion, which the built-in runs as `git diff origin/HEAD...`
+(committed changes since the merge base) instead of `git diff --merge-base origin/HEAD`
+(which also includes uncommitted changes), and (2) the `allowed-tools` line, which the built-in
+fills from a variable at run time, so its list cannot be read from the binary. In the prepared
+repositories below everything is committed, so the two diff commands give the same diff.
 - Allowed tools: `Bash(git diff:*)`, `Bash(git status:*)`, `Bash(git log:*)`, `Bash(git show:*)`,
   `Bash(git remote show:*)`, `Read`, `Glob`, `Grep`, `LS`, `Task`.
 - Expands `git status`, `git diff --name-only origin/HEAD...`, `git log --no-decorate
@@ -69,13 +82,17 @@ reused).
 
 - **Executable:** CLI 2.1.284 by sha256 `0416631e846f743110da5282409776fa1313e65f33a588aae066eaf8db0fda7d`
   at the stable path of amendment A2.
-- **Prompt:** the command's text, with its four `!` git commands expanded by the harness in the
-  prepared repository (below), sent on stdin. Before any case run, a recorder check (A2's
-  mechanism, no model reached) must show that this prompt reaches the wire byte-identical to
-  what the CLI sends for `/security-review` typed in the same repository. If it does not, the
-  harness sends `/security-review` itself and this line is amended before any case run.
+- **Prompt:** the BUILT-IN command's text, as the pinned CLI holds it, not the published
+  file's. Its `!` git commands are expanded by the harness in the prepared repository (below)
+  and the result is sent on stdin. Before any case run, a recorder check (A2's mechanism, no
+  model reached) must show that this prompt reaches the wire byte-identical to what the CLI
+  sends for `/security-review` typed in the same repository. If it does not, the harness sends
+  `/security-review` itself and this line is amended before any case run.
+- **Tool list:** the built-in's allowed-tools list, as the same recorder check shows it on the
+  wire, is recorded and committed before any run, and the harness passes exactly that list. No
+  case run starts until it is recorded.
 - **Flags:** `-p --model claude-opus-5-5 --effort high --output-format stream-json --verbose
-  --allowedTools <the command's list> --disallowedTools "WebFetch,WebSearch,Write,Edit,NotebookEdit"
+  --allowedTools <the built-in's list, as recorded> --disallowedTools "WebFetch,WebSearch,Write,Edit,NotebookEdit"
   --strict-mcp-config --setting-sources "" --no-session-persistence`.
 - **Environment:** the scrubbed whitelist, plus `CLAUDE_CODE_SUBAGENT_MODEL=claude-opus-5-5`
   (so the sub-tasks run on the pinned model) and `CLAUDE_CODE_MAX_OUTPUT_TOKENS=32000`.
@@ -206,7 +223,8 @@ advisory.
 2. The case-preparation script, the harness and the scorer are built and rehearsed at $0 with a
    stub (no model): blindness of what the process receives, the tool-call voiding, the scorer
    on hand-built transcripts, and each guard shown to fail when reverted.
-3. The recorder checks: the prompt-equivalence check above, and the wire check.
+3. The recorder checks: the prompt-equivalence check above, the built-in's tool list recorded
+   from it and committed, and the wire check.
 4. The case manifest is frozen and committed.
 5. Preferably, the third held-out set is drawn and frozen first.
 

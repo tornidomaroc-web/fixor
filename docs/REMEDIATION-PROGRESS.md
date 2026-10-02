@@ -5747,9 +5747,15 @@ because that widening is on the READING side and this argument turns on the RUNN
   read a verdict before the fifth pass ended; the progress views printed identity, usage and
   stop fields only. The re-run of the unchanged `score()` over the verdict files equals the
   judge's own summary. Committed: `proxy-run-opus-arm/results.json` (the judge's, from the
-  passes 2 to 5 invocation, so its per-invocation usage covers passes 2 to 5) and a source-free
-  `calls.jsonl` (all 350 calls: usage, model, turns, thinking tokens, the reported and the pinned
-  cap, and the flag decision). The verdict files stay outside the repository.
+  passes 2 to 5 invocation, so its per-invocation usage covers passes 2 to 5), **reduced on
+  2026-10-02 to `isVulnerable` and `confidence` per verdict**: the model's reasoning and the
+  `extra` fields (which quoted the reviewed projects' code) are removed, and every other field is
+  as the judge wrote it. The judge's original file, sha256
+  `2e556ec4f80668655371701b2e0c3d1d7d9d7390603bf6362f7ba37a1648230d`, stays outside the repository; it
+  was committed in this PR's first commit `de5943a` and so remains in this branch's history. The
+  unchanged scorer reproduces the label and every figure from the reduced file. Also committed: a
+  source-free `calls.jsonl` (all 350 calls: usage, model, turns, thinking tokens, the reported
+  and the pinned cap, and the flag decision). The verdict files stay outside the repository.
 
   | pass | calls | output tokens | of which thinking | cache write | cache read | flagged (high or medium) | CLI list-price estimate |
   |---|---|---|---|---|---|---|---|
@@ -5787,7 +5793,7 @@ because that widening is on the READING side and this argument turns on the RUNN
     cutoff.** Opus flagged it 5 of 5; the Sonnet arm 2 of 5. It cannot be recall of a published
     advisory. It is one case, and the arms also differ in message shape (A1), so it is read as
     model plus shape on one item.
-  - **Opus is quieter, not sharper on these items.** 22 flags in 350 calls against the Sonnet
+  - **Opus is quieter, and no sharper on nine of the ten.** 22 flags in 350 calls against the Sonnet
     arm's 37 (13 of them on clean files); no clean flag against two; 28% of the Sonnet arm's output tokens. Every
     file sits at 0 or 5 of 5 except one diagnostic file at 2. The decisions are stable, and
     mostly "not vulnerable".
@@ -5812,16 +5818,61 @@ because that widening is on the READING side and this argument turns on the RUNN
   `docs/measurements/agentic-review-2026-10-02/agentic-review-prereg-2026-10-02.md`. It tests the
   owner's hypothesis that the single-file lanes miss access-control defects because the evidence
   spans files, using Anthropic's MIT-licensed `/security-review` command (read from source at
-  `anthropics/claude-code-security-review` `0c6a49f`; the same text is built into the pinned
-  CLI). It is the only one of Anthropic's two reviewers that runs on the subscription; the GitHub
+  `anthropics/claude-code-security-review` `0c6a49f`; a version is built into the pinned CLI and
+  differs from the published file in its diff command and its run-time tool list, and the
+  design makes the built-in's text the instrument). It is the only one of Anthropic's two reviewers that runs on the subscription; the GitHub
   Action needs an API key. Both review a CHANGE and are told to ignore pre-existing issues, so
   the input is the commit that INTRODUCED each defect, found by a pre-registered blame rule, in a
   history-free neutralised repository. Hit rule, fix-side and clean-change controls, five
   repeats, stop conditions and a memorisation rule are fixed in advance. **It records, before any
-  run, that 7 of the 10 held-out fixes change only the file the single-file lanes were already
-  given,** so "the model never saw the relevant file" cannot explain at least seven misses. **It
+  run, that 7 of 10 fix commits change a single non-test source file, the one the lanes were
+  given** (01, 03, 09 and 10 change one file; 05, 06 and 07 one source file plus a test; 02, 04
+  and 08 more than one non-test file), so "the model never saw the relevant file" cannot explain
+  at least seven misses. **It
   also says that a pass counts only on the third held-out set (fix and advisory after
   2026-06-30), which should be built first.**
+
+  **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
+  third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that
+  the Opus arm's `results.json` carried the model's reasoning on every verdict, with code quoted
+  from the reviewed projects. A sweep of every committed JSON and JSONL file under `docs/` then
+  found the same in 23 more files, committed by earlier PRs. All 24 are reduced in one commit:
+  the free-text and quoted-code fields are removed and every other field is kept. The list, each
+  file's git blob, the sha256 of its committed bytes, the count of values removed (2,161) and the
+  fields removed are in `docs/measurements/reductions-2026-10-02.json`. The originals are kept
+  outside the repository.
+  - **The Sonnet arm's `proxy-run-2026-09-29/results.json`**, on `main` since #260 (`ec7a97b`):
+    verdicts reduced to `isVulnerable` and `confidence`. Original sha256
+    `a7a71a295f916e2c5d194aa70f8a123ccf58583fb4aae9ec21eab92ffb54f6ef`, git blob
+    `13366ab5121e`. The unchanged scorer reproduces PROXY-FAIL, held-out 1 of 10, clean 2 of 30
+    and every other figure from the reduced file, and every other field equals the original.
+    The same holds for the Opus arm's file (PROXY-INCONCLUSIVE, 2 of 10, 0 of 30).
+  - **The full text remains in git history.** History is not rewritten: no force-push, no filter.
+    Anyone can read the removed text at the commits that added it. The repository is public, so
+    this reduction stops the text spreading with every new clone of the tree; it does not
+    withdraw what was published.
+  - **Also reduced:**
+    - the four `auth-bypass-pending-pairs-2026-08-16/recordings/` files: the scanned file context
+      and the model's reasoning. They are no longer replayable recordings; no test reads them;
+    - `field-trial-2026-09-19/arm-a-observer-2026-09-19.jsonl` and `idor-percall-2026-07-22.json`:
+      model reasoning and suggested fixes;
+    - `admin-check-literal-tier-bound-2026-09-10.json`,
+      `auth-bypass-sentinel-window-bound-2026-09-10.json`,
+      `webhook-earliest-trigger-bound-2026-09-10.json` and `idor-structure-2026-07-17.json`:
+      lines of third-party source quoted as evidence; the line numbers stay;
+    - the seven `fix-pairs-2026-09-11/pairs/twenty--*.json` files, `shape-sample-twenty-result.json`,
+      `shape-sample-twenty.verdicts.json`, `webhook-keyword-97-2026-09-12.json` and
+      `secrets-false-alarms-2026-09-12.json`: diff hunks and quoted lines from twenty and other
+      corpora, and the readers' prose;
+    - `secrets-shape-coverage-2026-09-12.json`: third-party lines with the secret value masked.
+  - **Reviewed and kept:** the recordings' `request.system`, which is Fixor's own shipped prompt;
+    the measurement prose written by these sessions; the regex constants; and the masked secret
+    shapes inside our own prose.
+  - **Not reduced, and why: markdown.** `STEP4-PRODUCTION-VALIDATION.md` and
+    `IDOR-STRUCTURE-EXPOSURE.md` quote short lines of third-party source in fenced blocks as
+    evidence, and `ICP-REACH.md` lists third-party paths. They are dated prose, and this
+    tracker's standing rule is that dated prose is annotated, never rewritten. Reducing them
+    would break that rule, so it is left to the owner.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
