@@ -1,0 +1,186 @@
+# R5 (lane), one reader, per advisory in an R4-admitted repository, from the full description and CWE.
+ghsa	repo	cwes	r5	reason
+GHSA-7cw6-9v6g-p6m5	apitable/apitable	CWE-306	auth-bypass	internal endpoints served without authentication
+GHSA-84jw-g3q8-wfgq	apitable/apitable	CWE-306	auth-bypass	internal endpoints served without authentication
+GHSA-mmm8-g668-9442	apitable/apitable	CWE-306	auth-bypass	internal endpoints served without authentication
+GHSA-fh4q-3fgx-3j67	archerysec/archerysec	CWE-639	idor	object of another user, organization or team reachable without an ownership check
+GHSA-2rx6-45h4-gf4q	blinkospace/blinko	CWE-639	idor	object of another user, organization or team reachable without an ownership check
+GHSA-vjwr-9399-cmx7	blinkospace/blinko	CWE-639	idor	object of another user, organization or team reachable without an ownership check
+GHSA-8cvg-rxfw-4pf6	bluewave-labs/Checkmate	CWE-862	admin-check	role guard missing on administrative routes
+GHSA-48q5-8whv-r6xj	calcom/cal.diy	CWE-862	idor	object of another user, organization or team reachable without an ownership check
+GHSA-72qw-2qpq-fg7j	calcom/cal.diy	CWE-639	idor	object of another user, organization or team reachable without an ownership check
+GHSA-38jp-2fr7-m68g	Cap-go/capgo.app	CWE-863	out	credential-policy enforcement (key expiration), not a missing authentication, role or ownership check
+GHSA-39p6-jffm-wc33	Cap-go/capgo.app	CWE-269	out	CLI onboarding grants an over-permissioned service account; not server-side handler code
+GHSA-3rq3-733w-v2c4	Cap-go/capgo.app	CWE-288	auth-bypass	operation reachable without the authentication (or MFA level) it requires
+GHSA-455x-98vm-63r8	Cap-go/capgo.app	CWE-863	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-46rc-2xqj-534f	Cap-go/capgo.app	CWE-285	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-49mf-2v7h-44ph	Cap-go/capgo.app	CWE-862	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-4pg3-prvr-6562	Cap-go/capgo.app	CWE-284	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-4w58-4949-9w2m	Cap-go/capgo.app	CWE-863	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-553q-8vcm-9vxv	Cap-go/capgo.app	CWE-639	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-56rm-j3fv-2h9m	Cap-go/capgo.app	CWE-863	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-5rmr-6c73-3q3m	Cap-go/capgo.app	CWE-863	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-644f-gvrf-jgw7	Cap-go/capgo.app	CWE-285	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-648m-f972-jcc9	Cap-go/capgo.app	CWE-284	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-7799-99mf-pchj	Cap-go/capgo.app	CWE-306	out	missing re-authentication on account deletion (CSRF and session-hijack hardening), not a missing guard
+GHSA-7957-wr5g-x2vr	Cap-go/capgo.app	CWE-284	out	content-lock integrity policy, not one of the three classes
+GHSA-8jvj-57hc-9w8w	Cap-go/capgo.app	CWE-862	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-92q7-3qv3-754g	Cap-go/capgo.app	CWE-863	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-9758-4f33-587j	Cap-go/capgo.app	CWE-269	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-9ph8-2cv6-679j	Cap-go/capgo.app	CWE-285	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-9x5j-36jf-wwg2	Cap-go/capgo.app	CWE-269	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-9x83-rrg6-9pr9	Cap-go/capgo.app	CWE-863	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-f484-qgwx-c6gr	Cap-go/capgo.app	CWE-287	auth-bypass	operation reachable without the authentication (or MFA level) it requires
+GHSA-f8rq-8r29-248p	Cap-go/capgo.app	CWE-862	auth-bypass	operation reachable without the authentication (or MFA level) it requires
+GHSA-fmx4-fw5w-86gg	Cap-go/capgo.app	CWE-639	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-g597-pqh2-2fw7	Cap-go/capgo.app	CWE-284	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-g63j-c9m2-fjm9	Cap-go/capgo.app	CWE-863	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-g675-f5v2-69hx	Cap-go/capgo.app	CWE-639	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-gfvg-4qqv-cq4m	Cap-go/capgo.app	CWE-639	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-jx6g-vmp7-mvxq	Cap-go/capgo.app	CWE-863	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-p4m4-7g3w-gpqw	Cap-go/capgo.app	CWE-269	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-pj32-crq8-r292	Cap-go/capgo.app	CWE-287	out	captcha ordering (anti-automation), not one of the three classes
+GHSA-ppxp-w5f2-39vv	Cap-go/capgo.app	CWE-285	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-r9p9-p57v-w538	Cap-go/capgo.app	CWE-285	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-v4jw-rcpm-rf82	Cap-go/capgo.app	CWE-639	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-v7q8-55qw-h6hr	Cap-go/capgo.app	CWE-285	admin-check	privileged operation or role assignment reachable without the required role, rank or scope
+GHSA-w4hm-mr28-xj78	Cap-go/capgo.app	CWE-639	idor	object, key or record of another tenant or app reachable without an ownership check
+GHSA-wx33-g984-7g82	Cap-go/capgo.app	CWE-284	out	missing policy prevents a write from persisting (availability), not an access bypass
+GHSA-x26j-344h-cfr3	Cap-go/capgo.app	CWE-285	out	billing-gate logic, not one of the three classes
+GHSA-8wp4-ghqw-4g3h	chaskiq/chaskiq	CWE-306	auth-bypass	GraphQL mutations served without authentication
+GHSA-hqqc-4mgp-grm6	chaskiq/chaskiq	CWE-306	auth-bypass	GraphQL mutations served without authentication
+GHSA-3m7r-f729-ggmf	Countly/countly-server	CWE-863	out	query-sanitizer bypass in an aggregation parser (input validation), not a missing guard
+GHSA-77xw-26q5-6wjg	coze-dev/coze-studio	CWE-863	idor	another workspace's tables or another user's dashboards reachable without an ownership check
+GHSA-wx4g-wvfp-r25g	dataease/SQLBot	CWE-639	idor	another workspace's tables or another user's dashboards reachable without an ownership check
+GHSA-4gcg-395p-mg6g	documize/community	CWE-863	auth-bypass	download route grants access on any non-empty token
+GHSA-588f-fvcv-xhvf	enchant97/note-mark	CWE-200,CWE-285	idor	soft-deleted notes of other owners returned by an unauthenticated listing
+GHSA-h855-x6jx-cfw2	Finsys/dockhand	CWE-306	auth-bypass	webhook endpoint accepts unsigned requests when no secret is set
+GHSA-xqrc-3jm3-hm6q	fonoster/fonoster	CWE-863	idor	workspace update continues after the membership check fails
+GHSA-cwr5-3cmp-8877	fosrl/pangolin	CWE-639	auth-bypass	access token or share link accepted for a resource it was not issued for
+GHSA-gqgf-x763-r89w	fosrl/pangolin	CWE-639	auth-bypass	access token or share link accepted for a resource it was not issued for
+GHSA-hf65-v49c-m7f4	gamonoid/icehrm	CWE-639	idor	colleagues' HR records reachable by substituting employee ids
+GHSA-fqj2-r74g-4gfp	ghostfolio/ghostfolio	CWE-862	auth-bypass	private access id grants unauthenticated access to portfolio data
+GHSA-w8j2-252j-wp53	ghostfolio/ghostfolio	CWE-862	admin-check	read-only grantee can modify holdings: the permission field is not checked
+GHSA-6cjx-9x4p-x26w	Grashjs/cmms	CWE-284	idor	object of another tenant, organization or page reachable without an ownership or page-permission check
+GHSA-c3h5-hg99-q693	growilabs/growi	CWE-862	auth-bypass	page-viewer check skipped when the request carries no user
+GHSA-gjwx-pwx3-4hxq	growilabs/growi	CWE-639	idor	object of another tenant, organization or page reachable without an ownership or page-permission check
+GHSA-vphg-3vmw-2vv6	growilabs/growi	CWE-862	idor	object of another tenant, organization or page reachable without an ownership or page-permission check
+GHSA-2f4g-hjp3-9wf4	Helicone/helicone	CWE-639	idor	object of another tenant, organization or page reachable without an ownership or page-permission check
+GHSA-f3mm-hmc7-j4qg	HumanSignal/label-studio	CWE-639	idor	object of another tenant, organization or page reachable without an ownership or page-permission check
+GHSA-jhvx-775r-cm5m	HumanSignal/label-studio	CWE-639	idor	object of another tenant, organization or page reachable without an ownership or page-permission check
+GHSA-gcxp-837c-3488	hyperdxio/hyperdx	CWE-862	admin-check	team administration reachable by any member
+GHSA-93xg-c6hj-rp82	idurar/idurar-erp-crm	CWE-284	auth-bypass	download router mounted without authentication middleware
+GHSA-xj6j-6jhq-42gg	idurar/idurar-erp-crm	CWE-639	idor	password change applied to the account named in the request, not the caller's
+GHSA-7r4r-rw6m-57g4	immich-app/immich	CWE-863	idor	locked assets stay reachable through shares
+GHSA-mxpm-jvrh-gcj5	immich-app/immich	CWE-863	admin-check	album editors can change member roles reserved to the owner
+GHSA-r6m9-hrqm-hx9h	invoke-ai/InvokeAI	CWE-306	auth-bypass	model scan endpoint served without authentication
+GHSA-frgf-wpx9-58c9	kanbn/kan	CWE-862	admin-check	board creation reachable without board:create permission
+GHSA-g3wj-5278-jq3m	karakeep-app/karakeep	CWE-287	auth-bypass	improper authentication in OAuth sign-in
+GHSA-xqhp-pxqr-f7m6	Katello/katello	CWE-639	idor	another organization's content-view history reachable
+GHSA-gvhc-wv3v-7pf8	kite-org/kite	CWE-862	admin-check	overview route registered before the RBAC middleware
+GHSA-59cg-fj2q-33c4	kortix-ai/suna	CWE-862	idor	other users' queue resources reachable without ownership checks
+GHSA-m69f-42c6-7334	kubero-dev/kubero	CWE-306	auth-bypass	notifications API served without authentication guards
+GHSA-j7mw-g2xq-7xfh	liketrek/TREK	CWE-285	auth-bypass	improper authentication or share-token validation
+GHSA-q5wr-f3rq-qfcg	liketrek/TREK	CWE-287	auth-bypass	improper authentication or share-token validation
+GHSA-x6rr-9jxr-vqvg	liketrek/TREK	CWE-287	auth-bypass	improper authentication or share-token validation
+GHSA-c7fj-2fxp-jqpf	LimeSurvey/LimeSurvey	CWE-639	idor	another user's survey questions patched under the attacker's survey context
+GHSA-qjpx-79gc-wjgv	LimeSurvey/LimeSurvey	CWE-862	admin-check	menu-entry creation reachable with read-only settings permission
+GHSA-26cp-25m8-5fgc	logto-io/logto	CWE-287	auth-bypass	SSO account linking by an unverified email signs the attacker into the victim's account
+GHSA-258v-w87q-m5c9	mckaywrigley/chatbot-ui	CWE-639	idor	other users' or organizations' objects reachable without an ownership check
+GHSA-363p-gjpv-2pxq	mediacms-io/mediacms	CWE-863	idor	other users' or organizations' objects reachable without an ownership check
+GHSA-2rhx-q7hx-f25r	microrealestate/microrealestate	CWE-639	idor	other users' or organizations' objects reachable without an ownership check
+GHSA-j5cw-4r7c-4vw8	microrealestate/microrealestate	CWE-288	out	OTP brute force enabled by missing token-state management (rate limiting and lifecycle), not a missing guard
+GHSA-jj92-236g-5h8p	microrealestate/microrealestate	CWE-639	idor	other users' or organizations' objects reachable without an ownership check
+GHSA-qjq2-685q-j8gv	microrealestate/microrealestate	CWE-639	idor	other users' or organizations' objects reachable without an ownership check
+GHSA-432v-m2wc-4w5v	midday-ai/midday	CWE-862	admin-check	team deletion reachable by any member regardless of role
+GHSA-x824-rgwx-3cx4	mighty840/kitchenasty	CWE-639	idor	reservations readable without an ownership or role check
+GHSA-7898-m6ph-pvx5	mindskip/xzs	CWE-639	admin-check	teacher interfaces allow vertical privilege escalation
+GHSA-rw8f-gvg3-h72w	mindskip/xzs	CWE-639	admin-check	teacher interfaces allow vertical privilege escalation
+GHSA-9p5q-96wv-4xvh	MISP/cti-transmute	CWE-862	idor	comments or history records reachable without the visibility check
+GHSA-rv36-q8cj-wgr9	MISP/cti-transmute	CWE-862	idor	comments or history records reachable without the visibility check
+GHSA-vrrh-vgmq-m54x	MISP/cti-transmute	CWE-862	idor	comments or history records reachable without the visibility check
+GHSA-wr27-gh7c-5q9v	mlogclub/bbs-go	CWE-863	admin-check	view permission rule matches an update endpoint first
+GHSA-9cph-w8mv-q56r	NangoHQ/nango	CWE-306	auth-bypass	runner tRPC server served without authentication
+GHSA-w2mq-ccqc-phrv	next-terminal/next-terminal	CWE-862	idor	assets the caller is not granted reachable through ping and wake endpoints
+GHSA-75h8-hx74-6qmf	NginxProxyManager/nginx-proxy-manager	CWE-287	auth-bypass	certificate validation route reachable without authentication
+GHSA-886j-w36h-wmx2	NginxProxyManager/nginx-proxy-manager	CWE-863	admin-check	administrator-only field writable by non-admin users
+GHSA-8m27-grg5-27vj	NodeBB/NodeBB	CWE-290	out	federation identity binding (ActivityPub attribution), not a route guard, role check or ownership check in an HTTP handler
+GHSA-j6x3-f5cf-2pg4	onlook-dev/onlook	CWE-639	idor	other users' projects or skills reachable without an authorization check
+GHSA-5cqx-93pc-jr85	openclaw/clawhub	CWE-862	idor	other users' projects or skills reachable without an authorization check
+GHSA-7q3h-63x4-wqwg	openclaw/clawhub	CWE-863	admin-check	transfer and lifecycle checks trust the historical publisher instead of current organization roles
+GHSA-2m8f-94rg-j65x	Openpanel-dev/openpanel	CWE-287	auth-bypass	client secret not verified before authorizing tracking events
+GHSA-2p5w-5398-x2r9	Openpanel-dev/openpanel	CWE-639	idor	reports and dashboards of other projects reachable: the id is not bound to the authorized project
+GHSA-g8mq-qr24-3qv3	Openpanel-dev/openpanel	CWE-639	idor	reports and dashboards of other projects reachable: the id is not bound to the authorized project
+GHSA-hpwh-25jq-4wxm	Openpanel-dev/openpanel	CWE-269	admin-check	read-only members can call mutating procedures
+GHSA-mrm7-hxjw-vff5	Openpanel-dev/openpanel	CWE-639	idor	reports and dashboards of other projects reachable: the id is not bound to the authorized project
+GHSA-w9vr-cg67-9jp7	Openpanel-dev/openpanel	CWE-639	idor	reports and dashboards of other projects reachable: the id is not bound to the authorized project
+GHSA-4vpg-x7mh-3947	OpenSignLabs/OpenSign	CWE-639	idor	any contact or document readable or writable without an authorization check
+GHSA-89m8-qpv9-7q8g	OpenSignLabs/OpenSign	CWE-639	idor	any contact or document readable or writable without an authorization check
+GHSA-9g58-36q9-g7mq	OpenSignLabs/OpenSign	CWE-288	auth-bypass	cloud functions reachable without authentication or with the check skipped
+GHSA-fm8m-9x77-qjvw	OpenSignLabs/OpenSign	CWE-862	idor	any contact or document readable or writable without an authorization check
+GHSA-jppp-j33j-6m5q	OpenSignLabs/OpenSign	CWE-306	auth-bypass	cloud functions reachable without authentication or with the check skipped
+GHSA-mgm4-2355-58g4	OpenSignLabs/OpenSign	CWE-639	idor	any contact or document readable or writable without an authorization check
+GHSA-x43r-25j9-cfc4	OpenSignLabs/OpenSign	CWE-862	auth-bypass	cloud functions reachable without authentication or with the check skipped
+GHSA-68fr-jcrp-77h3	Peppermint-Lab/peppermint	CWE-284	admin-check	administrative configuration or role-gated handlers reachable without the role check
+GHSA-jv42-7r5q-7p5r	Peppermint-Lab/peppermint	CWE-284	admin-check	administrative configuration or role-gated handlers reachable without the role check
+GHSA-r5f6-fc86-75rh	Peppermint-Lab/peppermint	CWE-639	idor	any user's sessions deletable by id
+GHSA-588v-59vc-3xh9	portainer/portainer	CWE-287	admin-check	authorization middleware bypassed by non-canonical paths
+GHSA-x626-fcwx-f5pc	portainer/portainer	CWE-287	auth-bypass	unauthenticated restore endpoint allows admin takeover
+GHSA-5r22-jfv5-3cpg	reconmap/reconmap	CWE-862	auth-bypass	report preview action reachable anonymously
+GHSA-xx6h-4cr4-fw2m	retspen/webvirtcloud	CWE-862	admin-check	view-only grants allow privileged instance actions
+GHSA-f3wj-pr2w-q3fm	RocketChat/Rocket.Chat	CWE-287	auth-bypass	SAML signature not bound to the assertion (signature wrapping)
+GHSA-jrw6-7x4q-w25j	senaite/senaite.core	CWE-95,CWE-862	out	eval injection leading to remote code execution; the access-control part is incidental
+GHSA-877p-7prq-ffj6	songquanpeng/one-api	CWE-862	admin-check	channel pinning gated for admins on one path only
+GHSA-67rh-63pc-xvpr	spacebarchat/server	CWE-862	idor	guild, channel or viewing records reachable without membership or ownership checks
+GHSA-cvxj-chgr-r353	spacebarchat/server	CWE-862	idor	guild, channel or viewing records reachable without membership or ownership checks
+GHSA-pr4j-5x2h-5vr8	streamaserver/streama	CWE-639	idor	guild, channel or viewing records reachable without membership or ownership checks
+GHSA-2h2x-v86q-mgw5	TarsCloud/TarsWeb	CWE-290	auth-bypass	trusted-local-caller decision taken from a client-controlled header
+GHSA-h9c2-vjpc-cf5r	TarsCloud/TarsWeb	CWE-862	admin-check	controller methods skip the per-application role check
+GHSA-m4gp-5xh5-xhq4	toeverything/AFFiNE	CWE-862	idor	another workspace's documents or tables reachable without a membership check
+GHSA-65xf-8w4c-54h2	ToolJet/ToolJet	CWE-639	idor	another workspace's documents or tables reachable without a membership check
+GHSA-6cq6-3jwx-45wq	ToolJet/ToolJet	CWE-862	idor	another workspace's documents or tables reachable without a membership check
+GHSA-7xg3-7665-2f35	ToolJet/ToolJet	CWE-639	idor	another workspace's documents or tables reachable without a membership check
+GHSA-982q-23f5-hrw9	ToolJet/ToolJet	CWE-639	idor	another workspace's documents or tables reachable without a membership check
+GHSA-9fvx-4ww2-hqm9	ToolJet/ToolJet	CWE-639	idor	another workspace's documents or tables reachable without a membership check
+GHSA-rwvg-4j57-mgx3	ToolJet/ToolJet	CWE-639	idor	another workspace's documents or tables reachable without a membership check
+GHSA-vhf9-px93-5p48	ToolJet/ToolJet	CWE-863	idor	another workspace's documents or tables reachable without a membership check
+GHSA-rw94-73mp-v8hw	typemill/typemill	CWE-863	auth-bypass	restricted files served to unauthenticated callers through path-equivalent URLs
+GHSA-4r84-m75g-p4ww	usmannasir/cyberpanel	CWE-862	idor	other tenants' backups reachable without an ownership check
+GHSA-947p-2q4v-5rgj	usmannasir/cyberpanel	CWE-639	idor	other tenants' backups reachable without an ownership check
+GHSA-mmcx-mj26-p5c9	usmannasir/cyberpanel	CWE-287	auth-bypass	API endpoints skip two-factor authentication
+GHSA-phx4-fx7q-vfw9	utmstack/UTMStack	CWE-306	auth-bypass	internal-key filter grants administrative API access
+GHSA-q995-ggc5-8fmx	utmstack/UTMStack	CWE-862	admin-check	command handler has no role check
+GHSA-3hvp-rq7g-qf5w	Worklenz/worklenz	CWE-639	idor	another tenant's tasks reachable by UUID
+GHSA-rhh7-mmrm-695f	wuzhicms/wuzhicms	CWE-284	out	unrestricted file upload, not one of the three classes
+GHSA-2vmx-78wc-x2hc	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-5m6r-x4rr-p7f2	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-5vfg-9qx8-h8wf	WWBN/AVideo	CWE-290	out	login rate-limit and anti-automation controls keyed on spoofable headers, not one of the three classes
+GHSA-6vjh-7wpq-7jv4	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-6xww-74cj-j8xm	WWBN/AVideo	CWE-306	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-7833-g5c9-2gx7	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-7cf9-xwv8-6722	WWBN/AVideo	CWE-862	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-7r9w-g597-h25f	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-8pvp-rm39-945p	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-9xwf-rjxq-33w5	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-c44x-r4cw-m5fr	WWBN/AVideo	CWE-269	out	non-expiring bearer credential (credential lifecycle), not a missing guard
+GHSA-c785-w9vv-8rm9	WWBN/AVideo	CWE-287	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-f2c7-68f9-chv5	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-f786-7wmv-h56x	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-gwf3-rchx-m7g8	WWBN/AVideo	CWE-306	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-hgf3-hf6h-jm9r	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-hrf3-w8h6-mf5c	WWBN/AVideo	CWE-306	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-hxf8-887x-mx5m	WWBN/AVideo	CWE-287	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-jhqv-wm6m-mvj2	WWBN/AVideo	CWE-306	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-m7p6-5q89-gw3f	WWBN/AVideo	CWE-284	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-mm87-mmw2-x2jf	WWBN/AVideo	CWE-290	out	login rate-limit and anti-automation controls keyed on spoofable headers, not one of the three classes
+GHSA-pr7w-97g9-f8rw	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-q24m-x4jf-vhrw	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-q6c7-vm4c-28mj	WWBN/AVideo	CWE-306	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-qc83-jff7-gp85	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-rxxw-pq7r-5ghm	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-v86r-h3f2-v3j8	WWBN/AVideo	CWE-862	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-vhpv-cv9q-cpgj	WWBN/AVideo	CWE-287	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-vpcx-h53g-hfx5	WWBN/AVideo	CWE-639	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-wx4f-hq3h-2p8m	WWBN/AVideo	CWE-306	idor	video, playlist, link or token of another user reachable without an ownership or access check
+GHSA-x6f7-2rr5-x37c	WWBN/AVideo	CWE-287	auth-bypass	endpoint or second factor reachable without the authentication it requires
+GHSA-x8jv-qqwm-22fj	WWBN/AVideo	CWE-287	auth-bypass	endpoint or second factor reachable without the authentication it requires
