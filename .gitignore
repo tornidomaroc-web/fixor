@@ -67,8 +67,13 @@ scan-report-*.md
 # The generator scripts are tracked; their binary output is not.
 outputs/
 
-# Claude Code local state
-.claude/
+# Claude Code local state. Everything under .claude/ stays local EXCEPT settings.json,
+# the committed deny list that cloud sessions read from a fresh clone (they see no
+# settings.local.json, no user settings and no root CLAUDE.md). settings.local.json,
+# worktrees/ and the internal notes stay ignored. Decision and rule split: tracker,
+# "CLOUD SESSION GUARDS, 2026-10-02".
+.claude/*
+!.claude/settings.json
 
 # Audit patch artifacts
 *.patch
