@@ -41,7 +41,7 @@
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 import {
   DEFAULT_WIRE,
@@ -283,7 +283,7 @@ async function main(): Promise<number> {
     if (capture.timedOut) bad.push(`the process was killed after ${WIRE_TIMEOUT_MS} ms`);
     const facts = wireFacts(capture);
     const effort = arm.effort ?? DEFAULT_WIRE.effort;
-    bad.push(...checkWire(facts, { model: arm.judgeModel ?? r.model, maxTokens: arm.maxOutputTokens ?? DEFAULT_WIRE.maxTokens, effort, system: r.system, user: r.user, schema: r.schema, forbidden: [repoRoot, resolve(requestsDir)] }));
+    bad.push(...checkWire(facts, { model: arm.judgeModel ?? r.model, maxTokens: arm.maxOutputTokens ?? DEFAULT_WIRE.maxTokens, effort, system: r.system, user: r.user, schema: r.schema, forbidden: [repoRoot, resolve(requestsDir), ...(binary ? [dirname(binary.path)] : [])] }));
     const fp = wireFingerprint(facts);
     let baseline = "not compared";
     if (bad.length === 0) {

@@ -16,8 +16,8 @@
  * reached. The recorded POST /v1/messages must carry the pinned model, the
  * pinned `max_tokens`, adaptive thinking, the pinned effort, an OAuth
  * bearer and no `x-api-key`, no temperature, the request's own system
- * prompt, user message and schema, and nothing naming the repository or the
- * requests directory. Its shape (`wireFingerprint`) must equal the first
+ * prompt, user message and schema, and nothing naming the repository, the
+ * requests directory or the folder the CLI was started from. Its shape (`wireFingerprint`) must equal the first
  * passing check's in the same output directory.
  *
  * WHAT IT CANNOT SEE, stated so nobody reads more into a pass:
