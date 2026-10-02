@@ -246,13 +246,22 @@ export function judgeArgv(req: { model: string; system: string; schema: unknown 
  * `effort` pins `--effort` (the CLI's default effort can differ by model);
  * `maxOutputTokens` sets CLAUDE_CODE_MAX_OUTPUT_TOKENS (the CLI's default
  * cap differs by model: 32,000 was seen on claude-sonnet-4-6, 128,000 on
- * claude-opus-5-5) and every result must REPORT that cap, or the run stops.
+ * claude-opus-5-5). The cap is verified ON THE WIRE before the first call
+ * of every pass and of every resume (lib/proxy-judge-wire.ts). The result's
+ * `modelUsage[m].maxOutputTokens` is the model's built-in default whatever
+ * the override says, so it is recorded and NEVER compared: comparing it
+ * stopped the Opus arm on its first call (amendment A2, 2026-10-02).
  */
 export interface JudgeArm {
   judgeModel?: string;
   effort?: string;
   maxOutputTokens?: number;
 }
+/**
+ * What the wire check expects where an arm pins nothing: the cap and effort
+ * both arms' recorded requests carried (design, 2026-09-28; A1, 2026-09-30).
+ */
+export const DEFAULT_WIRE = { maxTokens: 32_000, effort: "high" } as const;
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"];
 export const JUDGE_MODEL_SHAPE = /^claude-[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -267,10 +276,12 @@ export interface ParsedResult {
   /** Every model the result reports usage for. */
   models: string[];
   usage: { input: number; output: number; cacheWrite: number; cacheRead: number };
-  /** Output cap the result reports per answering model (`modelUsage[m].maxOutputTokens`), null where absent. */
+  /** `modelUsage[m].maxOutputTokens` per answering model, null where absent. Information only: it is the model's default, not the cap in force. */
   maxOutputTokens: Record<string, number | null>;
   /** `usage.output_tokens_details.thinking_tokens`, null where absent. */
   thinkingTokens: number | null;
+  /** `num_turns`, null where absent. More than one means requests the wire check never saw. */
+  numTurns: number | null;
   structuredOutput: unknown;
   reportedCostUsd: number | null;
   sessionId: string | null;
@@ -309,6 +320,7 @@ export function parseResult(stdout: string): ResultParse {
     usage: { input: u["input_tokens"] ?? 0, output: u["output_tokens"] ?? 0, cacheWrite: u["cache_creation_input_tokens"] ?? 0, cacheRead: u["cache_read_input_tokens"] ?? 0 },
     maxOutputTokens: maxOut,
     thinkingTokens: typeof td?.["thinking_tokens"] === "number" ? (td["thinking_tokens"] as number) : null,
+    numTurns: typeof r["num_turns"] === "number" ? (r["num_turns"] as number) : null,
     structuredOutput: r["structured_output"],
     reportedCostUsd: typeof r["total_cost_usd"] === "number" ? (r["total_cost_usd"] as number) : null,
     sessionId: typeof r["session_id"] === "string" ? (r["session_id"] as string) : null,
@@ -353,8 +365,10 @@ export interface JudgeRecord {
   shippedModel?: string;
   effort?: string;
   maxOutputTokensPinned?: number;
+  /** Information only, never compared (amendment A2). */
   maxOutputTokensReported?: number | null;
   thinkingTokens?: number | null;
+  numTurns?: number | null;
   modelsReported: string[];
   toolName: string;
   usage: ParsedResult["usage"];

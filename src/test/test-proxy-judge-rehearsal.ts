@@ -1,8 +1,10 @@
 /**
  * Proxy-judge rehearsal (free, keyless, in test:ci). Drives
  * dist/test/proxy-judge.js with a STUB claude executable (no model, no
- * network, no timing bounds) over the 70 request files a mock run of the
- * forced-routing runner writes for a synthetic corpus, and proves:
+ * outbound network, no timing bounds: the wire check's recorder listens on
+ * 127.0.0.1 and the stub is its only client) over the 70 request files a
+ * mock run of the forced-routing runner writes for a synthetic corpus, and
+ * proves:
  *
  *   A. Refusals: an ANTHROPIC_API_KEY, an ANTHROPIC_AUTH_TOKEN, a Bedrock
  *      switch, or a key-shaped value under any name refuses the run with
@@ -35,8 +37,30 @@
  *      carries the judge model and the effort, every process receives the
  *      pinned cap, every record and the label name the judge model beside
  *      the shipped one; the arm's directory cannot be resumed without its
- *      flags; an answer from another model, or a result reporting another
- *      output cap, stops the run on the first call.
+ *      flags; an answer from another model stops the run on the first call.
+ *      The result's maxOutputTokens field is recorded and NEVER compared:
+ *      the stub reports the model's default (128000 for the Opus id) under
+ *      a pinned 32000, as the real CLI does, and the run completes. Output
+ *      above the pinned cap stops the run with no file written.
+ *   G. The wire check (amendment A2). As a function, on a hand-built
+ *      capture: a correct one passes; a wrong cap, model, thinking, effort,
+ *      login, an x-api-key header, a temperature, a second tool, a changed
+ *      schema, system prompt or user message, a missing or doubled request
+ *      and a repository path in the body each fail with their own reason.
+ *      Through the judge: one check before each pass and one on every
+ *      resume; the checked process is the judge call plus ANTHROPIC_BASE_URL
+ *      on 127.0.0.1 and nothing else; a wrong cap, a wrong model, an
+ *      x-api-key header, a non-OAuth bearer or no request refuses the start
+ *      with exit 3 and no judge process; a resume under a wrong cap or a
+ *      changed request shape is refused with the verdicts on disk
+ *      untouched; a wrong cap appearing before pass 2 stops the run with
+ *      exactly pass 1 on disk.
+ *   H. The binary pin (amendment A2). Without --stub, the judge refuses a
+ *      missing --claude, a missing or wrong --claude-sha256, and a path
+ *      under the updater's versions folder; with the right hash
+ *      --wire-check-only passes and judges nothing; the directory then
+ *      refuses another binary, and a directory of unpinned verdicts
+ *      refuses a pinned run.
  */
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -45,6 +69,7 @@ import { dirname, join, resolve } from "node:path";
 
 import { readTargets } from "./lib/forced-routing";
 import { FORBIDDEN_FLAGS, WORK_ROOT_FORBIDDEN, extractRequest, judgeArgv, type JudgeRequest } from "./lib/proxy-judge";
+import { checkWire, sha256File, wireFacts, type WireCapture, type WireExpect } from "./lib/proxy-judge-wire";
 
 const out = process.stdout;
 let failures = 0;
@@ -85,11 +110,15 @@ function run(cmd: string, args: string[], env: Record<string, string> = {}): { s
 interface Stub {
   dir: string;
   script: string;
-  config: (c: { reportModel?: string; failAfter?: number; flagWhen?: string; reportMaxOutput?: number }) => void;
+  config: (c: { reportModel?: string; failAfter?: number; flagWhen?: string; reportMaxOutput?: number; reportOutputTokens?: number; wire?: Record<string, unknown> }) => void;
   count: () => number;
-  captures: () => Array<{ argv: string[]; stdin: string; cwd: string; cwdEntries: string[]; env: Record<string, string> }>;
+  captures: () => StubCapture[];
+  /** Wire checks the stub served, counted and captured apart from judge calls. */
+  wireCount: () => number;
+  wireCaptures: () => StubCapture[];
   reset: () => void;
 }
+type StubCapture = { argv: string[]; stdin: string; cwd: string; cwdEntries: string[]; env: Record<string, string> };
 function makeStub(): Stub {
   const dir = mkdtempSync(join(tmpdir(), "pj-stub-"));
   const script = join(dir, "claude-stub.js");
@@ -100,10 +129,17 @@ function makeStub(): Stub {
     config: (c) => writeFileSync(join(dir, "stub-config.json"), JSON.stringify(c)),
     count: () => (existsSync(join(dir, "count.txt")) ? Number(readFileSync(join(dir, "count.txt"), "utf8")) : 0),
     captures: () => (existsSync(join(dir, "capture.jsonl")) ? readFileSync(join(dir, "capture.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l)) : []),
+    wireCount: () => (existsSync(join(dir, "wire-count.txt")) ? Number(readFileSync(join(dir, "wire-count.txt"), "utf8")) : 0),
+    wireCaptures: () => (existsSync(join(dir, "wire-capture.jsonl")) ? readFileSync(join(dir, "wire-capture.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l)) : []),
     reset: () => {
-      for (const f of ["count.txt", "capture.jsonl"]) rmSync(join(dir, f), { force: true });
+      for (const f of ["count.txt", "capture.jsonl", "wire-count.txt", "wire-capture.jsonl"]) rmSync(join(dir, f), { force: true });
     },
   };
+}
+
+function wireLines(dir: string): Array<{ n: number; pass: number; ok: boolean; baseline: string; failures: string[] }> {
+  const p = join(dir, "wire-checks.jsonl");
+  return existsSync(p) ? readFileSync(p, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
 }
 
 function proxyFiles(dir: string): { verdicts: string[]; mismatches: string[] } {
@@ -145,8 +181,8 @@ function main(): void {
     if (r.name === "a work root inside the repository" || r.name === "a work root whose path names the product") args.splice(args.indexOf("--work-root"), 2);
     const res = run(JUDGE, args, r.env);
     const wrote = existsSync(dir);
-    if (res.status === 3 && r.expect.test(res.stdout + res.stderr) && !wrote && stub.count() === 0) pass(`${r.name}: exit 3, refused before anything was written or any process started`);
-    else fail(`${r.name}: status ${res.status}, out dir ${wrote ? "created" : "absent"}, stub calls ${stub.count()}: ${res.stdout}${res.stderr}`);
+    if (res.status === 3 && r.expect.test(res.stdout + res.stderr) && !wrote && stub.count() === 0 && stub.wireCount() === 0) pass(`${r.name}: exit 3, refused before anything was written or any process started`);
+    else fail(`${r.name}: status ${res.status}, out dir ${wrote ? "created" : "absent"}, stub calls ${stub.count()}, wire checks ${stub.wireCount()}: ${res.stdout}${res.stderr}`);
   }
   if (existsSync(join(REPO, "tmp-judge"))) fail("the refused work root was created inside the repository");
 
@@ -182,6 +218,10 @@ function main(): void {
   const planned2 = targets.length * 2;
   if (c2.status === 0 && fc2.verdicts.length === planned2 && stub.count() === planned2 + 1) pass(`resumed to ${fc2.verdicts.length} of ${planned2}; stub invoked ${stub.count()} times = planned + the one failed call`);
   else fail(`resume: status ${c2.status}, verdicts ${fc2.verdicts.length}, calls ${stub.count()}: ${c2.stdout}${c2.stderr}`);
+  // 70 + 30 calls in the first invocation: one wire check before pass 1 and one before pass 2; the resume adds one.
+  const wl = wireLines(dirC);
+  if (stub.wireCount() === 3 && wl.length === 3 && wl.every((l) => l.ok) && wl.map((l) => `${l.pass}:${l.n}`).join(" ") === "1:1 2:1 2:31" && wl.map((l) => l.baseline).join(" ") === "written equal equal") pass("one wire check before each pass and one on the resume, for the request about to be judged (n=1, n=1, n=31); the first wrote the baseline, the others equal it");
+  else fail(`wire checks around the cut-off: stub served ${stub.wireCount()}, log ${JSON.stringify(wl.map((l) => [l.pass, l.n, l.ok, l.baseline]))}`);
   const names2 = new Set(fc2.verdicts);
   if (names2.size === fc2.verdicts.length && [...names2].every((f) => /^\d{4}-p[12]\.json$/.test(f))) pass("every (request, pass) pair has exactly one verdict file");
   else fail("duplicate or out-of-range verdict files after resume");
@@ -215,6 +255,9 @@ function main(): void {
   const volLine = d.stdout.split("\n").find((l) => l.startsWith("volume per pass:"));
   if (volLine && rd.volumePerPass.totalChars > 0) pass(volLine);
   else fail("no volume line");
+  const wireD = stub.wireCaptures();
+  if (stub.wireCount() === 5 && wireLines(dirD).length === 5 && wireLines(dirD).every((l) => l.ok && l.n === 1)) pass("five passes, five wire checks, each before the pass's first call");
+  else fail(`wire checks in the dry run: ${stub.wireCount()} served, ${wireLines(dirD).length} logged`);
   const one = JSON.parse(readFileSync(join(dirD, "proxy", fd.verdicts[0]!), "utf8")) as { modelsReported: string[]; verdict: unknown; usage: { input: number }; target: { side: string } };
   if (one.modelsReported.length === 1 && one.verdict !== undefined && one.usage.input > 0) pass(`a verdict file carries the answering model, the usage and the parsed verdict`);
   else fail(`verdict file shape: ${JSON.stringify(one).slice(0, 200)}`);
@@ -319,11 +362,14 @@ function main(): void {
   if (capsF.every((cap) => cap.env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] === "32000")) pass("every process received CLAUDE_CODE_MAX_OUTPUT_TOKENS=32000");
   else fail("the pinned output cap did not reach every process");
   const rf = JSON.parse(readFileSync(join(dirF, "results.json"), "utf8")) as { label: string; arm?: Record<string, unknown>; modelsSeenThisInvocation: Record<string, number> };
-  const recF = JSON.parse(readFileSync(join(dirF, "proxy", ff.verdicts[0] ?? "x"), "utf8")) as { model: string; shippedModel?: string; maxOutputTokensReported?: number; effort?: string };
+  const recF = JSON.parse(readFileSync(join(dirF, "proxy", ff.verdicts[0] ?? "x"), "utf8")) as { model: string; shippedModel?: string; maxOutputTokensReported?: number; maxOutputTokensPinned?: number; effort?: string; numTurns?: number };
   if (rf.label.startsWith(`STUB/PROXY-PRELIMINARY [judge ${JM}, not the shipped ${requests[0]!.model}]`) && rf.arm?.["judgeModel"] === JM && rf.modelsSeenThisInvocation[JM] === targets.length) pass(`labelled ${rf.label}`);
   else fail(`second-arm label or arm record: ${JSON.stringify({ label: rf.label, arm: rf.arm, seen: rf.modelsSeenThisInvocation })}`);
-  if (recF.model === JM && recF.shippedModel === requests[0]!.model && recF.maxOutputTokensReported === 32000 && recF.effort === "high") pass("each verdict file records the judge model, the shipped model, the effort and the reported cap");
+  if (recF.model === JM && recF.shippedModel === requests[0]!.model && recF.maxOutputTokensPinned === 32000 && recF.effort === "high" && recF.numTurns === 1) pass("each verdict file records the judge model, the shipped model, the effort, the pinned cap and the turn count");
   else fail(`second-arm record: ${JSON.stringify(recF)}`);
+  // The condition that stopped the real run on 2026-10-02: the result reports the model's default cap, not the pinned one.
+  if (f1.status === 0 && recF.maxOutputTokensReported === 128000 && !/instrument mismatch/.test(f1.stdout)) pass("a result reporting maxOutputTokens 128000 under a pinned 32000 is recorded and not compared: the pass completes");
+  else fail(`reported-cap field: status ${f1.status}, reported ${String(recF.maxOutputTokensReported)}: ${f1.stdout.split("\n").find((l) => /PROXY/.test(l))}`);
   stub.reset();
   const f2 = run(JUDGE, judgeArgs(dirF, ["--passes", "1"]));
   if (f2.status === 3 && /records arm/.test(f2.stdout) && stub.count() === 0) pass("resuming the second arm's directory without its flags is refused");
@@ -335,12 +381,161 @@ function main(): void {
   if (f3.status === 2 && /model mismatch/.test(f3.stdout) && proxyFiles(dirF3).verdicts.length === 0 && stub.count() === 1) pass(`an answer from the shipped ${requests[0]!.model} stops the ${JM} arm on the first call`);
   else fail(`second-arm model mismatch: status ${f3.status}, calls ${stub.count()}: ${f3.stdout}`);
   stub.reset();
-  stub.config({ reportMaxOutput: 128000, flagWhen: MARKER });
+  stub.config({ reportOutputTokens: 32001, flagWhen: MARKER });
   const dirF4 = fresh("arm-cap");
   const f4 = run(JUDGE, judgeArgs(dirF4, armFlags));
   const ff4 = proxyFiles(dirF4);
-  if (f4.status === 2 && /instrument mismatch/.test(f4.stdout) && ff4.verdicts.length === 0 && ff4.mismatches.length === 0 && stub.count() === 1) pass("a result reporting another output cap stops the run on the first call and writes no file");
-  else fail(`output-cap mismatch: status ${f4.status}, verdicts ${ff4.verdicts.length}, calls ${stub.count()}: ${f4.stdout}`);
+  if (f4.status === 2 && /instrument mismatch: call n=1 pass 1 reported 32001 output tokens/.test(f4.stdout) && ff4.verdicts.length === 0 && ff4.mismatches.length === 0 && stub.count() === 1) pass("a result reporting more output than the pinned cap stops the run on the first call and writes no file");
+  else fail(`output above the cap: status ${f4.status}, verdicts ${ff4.verdicts.length}, calls ${stub.count()}: ${f4.stdout}`);
+  stub.reset();
+  stub.config({ reportOutputTokens: 32000, flagWhen: MARKER });
+  const f5 = run(JUDGE, judgeArgs(fresh("arm-cap-at"), [...armFlags, "--passes", "1", "--max-calls", "1"]));
+  if (f5.status === 2 && /--max-calls 1 reached/.test(f5.stdout) && !/instrument mismatch/.test(f5.stdout) && stub.count() === 1) pass("output exactly at the pinned cap is accepted");
+  else fail(`output at the cap: status ${f5.status}: ${f5.stdout}`);
+
+  out.write("\nG. the wire check: the request is read, not the result's cap field\n");
+  // G1. As a function, on a capture built by hand in the shape the real CLI was seen to send.
+  const r0 = requests[0]!;
+  const expect: WireExpect = { model: JM, maxTokens: 32000, effort: "high", system: r0.system, user: r0.user, schema: r0.schema, forbidden: [REPO, resolve(mockDir)] };
+  const goodBody = (): Record<string, unknown> => ({
+    model: JM,
+    max_tokens: 32000,
+    stream: true,
+    thinking: { type: "adaptive", display: "omitted" },
+    output_config: { effort: "high" },
+    system: [{ type: "text", text: "identity" }, { type: "text", text: r0.system }],
+    messages: [{ role: "user", content: [{ type: "text", text: "reminder" }, { type: "text", text: r0.user }] }, { role: "system", content: [{ type: "text", text: "environment" }] }],
+    tools: [{ name: "StructuredOutput", input_schema: JSON.parse(JSON.stringify(r0.schema)) as unknown }],
+  });
+  const post = (body: Record<string, unknown>, over: Partial<WireCapture["requests"][number]> = {}): WireCapture["requests"][number] => ({ method: "POST", path: "/v1/messages?beta=true", headerNames: ["authorization"], authClass: "bearer-oauth", apiKeyHeader: false, betaHeader: "a,b", versionHeader: "2023-06-01", body: JSON.stringify(body), ...over });
+  const hello: WireCapture["requests"][number] = { method: "HEAD", path: "/api/hello", headerNames: [], authClass: "absent", apiKeyHeader: false, betaHeader: null, versionHeader: null, body: "" };
+  const verdictOf = (reqs: WireCapture["requests"]): string[] => checkWire(wireFacts({ requests: reqs, exit: 1, timedOut: false, spawnError: null }), expect);
+  const okv = verdictOf([hello, post(goodBody())]);
+  if (okv.length === 0) pass("a correct capture passes: pinned model, max_tokens 32000, adaptive thinking, effort high, OAuth bearer, no x-api-key, the request's own content");
+  else fail(`a correct capture was refused: ${okv.join("; ")}`);
+  const wrong: Array<{ name: string; reqs: WireCapture["requests"]; expect: RegExp }> = [
+    { name: "a wrong cap (128000)", reqs: [post({ ...goodBody(), max_tokens: 128000 })], expect: /^max_tokens on the wire is 128000, pinned 32000$/ },
+    { name: "a wrong model", reqs: [post({ ...goodBody(), model: r0.model })], expect: /^model on the wire is / },
+    { name: "an x-api-key header", reqs: [post(goodBody(), { apiKeyHeader: true })], expect: /^an x-api-key header is sent/ },
+    { name: "an x-api-key header on another request of the process", reqs: [{ ...hello, apiKeyHeader: true }, post(goodBody())], expect: /^an x-api-key header is sent/ },
+    { name: "a bearer that is not an OAuth access token", reqs: [post(goodBody(), { authClass: "bearer-other" })], expect: /^authorization is bearer-other/ },
+    { name: "no authorization", reqs: [post(goodBody(), { authClass: "absent" })], expect: /^authorization is absent/ },
+    { name: "thinking that is not adaptive", reqs: [post({ ...goodBody(), thinking: { type: "enabled", budget_tokens: 31999 } })], expect: /^thinking on the wire is / },
+    { name: "no thinking", reqs: [post({ ...goodBody(), thinking: undefined })], expect: /^thinking on the wire is undefined/ },
+    { name: "another effort", reqs: [post({ ...goodBody(), output_config: { effort: "medium" } })], expect: /^output_config on the wire is / },
+    { name: "a temperature", reqs: [post({ ...goodBody(), temperature: 0 })], expect: /^a temperature is sent/ },
+    { name: "a second tool", reqs: [post({ ...goodBody(), tools: [...(goodBody()["tools"] as unknown[]), { name: "Bash", input_schema: {} }] })], expect: /^tools on the wire are \[StructuredOutput, Bash\]/ },
+    { name: "a changed schema", reqs: [post({ ...goodBody(), tools: [{ name: "StructuredOutput", input_schema: { type: "object" } }] })], expect: /^the tool's input schema on the wire is not the request's schema$/ },
+    { name: "a changed system prompt", reqs: [post({ ...goodBody(), system: [{ type: "text", text: r0.system + " " }] })], expect: /^no system block on the wire equals/ },
+    { name: "a changed user message", reqs: [post({ ...goodBody(), messages: [{ role: "user", content: [{ type: "text", text: r0.user.slice(1) }] }] })], expect: /^no user text block on the wire equals/ },
+    { name: "two messages requests", reqs: [post(goodBody()), post(goodBody())], expect: /^expected exactly one POST \/v1\/messages, saw 2/ },
+    { name: "no messages request", reqs: [hello], expect: /^expected exactly one POST \/v1\/messages, saw 0 \(other requests: HEAD \/api\/hello\)$/ },
+    { name: "the repository path in the body", reqs: [post({ ...goodBody(), metadata: { cwd: REPO.replace(/\\/g, "/") } })], expect: /^the body names / },
+  ];
+  for (const w of wrong) {
+    const v = verdictOf(w.reqs);
+    if (v.length === 1 && w.expect.test(v[0]!)) pass(`${w.name} fails, for that reason alone`);
+    else fail(`${w.name}: ${JSON.stringify(v)}`);
+  }
+
+  // G2. The checked process is the judge call plus ANTHROPIC_BASE_URL on loopback, nothing else (D's five checks).
+  const judgeEnvKeys = JSON.stringify(Object.keys(caps[0]?.env ?? {}).sort());
+  const sameProcess = wireD.length === 5 && wireD.every((cap) => {
+    const extra = Object.keys(cap.env).filter((k) => !(k in (caps[0]?.env ?? {})));
+    const rest = Object.keys(cap.env).filter((k) => k !== "ANTHROPIC_BASE_URL").sort();
+    return JSON.stringify(cap.argv) === JSON.stringify(judgeArgv(r0)) && cap.stdin === r0.user && extra.length === 1 && extra[0] === "ANTHROPIC_BASE_URL" && /^http:\/\/127\.0\.0\.1:\d+$/.test(cap.env["ANTHROPIC_BASE_URL"] ?? "") && JSON.stringify(rest) === judgeEnvKeys && resolve(cap.cwd).startsWith(workRoot) && cap.cwdEntries.length === 0;
+  });
+  if (sameProcess) pass("the checked process has the judge call's argv, stdin, environment and a fresh empty cwd, plus ANTHROPIC_BASE_URL on 127.0.0.1 and nothing else");
+  else fail("the wire-check process differs from the judge call by more than ANTHROPIC_BASE_URL");
+  if (caps.every((cap) => !("ANTHROPIC_BASE_URL" in cap.env))) pass("no judge call carries ANTHROPIC_BASE_URL");
+  else fail("a judge call was started with ANTHROPIC_BASE_URL");
+
+  // G3. Through the judge: a wrong request refuses the start, before any judge process.
+  const wireRefusals: Array<{ name: string; wire: Record<string, unknown>; extra: string[]; expect: RegExp }> = [
+    { name: "a wrong cap on the wire", wire: { maxTokens: 128000 }, extra: armFlags, expect: /wire check before pass 1 \(request n=1\): max_tokens on the wire is 128000, pinned 32000/ },
+    { name: "a wrong model on the wire", wire: { model: r0.model }, extra: armFlags, expect: /wire check before pass 1 \(request n=1\): model on the wire is / },
+    { name: "an x-api-key header on the wire", wire: { apiKeyHeader: true }, extra: armFlags, expect: /an x-api-key header is sent/ },
+    { name: "a bearer that is not an OAuth access token", wire: { auth: "Bearer not-the-subscription-login" }, extra: armFlags, expect: /authorization is bearer-other/ },
+    { name: "thinking that is not adaptive", wire: { thinkingType: "enabled" }, extra: armFlags, expect: /thinking on the wire is / },
+    { name: "another effort on the wire", wire: { effort: "medium" }, extra: armFlags, expect: /output_config on the wire is / },
+    { name: "a process that sends no request", wire: { noPost: true }, extra: armFlags, expect: /expected exactly one POST \/v1\/messages, saw 0/ },
+    { name: "the shipped-model arm under another cap than its recorded 32000", wire: { maxTokens: 128000 }, extra: [], expect: /max_tokens on the wire is 128000, pinned 32000/ },
+  ];
+  for (const w of wireRefusals) {
+    stub.reset();
+    stub.config({ flagWhen: MARKER, wire: w.wire });
+    const dir = fresh("wire-refuse");
+    const res = run(JUDGE, judgeArgs(dir, w.extra));
+    const lines = wireLines(dir);
+    if (res.status === 3 && w.expect.test(res.stdout) && /No judge call was made/.test(res.stdout) && stub.count() === 0 && stub.wireCount() === 1 && proxyFiles(dir).verdicts.length === 0 && !existsSync(join(dir, "results.json")) && !existsSync(join(dir, "wire-baseline.json")) && lines.length === 1 && lines[0]!.ok === false) pass(`${w.name}: exit 3, one wire check, no judge process, no verdict, no baseline`);
+    else fail(`${w.name}: status ${res.status}, judge calls ${stub.count()}, wire checks ${stub.wireCount()}: ${res.stdout}${res.stderr}`);
+  }
+
+  // G4. Every resume is checked: a wrong cap, then a changed shape, each refused with the verdicts untouched.
+  stub.reset();
+  stub.config({ flagWhen: MARKER });
+  const dirG = fresh("wire-resume");
+  const g1 = run(JUDGE, judgeArgs(dirG, [...armFlags, "--passes", "1", "--max-calls", "10"]));
+  if (g1.status === 2 && proxyFiles(dirG).verdicts.length === 10 && stub.wireCount() === 1) pass("ten calls judged after one passing wire check");
+  else fail(`wire resume setup: status ${g1.status}, verdicts ${proxyFiles(dirG).verdicts.length}: ${g1.stdout}`);
+  stub.config({ flagWhen: MARKER, wire: { maxTokens: 64000 } });
+  const g2 = run(JUDGE, judgeArgs(dirG, [...armFlags, "--passes", "1"]));
+  if (g2.status === 3 && /wire check before pass 1 \(request n=11\): max_tokens on the wire is 64000, pinned 32000/.test(g2.stdout) && proxyFiles(dirG).verdicts.length === 10 && stub.count() === 10) pass("a resume under another cap is refused at request n=11: exit 3, the ten verdicts untouched, no judge process");
+  else fail(`resume under a wrong cap: status ${g2.status}, verdicts ${proxyFiles(dirG).verdicts.length}, calls ${stub.count()}: ${g2.stdout}`);
+  stub.config({ flagWhen: MARKER, wire: { extraBeta: "another-beta" } });
+  const g3 = run(JUDGE, judgeArgs(dirG, [...armFlags, "--passes", "1"]));
+  if (g3.status === 3 && /the request shape differs from this directory's baseline in betas/.test(g3.stdout) && proxyFiles(dirG).verdicts.length === 10 && stub.count() === 10) pass("a resume whose request carries another beta flag is refused against the baseline, though every pinned value is right");
+  else fail(`resume under a changed shape: status ${g3.status}, calls ${stub.count()}: ${g3.stdout}`);
+  stub.config({ flagWhen: MARKER });
+  const g4 = run(JUDGE, judgeArgs(dirG, [...armFlags, "--passes", "1"]));
+  if (g4.status === 0 && proxyFiles(dirG).verdicts.length === targets.length && stub.count() === targets.length) pass(`with the request restored the same command resumes to ${targets.length} of ${targets.length}, no call judged twice`);
+  else fail(`resume after the refusals: status ${g4.status}, verdicts ${proxyFiles(dirG).verdicts.length}, calls ${stub.count()}: ${g4.stdout}`);
+
+  // G5. Every pass is checked: the cap goes wrong before pass 2, and pass 2 never starts.
+  stub.reset();
+  stub.config({ flagWhen: MARKER, wire: { fromCount: 2, maxTokens: 64000 } });
+  const dirG5 = fresh("wire-pass");
+  const g5 = run(JUDGE, judgeArgs(dirG5, [...armFlags, "--passes", "2"]));
+  const fg5 = proxyFiles(dirG5);
+  if (g5.status === 2 && /STOPPED \(wire check before pass 2 \(request n=1\): max_tokens on the wire is 64000, pinned 32000; no call of that pass was made/.test(g5.stdout) && fg5.verdicts.length === targets.length && fg5.verdicts.every((f) => /-p1\.json$/.test(f)) && stub.count() === targets.length) pass(`a wrong cap before pass 2 stops the run: exit 2, exactly the ${targets.length} pass-1 verdicts, no pass-2 process`);
+  else fail(`wire check before pass 2: status ${g5.status}, verdicts ${fg5.verdicts.length}, calls ${stub.count()}: ${g5.stdout}`);
+
+  out.write("\nH. the binary pin: by sha256, at a path the updater does not manage\n");
+  const realArgs = (outDir: string, extra: string[]): string[] => ["--requests", mockDir, "--out", outDir, "--work-root", workRoot, ...armFlags, ...extra];
+  const stubSha = sha256File(stub.script);
+  const versionsDir = join(mkdtempSync(join(tmpdir(), "pj-upd-")), "claude", "versions", "9.9.9");
+  mkdirSync(versionsDir, { recursive: true });
+  const underVersions = join(versionsDir, "cli.js");
+  copyFileSync(stub.script, underVersions);
+  const pinRefusals: Array<{ name: string; extra: string[]; expect: RegExp }> = [
+    { name: "no --claude and no --stub (no PATH lookup)", extra: [], expect: /--claude <path> with --claude-sha256 <64 hex> is required/ },
+    { name: "--claude without --claude-sha256", extra: ["--claude", stub.script], expect: /--claude-sha256 <64 hex> is required/ },
+    { name: "a hash that is not the file's", extra: ["--claude", stub.script, "--claude-sha256", "0".repeat(64)], expect: new RegExp(`has sha256 ${stubSha}, not the pinned 0{64}`) },
+    { name: "a truncated hash", extra: ["--claude", stub.script, "--claude-sha256", stubSha.slice(0, 16)], expect: /is not 64 lower-case hex characters/ },
+    { name: "a path under the updater's versions folder, right hash", extra: ["--claude", underVersions, "--claude-sha256", stubSha], expect: /is under the CLI updater's control/ },
+  ];
+  stub.reset();
+  stub.config({ flagWhen: MARKER });
+  for (const r of pinRefusals) {
+    const dir = fresh("pin-refuse");
+    const res = run(JUDGE, realArgs(dir, r.extra));
+    if (res.status === 3 && r.expect.test(res.stdout) && !existsSync(dir) && stub.count() === 0 && stub.wireCount() === 0) pass(`${r.name}: exit 3, nothing written, no process started`);
+    else fail(`${r.name}: status ${res.status}, out dir ${existsSync(dir) ? "created" : "absent"}: ${res.stdout}${res.stderr}`);
+  }
+  const dirH = fresh("pin");
+  const h1 = run(JUDGE, realArgs(dirH, ["--claude", stub.script, "--claude-sha256", stubSha, "--wire-check-only"]));
+  const binH = existsSync(join(dirH, "binary.json")) ? (JSON.parse(readFileSync(join(dirH, "binary.json"), "utf8")) as { sha256: string }) : null;
+  if (h1.status === 0 && /wire check only: passed; no judge call was made/.test(h1.stdout) && binH?.sha256 === stubSha && stub.wireCount() === 1 && stub.count() === 0 && proxyFiles(dirH).verdicts.length === 0 && !existsSync(join(dirH, "results.json"))) pass("the right hash at a stable path: --wire-check-only passes, records the binary, judges nothing");
+  else fail(`pinned wire check only: status ${h1.status}, wire ${stub.wireCount()}, calls ${stub.count()}: ${h1.stdout}${h1.stderr}`);
+  const otherDir = mkdtempSync(join(tmpdir(), "pj-stub2-"));
+  const otherStub = join(otherDir, "claude-stub.js");
+  writeFileSync(otherStub, readFileSync(stub.script, "utf8") + "\n// another build\n");
+  const h2 = run(JUDGE, realArgs(dirH, ["--claude", otherStub, "--claude-sha256", sha256File(otherStub), "--wire-check-only"]));
+  if (h2.status === 3 && /one output directory holds one binary/.test(h2.stdout) && stub.wireCount() === 1 && !existsSync(join(otherDir, "wire-count.txt"))) pass("another binary, correctly hashed, is refused in a directory that recorded the first");
+  else fail(`second binary in the same directory: status ${h2.status}: ${h2.stdout}${h2.stderr}`);
+  const h3 = run(JUDGE, ["--requests", mockDir, "--out", dirD, "--work-root", workRoot, "--claude", stub.script, "--claude-sha256", stubSha, "--wire-check-only"]);
+  if (h3.status === 3 && /no binary\.json: they were judged by a CLI that was not pinned by hash/.test(h3.stdout) && !existsSync(join(dirD, "binary.json")) && stub.wireCount() === 1) pass("a directory of verdicts from an unpinned CLI refuses a pinned run");
+  else fail(`pinned run into unpinned verdicts: status ${h3.status}: ${h3.stdout}${h3.stderr}`);
 
   out.write(`\n${failures === 0 ? "PASS" : "FAIL"}: proxy-judge rehearsal (${failures} failure(s))\n`);
   process.exit(failures === 0 ? 0 : 1);

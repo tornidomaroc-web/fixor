@@ -8,11 +8,20 @@
  * stub executable (no model, no network).
  *
  *   node dist/test/proxy-judge.js --requests <mock-run-dir> --out <dir>
- *        [--passes 5] [--claude <path to claude.exe or cli.js>]
- *        [--work-root <dir outside the repository>] [--max-calls N]
- *        [--stub <stub script.js>]          (rehearsal only; no model)
+ *        --claude <path to claude.exe or cli.js> --claude-sha256 <64 hex>
+ *        [--passes 5] [--work-root <dir outside the repository>] [--max-calls N]
+ *        [--stub <stub script.js>]          (rehearsal only; no model; replaces --claude)
  *        [--judge-model <claude-id>] [--effort <level>] [--max-output-tokens N]
  *                                           (a second model arm; its own --out)
+ *        [--wire-check-only]                (run the gates and the wire check, judge nothing)
+ *
+ * THE CLI IS ACCEPTED BY HASH, at a path its updater does not manage, and
+ * the hash is re-read before every wire check. BEFORE THE FIRST CALL OF
+ * EVERY PASS AND OF EVERY RESUME one process is pointed at a local recorder
+ * (no model reached) and the request it sends must carry the pinned model,
+ * cap, thinking, effort and login; a difference refuses the start (exit 3)
+ * or stops the run before that pass (exit 2). What that check cannot see is
+ * in the header of lib/proxy-judge-wire.ts. Amendment A2, 2026-10-02.
  *
  * BEFORE A REAL RUN THE OWNER: (1) confirms at claude.ai that extra usage /
  * usage credits are OFF, because this script cannot see that setting and a
@@ -22,16 +31,20 @@
  * the environment. A rate limit stops the run with no file written for the
  * interrupted call; the same command resumes from the last completed call.
  *
- * Exit codes: 0 all passes complete and scored; 2 stopped (infrastructure
- * failure, model mismatch, or --max-calls reached), resumable unless a
- * model-mismatch file was written; 3 refused to start, nothing written.
+ * Exit codes: 0 all passes complete and scored (or --wire-check-only
+ * passed); 2 stopped (infrastructure failure, model mismatch, a wire check
+ * failing before a later pass, or --max-calls reached), resumable unless a
+ * model-mismatch file was written; 3 refused to start: no judge call made,
+ * no verdict written (a failed wire check leaves its line in
+ * wire-checks.jsonl).
  */
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, isAbsolute, join, resolve, sep } from "node:path";
+import { isAbsolute, join, resolve, sep } from "node:path";
 
 import {
+  DEFAULT_WIRE,
   EFFORT_LEVELS,
   FORBIDDEN_FLAGS,
   JUDGE_MODEL_SHAPE,
@@ -55,6 +68,7 @@ import {
   type JudgeRecord,
   type JudgeRequest,
 } from "./lib/proxy-judge";
+import { WIRE_TIMEOUT_MS, binaryGate, canonical, captureWire, checkWire, sha256File, wireFacts, wireFingerprint } from "./lib/proxy-judge-wire";
 
 const out = process.stdout;
 
@@ -69,20 +83,7 @@ function isInside(child: string, parent: string): boolean {
   return c === p || c.startsWith(p.endsWith(sep) ? p : p + sep);
 }
 
-/** `claude` on PATH as a real executable; a .cmd shim cannot carry the argv this needs. */
-function findClaude(): { cmd: string; reason?: string } {
-  const dirs = (process.env["PATH"] ?? "").split(delimiter).filter(Boolean);
-  const names = process.platform === "win32" ? ["claude.exe"] : ["claude"];
-  for (const d of dirs) {
-    for (const n of names) {
-      const p = join(d, n);
-      if (existsSync(p) && statSync(p).isFile()) return { cmd: p };
-    }
-  }
-  return { cmd: "", reason: `no ${names[0]} found on PATH; pass --claude <path to claude.exe or to the CLI's cli.js> (a .cmd shim is not accepted: cmd.exe cannot carry the system prompt)` };
-}
-
-function main(): number {
+async function main(): Promise<number> {
   // 1. Credential gate, before any file is read.
   const cred = credentialGate(process.env);
   if (cred) {
@@ -100,7 +101,7 @@ function main(): number {
   const requestsDir = arg("--requests");
   const outDir = arg("--out");
   if (!requestsDir || !outDir) {
-    out.write("usage: proxy-judge --requests <mock-run-dir> --out <dir> [--passes 5] [--claude <path>] [--work-root <dir>] [--max-calls N] [--stub <script.js>]\n");
+    out.write("usage: proxy-judge --requests <mock-run-dir> --out <dir> --claude <path> --claude-sha256 <64 hex> [--passes 5] [--work-root <dir>] [--max-calls N] [--wire-check-only] [--stub <script.js>]\n");
     return 3;
   }
   const passes = Number(arg("--passes") ?? 5);
@@ -114,6 +115,7 @@ function main(): number {
     return 3;
   }
   const stub = arg("--stub");
+  const wireOnly = process.argv.includes("--wire-check-only");
   const repoRoot = process.cwd();
   // The CLI shows the model its working directory, so the default is a
   // neutral name and any work root naming the product, the judge or a case
@@ -164,9 +166,13 @@ function main(): number {
   }
   const secondArm = arm.judgeModel !== undefined || arm.effort !== undefined || arm.maxOutputTokens !== undefined;
 
-  // 3. The executable.
+  // 3. The executable: the stub, or a CLI accepted by sha256 at a path the
+  // updater does not manage. There is no PATH lookup: the claude on PATH is
+  // the updater's copy, and the build pinned on 2026-09-29 was pruned from
+  // versions/ before the run (amendment A2).
   let cmd: string;
   let cmdArgsPrefix: string[] = [];
+  let binary: { path: string; sha256: string } | null = null;
   if (stub) {
     if (!isAbsolute(stub) || !existsSync(stub) || !stub.endsWith(".js")) {
       out.write(`refused: --stub must be an absolute path to an existing .js file\n`);
@@ -176,28 +182,29 @@ function main(): number {
     cmdArgsPrefix = [stub];
   } else {
     const given = arg("--claude");
-    if (given) {
-      if (!existsSync(given) || !statSync(given).isFile()) {
-        out.write(`refused: --claude ${given} is not a file\n`);
-        return 3;
-      }
-      if (/\.(cmd|bat)$/i.test(given)) {
-        out.write(`refused: --claude ${given} is a shell shim; pass claude.exe or the CLI's cli.js\n`);
-        return 3;
-      }
-      if (given.endsWith(".js")) {
-        cmd = process.execPath;
-        cmdArgsPrefix = [resolve(given)];
-      } else {
-        cmd = resolve(given);
-      }
+    if (!given) {
+      out.write("refused: --claude <path> with --claude-sha256 <64 hex> is required; the claude on PATH is the updater's copy, not a pinned build\n");
+      return 3;
+    }
+    if (!existsSync(given) || !statSync(given).isFile()) {
+      out.write(`refused: --claude ${given} is not a file\n`);
+      return 3;
+    }
+    if (/\.(cmd|bat)$/i.test(given)) {
+      out.write(`refused: --claude ${given} is a shell shim; pass claude.exe or the CLI's cli.js\n`);
+      return 3;
+    }
+    const gate = binaryGate(resolve(given), arg("--claude-sha256"));
+    if (gate.refuse || !gate.sha256) {
+      out.write(`refused: ${gate.refuse}\n`);
+      return 3;
+    }
+    binary = { path: resolve(given), sha256: gate.sha256 };
+    if (given.endsWith(".js")) {
+      cmd = process.execPath;
+      cmdArgsPrefix = [binary.path];
     } else {
-      const found = findClaude();
-      if (!found.cmd) {
-        out.write(`refused: ${found.reason}\n`);
-        return 3;
-      }
-      cmd = found.cmd;
+      cmd = binary.path;
     }
   }
 
@@ -231,23 +238,106 @@ function main(): number {
     out.write(`refused: ${proxyDir} holds ${prior.done.size} verdict(s) from the shipped-model arm (no arm.json); a second arm needs its own --out\n`);
     return 3;
   }
+  // One output directory holds one binary, as it holds one arm.
+  const binaryFile = join(outDir, "binary.json");
+  if (binary) {
+    if (existsSync(binaryFile)) {
+      const have = (JSON.parse(readFileSync(binaryFile, "utf8")) as { sha256?: string }).sha256;
+      if (have !== binary.sha256) {
+        out.write(`refused: ${binaryFile} records CLI sha256 ${String(have)}, this invocation runs ${binary.sha256}; one output directory holds one binary\n`);
+        return 3;
+      }
+    } else if (prior.done.size > 0) {
+      out.write(`refused: ${proxyDir} holds ${prior.done.size} verdict(s) and no binary.json: they were judged by a CLI that was not pinned by hash; a pinned run needs its own --out\n`);
+      return 3;
+    }
+  }
   mkdirSync(proxyDir, { recursive: true });
   mkdirSync(workRoot, { recursive: true });
   if (secondArm && !existsSync(armFile)) writeFileSync(armFile, armWant);
+  if (binary && !existsSync(binaryFile)) writeFileSync(binaryFile, JSON.stringify(binary));
   const shippedModels = new Set(reqs.map((r) => r.model));
   const startedAt = new Date().toISOString();
+  const env = scrubbedEnv(process.env, arm.maxOutputTokens);
+  const log = (line: string): void => appendFileSync(join(outDir, "judge.log"), `${new Date().toISOString()} ${line}\n`);
+
+  // 4b. The wire check (lib/proxy-judge-wire.ts): the process a judge call
+  // would start, for the request about to be judged, against a recorder that
+  // answers 400. Returns the reason to refuse, or null.
+  const wireLog = join(outDir, "wire-checks.jsonl");
+  const baselineFile = join(outDir, "wire-baseline.json");
+  const wireGate = async (r: JudgeRequest, pass: number): Promise<string | null> => {
+    const bad: string[] = [];
+    if (binary) {
+      const now = sha256File(binary.path);
+      if (now !== binary.sha256) return `the CLI at ${binary.path} now has sha256 ${now}, pinned ${binary.sha256}`;
+    }
+    const dir = mkdtempSync(join(workRoot, "call-"));
+    let capture;
+    try {
+      capture = await captureWire({ cmd, args: [...cmdArgsPrefix, ...judgeArgv(r, arm)], env, stdin: r.user, cwd: dir });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    if (capture.spawnError) bad.push(`the process did not start: ${capture.spawnError}`);
+    if (capture.timedOut) bad.push(`the process was killed after ${WIRE_TIMEOUT_MS} ms`);
+    const facts = wireFacts(capture);
+    const effort = arm.effort ?? DEFAULT_WIRE.effort;
+    bad.push(...checkWire(facts, { model: arm.judgeModel ?? r.model, maxTokens: arm.maxOutputTokens ?? DEFAULT_WIRE.maxTokens, effort, system: r.system, user: r.user, schema: r.schema, forbidden: [repoRoot, resolve(requestsDir)] }));
+    const fp = wireFingerprint(facts);
+    let baseline = "not compared";
+    if (bad.length === 0) {
+      if (existsSync(baselineFile)) {
+        const have = (JSON.parse(readFileSync(baselineFile, "utf8")) as { fingerprint: Record<string, unknown> }).fingerprint;
+        const differing = [...new Set([...Object.keys(have), ...Object.keys(fp)])].filter((k) => canonical(have[k]) !== canonical(fp[k]));
+        if (differing.length > 0) {
+          baseline = "differs";
+          bad.push(`the request shape differs from this directory's baseline in ${differing.join(", ")} (${baselineFile})`);
+        } else baseline = "equal";
+      } else {
+        writeFileSync(baselineFile, JSON.stringify({ at: new Date().toISOString(), n: r.n, pass, binarySha256: binary?.sha256 ?? null, stub: !!stub, fingerprint: fp }, null, 2));
+        baseline = "written";
+      }
+    }
+    appendFileSync(wireLog, JSON.stringify({ at: new Date().toISOString(), n: r.n, pass, ok: bad.length === 0, failures: bad, baseline, exit: capture.exit, otherRequests: facts.otherRequests, binarySha256: binary?.sha256 ?? null, stub: !!stub, fingerprint: fp }) + "\n");
+    if (bad.length > 0) return bad.join("; ");
+    out.write(`wire check before pass ${pass} (request n=${r.n}, no model reached): model ${String(fp["model"])}, max_tokens ${String(fp["max_tokens"])}, thinking adaptive, effort ${effort}, OAuth bearer, no x-api-key; baseline ${baseline}\n`);
+    return null;
+  };
+  let pending: { r: JudgeRequest; pass: number } | null = null;
+  find: for (let pass = 1; pass <= passes; pass++) {
+    for (const r of reqs) {
+      if (!prior.done.has(recordName(r.n, pass))) {
+        pending = { r, pass };
+        break find;
+      }
+    }
+  }
+  if (!pending && wireOnly && reqs[0]) pending = { r: reqs[0], pass: 1 };
+  let wirePass = 0;
+  if (pending) {
+    const refused = await wireGate(pending.r, pending.pass);
+    if (refused) {
+      log(`REFUSED wire check before pass ${pending.pass}, request n=${pending.r.n}: ${refused}`);
+      out.write(`refused: wire check before pass ${pending.pass} (request n=${pending.r.n}): ${refused}. No judge call was made\n`);
+      return 3;
+    }
+    wirePass = pending.pass;
+  }
+  if (wireOnly) {
+    out.write("wire check only: passed; no judge call was made and no verdict was written\n");
+    return 0;
+  }
   const runFile = join(outDir, "judge-run.json");
   writeFileSync(
     runFile,
-    JSON.stringify({ instrument: "PROXY", stub: !!stub, startedAt, requestsDir: resolve(requestsDir), passes, requests: reqs.length, callsPlanned: reqs.length * passes, doneBefore: prior.done.size, shippedModels: [...shippedModels], ...(secondArm ? { arm } : {}), executable: stub ? `stub ${stub}` : cmd, argvTemplate: judgeArgv({ model: "<model>", system: "<system>", schema: "<schema>" }, arm), envPassthrough: Object.keys(scrubbedEnv(process.env, arm.maxOutputTokens)), volumePerPass: vol }, null, 2),
+    JSON.stringify({ instrument: "PROXY", stub: !!stub, startedAt, requestsDir: resolve(requestsDir), passes, requests: reqs.length, callsPlanned: reqs.length * passes, doneBefore: prior.done.size, shippedModels: [...shippedModels], ...(secondArm ? { arm } : {}), executable: stub ? `stub ${stub}` : cmd, ...(binary ? { claudeSha256: binary.sha256 } : {}), wireExpect: { maxTokens: arm.maxOutputTokens ?? DEFAULT_WIRE.maxTokens, effort: arm.effort ?? DEFAULT_WIRE.effort, thinking: "adaptive" }, argvTemplate: judgeArgv({ model: "<model>", system: "<system>", schema: "<schema>" }, arm), envPassthrough: Object.keys(scrubbedEnv(process.env, arm.maxOutputTokens)), volumePerPass: vol }, null, 2),
   );
   out.write(`proxy-judge${stub ? " [STUB REHEARSAL: no model, no network]" : ""}: ${reqs.length} requests x ${passes} passes; ${prior.done.size} already judged; shipped model ${[...shippedModels].join(", ")}\n`);
   if (secondArm) out.write(`second arm: ${armWant}; a separate arm, never merged with the shipped-model arm's figures\n`);
   out.write(`volume per pass: ${vol.requests} requests, ${vol.totalChars} chars (system ${vol.systemChars}, user ${vol.userChars}), ~${vol.estimatedTokens} tokens at 3.5 chars/token (estimate, no tokenizer); longest argv ${vol.maxArgvChars} chars\n`);
 
   // 5. Passes outer, requests inner; every verdict on disk as it arrives.
-  const env = scrubbedEnv(process.env, arm.maxOutputTokens);
-  const log = (line: string): void => appendFileSync(join(outDir, "judge.log"), `${new Date().toISOString()} ${line}\n`);
   const st: { stop: string | null } = { stop: null };
   let judgedNow = 0;
   const modelsSeen = new Map<string, number>();
@@ -280,7 +370,7 @@ function main(): number {
         target: r.target,
         model: expected,
         ...(secondArm
-          ? { shippedModel: r.model, effort: arm.effort, maxOutputTokensPinned: arm.maxOutputTokens, maxOutputTokensReported: parsed.maxOutputTokens[parsed.models[0] ?? ""] ?? null, thinkingTokens: parsed.thinkingTokens }
+          ? { shippedModel: r.model, effort: arm.effort, maxOutputTokensPinned: arm.maxOutputTokens, maxOutputTokensReported: parsed.maxOutputTokens[parsed.models[0] ?? ""] ?? null, thinkingTokens: parsed.thinkingTokens, numTurns: parsed.numTurns }
           : {}),
         modelsReported: parsed.models,
         toolName: r.toolName,
@@ -302,10 +392,13 @@ function main(): number {
         log(`STOP ${st.stop}`);
         return "stop";
       }
-      // A pinned output cap the result does not report is an instrument
-      // change: no file is written, so the verdict is never read or scored.
-      if (arm.maxOutputTokens !== undefined && rec.maxOutputTokensReported !== arm.maxOutputTokens) {
-        st.stop = `instrument mismatch: call n=${r.n} pass ${pass} reported maxOutputTokens ${String(rec.maxOutputTokensReported)}, pinned ${arm.maxOutputTokens}; no file written, run stopped`;
+      // The result's maxOutputTokens field is the model's default, not the
+      // cap in force, and is never compared (amendment A2); the cap is read
+      // on the wire. What a result CAN show is output above the pinned cap:
+      // either the cap was not applied or the call took more than one
+      // request. No file is written, so the verdict is never read or scored.
+      if (arm.maxOutputTokens !== undefined && parsed.usage.output > arm.maxOutputTokens) {
+        st.stop = `instrument mismatch: call n=${r.n} pass ${pass} reported ${parsed.usage.output} output tokens (num_turns ${String(parsed.numTurns)}), over the pinned cap ${arm.maxOutputTokens}; no file written, run stopped`;
         log(`STOP ${st.stop}`);
         return "stop";
       }
@@ -332,6 +425,15 @@ function main(): number {
         st.stop = `--max-calls ${maxCalls} reached; resumable`;
         break outer;
       }
+      if (wirePass !== pass) {
+        const refused = await wireGate(r, pass);
+        if (refused) {
+          st.stop = `wire check before pass ${pass} (request n=${r.n}): ${refused}; no call of that pass was made, run stopped`;
+          log(`STOP ${st.stop}`);
+          break outer;
+        }
+        wirePass = pass;
+      }
       if (judge(r, pass) === "stop") break outer;
     }
   }
@@ -357,9 +459,10 @@ function main(): number {
   return st.stop ? 2 : 0;
 }
 
-try {
-  process.exit(main());
-} catch (err) {
-  process.stderr.write(`proxy-judge refused: ${(err as Error).stack ?? String(err)}\n`);
-  process.exit(3);
-}
+main().then(
+  (code) => process.exit(code),
+  (err) => {
+    process.stderr.write(`proxy-judge refused: ${(err as Error).stack ?? String(err)}\n`);
+    process.exit(3);
+  },
+);
