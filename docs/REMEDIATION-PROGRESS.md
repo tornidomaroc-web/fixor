@@ -2415,6 +2415,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #260 | from a THIRD branch, a descendant of the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #261 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #262 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #263 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2674,6 +2675,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #260 | `ec7a97b` | 2026-09-29 23:45:06 | `measure/opus-arm-prereg-2026-09-29`, a THIRD branch stacked on the merged one (reflog: last move 23:08:48) | `bd4c24bf`, captured before | 404 on first read after the merge, 23:45:18 | `measure/proxy-judge-run-2026-09-29` at `7bde6f4` |
 | #261 | `0e51df0` | 2026-09-30 00:58:02 | `measure/opus-arm-prereg-2026-09-29` (reflog: last move 00:11:59) | `90802a20`, captured before by the merging session; recomputed by the filing entry from the PR head `8e6689a`, equal | 404 on first read after the merge, 00:58:12 (merging session); 404 again when filed | `measure/opus-arm-prereg-2026-09-29` at `8e6689a` |
 | #262 | `4cedf0c` | 2026-10-02 11:11:19 | `measure/opus-arm-a2-wire-check` (reflog: last move 11:00:07) | `4719240f`, captured before | 404 on first read after the merge, 11:11:30 | `measure/opus-arm-a2-wire-check` at `172f950` |
+| #263 | `a81d621` | 2026-10-02 14:15:03 | `measure/opus-arm-run-2026-10-02` (reflog: last move 14:06:31) | `04043ecd`, captured before | 404 on first read after the merge, 14:15:38 | `measure/opus-arm-run-2026-10-02` at `a3bfe07` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2944,6 +2946,20 @@ gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-10-02), co
 register table:** the arm invoked FROM the merged branch reads 38 observations, 2 green and 36
 red; the THIRD-branch arm is unchanged at 6, all RED; the register carries 50 rows, 48 RED. No
 cause is named. **The merge of this entry will owe the next row.**
+
+**#263 (2026-10-02).** The owner ran `gh pr merge 263 --squash --match-head-commit
+a3bfe07134c80fb030b79843d4e9599ccadf09b7` from the prompt with HEAD on
+`measure/opus-arm-run-2026-10-02`, the merged branch itself; the reflog's last HEAD move before
+the merge is 14:06:31 (the reduction commit), and HEAD was still there after it. That is the arm
+invoked FROM the merged branch. **RED**: `gh` exited 0 and printed nothing; the local ref
+`measure/opus-arm-run-2026-10-02` survived at `a3bfe07`. Assertion 2 held against a tree captured
+before the merge: `04043ecd` on both (the first read of `main`'s tree failed with a transient
+"Empty reply from server"; the retry read the squash commit directly). The squash `a81d621` has
+the single parent `4cedf0c`, merged at 14:15:03Z. The head ref answered 404 on the first read
+after the merge, at 14:15:38. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record
+(2026-10-02), counted from the register table:** the arm invoked FROM the merged branch reads 39
+observations, 2 green and 37 red; the THIRD-branch arm is unchanged at 6, all RED; the register
+carries 51 rows, 49 RED. No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3502,6 +3518,23 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #262 | `4cedf0c` | 2026-10-02 11:12:27 | 11:12:03 | not triggered |
+
+  **#263 (added 2026-10-02).** CI (run 37018549909, both Node jobs, `head=a81d621`) and the
+  `secrets` workflow (run 37018549976) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal` lines and two `PASS:
+  forced-routing rehearsal` lines (once per Node job) and zero `[FAIL]` lines. The Railway and
+  Vercel times are the `success` statuses of their GitHub deployments for `a81d621` (ids
+  6810440244 and 6810462968), posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or
+  dashboard was read. At 14:18:24 the backend answered `{"status":"ok","db":"ok","anthropic":"ok",
+  "uptime_s":179}`, which dates the container to about 14:15:25, the deploy; the dashboard answered
+  `{"status":"ok","db":"ok"}` at 14:18:25. CI on `main` was still running at the health reads and
+  concluded success afterwards. Not observed: anything in production, because #263 changed only
+  files under `docs/`. At the $0 cap no scan reaches a model call; these reads show only that
+  nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #263 | `a81d621` | 2026-10-02 14:15:32 | 14:16:13 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5873,6 +5906,61 @@ because that widening is on the READING side and this argument turns on the RUNN
     evidence, and `ICP-REACH.md` lists third-party paths. They are dated prose, and this
     tracker's standing rule is that dated prose is annotated, never rewritten. Reducing them
     would break that rule, so it is left to the owner.
+
+  **CLOUD SESSION GUARDS, 2026-10-02: a committed `.claude/settings.json`.** A Claude Code cloud
+  session clones the repository into a fresh VM. Per the docs (Configure cloud environments, "What
+  carries over from your setup", read 2026-10-02), it reads the repository's committed
+  `.claude/settings.json` permission rules in a single-repository session. It does not read
+  `.claude/settings.local.json`, the user's `~/.claude` settings, or the root `CLAUDE.md`, which is
+  gitignored. Until this commit every deny rule guarding this repository lived in those local
+  files, so a cloud session would have run with none of them.
+  - **What is committed:** 307 deny rules and `disableBypassPermissionsMode: "disable"`.
+    - **114 come from the 137 local rules:** paid entry points (`npm run test:*`, `record:*`,
+      `scan*`, `db:*`, `migrate:*`, `--env-file` into `dist/`, `loadEnvFile`, `run-arm-a`),
+      `gh pr merge`, `gh api` writes and GraphQL, every `gh repo` mutation, `drizzle-kit`, `gh
+      auth` token and session commands, `gh run` delete, cancel and rerun, and new dependencies
+      (`npm install`, `npx --yes`).
+    - **195 are new:** `gh pr merge` in any position and the REST merge endpoint; force-push,
+      mirror and delete pushes; direct pushes to `main` or `master`; history rewrites (`git
+      rebase`, `--amend`, `reset --hard`, `filter-branch`, `filter-repo`, `replace`,
+      `update-ref`); branch deletion; `gh api -f/-F/--field/--raw-field/--input`, which send a
+      POST without `-X` and which no local rule covered; `gh secret`, `gh variable`, `gh
+      workflow run`, `gh release`, `gh ruleset`; writing `curl` and `wget`; the Anthropic API host,
+      API-key variables and the paid flags (`FIXOR_RECORD=1`, `FIXOR_H8_LIVE=1`,
+      `FIXOR_LIVE_TESTS=1`, `FIXOR_ESCALATE_MEDIUM=true`); nested headless sessions (`claude -p`,
+      `--cloud`); deploys and `npm publish`; reading `.env` and key files; and edits to the guard
+      itself (`.claude/settings*.json`, `.github/workflows/`, `.githooks/`, `.gitleaks.toml`,
+      `scripts/secrets_scan.py`).
+  - **23 stay local only, by family:**
+    - `winget`: the Windows package manager on this machine;
+    - `claude mcp add/remove`: protects this machine's MCP configuration;
+    - `git checkout --`, `git checkout -f`, `git clean -f`: protect the owner's uncommitted work
+      in this checkout, and a cloud VM is a throwaway clone;
+    - `hosts.yml`, `GitHub CLI`, `.config/gh`: this machine's gh credential store; in a cloud
+      session `gh` holds only the placeholder `proxy-injected`.
+  - **Nothing is weakened locally.** `settings.local.json` is byte-identical (sha256
+    `bb32d810b2c436f10865a3a5faa6ba0f561a58ca329b27e69a03b7b32b4953b7`). Over every settings source
+    that applies here, the effective deny set grows from 182 to 364 rules with none removed. The
+    committed rules also apply to local sessions, and four of them change local behaviour: the
+    agent can no longer edit `.claude/settings.json` or `.github/workflows/` with its file tools,
+    bypass-permissions mode is disabled, and greps whose command text contains
+    `api.anthropic.com`, `x-api-key` or `claude -p` are refused (the Grep tool is unaffected). The
+    file carries no secret, no name and no machine path.
+  - **What deny rules are not.** The permissions docs say a Bash rule "matches the command text
+    Claude writes" and "isn't a security boundary around the program": `git -C . push` or `sh -c
+    '...'` passes a `git push` rule. These rules stop the forms an agent usually writes, nothing
+    more.
+  - **What the server already enforces on `main`** (read 2026-10-02): a pull request is required,
+    the three checks are required with `strict`, admins are included, and force-push and deletion
+    are off. **What it does not enforce:** the required approving review count is 0. Anyone whose
+    credential can merge can merge a green pull request.
+  - **The cloud GitHub proxy** (docs) rejects branch deletions and tag pushes, but "doesn't limit
+    which branches a push can update". It scopes API requests to the repositories attached to the
+    session.
+  - **The Claude GitHub App** (`apps/claude`, owner `anthropics`) holds contents, pull requests,
+    workflows, actions and repository webhooks with write access. A check suite from the app slug
+    `claude` sits on `main`'s merge commit `a81d621`, which indicates the App is installed on this
+    repository. The installation itself cannot be read with a user token: the API answers 403.
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
