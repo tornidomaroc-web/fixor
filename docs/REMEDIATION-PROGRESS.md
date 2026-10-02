@@ -2414,6 +2414,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #259 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #260 | from a THIRD branch, a descendant of the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #261 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #262 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2672,6 +2673,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #259 | `9843ec8` | 2026-09-29 00:05:25 | `feat/proxy-judge` (reflog: last move 2026-09-28 23:33:42) | `27bd80fd`, captured before | 404 on first read after the merge, 00:05:54 | `feat/proxy-judge` at `98592ac` |
 | #260 | `ec7a97b` | 2026-09-29 23:45:06 | `measure/opus-arm-prereg-2026-09-29`, a THIRD branch stacked on the merged one (reflog: last move 23:08:48) | `bd4c24bf`, captured before | 404 on first read after the merge, 23:45:18 | `measure/proxy-judge-run-2026-09-29` at `7bde6f4` |
 | #261 | `0e51df0` | 2026-09-30 00:58:02 | `measure/opus-arm-prereg-2026-09-29` (reflog: last move 00:11:59) | `90802a20`, captured before by the merging session; recomputed by the filing entry from the PR head `8e6689a`, equal | 404 on first read after the merge, 00:58:12 (merging session); 404 again when filed | `measure/opus-arm-prereg-2026-09-29` at `8e6689a` |
+| #262 | `4cedf0c` | 2026-10-02 11:11:19 | `measure/opus-arm-a2-wire-check` (reflog: last move 11:00:07) | `4719240f`, captured before | 404 on first read after the merge, 11:11:30 | `measure/opus-arm-a2-wire-check` at `172f950` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2929,6 +2931,19 @@ first read after the merge, at 00:58:12, and 404 again when filed. gh 2.91.0, gi
 the arm invoked FROM the merged branch reads 37 observations, 2 green and 35 red; the
 THIRD-branch arm is unchanged at 6, all RED; the register carries 49 rows, 47 RED. No cause is
 named. **The merge of this entry will owe the next row.**
+
+**#262 (2026-10-02).** The owner ran `gh pr merge 262 --squash --match-head-commit
+172f9506ab1a937c2edfc826a1fb9b6174e56b65` from the prompt with HEAD on
+`measure/opus-arm-a2-wire-check`, the merged branch itself; the reflog's last HEAD move before
+the merge is 11:00:07 (the correction commit), and HEAD was still there after it. That is the arm
+invoked FROM the merged branch. **RED**: `gh` exited 0 and printed nothing; the local ref
+`measure/opus-arm-a2-wire-check` survived at `172f950`. Assertion 2 held against a tree captured
+before the merge: `4719240f` on both. The squash `4cedf0c` has the single parent `0e51df0`,
+merged at 11:11:19Z. The head ref answered 404 on the first read after the merge, at 11:11:30.
+gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-10-02), counted from the
+register table:** the arm invoked FROM the merged branch reads 38 observations, 2 green and 36
+red; the THIRD-branch arm is unchanged at 6, all RED; the register carries 50 rows, 48 RED. No
+cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3470,6 +3485,23 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #261 | `0e51df0` | 2026-09-30 00:59:53 | 00:58:38 | not triggered |
+
+  **#262 (added 2026-10-02).** CI (run 36999625689, both Node jobs, `head=4cedf0c`) and the
+  `secrets` workflow (run 36999625803) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal` lines and two `PASS:
+  forced-routing rehearsal` lines (once per Node job) and zero `[FAIL]` lines. The Railway and
+  Vercel times are the `success` statuses of their GitHub deployments for `4cedf0c` (ids
+  6807085654 and 6807096302), posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or
+  dashboard was read. At 11:13:40 the backend answered `{"status":"ok","db":"ok","anthropic":"ok",
+  "uptime_s":79}`, which dates the container to about 11:12:21, the deploy; the dashboard answered
+  `{"status":"ok","db":"ok"}` at 11:13:41. CI on `main` was still running when the health reads
+  were taken and concluded success afterwards. Not observed: anything in production, because #262
+  changed nothing under `src/` outside `src/test/`. At the $0 cap no scan reaches a model call;
+  these reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #262 | `4cedf0c` | 2026-10-02 11:12:27 | 11:12:03 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5698,6 +5730,98 @@ because that widening is on the READING side and this argument turns on the RUNN
   has its stdout and stderr discarded, and the judged one does neither; only a process's first
   request is recorded; it samples one request per pass.** The
   Opus arm has not been resumed. No Opus verdict exists.
+
+  **OPUS ARM RUN, 2026-10-02: PROXY-INCONCLUSIVE [judge claude-opus-5-5, not the shipped
+  claude-sonnet-4-6], held-out 2 of 10 (cases 05 and 07). Noise ok, 0 of 30. Arm A diagnostic
+  2 of 5. PROXY, labelled separately, never pooled with the Sonnet arm; it counts for no gate and
+  no public claim.** Run from `main` `4cedf0c` with the command in A2 section 8, 11:25:15Z to
+  12:02:28Z. Before it: the manifest hash over the 70 request files equalled the pin
+  (`86f972a7…ef41`); the pinned CLI's sha256 equalled `0416631e…da7d` at the stable path; no
+  API credential in the process, user or machine environment; the `.env` key parked; the
+  subscription login (plan `max`, provider firstParty). Pass 1 ran alone, then the same command
+  with `--passes 5`. **350 of 350 calls were answered by `claude-opus-5-5`; no stop condition
+  fired; no null verdict.** Five wire checks, one before each pass (no model reached), all passed,
+  each equal to the baseline the first wrote: `max_tokens` 32000, adaptive thinking, effort
+  high, OAuth bearer, no `x-api-key`. Largest output on any call 2,262 tokens against the 32,000
+  cap. Request 0001's pass-1 verdict is the model's second answer to it (A2 section 1). Nobody
+  read a verdict before the fifth pass ended; the progress views printed identity, usage and
+  stop fields only. The re-run of the unchanged `score()` over the verdict files equals the
+  judge's own summary. Committed: `proxy-run-opus-arm/results.json` (the judge's, from the
+  passes 2 to 5 invocation, so its per-invocation usage covers passes 2 to 5) and a source-free
+  `calls.jsonl` (all 350 calls: usage, model, turns, thinking tokens, the reported and the pinned
+  cap, and the flag decision). The verdict files stay outside the repository.
+
+  | pass | calls | output tokens | of which thinking | cache write | cache read | flagged (high or medium) | CLI list-price estimate |
+  |---|---|---|---|---|---|---|---|
+  | 1 | 70 | 34,571 | 11,074 | 455,343 | 362,691 | 4 | $4.41 |
+  | 2 | 70 | 37,302 | 10,676 | 14,620 | 803,416 | 5 | $1.02 |
+  | 3 | 70 | 34,899 | 10,741 | 14,629 | 803,416 | 5 | $0.98 |
+  | 4 | 70 | 35,892 | 9,628 | 14,622 | 803,416 | 4 | $1.00 |
+  | 5 | 70 | 35,119 | 10,564 | 14,619 | 803,416 | 4 | $0.98 |
+
+  Per case, both arms as separately labelled columns (parent-side flags of 5 / fix-side flags
+  of 5; a file hits at 4 or more and 1 or fewer). Date class from A1's table.
+
+  | case | date class (A1) | Opus arm | Sonnet arm |
+  |---|---|---|---|
+  | 01 | fix only, boundary | miss (0/5) | miss (0/5) |
+  | 02 | public before both cutoffs | miss (all three files 0/5) | miss (`userMiddleware.ts` 2/5, others 0/5) |
+  | 03 | public before Opus's cutoff | miss (0/5) | miss (0/5) |
+  | 04 | public before Opus's cutoff | miss (all three files 0/5) | miss (all three 0/5) |
+  | 05 | public before Opus's cutoff | **hit (5/5, fix 0/5)** | **hit (5/5, fix 0/5)** |
+  | 06 | public before Opus's cutoff | miss (0/5) | miss (0/5) |
+  | 07 | nothing public before either | **hit (5/5, fix 0/5)** | miss (2/5) |
+  | 08 | fix only, boundary | miss (both files 0/5) | miss (both 0/5) |
+  | 09 | fix only | miss (0/5) | miss (0/5) |
+  | 10 | public before both cutoffs | miss (0/5) | miss (0/5; fix side 2/5) |
+
+  Arm A diagnostic (counts for nothing): Opus hits 04 (5/5) and 07 (5/5), misses 02 (2/5), 05 and
+  10 (0/5); the Sonnet arm hit 02, 04 and 07. Clean files: Opus flagged none of the 30 on any
+  pass. The Sonnet arm flagged five of them at least once and two at the 4-of-5 level (the two
+  whose blind reading is still owed). Fix side: no flag at the 4-of-5 level in either arm.
+
+  **Reading, under the pre-registered rule.** INCONCLUSIVE is reported as a count, and no
+  decision follows from it. It is not the decisive FAIL, and it is nowhere near a PASS: both
+  models, handed the defect's file by the lane that owns it, miss the same eight of ten cases.
+  - **The one difference is case 07, the only case with nothing public before either model's
+    cutoff.** Opus flagged it 5 of 5; the Sonnet arm 2 of 5. It cannot be recall of a published
+    advisory. It is one case, and the arms also differ in message shape (A1), so it is read as
+    model plus shape on one item.
+  - **Opus is quieter, not sharper on these items.** 22 flags in 350 calls against the Sonnet
+    arm's 37 (13 of them on clean files); no clean flag against two; 28% of the Sonnet arm's output tokens. Every
+    file sits at 0 or 5 of 5 except one diagnostic file at 2. The decisions are stable, and
+    mostly "not vulnerable".
+  - **The model is not the bottleneck on these lanes.** On the cases both models were shown, the
+    strongest model the owner can run at $0 does not lift recall to the pre-registered bar. The
+    shipped single-file framing, prompt and lanes are where the misses live.
+  - Cost, as the pre-registration allows it: the CLI's list-price estimate sums to $8.38 for the
+    Opus arm against $20.68 for the Sonnet arm, a ratio of 0.41. That ratio depends on caching:
+    the Opus passes ran minutes apart and read their prompts from cache; the Sonnet passes wrote
+    theirs again. It is not a production cost model and not a charge.
+
+  **The A1 confound stands, and one further observation travels with it.** The CLI gave Opus the
+  environment, identity, budget and date block after the case, as a system-role message, and
+  three extra beta flags; any arm difference is model plus message shape. **Every one of the 350
+  Opus calls reports `num_turns` 2.** The wire check sees only a process's first request (A2
+  section 5), so the second request of each call was never recorded. The Sonnet arm's records do
+  not carry `num_turns`, so whether its calls also took two turns is not known from the record.
+  The verdict is read from the structured output, which the first turn produces; that is the
+  expected reading of two turns, not a verified one.
+
+  **AGENTIC CHANGE REVIEW, PRE-REGISTERED 2026-10-02, NOT BUILT, NOT RUN.**
+  `docs/measurements/agentic-review-2026-10-02/agentic-review-prereg-2026-10-02.md`. It tests the
+  owner's hypothesis that the single-file lanes miss access-control defects because the evidence
+  spans files, using Anthropic's MIT-licensed `/security-review` command (read from source at
+  `anthropics/claude-code-security-review` `0c6a49f`; the same text is built into the pinned
+  CLI). It is the only one of Anthropic's two reviewers that runs on the subscription; the GitHub
+  Action needs an API key. Both review a CHANGE and are told to ignore pre-existing issues, so
+  the input is the commit that INTRODUCED each defect, found by a pre-registered blame rule, in a
+  history-free neutralised repository. Hit rule, fix-side and clean-change controls, five
+  repeats, stop conditions and a memorisation rule are fixed in advance. **It records, before any
+  run, that 7 of the 10 held-out fixes change only the file the single-file lanes were already
+  given,** so "the model never saw the relevant file" cannot explain at least seven misses. **It
+  also says that a pass counts only on the third held-out set (fix and advisory after
+  2026-06-30), which should be built first.**
 
 ### Priority 1g - OPEN: measurement-apparatus findings surfaced by the PAID stage-3 runs
 
