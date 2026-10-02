@@ -5914,22 +5914,24 @@ because that widening is on the READING side and this argument turns on the RUNN
   `.claude/settings.local.json`, the user's `~/.claude` settings, or the root `CLAUDE.md`, which is
   gitignored. Until this commit every deny rule guarding this repository lived in those local
   files, so a cloud session would have run with none of them.
-  - **What is committed:** 307 deny rules and `disableBypassPermissionsMode: "disable"`.
+  - **What is committed:** 591 deny rules and `disableBypassPermissionsMode: "disable"`.
     - **114 come from the 137 local rules:** paid entry points (`npm run test:*`, `record:*`,
       `scan*`, `db:*`, `migrate:*`, `--env-file` into `dist/`, `loadEnvFile`, `run-arm-a`),
       `gh pr merge`, `gh api` writes and GraphQL, every `gh repo` mutation, `drizzle-kit`, `gh
       auth` token and session commands, `gh run` delete, cancel and rerun, and new dependencies
       (`npm install`, `npx --yes`).
-    - **195 are new:** `gh pr merge` in any position and the REST merge endpoint; force-push,
+    - **477 are new, each anchored to how a command starts:** `gh pr merge` in any invocation form
+      and the REST merge endpoint; force-push,
       mirror and delete pushes; direct pushes to `main` or `master`; history rewrites (`git
       rebase`, `--amend`, `reset --hard`, `filter-branch`, `filter-repo`, `replace`,
       `update-ref`); branch deletion; `gh api -f/-F/--field/--raw-field/--input`, which send a
       POST without `-X` and which no local rule covered; `gh secret`, `gh variable`, `gh
       workflow run`, `gh release`, `gh ruleset`; writing `curl` and `wget`; the Anthropic API host,
       API-key variables and the paid flags (`FIXOR_RECORD=1`, `FIXOR_H8_LIVE=1`,
-      `FIXOR_LIVE_TESTS=1`, `FIXOR_ESCALATE_MEDIUM=true`); nested headless sessions (`claude -p`,
-      `--cloud`); deploys and `npm publish`; reading `.env` and key files; and edits to the guard
-      itself (`.claude/settings*.json`, `.github/workflows/`, `.githooks/`, `.gitleaks.toml`,
+      `FIXOR_LIVE_TESTS=1`, `FIXOR_ESCALATE_MEDIUM=true`); a headless, cloud or permission-skipping
+      Claude Code session started from the shell by name, by path or as `claude.exe`; deploys and
+      `npm publish`; reading `.env` and key files; and edits to the guard itself
+      (`.claude/settings*.json`, `.github/workflows/`, `.githooks/`, `.gitleaks.toml`,
       `scripts/secrets_scan.py`).
   - **23 stay local only, by family:**
     - `winget`: the Windows package manager on this machine;
@@ -5940,12 +5942,48 @@ because that widening is on the READING side and this argument turns on the RUNN
       session `gh` holds only the placeholder `proxy-injected`.
   - **Nothing is weakened locally.** `settings.local.json` is byte-identical (sha256
     `bb32d810b2c436f10865a3a5faa6ba0f561a58ca329b27e69a03b7b32b4953b7`). Over every settings source
-    that applies here, the effective deny set grows from 182 to 364 rules with none removed. The
-    committed rules also apply to local sessions, and four of them change local behaviour: the
-    agent can no longer edit `.claude/settings.json` or `.github/workflows/` with its file tools,
-    bypass-permissions mode is disabled, and greps whose command text contains
-    `api.anthropic.com`, `x-api-key` or `claude -p` are refused (the Grep tool is unaffected). The
-    file carries no secret, no name and no machine path.
+    that applies here, the effective deny set grows from 182 to 648 rules with none removed. The
+    file carries no secret, no name and no machine path. The committed rules also apply to local
+    sessions; the changes to local work are listed under the owner's objection below.
+  - **The owner's objection, settled before merge (2026-10-03): the pinned `claude -p` paths are
+    not blocked.** Deny rules see only the command text the agent types. The proxy judge and the
+    wire check start `claude` from node with an argument list (`spawnSync(cmd, argv)` in
+    `proxy-judge.ts`, `spawn(cmd, args)` in `proxy-judge-wire.ts`, no shell), so no rule sees those
+    processes. The text the agent types is `node dist/test/proxy-judge.js ...`. The first version of
+    this file (head `439e749`) used substring rules (`*claude -p*`, `*api.anthropic.com*`,
+    `*x-api-key*`, `*gh pr merge*`, `*FIXOR_...*`, `*cat* .env*`), and a matcher that applies the
+    rules the way the docs describe found them wrong in both directions:
+    - **too broad:** 5 legitimate $0 commands refused (greps and a `node -e` read that mention the
+      words, a `git log --grep`), and 18 of the 363 commit messages on `main` would have been refused
+      when committed through a heredoc. This happened twice in this session: the loaded file
+      refused a read-only `node -e` and an edit command;
+    - **incomplete:** `claude --model X -p` and `& "...claude.exe" -p` were not refused.
+  - **The rules now in the file are anchored to how a command starts.** The docs say Claude Code
+    splits compound commands, tests each part, and matches deny rules past a leading variable
+    assignment. Under the same matcher:
+    - **0 legitimate commands refused.** The checked set: every A2 section 8 judge command, the
+      wire check, the planned agentic harness invocation, `npm run build`, `npm test`, both
+      rehearsals, the parked-key probe, plain `git push`, the merge read-backs, health reads, and
+      greps for the words.
+    - **2 of 363 commit messages refused,** both by rules that were already in the local file
+      (`*npm install*`, `*loadEnvFile*`, `*drizzle-kit drop*`).
+    - **0 of 41 ad-hoc paid, API-key, merge, push and rewrite probes let through.**
+    - **Live, in the session, under the new file:** a grep for `x-api-key` and a `git log --grep`
+      for the merge command ran; the judge command passed and the judge refused it itself on a
+      wrong hash (exit 3, nothing written, no process started); `git branch -D` was refused.
+  - **What the committed rules change for local work:**
+    - the agent cannot edit `.claude/settings*.json`, `.github/workflows/`, `.githooks/`,
+      `.gitleaks.toml` or `scripts/secrets_scan.py` with its file tools;
+    - bypass-permissions mode is disabled;
+    - `git branch -d`/`-D` is refused, so cleaning up merged local branches is a step the owner
+      takes himself;
+    - `git rebase`, `git commit --amend` and `git reset --hard` are refused, so a mistaken commit is
+      fixed with a new commit;
+    - `gh release`, `gh ruleset` and `gh secret` are refused even for reads;
+    - `.env.example` cannot be read with the file tools, which the user-level settings already
+      refuse;
+    - `npm run test:*` stays refused, as before, so single keyless tests run through `npm test` or
+      `node dist/test/<file>.js`.
   - **What deny rules are not.** The permissions docs say a Bash rule "matches the command text
     Claude writes" and "isn't a security boundary around the program": `git -C . push` or `sh -c
     '...'` passes a `git push` rule. These rules stop the forms an agent usually writes, nothing
