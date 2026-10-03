@@ -2417,6 +2417,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #262 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #263 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #264 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #265 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2678,6 +2679,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #262 | `4cedf0c` | 2026-10-02 11:11:19 | `measure/opus-arm-a2-wire-check` (reflog: last move 11:00:07) | `4719240f`, captured before | 404 on first read after the merge, 11:11:30 | `measure/opus-arm-a2-wire-check` at `172f950` |
 | #263 | `a81d621` | 2026-10-02 14:15:03 | `measure/opus-arm-run-2026-10-02` (reflog: last move 14:06:31) | `04043ecd`, captured before | 404 on first read after the merge, 14:15:38 | `measure/opus-arm-run-2026-10-02` at `a3bfe07` |
 | #264 | `5302000` | 2026-10-02 23:11:05 | `chore/cloud-session-guards` (reflog: last move 23:01:58) | `747565fe`, captured before | 404 on first read after the merge, 23:11:26 | `chore/cloud-session-guards` at `e3c7179` |
+| #265 | `a40a6a3` | 2026-10-03 00:32:21 | `measure/held-out-3-2026-10-03` (reflog: last move 2026-10-02 23:59:07) | `e01e33f0`, captured before | 404 on first read after the merge, 00:33:08 | `measure/held-out-3-2026-10-03` at `d6c5d4c` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2975,6 +2977,19 @@ answered 404 on the first read after the merge, at 23:11:26. gh 2.91.0, git 2.53
 FROM the merged branch reads 40 observations, 2 green and 38 red; the THIRD-branch arm is unchanged
 at 6, all RED; the register carries 52 rows, 50 RED. No cause is named. **The merge of this entry
 will owe the next row.**
+
+**#265 (2026-10-03).** The owner ran `gh pr merge 265 --squash --match-head-commit
+d6c5d4cd0d6d3be21fb09936781f7c3e613a567c` from the prompt with HEAD on
+`measure/held-out-3-2026-10-03`, the merged branch itself; the reflog's last HEAD move before the
+merge is 2026-10-02 23:59:07 (the filing commit), and HEAD was still there after it. That is the
+arm invoked FROM the merged branch. **RED**: `gh` exited 0 and printed nothing; the local ref
+`measure/held-out-3-2026-10-03` survived at `d6c5d4c`. Assertion 2 held against a tree captured
+before the merge: `e01e33f0` on both. The squash `a40a6a3` has the single parent `5302000`, merged
+at 00:32:21Z. The head ref answered 404 on the first read after the merge, at 00:33:08. gh 2.91.0,
+git 2.53.0.windows.2. **Totals as a new dated record (2026-10-03), counted from the register
+table:** the arm invoked FROM the merged branch reads 41 observations, 2 green and 39 red; the
+THIRD-branch arm is unchanged at 6, all RED; the register carries 53 rows, 51 RED. No cause is
+named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3567,6 +3582,21 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #264 | `5302000` | 2026-10-02 23:12:18 | 23:12:15 | not triggered |
+
+  **#265 (added 2026-10-03).** CI (run 37082495557, both Node jobs, `head=a40a6a3`) and the
+  `secrets` workflow (run 37082495562) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal` lines and two `PASS:
+  forced-routing rehearsal` lines (once per Node job) and zero `[FAIL]` lines. The Railway and
+  Vercel times are the `success` statuses of their GitHub deployments for `a40a6a3` (ids
+  6821065876 and 6821073476), posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or
+  dashboard was read. At 00:36:35 the backend answered `{"status":"ok","db":"ok","anthropic":"ok",
+  "uptime_s":241}`, which dates the container to about 00:32:34, the deploy; the dashboard answered
+  `{"status":"ok","db":"ok"}` at 00:36:36. Not observed: anything in production, because #265
+  changed measurement documents and the tracker only. These reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #265 | `a40a6a3` | 2026-10-03 00:32:39 | 00:33:11 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5896,6 +5926,24 @@ because that widening is on the READING side and this argument turns on the RUNN
   at least seven misses. **It
   also says that a pass counts only on the third held-out set (fix and advisory after
   2026-06-30), which should be built first.**
+
+  **AGENTIC CHANGE REVIEW BUILT 2026-10-03, NOT RUN; THE REAL RUN IS BLOCKED.** Record:
+  `docs/measurements/agentic-review-2026-10-02/agentic-review-build-2026-10-03.md`. Amendments A1
+  (case set: the held-out ten plus four sound batch-1 cases as a post-cutoff column; Gate A), A2
+  (the batch-1 anchor) and A3 (a run reaching outside its repository is void; a network failure
+  in preparation stops it) were committed before any case run. The preparation script, harness,
+  scorer and a keyless rehearsal (84 checks, in `test:ci`) are built; zero model calls, zero
+  case requests, no API key. Revert-one-guard: a complete loop over 44 guards showed 8 the
+  rehearsal did not prove; tests were added; the loop on the final code was stopped by low system
+  memory after 17 of 47, all 17 shown, and the record says which guards carry no result on the
+  final code. **Preparation of the real cases, read from A1 alone:** 9 of 10 held-out cases pass
+  the blame rule (07 rejected), so the precondition holds; 4 accepted cases have no fix side and
+  count as misses; only 01, 03, 04, 09 and 10 can score, and Gate A needs 4 of those 5. **Two
+  things block the run:** (1) the built-in pastes the whole change into one prompt, and the
+  measured prompts are about 8.5 million tokens for held-out 02, 0.92 million for 03 and 0.33
+  million for 08, so as built the series stops at the first oversize state; no rule for this was
+  pre-registered, and one must be committed before any run; (2) the 10 clean rows are not yet
+  prepared (the preparation was stopped by low system memory and resumes with `--resume`).
 
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that
