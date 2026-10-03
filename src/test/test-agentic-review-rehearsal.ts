@@ -111,6 +111,24 @@ function makeCaseUpstream(root: string, name: string, opts: { refactorBeforeFix?
   const fix = commit(dir, `fix(security): require authentication on the items endpoint (${name.toUpperCase()}-102)`, "2026-06-15T10:00:00Z");
   return { dir, fix, parent, anchor, introducing };
 }
+/** A case whose handler arrives by a rename: blame follows the file back to the commit that added it under the old path, so that commit's diff adds nothing to the defect path and the blame rule rejects the case. */
+function makeMovedUpstream(root: string, name: string): Upstream {
+  const dir = join(root, name);
+  mkdirSync(join(dir, "src", "routes"), { recursive: true });
+  git(dir, ["init", "-q", "-b", "main"]);
+  writeFileSync(join(dir, "README.md"), `# ${name}\n`);
+  commit(dir, "initial import of the project", "2026-03-01T10:00:00Z");
+  writeFileSync(join(dir, "src", "routes", "legacy.ts"), handler(false, true));
+  const introducing = commit(dir, "feat(api): add the legacy endpoint", "2026-04-02T10:00:00Z");
+  git(dir, ["mv", "src/routes/legacy.ts", "src/routes/items.ts"]);
+  commit(dir, "refactor: rename the route file", "2026-04-10T10:00:00Z");
+  const parent = git(dir, ["rev-parse", "HEAD"]).trim();
+  const before = readFileSync(join(dir, "src", "routes", "items.ts"), "utf8");
+  const anchor = before.split("\n").findIndex((l) => l.includes(MARKER)) + 1;
+  writeFileSync(join(dir, "src", "routes", "items.ts"), before.replace(/\n(  const item = await[^\n]*)/, (_m, line: string) => "\n  requireAuth(req);\n" + line.replace(" " + MARKER, "")));
+  const fix = commit(dir, "fix(security): require authentication on the items endpoint", "2026-06-15T10:00:00Z");
+  return { dir, fix, parent, anchor, introducing };
+}
 /** A clean repository: a route file touched by a doc-only commit, a route-shaped commit before the cut-off, and a later route-shaped commit after it. */
 function makeCleanUpstream(root: string, name: string, routeShaped: boolean): { dir: string; head: string; expected: string } {
   const dir = join(root, name);
@@ -147,6 +165,7 @@ function main(): void {
   const c2 = makeCaseUpstream(upstreams, "beta", {});
   const c3 = makeCaseUpstream(upstreams, "gamma", { refactorBeforeFix: true });
   const c4 = makeCaseUpstream(upstreams, "delta", {}); // post-cutoff column, anchor by hunk
+  const c6 = makeMovedUpstream(upstreams, "theta"); // blame names a commit whose diff does not add the anchor line
   const k1 = makeCleanUpstream(upstreams, "epsilon", true);
   const k2 = makeCleanUpstream(upstreams, "zeta", false);
   const casesTsv = join(scratch, "cases.tsv");
@@ -154,6 +173,7 @@ function main(): void {
     `held-out\t01\talpha\t${c1.fix}\t${c1.parent}\tsrc/routes/items.ts\t${c1.anchor}`,
     `held-out\t02\tbeta\t${c2.fix}\t${c2.parent}\tsrc/routes/items.ts\t${c2.anchor}`,
     `held-out\t03\tgamma\t${c3.fix}\t${c3.parent}\tsrc/routes/items.ts\t${c3.anchor}`,
+    `held-out\t04\ttheta\t${c6.fix}\t${c6.parent}\tsrc/routes/items.ts\t${c6.anchor}`,
     `post-cutoff\t01\tdelta\t${c4.fix}\t${c4.parent}\tsrc/routes/items.ts\thunk`,
     `clean\t01\tepsilon\t${k1.head}\t\tserver/routes.ts\t`,
     `clean\t02\tzeta\t${k2.head}\t\tserver/routes.ts\t`, ""].join("\n"));
@@ -180,6 +200,9 @@ function main(): void {
   else fail(`case 03: ${JSON.stringify({ accepted: a3.accepted, states: a3.states, note: a3.fixSideNote, rejection: a3.rejection })}`);
   if (p1.accepted && p1.files[0]!.anchorAtParent === c4.anchor && p1.states.fix) pass(`the post-cutoff case's anchor from the fix's first hunk equals the parent-side line (${c4.anchor})`);
   else fail(`post-cutoff anchor ${p1.files[0]!.anchorAtParent} expected ${c4.anchor}, accepted ${p1.accepted}`);
+  const a4 = byCase("held-out", "04");
+  if (!a4.accepted && a4.introducing === c6.introducing && /INTRODUCTION-AMBIGUOUS/.test(a4.rejection ?? "") && !a4.states.vulnerable) pass("a case whose blamed commit adds the line under another path is rejected by the blame rule and gets no state");
+  else fail(`case 04: accepted ${a4.accepted} I ${a4.introducing} expected ${c6.introducing} rejection ${a4.rejection} states ${JSON.stringify(a4.states)}`);
   const k1m = M.clean.find((k) => k.case === "01")!, k2m = M.clean.find((k) => k.case === "02")!;
   if (k1m.commit === k1.expected && k1m.routeShaped) pass("the clean rule picks the newest route-shaped commit before the cut-off, not the later one");
   else fail(`clean 01 picked ${k1m.commit} expected ${k1.expected} routeShaped ${k1m.routeShaped}`);
@@ -199,6 +222,21 @@ function main(): void {
   }
   if (stateDirs.length === 9 && neutralBad === 0) pass(`all ${stateDirs.length} prepared repositories are neutral: two commits on work, one on origin/HEAD, '${NEUTRAL.name}' and 2000-01-01 throughout, a local origin, a clean tree`);
   else fail(`neutral check: ${stateDirs.length} dirs, ${neutralBad} not neutral`);
+  // The neutral check refuses a repository that is not neutral: one negative per property, built from a real state's facts.
+  const d0 = join(root, stateDirs[0]!);
+  const f0 = { workLog: git(d0, ["log", fmt, "work"]).split("\n").filter(Boolean), originHeadLog: git(d0, ["log", fmt, "origin/HEAD"]).split("\n").filter(Boolean), remotes: git(d0, ["remote", "-v"]).split("\n").filter((l) => l.endsWith("(fetch)")).map((l) => l.replace(/\s+\(fetch\)$/, "")), status: git(d0, ["status", "--porcelain"]) };
+  const swap = (line: string, field: number, value: string) => line.split("\0").map((x, i) => (i === field ? value : x)).join("\0");
+  const negatives: Array<[string, typeof f0]> = [
+    ["a third commit on work", { ...f0, workLog: [...f0.workLog, f0.workLog[0]!] }],
+    ["an upstream author", { ...f0, workLog: [swap(f0.workLog[0]!, 1, UPSTREAM_AUTHOR), f0.workLog[1]!] }],
+    ["an upstream commit message", { ...f0, workLog: [swap(f0.workLog[0]!, 7, "fix(security): require authentication"), f0.workLog[1]!] }],
+    ["a real date", { ...f0, workLog: [swap(f0.workLog[0]!, 5, "2026-06-15T10:00:00Z"), f0.workLog[1]!] }],
+    ["an origin pointing at the upstream", { ...f0, remotes: [`origin\t${c1.dir}`] }],
+    ["a dirty working tree", { ...f0, status: "?? stray.txt\n" }],
+  ];
+  if (checkNeutralRepo(f0, d0 + ".origin.git").length === 0) pass("the neutral check accepts the real state it is about to be shown a broken copy of");
+  else fail(`neutral control: ${checkNeutralRepo(f0, d0 + ".origin.git").join("; ")}`);
+  for (const [name, facts] of negatives) (checkNeutralRepo(facts, d0 + ".origin.git").length > 0 ? pass : fail)(`the neutral check refuses ${name}`);
   if (traceBad === 0) pass("no prepared repository carries an upstream author, message, advisory id or issue number in any ref or reflog");
   else fail(`${traceBad} repositories carry an upstream trace`);
   const manifestText = readFileSync(manifestFile, "utf8");
@@ -233,9 +271,9 @@ function main(): void {
   ] as const;
   for (const [got, want, name] of hits) (got === want ? pass : fail)(`hit rule: ${name} -> ${got}`);
   const man = (n: number, fixSides = n): PreparedManifest => ({ version: 1, preparedAt: "", root: "/r", cases: Array.from({ length: n }, (_, i) => ({ set: "held-out" as const, case: String(i + 1).padStart(2, "0"), repo: "x", fixCommit: "f", parentCommit: "p", introducing: "i", introducingParent: "ip", accepted: true, rejection: null, files, states: { vulnerable: `v${i}`, fix: i < fixSides ? `f${i}` : null }, fixSideNote: null, treeAtWork: { vulnerable: "t", fix: i < fixSides ? "t2" : null }, diffStats: null })), clean: Array.from({ length: 10 }, (_, i) => ({ case: String(i + 1), repo: "x", path: "p", commit: "c", commitParent: "cp", routeShaped: true, rejection: null, state: `k${i}`, treeAtWork: "t" })) });
-  const recsFor = (m: PreparedManifest, hitCases: number, cleanFlagged: number, fixHitsOnFirst = 0): RunRecord[] => {
+  const recsFor = (m: PreparedManifest, hitCases: number, cleanFlagged: number, fixHitsOnFirst = 0, vulnHitRuns = 4): RunRecord[] => {
     const r: RunRecord[] = [];
-    m.cases.forEach((c, i) => { for (let run = 1; run <= RUNS; run++) { const hit = i < hitCases && run <= 4; r.push({ set: c.set, case: c.case, state: "vulnerable", run, voided: false, findings: hit ? fs : [], hit, anyFinding: hit }); if (c.states.fix) { const fh = i === 0 && run <= fixHitsOnFirst; r.push({ set: c.set, case: c.case, state: "fix", run, voided: false, findings: fh ? fs : [], hit: fh, anyFinding: fh }); } } });
+    m.cases.forEach((c, i) => { for (let run = 1; run <= RUNS; run++) { const hit = i < hitCases && run <= vulnHitRuns; r.push({ set: c.set, case: c.case, state: "vulnerable", run, voided: false, findings: hit ? fs : [], hit, anyFinding: hit }); if (c.states.fix) { const fh = i === 0 && run <= fixHitsOnFirst; r.push({ set: c.set, case: c.case, state: "fix", run, voided: false, findings: fh ? fs : [], hit: fh, anyFinding: fh }); } } });
     m.clean.forEach((k, i) => { for (let run = 1; run <= RUNS; run++) { const f = i < cleanFlagged && run <= 4; r.push({ set: "clean", case: k.case, state: "clean", run, voided: false, findings: f ? fs : [], hit: false, anyFinding: f }); } });
     return r;
   };
@@ -248,6 +286,8 @@ function main(): void {
     [scoreCases(man(10), recsFor(man(10), 10, 0, 2))[0]!.hit, false, "a case flagged on 2 of 5 fix-side runs is not a hit"],
     [gate(man(10, 6), recsFor(man(10, 6), 10, 0)), "AGENTIC-CONTINUE", "4 cases without a fix side count as misses; 6 hits continue"],
     [scoreCases(man(10, 6), recsFor(man(10, 6), 10, 0))[9]!.hit, false, "a case without a fix side is never a hit (A1 3.1)"],
+    [scoreCases(man(10), recsFor(man(10), 10, 0, 0, 3))[0]!.hit, false, "a case flagged on 3 of 5 vulnerable runs is not a hit"],
+    [gate(man(10), recsFor(man(10), 10, 0, 0, 3)), "AGENTIC-STOP", "10 cases each flagged on 3 of 5 vulnerable runs are 0 hits and stop"],
     [gate(man(7), recsFor(man(7), 7, 0)), "AGENTIC-PRECONDITION-FAILED", "7 accepted cases fail the precondition"],
     [gate(man(10), recsFor(man(10), 10, 0).slice(0, -1)), "AGENTIC-INCOMPLETE", "one missing run is incomplete"],
     [gate(man(10), recsFor(man(10), 10, 0), true), "AGENTIC-STOP", "a voided series stops"],
@@ -367,6 +407,17 @@ function main(): void {
   const rin = run(HARNESS, common(dIn));
   if (rin.status === 0 && !/voided/i.test(rin.stdout) && !existsSync(join(dIn, "runs", "VOID"))) pass("A3 control: a Read of an absolute path inside the repository and a dotted git range are not voided");
   else fail(`A3 control: status ${rin.status}: ${rin.stdout.slice(-300)}`);
+  // A state that stopped being neutral after preparation (a third commit, same tree, neutral identity) is refused before it is run.
+  const vDir = join(root, a1.states.vulnerable!);
+  const neutralEnv = { ...process.env, GIT_AUTHOR_NAME: NEUTRAL.name, GIT_AUTHOR_EMAIL: NEUTRAL.email, GIT_COMMITTER_NAME: NEUTRAL.name, GIT_COMMITTER_EMAIL: NEUTRAL.email, GIT_AUTHOR_DATE: NEUTRAL.date, GIT_COMMITTER_DATE: NEUTRAL.date };
+  execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-q", "--allow-empty", "-m", NEUTRAL.message], { cwd: vDir, env: neutralEnv });
+  stub.reset(); stub.config({ marker: MARKER });
+  const dn = join(scratch, "not-neutral");
+  const rn = run(HARNESS, common(dn));
+  const nRecs = existsSync(join(dn, "runs")) ? readdirSync(join(dn, "runs")).filter((x) => x.startsWith(a1.states.vulnerable!)) : [];
+  execFileSync("git", ["reset", "-q", "--hard", "HEAD~1"], { cwd: vDir, env: neutralEnv });
+  if (rn.status === 2 && /is not neutral or not clean: work branch has 3 commits/.test(rn.stdout) && nRecs.length === 0) pass("a prepared state that gained a commit is refused before it is run, with no record for it");
+  else fail(`not-neutral state: status ${rn.status}, records ${nRecs.join(",")}: ${rn.stdout.slice(-300)}`);
   stub.reset(); stub.config({ marker: MARKER, reportModel: "claude-sonnet-4-6" });
   const dm = join(scratch, "mismatch");
   const m = run(HARNESS, common(dm));
