@@ -15,6 +15,7 @@
  *   reportModel   the model to report (default: the --model argv)
  *   extraTool     emit one tool_use with this tool name (to test the audit)
  *   extraBash     emit one Bash tool_use with this command
+ *   extraUse      emit one tool_use {name, input}; "{cwd}" in a string input becomes the cwd
  *   failAfter     exit 1 with no output once more than N runs have been made
  *   writeFile     write this relative file into the cwd (to test the clean-tree check)
  *   outputTokens  output_tokens to report (default 2000)
@@ -27,7 +28,7 @@ import { appendFileSync, existsSync, readdirSync, readFileSync, statSync, writeF
 import { request } from "node:http";
 import { join, relative } from "node:path";
 
-interface Cfg { marker?: string; flagAll?: boolean; category?: string; reportModel?: string; extraTool?: string; extraBash?: string; failAfter?: number; writeFile?: string; outputTokens?: number; wire?: Record<string, unknown> }
+interface Cfg { marker?: string; flagAll?: boolean; category?: string; reportModel?: string; extraTool?: string; extraBash?: string; extraUse?: { name: string; input: Record<string, string> }; failAfter?: number; writeFile?: string; outputTokens?: number; wire?: Record<string, unknown> }
 const here = __dirname;
 const cfgPath = join(here, "stub-config.json");
 const cfg = (existsSync(cfgPath) ? JSON.parse(readFileSync(cfgPath, "utf8")) : {}) as Cfg;
@@ -103,6 +104,7 @@ if (base) {
   emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t2", name: "Bash", input: { command: "git log --no-decorate origin/HEAD..." } }] } });
   if (cfg.extraTool) emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t3", name: cfg.extraTool, input: { url: "http://example.invalid" } }] } });
   if (cfg.extraBash) emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t4", name: "Bash", input: { command: cfg.extraBash } }] } });
+  if (cfg.extraUse) emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t5", name: cfg.extraUse.name, input: Object.fromEntries(Object.entries(cfg.extraUse.input).map(([k, v]) => [k, v.replace("{cwd}", cwd)])) }] } });
   const inputTokens = Math.ceil(stdin.length / 3.5);
   const outputTokens = cfg.outputTokens ?? 2000;
   emit({ type: "result", subtype: "success", is_error: false, duration_ms: 1, num_turns: 3, result: md, session_id: "stub", total_cost_usd: 0, usage: { input_tokens: inputTokens, output_tokens: outputTokens, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }, modelUsage: { [model]: { inputTokens, outputTokens, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUSD: 0, maxOutputTokens: 128000 } } });

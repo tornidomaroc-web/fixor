@@ -10,6 +10,7 @@
  * ships.
  */
 import { createHash } from "node:crypto";
+import { isAbsolute, relative, resolve } from "node:path";
 
 // ---------------------------------------------------------------------------
 // Constants pinned by the pre-registration and A1.
@@ -204,7 +205,7 @@ export function runHit(findings: Finding[], files: DefectFile[]): { hit: boolean
 // Stream-json reading and the tool-call audit.
 // ---------------------------------------------------------------------------
 
-export interface ToolCall { name: string; command: string | null; parent: boolean }
+export interface ToolCall { name: string; command: string | null; parent: boolean; paths: string[] }
 export interface RunParse {
   ok: true;
   models: string[];
@@ -235,7 +236,8 @@ export function parseStream(stdout: string): RunParseResult {
       for (const b of content) {
         if (b["type"] === "tool_use") {
           const input = (b["input"] ?? {}) as Record<string, unknown>;
-          toolCalls.push({ name: String(b["name"]), command: typeof input["command"] === "string" ? (input["command"] as string) : null, parent: !ev["parent_tool_use_id"] });
+          const paths = ["file_path", "path", "notebook_path", "pattern", "glob"].map((k) => input[k]).filter((v): v is string => typeof v === "string");
+          toolCalls.push({ name: String(b["name"]), command: typeof input["command"] === "string" ? (input["command"] as string) : null, parent: !ev["parent_tool_use_id"], paths });
         }
       }
     }
@@ -262,15 +264,37 @@ export function parseStream(stdout: string): RunParseResult {
   };
 }
 
-/** Returns the calls that void a run: a tool outside TOOL_SET, or a Bash command outside the allowed git prefixes. */
-export function auditToolCalls(calls: ToolCall[]): ToolCall[] {
+/**
+ * A3: true when `p` can reach outside `root`. A path that is absolute, starts
+ * with `~`, or has a `..` segment must resolve inside `root`; a glob is judged
+ * by its prefix before the first wildcard. Plain relative paths stay inside.
+ */
+export function escapesRoot(p: string, root: string): boolean {
+  const s = p.trim().replace(/^["']+|["']+$/g, "");
+  if (s.startsWith("~")) return true;
+  const reaches = isAbsolute(s) || /^[A-Za-z]:/.test(s) || s.split(/[\\/]/).includes("..");
+  if (!reaches) return false;
+  const prefix = s.split(/[*?[{]/)[0] ?? "";
+  const rel = relative(resolve(root), resolve(root, prefix));
+  return rel === ".." || rel.startsWith("../") || rel.startsWith("..\\") || isAbsolute(rel);
+}
+
+/**
+ * Returns the calls that void a run: a tool outside TOOL_SET, or a Bash command
+ * outside the allowed git prefixes; with `root` (A3), also any file-tool path or
+ * git argument that reaches outside the run's repository, and `--no-index`.
+ */
+export function auditToolCalls(calls: ToolCall[], root?: string): ToolCall[] {
   const bad: ToolCall[] = [];
   for (const c of calls) {
     if (!(TOOL_SET as readonly string[]).includes(c.name)) { bad.push(c); continue; }
+    if (root !== undefined && c.paths.some((p) => escapesRoot(p, root))) { bad.push(c); continue; }
     if (c.name === "Bash") {
       const cmd = (c.command ?? "").trim();
       const parts = cmd.split(/\s*(?:&&|\|\||;|\|)\s*/).map((p) => p.trim()).filter(Boolean);
-      if (parts.length === 0 || !parts.every((p) => BASH_ALLOWED.some((a) => p === a || p.startsWith(a + " ")))) bad.push(c);
+      if (parts.length === 0 || !parts.every((p) => BASH_ALLOWED.some((a) => p === a || p.startsWith(a + " ")))) { bad.push(c); continue; }
+      const reachesOut = (p: string): boolean => /(^|\s)--no-index(\s|$)/.test(p) || p.split(/\s+/).slice(2).some((a) => escapesRoot(a.replace(/^--?[\w-]+=/, ""), root!));
+      if (root !== undefined && parts.some(reachesOut)) bad.push(c);
     }
   }
   return bad;

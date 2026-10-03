@@ -36,10 +36,25 @@ const out = process.stdout;
 const arg = (n: string): string | undefined => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : undefined; };
 const NEUTRAL_ENV = { GIT_AUTHOR_NAME: NEUTRAL.name, GIT_AUTHOR_EMAIL: NEUTRAL.email, GIT_AUTHOR_DATE: NEUTRAL.date, GIT_COMMITTER_NAME: NEUTRAL.name, GIT_COMMITTER_EMAIL: NEUTRAL.email, GIT_COMMITTER_DATE: NEUTRAL.date, GIT_CONFIG_NOSYSTEM: "1" };
 
+/** A blob fetch from the partial clone's remote failed: an infrastructure error, never a property of the case (A3). */
+const NETWORK_RE = /promisor remote|unable to access|Could not resolve host|Empty reply from server|early EOF|RPC failed|Connection (?:reset|timed out|refused)/i;
+const stderrOf = (e: unknown): string => String((e as { stderr?: string }).stderr ?? e);
+
+/** Runs git; a network failure (the mirrors are blob:none, so reads fetch lazily) is retried up to three times, then thrown. */
 function git(args: string[], cwd?: string, extraEnv: Record<string, string> = {}, input?: string): string {
-  return execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 1024 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], env: { ...process.env, ...NEUTRAL_ENV, ...extraEnv }, input });
+  for (let attempt = 1; ; attempt++) {
+    try { return execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 1024 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], env: { ...process.env, ...NEUTRAL_ENV, ...extraEnv }, input }); }
+    catch (e) {
+      if (attempt >= 3 || !NETWORK_RE.test(stderrOf(e))) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000 * attempt);
+    }
+  }
 }
-function gitTry(args: string[], cwd?: string): string | null { try { return git(args, cwd); } catch { return null; } }
+/** Null when git fails on the data (a missing path, no parent); a network failure is never read as "absent" and stops the preparation. */
+function gitTry(args: string[], cwd?: string): string | null {
+  try { return git(args, cwd); }
+  catch (e) { if (NETWORK_RE.test(stderrOf(e))) throw e; return null; }
+}
 
 interface Row { set: string; case: string; repo: string; fixCommit: string; parentCommit: string; path: string; anchor: string }
 function readRows(file: string): Row[] {
@@ -99,7 +114,11 @@ function treeWithPatch(mirror: string, I: string, parent: string, fix: string, p
   try {
     git(["worktree", "add", "-q", "--detach", wt, I], mirror);
     try { git(["apply", "--3way", "--index", "-"], wt, {}, patch); }
-    catch (e) { return { tree: null, note: `the fix patch does not apply to I's tree: ${String((e as { stderr?: string }).stderr ?? e).split("\n")[0]?.slice(0, 160)}` }; }
+    catch (e) {
+      // A3: a failed blob fetch is not a missing fix side (which A1 3.1 scores as a miss); it stops the preparation.
+      if (NETWORK_RE.test(stderrOf(e))) throw e;
+      return { tree: null, note: `the fix patch does not apply to I's tree: ${stderrOf(e).split("\n")[0]?.slice(0, 160)}` };
+    }
     return { tree: git(["write-tree"], wt).trim(), note: null };
   } finally {
     gitTry(["worktree", "remove", "--force", wt], mirror);
@@ -139,7 +158,7 @@ function main(): number {
     const rec: PreparedCase = { set, case: first.case, repo: first.repo, fixCommit: first.fixCommit, parentCommit: first.parentCommit, introducing: null, introducingParent: null, accepted: false, rejection: null, files: [], states: { vulnerable: null, fix: null }, fixSideNote: null, treeAtWork: { vulnerable: null, fix: null }, diffStats: null };
     cases.push(rec);
     let mirror: string;
-    try { mirror = mirrorOf(first.repo); } catch (e) { rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; continue; }
+    try { mirror = mirrorOf(first.repo); } catch (e) { if (NETWORK_RE.test(stderrOf(e))) throw e; rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; continue; }
     const P = first.parentCommit, F = first.fixCommit;
     // Anchors at the parent.
     const anchors: number[] = [];
@@ -207,7 +226,7 @@ function main(): number {
     const rec: PreparedClean = { case: r.case, repo: r.repo, path: r.path, commit: null, commitParent: null, routeShaped: false, rejection: null, state: null, treeAtWork: null };
     clean.push(rec);
     let mirror: string;
-    try { mirror = mirrorOf(r.repo); } catch (e) { rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; continue; }
+    try { mirror = mirrorOf(r.repo); } catch (e) { if (NETWORK_RE.test(stderrOf(e))) throw e; rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; continue; }
     const head = r.fixCommit; // the TSV's fourth column carries the head for clean rows
     const log = (gitTry(["log", "--no-merges", `--before=${cleanBefore}`, "--format=%H", head, "--", r.path], mirror) ?? "").split("\n").filter(Boolean);
     let pick: string | null = null, fallback: string | null = null;

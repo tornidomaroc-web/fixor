@@ -35,7 +35,7 @@
  *   F. Token volume per state from the expanded prompts, printed.
  */
 import { spawnSync, execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -204,6 +204,19 @@ function main(): void {
   const manifestText = readFileSync(manifestFile, "utf8");
   if (!manifestText.includes(MARKER) && !manifestText.includes("requireAuth") && !manifestText.includes("Router()")) pass("the manifest holds identifiers, windows and hashes, no file contents");
   else fail("the manifest carries file contents");
+  // A3: a blob that cannot be fetched (a blob:none mirror whose remote is gone) stops the preparation; it is never a rejection or a missing fix side.
+  const c5 = makeCaseUpstream(upstreams, "eta", {});
+  git(c5.dir, ["config", "uploadpack.allowFilter", "true"]);
+  const mirrorsNet = join(scratch, "m-net");
+  mkdirSync(mirrorsNet);
+  git(scratch, ["clone", "-q", "--bare", "--filter=blob:none", `file:///${c5.dir.replace(/\\/g, "/")}`, join(mirrorsNet, "eta.git")]);
+  const promisor = git(join(mirrorsNet, "eta.git"), ["config", "--get", "remote.origin.promisor"]).trim();
+  renameSync(c5.dir, c5.dir + "-gone");
+  const netTsv = join(scratch, "cases-net.tsv"), netOut = join(scratch, "prepared-net.json");
+  writeFileSync(netTsv, ["set\tcase\trepo\tfixCommit\tparentCommit\tpath\tanchor", `held-out\t01\teta\t${c5.fix}\t${c5.parent}\tsrc/routes/items.ts\t${c5.anchor}`, ""].join("\n"));
+  const pn = run(PREP, ["--cases", netTsv, "--mirrors", mirrorsNet, "--root", join(scratch, "r-net"), "--out", netOut, "--repo-url-template", `file:///${upstreams.replace(/\\/g, "/")}/{repo}`]);
+  if (promisor === "true" && pn.status === 3 && /promisor remote/.test(pn.stderr) && !existsSync(netOut)) pass("A3: a blob the mirror cannot fetch stops the preparation with exit 3 and no manifest, instead of rejecting the case");
+  else fail(`A3 network: promisor ${promisor}, status ${pn.status}, manifest ${existsSync(netOut)}: ${pn.stdout.slice(-300)} ${pn.stderr.slice(-300)}`);
 
   out.write("\nB. scoring, as functions\n");
   const md = "# Vuln 1: missing_authorization: `src/routes/items.ts:7`\n\n* Severity: High\n* Description: no auth\n\n# Vuln 2: xss: `web/app.tsx:12`\n\n* Severity: Medium\n* Description: reflected\n";
@@ -328,9 +341,15 @@ function main(): void {
   }
   if (!existsSync(join(REPO, "tmp-ar"))) pass("the refused root was not created inside the repository"); else fail("a directory was created inside the repository");
   const voids: Array<{ name: string; cfg: Record<string, unknown>; expect: RegExp }> = [
-    { name: "a tool outside the set (WebFetch)", cfg: { marker: MARKER, extraTool: "WebFetch" }, expect: /voided by a tool call outside the allowed set \(WebFetch\)/ },
-    { name: "a Bash command that is not an allowed git read", cfg: { marker: MARKER, extraBash: "curl http://example.invalid" }, expect: /voided by a tool call outside the allowed set \(Bash curl/ },
+    { name: "a tool outside the set (WebFetch)", cfg: { marker: MARKER, extraTool: "WebFetch" }, expect: /voided by a tool call outside the allowed set or reaching outside the repository \(WebFetch\)/ },
+    { name: "a Bash command that is not an allowed git read", cfg: { marker: MARKER, extraBash: "curl http://example.invalid" }, expect: /voided by a tool call outside the allowed set or reaching outside the repository \(Bash curl/ },
     { name: "a Bash chain whose second part is not allowed", cfg: { marker: MARKER, extraBash: "git status && cat /etc/passwd" }, expect: /voided by a tool call/ },
+    // A3: reaching outside the run's repository (the sibling states, the mirrors, this checkout).
+    { name: "A3: a Read of an absolute path outside the repository (the state root)", cfg: { marker: MARKER, extraUse: { name: "Read", input: { file_path: join(root, "x.txt") } } }, expect: /reaching outside the repository \(Read / },
+    { name: "A3: a Glob whose pattern climbs out with ..", cfg: { marker: MARKER, extraUse: { name: "Glob", input: { pattern: "../**/*.ts" } } }, expect: /reaching outside the repository \(Glob / },
+    { name: "A3: a Grep in a home path", cfg: { marker: MARKER, extraUse: { name: "Grep", input: { pattern: "requireAuth", path: "~/projects" } } }, expect: /reaching outside the repository \(Grep / },
+    { name: "A3: git diff --no-index", cfg: { marker: MARKER, extraBash: "git diff --no-index a.ts b.ts" }, expect: /reaching outside the repository \(Bash git diff --no-index/ },
+    { name: "A3: a git read naming a path above the repository", cfg: { marker: MARKER, extraBash: "git log --oneline -- ../other" }, expect: /reaching outside the repository \(Bash git log/ },
   ];
   for (const v of voids) {
     stub.reset(); stub.config(v.cfg);
@@ -342,6 +361,12 @@ function main(): void {
     if (res.status === 2 && v.expect.test(res.stdout) && stub.count() === 1 && files.includes("VOID") && again.status === 3 && /voided/.test(again.stdout) && stub.count() === 1) pass(`${v.name}: run voided, series stopped on the first run with exit 2, and it does not resume`);
     else fail(`${v.name}: status ${res.status}/${again.status}, calls ${stub.count()}, files ${files.join(",")}: ${res.stdout.slice(-300)}`);
   }
+  // A3 control: an absolute path INSIDE the run's repository and a dotted git range do not void.
+  stub.reset(); stub.config({ marker: MARKER, extraUse: { name: "Read", input: { file_path: "{cwd}/src/routes/items.ts" } }, extraBash: "git diff --stat origin/HEAD... -- src/routes/items.ts" });
+  const dIn = join(scratch, "inside");
+  const rin = run(HARNESS, common(dIn));
+  if (rin.status === 0 && !/voided/i.test(rin.stdout) && !existsSync(join(dIn, "runs", "VOID"))) pass("A3 control: a Read of an absolute path inside the repository and a dotted git range are not voided");
+  else fail(`A3 control: status ${rin.status}: ${rin.stdout.slice(-300)}`);
   stub.reset(); stub.config({ marker: MARKER, reportModel: "claude-sonnet-4-6" });
   const dm = join(scratch, "mismatch");
   const m = run(HARNESS, common(dm));
