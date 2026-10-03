@@ -2416,6 +2416,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #261 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #262 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #263 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #264 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2676,6 +2677,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #261 | `0e51df0` | 2026-09-30 00:58:02 | `measure/opus-arm-prereg-2026-09-29` (reflog: last move 00:11:59) | `90802a20`, captured before by the merging session; recomputed by the filing entry from the PR head `8e6689a`, equal | 404 on first read after the merge, 00:58:12 (merging session); 404 again when filed | `measure/opus-arm-prereg-2026-09-29` at `8e6689a` |
 | #262 | `4cedf0c` | 2026-10-02 11:11:19 | `measure/opus-arm-a2-wire-check` (reflog: last move 11:00:07) | `4719240f`, captured before | 404 on first read after the merge, 11:11:30 | `measure/opus-arm-a2-wire-check` at `172f950` |
 | #263 | `a81d621` | 2026-10-02 14:15:03 | `measure/opus-arm-run-2026-10-02` (reflog: last move 14:06:31) | `04043ecd`, captured before | 404 on first read after the merge, 14:15:38 | `measure/opus-arm-run-2026-10-02` at `a3bfe07` |
+| #264 | `5302000` | 2026-10-02 23:11:05 | `chore/cloud-session-guards` (reflog: last move 23:01:58) | `747565fe`, captured before | 404 on first read after the merge, 23:11:26 | `chore/cloud-session-guards` at `e3c7179` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2960,6 +2962,19 @@ after the merge, at 14:15:38. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new
 (2026-10-02), counted from the register table:** the arm invoked FROM the merged branch reads 39
 observations, 2 green and 37 red; the THIRD-branch arm is unchanged at 6, all RED; the register
 carries 51 rows, 49 RED. No cause is named. **The merge of this entry will owe the next row.**
+
+**#264 (2026-10-02).** The owner ran `gh pr merge 264 --squash --match-head-commit
+e3c717987b0be44650e66f3bc6b1feb07d95fcb2` from the prompt with HEAD on `chore/cloud-session-guards`,
+the merged branch itself; the reflog's last HEAD move before the merge is 23:01:58 (the
+re-anchoring commit), and HEAD was still there after it. That is the arm invoked FROM the merged
+branch. **RED**: `gh` exited 0 and printed nothing; the local ref `chore/cloud-session-guards`
+survived at `e3c7179`. Assertion 2 held against a tree captured before the merge: `747565fe` on
+both. The squash `5302000` has the single parent `a81d621`, merged at 23:11:05Z. The head ref
+answered 404 on the first read after the merge, at 23:11:26. gh 2.91.0, git 2.53.0.windows.2.
+**Totals as a new dated record (2026-10-03), counted from the register table:** the arm invoked
+FROM the merged branch reads 40 observations, 2 green and 38 red; the THIRD-branch arm is unchanged
+at 6, all RED; the register carries 52 rows, 50 RED. No cause is named. **The merge of this entry
+will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3535,6 +3550,23 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #263 | `a81d621` | 2026-10-02 14:15:32 | 14:16:13 | not triggered |
+
+  **#264 (added 2026-10-03).** CI (run 37076338490, both Node jobs, `head=5302000`) and the
+  `secrets` workflow (run 37076338479) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal` lines and two `PASS:
+  forced-routing rehearsal` lines (once per Node job) and zero `[FAIL]` lines. The Railway and
+  Vercel times are the `success` statuses of their GitHub deployments for `5302000` (ids
+  6820150699 and 6820164048), posted by `railway-app[bot]` and `vercel[bot]`; no Railway CLI or
+  dashboard was read. At 23:13:24 the backend answered `{"status":"ok","db":"ok","anthropic":"ok",
+  "uptime_s":72}`, which dates the container to about 23:12:12, the deploy; the dashboard answered
+  `{"status":"ok","db":"ok"}` at 23:13:26. CI on `main` was still running at the health reads and
+  concluded success afterwards. Not observed: anything in production, because #264 changed
+  `.claude/settings.json`, `.gitignore` and the tracker only. These reads show only that nothing
+  regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #264 | `5302000` | 2026-10-02 23:12:18 | 23:12:15 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5906,6 +5938,37 @@ because that widening is on the READING side and this argument turns on the RUNN
     evidence, and `ICP-REACH.md` lists third-party paths. They are dated prose, and this
     tracker's standing rule is that dated prose is annotated, never rewritten. Reducing them
     would break that rule, so it is left to the owner.
+
+  **THIRD HELD-OUT SET, BATCH 1, FROZEN AND SEALED 2026-10-03: 6 admitted, below the minimum of
+  10; no measurement label applies yet.** `docs/measurements/held-out-3-2026-10-03/`.
+  - **Order.** The admission rules (`admission-2026-10-03.md`) were committed alone in `827f53a`
+    before the advisory database was queried. The draw applied them as written:
+    - access-control CWEs, reviewed and unreviewed GitHub advisories, published 2026-07-01 to
+      the run time;
+    - JS/TS self-hosted multi-user applications not used in Arm A, the held-out ten or the
+      tracked tree;
+    - one of auth-bypass, admin-check or idor;
+    - a fix commit with one parent, dated 2026-07-01 or later (author and committer dates);
+    - one case per repository.
+  - **Counts.** 8,022 listed, 6 admitted. Every rejected advisory is in the rejection log with the
+    first rule it failed. R4 and R5, the two judgment rules, are listed per repository and per
+    advisory with reasons. The six: AFFiNE (idor), immich (admin-check), Rocket.Chat
+    (auth-bypass), spacebar server (idor), icehrm (idor), clawhub (idor). A matched clean file per
+    defect file was drawn by a content-free sibling rule. Identifiers and blob ids only are
+    committed. The 27 files sit outside the repository, each verified against its blob id twice.
+    No detector, judge or model ran.
+  - **A gap in R6, found after the draw and not repaired.** R6 accepts the advisory's first cited
+    commit without checking that its files hold the defect. In case 05 the defect is in a PHP
+    file the advisory names; in case 06 the cited commit is a different fix. Both stay admitted,
+    because dropping them now would be selection after looking. **4 of the 6 have defect files
+    consistent with their advisory.** Every measurement pre-registration on this set must state in
+    advance how it treats cases 05 and 06. A corrected rule is a new set.
+  - **The binding constraint is fix citation.** 126 in-lane advisories in application-shaped
+    repositories cite no same-repository commit or pull request. At this rate the set reaches 10
+    around early 2027 and 30 well into 2028.
+  - **Sealed.** No prompt, prefilter, detector, lane or harness may be written, tuned or debugged
+    against these cases; they are used only by a measurement pre-registered before it reads them.
+    Batch 2 is drawn on 2026-11-03 under the same rules and seed.
 
   **CLOUD SESSION GUARDS, 2026-10-02: a committed `.claude/settings.json`.** A Claude Code cloud
   session clones the repository into a fresh VM. Per the docs (Configure cloud environments, "What

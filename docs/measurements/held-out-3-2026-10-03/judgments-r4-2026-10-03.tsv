@@ -1,0 +1,129 @@
+# R4 (application-shaped), one reader, per repository that reached R4.
+repo	r4	reason	repository_description
+AmauriC/tarteaucitron.js	out	client-side library	Open-source JavaScript cookie consent manager for GDPR / RGPD. Customizable banner, service-level controls and Google Consent Mode v2 support.
+andrea9293/mcp-documentation-server	out	MCP server	MCP Documentation Server - Bridge the AI Knowledge Gap.  ✨ Features: Document management • Gemini integration • AI-powered semantic search • File uploads • Smar
+Anil-matcha/Open-Generative-AI	out	single-user generator UI, no user accounts evident	Unrestricted Open-source alternative to AI video platforms — Free AI image & video generation studio with 600+ models (Flux, Midjourney, Kling, Sora, Veo). No c
+apitable/apitable	in	low-code collaboration platform with organizations and accounts	🚀🎉📚 APITable, an API-oriented low-code platform for building collaborative apps and better than all other Airtable open-source alternatives. 
+archerysec/archerysec	in	multi-user vulnerability-management platform with organizations	ASOC, ASPM, DevSecOps, Vulnerability Management Using ArcherySec.
+arikusi/deepseek-mcp-server	out	MCP server	MCP server for DeepSeek V4 (v4-flash, v4-pro, 1M context): chat, reasoning, function calling, thinking mode, cost tracking. deepseek-chat/reasoner aliases suppo
+better-auth/better-auth	out	library	The most comprehensive authentication framework
+blinkospace/blinko	in	self-hosted note service; the advisory concerns cross-user note disclosure, so it is multi-user	An open-source, self-hosted personal AI note tool prioritizing privacy, built using TypeScript .
+bluewave-labs/Checkmate	in	self-hosted monitoring service with users and roles	Checkmate is an open-source, self-hosted tool designed to track and monitor server hardware, uptime, response times, and incidents in real-time with beautiful v
+bytebase/dbhub	out	MCP server	Token conscious database MCP server for Postgres, MySQL, SQL Server, Oracle, MariaDB, SQLite.
+bytedance/UI-TARS-desktop	out	desktop agent	The Open-Source Multimodal AI Agent Stack: Connecting Cutting-Edge AI Models and Agent Infra
+calcom/cal.diy	in	self-hosted scheduling application with user accounts	Scheduling infrastructure for absolutely everyone.
+Cap-go/capgo.app	in	console and backend with organizations and API keys	Console, Backend and CLI to manage Capgo Instant update and Native build for Capacitor apps 
+chaskiq/chaskiq	in	live chat and support platform with agents and accounts	A full featured Live Chat, Support & Marketing platform, alternative to Intercom, Drift, Crisp.
+cosmicstack-labs/mercury-agent	out	single-user agent tool	Soul-driven AI agent with permission-hardened tools, token budgets, and multi-channel access. Runs 24/7 from CLI, Telegram or More.
+Countly/countly-server	in	self-hosted analytics server with users and roles	Countly is a privacy-first, AI-powered analytics and engagement platform for understanding and optimizing customer journeys across digital applications, from de
+coze-dev/coze-studio	in	agent development platform with users and workspaces	An AI agent development platform with all-in-one visual tools, simplifying agent creation, debugging, and deployment like never before. Coze your way to AI Agen
+czlonkowski/n8n-mcp	out	MCP server	A MCP for Claude Desktop / Claude Code / Windsurf / Cursor to build n8n workflows for you 
+dataease/SQLBot	in	multi-user BI and question-answering service with dashboards and owners	🔥 基于大模型和 RAG 的智能问数系统，对话式数据分析神器。Text-to-SQL Generation via LLMs using RAG.
+DayuanJiang/next-ai-draw-io	out	single-user application	A next.js web application that integrates AI capabilities with draw.io diagrams. This app allows you to create, modify, and enhance diagrams through natural lan
+decolua/9router	out	single-user tool (out in the held-out ten's audit too)	Unlimited FREE AI coding. Connect Claude Code, Codex, Cursor, Cline, Copilot, Antigravity to FREE Claude/GPT/Gemini via 40+ providers. Auto-fallback, RTK -40% t
+DerYeger/yeger	out	package monorepo	Monorepo for @yeger/ NPM packages
+diegosouzapw/OmniRoute	out	single-user tool (out in the held-out ten's audit too)	Never stop coding. Free MIT AI gateway: one endpoint, 359 providers (150+ free), 1200+ models Kimi, Claude, GPT, Gemini, GLM, DeepSeek, MiniMax. Works with Clau
+documize/community	in	self-hosted documentation wiki with users and spaces	Modern Confluence alternative designed for internal & external docs, built with Go + EmberJS
+dynatrace-oss/dynatrace-mcp	out	MCP server	MCP server for Dynatrace Observability
+enchant97/note-mark	in	self-hosted web notes application with user accounts	Note Mark is a lighting fast, web-based Markdown notes app.
+fastify/fastify	out	framework	Fast and low overhead web framework, for Node.js
+Finsys/dockhand	in	Docker management web application with authenticated users	Dockhand - Docker management you will like.
+fonoster/fonoster	in	multi-tenant communications platform with workspaces	🚀 The open-source alternative to Twilio.
+fosrl/pangolin	in	self-hosted access platform with users, organizations and resources	Modern networking and security platform providing secure access and connectivity to apps, infrastructure, and AI workloads. Connect and protect your users.
+gamonoid/icehrm	in	HR management system with employees and roles	Manage your employees easily with a robust and efficient Human Resource Management System
+ghostfolio/ghostfolio	in	self-hosted wealth-management application with user accounts	Open Source Wealth Management Software. Angular + NestJS + Prisma + Nx + TypeScript 🤍
+Grashjs/cmms	in	self-hosted maintenance-management application with companies and users	#1 Self hosted CMMS web & mobile application that allows you to manage enterprise maintenance for free - Computerized Maintenance Management System
+growilabs/growi	in	team wiki with users, groups and page permissions	:anchor: GROWI - Team collaboration software using markdown
+grpc/grpc-node	out	library	gRPC for Node.js
+Helicone/helicone	in	LLM observability platform with organizations and keys	🧊 Open source LLM observability platform. One line of code to monitor, evaluate, and experiment. YC W23 🍓
+HumanSignal/label-studio	in	multi-user labeling platform with organizations	Label Studio is a multi-type data labeling and annotation tool with standardized output format
+hyperdxio/hyperdx	in	observability platform with teams and roles	Resolve production issues, fast. An open source observability platform unifying session replays, logs, metrics, traces and errors powered by ClickHouse and Open
+idurar/idurar-erp-crm	in	ERP and CRM application with user accounts	Free Open Source ERP CRM Software Accounting Invoicing | Node.Js React
+immich-app/immich	in	self-hosted photo service with users and shared albums	High performance self-hosted photo and video management solution.
+invoke-ai/InvokeAI	in	creative server with a web UI and multi-user mode (borderline: often run single-user)	Invoke is a leading creative engine for Stable Diffusion models, empowering professionals, artists, and enthusiasts to generate and create visual media using th
+jhb-software/payload-plugins	out	CMS plugins	A collection of powerful plugins designed to enhance Payload CMS
+jitsi/jitsi-meet-electron-sdk	out	SDK	Jitsi Meet SDK for Electron
+Jovancoding/Network-AI	out	single-user tool (out in the held-out ten's audit too)	Traffic light for AI Agents and TypeScript/Node multi-agent orchestrator with shared state, guardrails, and adapters for 32 AI frameworks
+JSONbored/loopover	out	single-user tool (gittensory, out in the held-out ten's audit too)	The loop never sleeps — you finally can. Agents automate the entire development lifecycle (write, review, merge, learn) end to end, with a published safety reco
+jupyterlab/jupyterlab	out	single-user developer tool	JupyterLab computational environment.
+kanbn/kan	in	self-hosted Trello alternative with workspaces and members	The open source Trello alternative.
+karakeep-app/karakeep	in	self-hostable bookmarking service with user accounts	A self-hostable bookmark-everything app (links, notes and images) with AI-based automatic tagging and full text search
+Katello/katello	in	systems-management server with users and organizations	Katello integrates open source systems management tools into a single solution for controlling the lifecycle of your machines.
+kerberosmansour/hulumi	out	policy package	
+kite-org/kite	in	Kubernetes dashboard with users and RBAC	🪁 A lightweight, modern Kubernetes dashboard. All your clusters. One workspace.
+kortix-ai/suna	in	AI management platform with users and threads	The open-source AI Management System
+kubero-dev/kubero	in	self-hosted PaaS with authenticated users	A free and self-hosted PaaS alternative to Heroku / Netlify / Coolify / Vercel / Dokku / Portainer running on Kubernetes
+libp2p/js-libp2p	out	library	A JavaScript Implementation of libp2p networking stack.
+liketrek/TREK	in	self-hosted trip planner with collaboration between users	A self-hosted travel/trip planner with real-time collaboration, interactive maps, PWA support, SSO, budgets, packing lists, and more.
+LimeSurvey/LimeSurvey	in	survey platform with users and permissions	🔥 LimeSurvey – A powerful, open-source survey platform. A free alternative to SurveyMonkey, Typeform, Qualtrics, and Google Forms, making it simple to create o
+logto-io/logto	in	self-hosted identity platform with tenants, users and admin console	🧑‍🚀 Authentication and authorization infrastructure for SaaS and AI apps, built on OIDC and OAuth 2.1 with multi-tenancy, SSO, and RBAC.
+MagicMirrorOrg/MagicMirror	out	single-user device platform	MagicMirror² is an open source modular smart mirror platform. With a growing list of installable modules, the MagicMirror² allows you to convert your hallway or
+MarcosCamara01/ecommerce-template	out	template, not a deployed application	An ecommerce template built with NextJS 16, TypeScript and TailwindCSS
+mastra-ai/mastra	out	framework	Mastra is the modern TypeScript framework for AI-powered applications and agents.
+mckaywrigley/chatbot-ui	in	chat application with user accounts and per-user data	AI chat for any model.
+mcp-router/mcp-router	out	MCP aggregator	MCP Router — development, support and security updates ended 2026-09-18. Historical source and final release for existing users.
+mediacms-io/mediacms	in	video CMS with users, roles and media ownership	MediaCMS is a modern, fully featured open source video and media CMS, written in Python/Django and React, featuring a REST API.
+metatool-ai/metamcp	out	MCP gateway (MCP servers are out)	MCP Aggregator, Orchestrator, Middleware, Gateway in one docker
+mf-yang/openclaw-cn	out	personal assistant	中文社区版OpenClaw，同原版保持定期更新，已内置钉钉、企业微信、飞书、QQ、微信以及国内网络环境优化。你的专属个人AI助手。支持所有操作系统和平台。🦞
+microrealestate/microrealestate	in	property-management application for landlords and tenants	Self-hosted property management app for landlords to manage leases, rents and receipts.
+midday-ai/midday	in	business application with teams and members	Invoicing, Time tracking, File reconciliation, Storage, Financial Overview & your own Assistant made for Freelancers
+mighty840/kitchenasty	in	restaurant ordering and management system with customers and staff	A self-hosted restaurant online ordering, table reservation, and management system. KitchenAsty enables restaurants, cafes, and takeaways to accept online order
+mindskip/xzs	in	online exam system with students, teachers and admins	在线考试系统
+MISP/cti-transmute	in	online service with user accounts and access-controlled comments	An online service for converting cyber threat intelligence format, built to promote interoperability and seamless data exchange
+mlogclub/bbs-go	in	forum with users and an admin area	A lightweight community and Q&A platform for forums, knowledge bases, and discussions.一个轻量级社区和问答平台。
+mockoon/mockoon	out	developer tool	Mockoon is the easiest and quickest way to run mock APIs locally. No remote deployment, no account required, open source.
+MohibShaikh/clawvet	out	single-tenant vetting tool	Skill vetting & supply chain security for the OpenClaw ecosystem. Scans SKILL.md files for prompt injection, credential theft, remote code execution, typosquatt
+NangoHQ/nango	in	integration platform with environments and accounts	Connect your agents & product to 1,000 APIs.
+NASA-AMMOS/AIT-GUI	out	single-user instrument GUI	
+next-terminal/next-terminal	in	bastion and session-audit system with users and assets	A simple, secure, easy-to-use bastion and session auditing system. Supports RDP, SSH, VNC, Telnet, HTTP, records and replays sessions for auditing and complianc
+nextauthjs/next-auth	out	library	Authentication for the Web.
+NginxProxyManager/nginx-proxy-manager	in	proxy management web application with users and permissions	Docker container for managing Nginx proxy hosts with a simple, powerful interface
+nick-pape/grackle	out	agent orchestration tool	Manage and orchestrate AI coding agents (Claude Code, Copilot, Goose, etc.) on remote machines — task decomposition, multi-agent coordination, and real-time vis
+NodeBB/NodeBB	in	forum software with users and privileges	Node.js based forum software built for the modern web
+nodemailer/nodemailer	out	library	✉️ Send e-mails with Node.JS – easy as cake!
+nuxt/nuxt	out	framework	The full-stack Vue framework.
+onlook-dev/onlook	in	design web application with user accounts and projects	The Developer Tool for Designers • An Open-Source AI-First Design tool • Visually build, style, and edit your code with AI • World's best, top-most agent recomm
+openchamber/openchamber	out	developer environment	Agentic Development Environment based on OpenCode AI agent
+openclaw/clawhub	in	registry backend with publishers and accounts	Skill + Plugin Registry for OpenClaw
+openclaw/openclaw	out	personal assistant (out in the held-out ten's audit too)	The AI that really does things. Any OS. Any Platform. The lobster way. 🦞 
+Openpanel-dev/openpanel	in	analytics platform with organizations and projects	OpenPanel is an open-source web and product analytics platform, an open-source alternative to Mixpanel with optional self-hosting.
+OpenSignLabs/OpenSign	in	document-signing platform with users and documents	🔥 The free & Open Source DocuSign alternative
+openwrt/luci	out	router configuration UI, single administrator	LuCI - OpenWrt Configuration Interface
+OpenZeppelin/openzeppelin-confidential-contracts	out	contracts library	Solidity library of encrypted contracts using Zama's FHEVM
+patriksimek/vm2	out	library	Advanced vm/sandbox for Node.js
+Peppermint-Lab/peppermint	in	help-desk application with users and tickets	An open source issue management & help desk solution. A zendesk & jira alternative
+portainer/portainer	in	container management with users, teams and roles	Making Docker and Kubernetes management easy.
+presenton/presenton	out	single-user generator	Open-Source AI Presentation Generator and API (Gamma, Canva, Beautiful AI, Decktopus, Presentations AI Alternative)
+PrestaShop/psgdpr	out	e-commerce module	Official GDPR compliance module
+reconmap/reconmap	in	security-operations platform with users and roles	Reconmap is a collaboration-first security operations platform for infosec teams and MSSPs, enabling end‑to‑end engagement management, from reconnaissance throu
+renovatebot/renovate	out	CLI	Home of the Renovate CLI: Cross-platform Dependency Automation by Mend.io
+retspen/webvirtcloud	in	virtualisation web interface with admins and users	WebVirtCloud is virtualization web interface for admins and users
+RocketChat/Rocket.Chat	in	chat platform with users, roles and rooms	The Secure CommsOS™ for mission-critical operations
+samanhappy/mcphub	out	MCP gateway (MCP servers are out)	Self-hosted MCP gateway and control plane for connecting, controlling, and operating MCP servers.
+senaite/senaite.core	in	laboratory information system with users and roles	Enterprise Open Source Laboratory System (LIMS)
+sgoudelis/ground-station	out	single-user station suite	Browser-based ground station suite for celestial body, mission and satellite tracking, SDR reception, hardware control, and telemetry decoding
+simalexan/api-lambda-send-email-ses	out	single-purpose function	API and a Lambda Function for sending emails
+siyuan-note/siyuan	out	single-user knowledge workspace	An open-source, privacy-first, self-hosted knowledge workspace where humans and AI agents work together 开源、隐私优先、自托管的知识工作空间，让人与智能体在此协作
+songquanpeng/one-api	in	LLM API distribution system with users, tokens and channels	LLM API 管理 & 分发系统，支持 OpenAI、Azure、Anthropic Claude、Google Gemini、DeepSeek、字节豆包、ChatGLM、文心一言、讯飞星火、通义千问、360 智脑、腾讯混元等主流模型，统一 API 适配，可用于 key 管理与二次分发。单可执行文件，提供 Docke
+spacebarchat/server	in	chat backend with users and guild permissions	Spacebar server - A reimplementation of the Discord.com backend, built with Typescript and love
+streamaserver/streama	in	self-hosted streaming server with user accounts	Self hosted streaming media server. https://docs.streama-project.com/
+TarsCloud/TarsWeb	in	service dashboard with users and permissions	TARS Projects Dashboard
+team-telnyx/telnyx-node	out	SDK	Node SDK for the Telnyx API
+THU-MAIC/OpenMAIC	out	classroom demo without evident user accounts	Open Multi-Agent Interactive Classroom — Get an immersive, multi-agent learning experience in just one click
+TinyAGI/tinyagi	out	single-user agent tool	TinyAGI is the agent teams orchestrator for One Person Company. (fka TinyClaw)
+toeverything/AFFiNE	in	knowledge workspace server with users and document permissions	There can be more than Notion and Miro. AFFiNE(pronounced [ə‘fain]) is a next-gen knowledge base that brings planning, sorting and creating all together. Privac
+ToolJet/ToolJet	in	internal-tools platform with workspaces and roles	Open-source foundation of ToolJet AI - the enterprise app generation platform for internal tools, dashboards, business applications, workflows and AI agents. Bu
+typemill/typemill	in	CMS with user accounts and roles	Typemill is a flat-file CMS based on Markdown and designed for informational websites like documentation, manuals, and handbooks.
+UI5/webcomponents	out	UI library	UI5 Web Components - the enterprise-flavored sugar on top of native APIs! Build SAP Fiori user interfaces with the technology of your choice.
+unitedbyai/droidclaw	out	device agent	turn old phones into ai agents - give it a goal in plain english. it reads the screen, thinks about what to do, taps and types via adb, and repeats until the jo
+usmannasir/cyberpanel	in	hosting control panel with users and API	Cyber Panel - The hosting control panel for OpenLiteSpeed
+utmstack/UTMStack	in	SIEM platform with users and roles	Enterprise-ready SIEM, SOAR and Compliance powered by real-time correlation and threat intelligence.
+vitest-dev/vitest	out	test framework	Next generation testing framework powered by Vite.
+VoltAgent/voltagent	out	agent framework	AI Agent Engineering Platform built on an Open Source TypeScript AI Agent Framework
+waooAI/waoowaoo	out	production tool without evident user accounts	首家工业级全流程 AI 影视生产平台。Industry-first professional AI Agent platform for controllable film & video production. From shorts to live-action with Hollywood-standard wo
+web-infra-dev/midscene	out	testing tool	GUI Agent for E2E Testing
+withastro/astro	out	framework	The web framework for content-driven websites. ⭐️ Star to support our work!
+Worklenz/worklenz	in	project-management application with organizations and members	All in one project management tool for efficient teams
+wuzhicms/wuzhicms	in	CMS with members and an admin area	php 内容管理系统
+WWBN/AVideo	in	video platform with users, channels and admin	Create Your Own Broadcast Network With AVideo Platform Open-Source. OAVP OVP
+zereight/gitlab-mcp	out	MCP server	First gitlab mcp for you, building together
