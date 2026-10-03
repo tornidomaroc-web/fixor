@@ -88,6 +88,8 @@ export interface PreparedManifest {
   preparedAt: string;
   /** Absolute root under which every state directory sits; neutral, outside the repository. */
   root: string;
+  /** False while the preparation is still running or was cut off; the harness runs only a complete manifest. */
+  complete?: boolean;
   cases: PreparedCase[];
   clean: PreparedClean[];
 }

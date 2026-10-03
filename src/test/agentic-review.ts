@@ -147,6 +147,7 @@ async function main(): Promise<number> {
   // The prepared manifest.
   const manifest = JSON.parse(readFileSync(preparedFile, "utf8")) as PreparedManifest;
   if (manifest.version !== 1) { out.write("refused: unknown prepared manifest version\n"); return 3; }
+  if (manifest.complete !== true) { out.write("refused: the prepared manifest is partial; finish it with agentic-prepare --resume\n"); return 3; }
   if (inside(manifest.root, repoRoot) || WORK_ROOT_FORBIDDEN.test(manifest.root)) { out.write(`refused: prepared root ${manifest.root} is inside the repository or names the product, the judge or a case set\n`); return 3; }
   const forbidden = [repoRoot, resolve(preparedFile, "..")];
 

@@ -25,7 +25,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, lstatSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync, lstatSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve, sep } from "node:path";
 
@@ -128,7 +128,8 @@ function treeWithPatch(mirror: string, I: string, parent: string, fix: string, p
 
 function main(): number {
   const casesFile = arg("--cases"), mirrors = arg("--mirrors"), root = arg("--root"), outFile = arg("--out");
-  if (!casesFile || !mirrors || !root || !outFile) { out.write("usage: agentic-prepare --cases <tsv> --mirrors <dir> --root <neutral dir> --out <manifest.json> [--repo-url-template T] [--clean-before ISO]\n"); return 3; }
+  const resume = process.argv.includes("--resume");
+  if (!casesFile || !mirrors || !root || !outFile) { out.write("usage: agentic-prepare --cases <tsv> --mirrors <dir> --root <neutral dir> --out <manifest.json> [--resume] [--repo-url-template T] [--clean-before ISO]\n"); return 3; }
   const urlT = arg("--repo-url-template") ?? "https://github.com/{repo}.git";
   const cleanBefore = arg("--clean-before") ?? "2026-09-28T00:00:00Z";
   const repoRoot = process.cwd();
@@ -152,13 +153,26 @@ function main(): number {
   const groups = new Map<string, Row[]>();
   for (const r of rows.filter((x) => x.set !== "clean")) { const k = `${r.set}|${r.case}`; if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(r); }
   const cases: PreparedCase[] = [];
-  for (const [, g] of groups) {
+  const clean: PreparedClean[] = [];
+  // The manifest is rewritten after every finished record, marked partial until the last; the harness refuses a partial one.
+  const save = (complete: boolean): void => {
+    const manifest: PreparedManifest = { version: 1, preparedAt: new Date().toISOString(), root: rootAbs, complete, cases, clean };
+    mkdirSync(resolve(outFile, ".."), { recursive: true });
+    writeFileSync(outFile + ".tmp", JSON.stringify(manifest, null, 1));
+    renameSync(outFile + ".tmp", outFile);
+  };
+  // --resume: a record from a partial manifest is reused when its rows match and every state it names exists.
+  const prior: PreparedManifest | null = resume && existsSync(outFile) ? (JSON.parse(readFileSync(outFile, "utf8")) as PreparedManifest) : null;
+  if (prior && prior.complete) { out.write(`refused: ${outFile} is a complete manifest; resume only continues a partial one\n`); return 3; }
+  if (prior && resolve(prior.root) !== rootAbs) { out.write(`refused: ${outFile} was prepared under ${prior.root}, not ${rootAbs}\n`); return 3; }
+  const statesExist = (tokens: Array<string | null>): boolean => tokens.every((t) => t === null || existsSync(join(rootAbs, t)));
+
+  const prepareCase = (g: Row[]): PreparedCase => {
     const first = g[0]!;
     const set = first.set as SetName;
     const rec: PreparedCase = { set, case: first.case, repo: first.repo, fixCommit: first.fixCommit, parentCommit: first.parentCommit, introducing: null, introducingParent: null, accepted: false, rejection: null, files: [], states: { vulnerable: null, fix: null }, fixSideNote: null, treeAtWork: { vulnerable: null, fix: null }, diffStats: null };
-    cases.push(rec);
     let mirror: string;
-    try { mirror = mirrorOf(first.repo); } catch (e) { if (NETWORK_RE.test(stderrOf(e))) throw e; rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; continue; }
+    try { mirror = mirrorOf(first.repo); } catch (e) { if (NETWORK_RE.test(stderrOf(e))) throw e; rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; return rec; }
     const P = first.parentCommit, F = first.fixCommit;
     // Anchors at the parent.
     const anchors: number[] = [];
@@ -170,7 +184,7 @@ function main(): number {
       const m = d.match(/^@@ -(\d+)(?:,(\d+))? /m);
       anchors.push(m ? Math.max(1, Number(m[1]) + (m[2] === "0" ? 1 : 0)) : 0);
     }
-    if (!anchors[0]) { rec.rejection = `no anchor for the first defect file ${first.path}`; continue; }
+    if (!anchors[0]) { rec.rejection = `no anchor for the first defect file ${first.path}`; return rec; }
     // Blame rule on the first file.
     const blameAt = (path: string, line: number): { sha: string; orig: number } | null => {
       const b = gitTry(["blame", "-w", "-M", "-C", "--porcelain", "-L", `${line},${line}`, P, "--", path], mirror);
@@ -178,7 +192,7 @@ function main(): number {
       return m ? { sha: m[1]!, orig: Number(m[2]) } : null;
     };
     const b0 = blameAt(first.path, anchors[0]);
-    if (!b0) { rec.rejection = `blame failed on ${first.path}:${anchors[0]} at ${P.slice(0, 12)}`; continue; }
+    if (!b0) { rec.rejection = `blame failed on ${first.path}:${anchors[0]} at ${P.slice(0, 12)}`; return rec; }
     const I = b0.sha;
     const lineAtP = (gitTry(["show", `${P}:${first.path}`], mirror) ?? "").split(/\r?\n/)[anchors[0] - 1] ?? "";
     const addedByI = (gitTry(["show", "--format=", "-U0", I, "--", first.path], mirror) ?? "").split(/\r?\n/).some((l) => l.startsWith("+") && !l.startsWith("+++") && l.slice(1).trim() === lineAtP.trim());
@@ -206,7 +220,7 @@ function main(): number {
       }
       rec.files.push(df);
     });
-    if (rec.rejection) continue;
+    if (rec.rejection) return rec;
     rec.accepted = true;
     const stat = gitTry(["diff", "--shortstat", `${I}^`, I], mirror) ?? "";
     rec.diffStats = { files: Number((stat.match(/(\d+) files? changed/) ?? [])[1] ?? 0), additions: Number((stat.match(/(\d+) insertions?/) ?? [])[1] ?? 0), deletions: Number((stat.match(/(\d+) deletions?/) ?? [])[1] ?? 0) };
@@ -217,16 +231,26 @@ function main(): number {
     const fixed = treeWithPatch(mirror, I, P, F, g.map((r) => r.path));
     if (fixed.tree) { const tf = token(); rec.states.fix = tf; rec.treeAtWork.fix = buildState(mirror, `${I}^`, null, fixed.tree, join(rootAbs, tf)); }
     else rec.fixSideNote = fixed.note;
-    out.write(`case ${set} ${first.case}: I=${I.slice(0, 12)} files ${rec.files.length} windows ${rec.files.filter((f) => f.window).length} fix-side ${rec.states.fix ? "yes" : "no"}\n`);
+    return rec;
+  };
+  for (const [, g] of groups) {
+    const first = g[0]!;
+    const prev = prior?.cases.find((c) => c.set === first.set && c.case === first.case && c.repo === first.repo && c.fixCommit === first.fixCommit && c.parentCommit === first.parentCommit);
+    const reused = !!prev && statesExist([prev.states.vulnerable, prev.states.fix]);
+    const rec = reused ? prev! : prepareCase(g);
+    cases.push(rec);
+    const tag = reused ? " (reused)" : "";
+    out.write(rec.accepted
+      ? `case ${rec.set} ${rec.case}: I=${rec.introducing!.slice(0, 12)} files ${rec.files.length} windows ${rec.files.filter((f) => f.window).length} fix-side ${rec.states.fix ? "yes" : "no"}${tag}\n`
+      : `case ${rec.set} ${rec.case}: rejected: ${rec.rejection}${tag}\n`);
+    save(false);
   }
 
   // Clean rows (A1 3.2).
-  const clean: PreparedClean[] = [];
-  for (const r of rows.filter((x) => x.set === "clean")) {
+  const prepareClean = (r: Row): PreparedClean => {
     const rec: PreparedClean = { case: r.case, repo: r.repo, path: r.path, commit: null, commitParent: null, routeShaped: false, rejection: null, state: null, treeAtWork: null };
-    clean.push(rec);
     let mirror: string;
-    try { mirror = mirrorOf(r.repo); } catch (e) { if (NETWORK_RE.test(stderrOf(e))) throw e; rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; continue; }
+    try { mirror = mirrorOf(r.repo); } catch (e) { if (NETWORK_RE.test(stderrOf(e))) throw e; rec.rejection = `mirror failed: ${String(e).slice(0, 120)}`; return rec; }
     const head = r.fixCommit; // the TSV's fourth column carries the head for clean rows
     const log = (gitTry(["log", "--no-merges", `--before=${cleanBefore}`, "--format=%H", head, "--", r.path], mirror) ?? "").split("\n").filter(Boolean);
     let pick: string | null = null, fallback: string | null = null;
@@ -239,19 +263,26 @@ function main(): number {
       if (d.split(/\r?\n/).some((l) => /^[+-](?![+-]{2})/.test(l) && ROUTE_SHAPE_RE.test(l.slice(1)))) { pick = c; break; }
     }
     const c = pick ?? fallback;
-    if (!c) { rec.rejection = "no non-merge commit touching the file with 1 to 10 non-test JS/TS files"; continue; }
+    if (!c) { rec.rejection = "no non-merge commit touching the file with 1 to 10 non-test JS/TS files"; return rec; }
     rec.commit = c; rec.routeShaped = !!pick;
     rec.commitParent = gitTry(["rev-parse", "--verify", `${c}^`], mirror)?.trim() ?? null;
-    if (!rec.commitParent) { rec.rejection = "the clean commit has no parent"; continue; }
+    if (!rec.commitParent) { rec.rejection = "the clean commit has no parent"; return rec; }
     const t = token();
     rec.state = t;
     rec.treeAtWork = buildState(mirror, `${c}^`, c, null, join(rootAbs, t));
-    out.write(`clean ${r.case}: ${c.slice(0, 12)} route-shaped ${rec.routeShaped}\n`);
+    return rec;
+  };
+  for (const r of rows.filter((x) => x.set === "clean")) {
+    const prev = prior?.clean.find((k) => k.case === r.case && k.repo === r.repo && k.path === r.path);
+    const reused = !!prev && statesExist([prev.state]);
+    const rec = reused ? prev! : prepareClean(r);
+    clean.push(rec);
+    const tag = reused ? " (reused)" : "";
+    out.write(rec.state ? `clean ${rec.case}: ${rec.commit!.slice(0, 12)} route-shaped ${rec.routeShaped}${tag}\n` : `clean ${rec.case}: rejected: ${rec.rejection}${tag}\n`);
+    save(false);
   }
 
-  const manifest: PreparedManifest = { version: 1, preparedAt: new Date().toISOString(), root: rootAbs, cases, clean };
-  mkdirSync(resolve(outFile, ".."), { recursive: true });
-  writeFileSync(outFile, JSON.stringify(manifest, null, 1));
+  save(true);
   // Nothing from any third-party file is in the manifest: every string is an identifier, a path, a hash or a note.
   const accepted = cases.filter((c) => c.accepted);
   out.write(`prepared: ${cases.length} cases (${accepted.length} accepted, ${accepted.filter((c) => c.states.fix).length} with a fix side), ${clean.filter((k) => k.state).length} clean changes; root ${rootAbs}\n`);

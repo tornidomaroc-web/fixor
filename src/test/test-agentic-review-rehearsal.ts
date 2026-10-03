@@ -255,6 +255,25 @@ function main(): void {
   const pn = run(PREP, ["--cases", netTsv, "--mirrors", mirrorsNet, "--root", join(scratch, "r-net"), "--out", netOut, "--repo-url-template", `file:///${upstreams.replace(/\\/g, "/")}/{repo}`]);
   if (promisor === "true" && pn.status === 3 && /promisor remote/.test(pn.stderr) && !existsSync(netOut)) pass("A3: a blob the mirror cannot fetch stops the preparation with exit 3 and no manifest, instead of rejecting the case");
   else fail(`A3 network: promisor ${promisor}, status ${pn.status}, manifest ${existsSync(netOut)}: ${pn.stdout.slice(-300)} ${pn.stderr.slice(-300)}`);
+  // Resume: a complete manifest is never resumed; a partial one keeps every finished record whose states exist and prepares the rest.
+  const urlArg = ["--repo-url-template", `file:///${upstreams.replace(/\\/g, "/")}/{repo}`];
+  const rcomp = run(PREP, ["--cases", casesTsv, "--mirrors", mirrors, "--root", root, "--out", manifestFile, "--resume", ...urlArg]);
+  if (rcomp.status === 3 && /is a complete manifest/.test(rcomp.stdout)) pass("resume refuses a complete manifest"); else fail(`resume on complete: ${rcomp.status} ${rcomp.stdout.slice(-200)}`);
+  const partialFile = join(scratch, "prepared-partial.json");
+  writeFileSync(partialFile, JSON.stringify({ ...M, complete: false, clean: M.clean.slice(0, 1) }));
+  const rp = run(PREP, ["--cases", casesTsv, "--mirrors", mirrors, "--root", root, "--out", partialFile, "--resume", ...urlArg]);
+  const P1 = existsSync(partialFile) ? (JSON.parse(readFileSync(partialFile, "utf8")) as PreparedManifest) : null;
+  const reusedLines = (rp.stdout.match(/\(reused\)/g) ?? []).length;
+  if (rp.status === 0 && P1?.complete === true && reusedLines === M.cases.length + 1 && JSON.stringify(P1.cases) === JSON.stringify(M.cases) && P1.clean[0]!.state === M.clean[0]!.state && P1.clean[1]!.state && P1.clean[1]!.state !== M.clean[1]!.state && existsSync(join(root, P1.clean[1]!.state)))
+    pass(`resume reuses the ${reusedLines} finished records unchanged, prepares only the missing one into a new state, and marks the manifest complete`);
+  else fail(`resume: status ${rp.status}, complete ${P1?.complete}, reused ${reusedLines}: ${rp.stdout.slice(-300)} ${rp.stderr.slice(-300)}`);
+  // A record whose state directory is gone is prepared again, not reused.
+  const goneFile = join(scratch, "prepared-gone.json");
+  writeFileSync(goneFile, JSON.stringify({ ...M, complete: false, clean: [{ ...M.clean[0]!, state: "deadbeef" }] }));
+  const rg = run(PREP, ["--cases", casesTsv, "--mirrors", mirrors, "--root", root, "--out", goneFile, "--resume", ...urlArg]);
+  const P2 = existsSync(goneFile) ? (JSON.parse(readFileSync(goneFile, "utf8")) as PreparedManifest) : null;
+  if (rg.status === 0 && P2?.clean[0]!.state && P2.clean[0]!.state !== "deadbeef" && existsSync(join(root, P2.clean[0]!.state))) pass("a record naming a state directory that no longer exists is prepared again");
+  else fail(`resume with a missing state: status ${rg.status}, state ${P2?.clean[0]?.state}: ${rg.stdout.slice(-200)}`);
 
   out.write("\nB. scoring, as functions\n");
   const md = "# Vuln 1: missing_authorization: `src/routes/items.ts:7`\n\n* Severity: High\n* Description: no auth\n\n# Vuln 2: xss: `web/app.tsx:12`\n\n* Severity: Medium\n* Description: reflected\n";
@@ -368,6 +387,7 @@ function main(): void {
     { name: "a wrong pin", args: ["--prepared", manifestFile, "--out", join(scratch, "x3"), "--expect-tools", recFile, "--claude", stub.script, "--claude-sha256", "0".repeat(64)], expect: /not the pinned/ },
     { name: "no recorded tool list", args: ["--prepared", manifestFile, "--out", join(scratch, "x4"), "--stub", stub.script], expect: /--expect-tools <recorded-tools.json> is required/ },
     { name: "a prepared root inside the repository", args: ["--prepared", (() => { const p = join(scratch, "bad.json"); writeFileSync(p, JSON.stringify({ ...M, root: join(REPO, "tmp-ar") })); return p; })(), "--out", join(scratch, "x5"), "--stub", stub.script, "--expect-tools", recFile], expect: /inside the repository or names/ },
+    { name: "a partial prepared manifest", args: ["--prepared", (() => { const p = join(scratch, "partial-for-harness.json"); writeFileSync(p, JSON.stringify({ ...M, complete: false })); return p; })(), "--out", join(scratch, "x6"), "--stub", stub.script, "--expect-tools", recFile], expect: /manifest is partial/ },
   ];
   const modifiedPrompt = join(scratch, "prompt-modified.md");
   writeFileSync(modifiedPrompt, readFileSync(PROMPT, "utf8").replace("Below 0.7: Don't report", "Below 0.5: Don't report"));
