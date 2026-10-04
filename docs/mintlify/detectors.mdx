@@ -19,6 +19,15 @@ explicitly does not catch lives at
 [`docs/detector-capabilities.md`](https://github.com/tornidomaroc-web/fixor/blob/main/docs/detector-capabilities.md).
 This page summarizes; that file wins on any conflict.
 
+<Warning>
+  What has been measured: every detector passes its authored fixtures.
+  On real code, only the hardcoded-secrets check has a result (counts on
+  the landing page). For auth bypass, missing admin gates and IDOR,
+  on 12 published access-control vulnerabilities in real open-source projects, the shipped pipeline flagged none (field trial, 2026-09-19). Environment-variable exposure and
+  unverified webhooks have no real-code result. Detection development
+  stopped on 2026-10-04.
+</Warning>
+
 ## Authentication bypass
 
 <Info>Detector id: `auth-bypass-multi`</Info>
@@ -265,7 +274,7 @@ What we look for:
 - Firebase admin SDK credentials inside client components.
 
 <Note>
-  This detector runs on **high-precision literal patterns and emits a
+  This detector runs on **fixed literal patterns and emits a
   finding deterministically from the regex match with a hand-authored
   explanation — no LLM call by default.** The LLM-validation path is
   opt-in (`FIXOR_SECRETS_LLM_OPT_IN`) and off by default, chosen so the

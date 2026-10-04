@@ -581,7 +581,7 @@
 
     <main>
       <section class="hero wrap" id="top">
-        <h1>A second reviewer for every pull request.</h1>
+        <h1>Security checks on every pull request.</h1>
         <p class="lead">
           Auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, unverified webhooks.
         </p>
@@ -633,7 +633,7 @@
           <dd>16 of 16 authored positive fixtures flagged; 0 of 19 authored negatives flagged.</dd>
         </dl>
         <p class="measured-unmeasured">
-          <strong>No real-code claim.</strong> The other five detectors (auth bypass, missing admin gates, IDOR, environment-variable exposure, unverified webhooks) are measured on authored fixtures; no real-code result supports a claim about any of them, and none is made here.
+          <strong>The other five detectors.</strong> Each passes its authored fixtures. On real code, the three access-control detectors (auth bypass, missing admin gates, IDOR) were tested once: on 12 published access-control vulnerabilities in real open-source projects, the shipped pipeline flagged none (field trial, 2026-09-19). Environment-variable exposure and unverified webhooks have no real-code result. Detection development stopped on 2026-10-04; these detectors ship as they are, and no detection claim is made for them here.
         </p>
         <p class="measured-footer">
           Every number above is a count with its denominator, never a rate. The artifacts behind each figure are in the public repository under <a href="https://github.com/tornidomaroc-web/fixor/tree/main/docs/measurements">docs/measurements/</a>.

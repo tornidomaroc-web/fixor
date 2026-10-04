@@ -142,7 +142,7 @@ export function SettingsForm({ orgId, initial }: Props) {
 
       <Section
         title="Detectors"
-        hint='Choose "all" to run every detector Fixor adds in the future automatically, or pick a specific subset.'
+        hint='Choose "all" to run every detector, including any added later, or pick a specific subset.'
       >
         <div className="flex flex-col gap-3">
           <label className="flex items-center gap-2 text-sm">

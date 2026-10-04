@@ -227,7 +227,7 @@ export function buildPullRequestCommentMarkdown(
   };
 
   if (list.length === 0) {
-    lines.push("_No findings in this run — no business-logic vulnerabilities detected._", "");
+    lines.push("_No findings in this run. Fixor runs six narrow checks; a run with no findings is not a security sign-off._", "");
     lines.push(...renderPreExistingBlock(workflow));
     lines.push(...renderDownloadsBlock());
     lines.push(

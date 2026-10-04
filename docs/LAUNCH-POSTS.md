@@ -1,5 +1,7 @@
 # Launch posts: drafts (do not post yet)
 
+> **SUPERSEDED 2026-10-04: DO NOT POST ANY DRAFT BELOW.** They were written before the real-code measurements and claim more than was measured ("catches business-logic flaws", a free tier of "5 scans/month" that no longer exists). The measured result is in `README.md` under "What has been measured". Any launch text must be written fresh from that.
+>
 > **Status (2026-05-31):** rewritten post-pivot to the six business-logic
 > detectors. Aligned to `docs/detector-capabilities.md` (the scope contract).
 > QUARANTINED pending founder sign-off. Do not post any of this until signed off.
