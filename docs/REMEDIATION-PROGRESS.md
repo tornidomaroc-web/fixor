@@ -5945,6 +5945,19 @@ because that widening is on the READING side and this argument turns on the RUNN
   pre-registered, and one must be committed before any run; (2) the 10 clean rows are not yet
   prepared (the preparation was stopped by low system memory and resumes with `--resume`).
 
+  **2026-10-04: BOTH BLOCKERS CLOSED, STILL NOT RUN; A NEW GATE QUESTION IS OPEN.** Amendment A4
+  (`agentic-review-amendment-A4-2026-10-04.md`) is committed before any case run: a prompt over
+  300,000 characters is unreviewable and never sent, a run the API refuses for its size is
+  unreviewable and the series continues, and any other error stops it. The pinned CLI shows why
+  the size rule is needed: a request over 200K tokens needs usage credits on a subscription, and
+  the CLI recovers from "Prompt is too long" by summarising the opening prompt, which would let an
+  oversize change be scored on a summary. Held-out 03 becomes a miss, so **Gate A needs all four
+  of 01, 04, 09 and 10.** The manifest is complete; **only 6 of the 10 clean rows have a clean
+  change under A1 3.2 (2 route-shaped)**, and A1's bound "at most 3 flagged" was written for 10.
+  Revert-one-guard on the final code: 55 of 56 guards shown, the 56th the known unexercisable
+  `git apply` guard. Zero model calls, zero case requests, no API key. Record: the build record's
+  2026-10-04 addendum.
+
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that
   the Opus arm's `results.json` carried the model's reasoning on every verdict, with code quoted

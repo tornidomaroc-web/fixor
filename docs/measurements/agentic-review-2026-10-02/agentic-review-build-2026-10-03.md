@@ -100,3 +100,45 @@ Median 12,859 tokens over the 17 states; the clean rows are not prepared and not
    has to be decided and committed before any run.
 2. **The clean rows are unprepared.** The preparation resumes with the same command plus
    `--resume`; it was stopped by memory pressure, not by a fault in it.
+
+## Addendum 2026-10-04: A4, the clean rows, the loop on the final code. No model call, no case run.
+
+The sections above are left as written on 2026-10-03.
+
+**Blocker 1 resolved by amendment A4** (`agentic-review-amendment-A4-2026-10-04.md`, docs commit
+`3c37c44`; code `626de79`). A state whose prompt exceeds 300,000 characters is unreviewable and
+never sent; a run the API refuses for its size is unreviewable and the series continues; any
+other error stops it. Over the limit: held-out 02, 03 (both sides), 08. Held-out 03 becomes a
+miss, so Gate A's 4 hits must come from 01, 04, 09 and 10.
+
+**Blocker 2 resolved: the manifest is complete** (prepared 2026-10-04T01:31:44Z, sha256
+`c08461563ade…a9c254`, kept outside the repository). The resume ran as the only process. The cause
+of the earlier memory kill was found: the mirrors are blob:none clones, a checkout fetches one
+blob per round trip, each fetch writes a pack, and git's auto-gc then repacks the whole clone.
+Auto-gc was turned off in the mirrors' local config, and the clean commits' trees were fetched in
+one batch per tree beforehand (the request git sends for a lazy blob, with every id at once).
+Objects are content-addressed, so nothing the preparation computes changes. Free memory never
+fell below 10.2 GB.
+
+| clean | commit | route-shaped | prompt chars |
+|---|---|---|---|
+| 01 | `0a13f9970f64` | no (fallback) | 31,590 |
+| 02 | `490a1b600912` | yes | 12,856 |
+| 03 | rejected | | |
+| 04 | `8a536fa828ce` | no (fallback) | 14,457 |
+| 05 | `54775f537d3a` | no (fallback) | 16,371 |
+| 06 | rejected | | |
+| 07 | rejected | | |
+| 08 | `46aea4abe260` | no (fallback) | 13,327 |
+| 09 | `00baa2bd6d0e` | yes | 29,479 |
+| 10 | rejected | | |
+
+Rejected rows: every non-merge commit before the cut-off that touches the drawn file changes more
+than 10 non-test source files (A1 3.2), checked by hand per row (smallest counts: 03 16, 06 11,
+07 24, 10 11). **6 clean changes, 2 of them route-shaped.** A1's bound "at most 3 of the 10 clean
+changes flagged" was written for 10; it is not changed here.
+
+**Revert-one-guard loop v5, complete, on `626de79` (rehearsal of 93 checks): 56 guards, the 47 of
+loop v4 plus 9 for A4.** 55 failed the rehearsal as required. The one that did not is the A3 guard
+on `git apply`, which this record already lists as not exercisable. Both restored controls passed
+93 of 93. All three resume guards and every former survivor are now shown on the final code.
