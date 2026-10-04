@@ -183,6 +183,9 @@ async function main(): Promise<number> {
   const expectFile = arg("--expect-tools");
   if (!expectFile || !existsSync(expectFile)) { out.write("refused: --expect-tools <recorded-tools.json> is required: the built-in's tool list is recorded by --recorder-check before any run\n"); return 3; }
   const expectTools = (JSON.parse(readFileSync(expectFile, "utf8")) as { tools: string[] }).tools;
+  // A6: the recorded list is the one the audit enforces, or a legitimate call would void the series (or a foreign one pass).
+  if ([...expectTools].sort().join(",") !== [...TOOL_SET].sort().join(",")) { out.write(`refused: the recorded tool list [${[...expectTools].sort().join(", ")}] is not the audited set [${[...TOOL_SET].sort().join(", ")}]
+`); return 3; }
 
   // Resume state.
   const recDir = join(outDir, "runs");

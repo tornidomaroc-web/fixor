@@ -36,7 +36,8 @@ export const SIZE_REFUSAL_RE = /prompt is too long|input is too long for request
 export const SIZE_REFUSAL_API_ERRORS = ["long_context_credits_required"] as const;
 export const NEUTRAL = { name: "contributor", email: "contributor@example.invalid", date: "2000-01-01T00:00:00Z", message: "change" } as const;
 /** The built-in's tools, as A1 3.5 restricts them at the CLI. */
-export const TOOL_SET = ["Read", "Glob", "Grep", "LS", "Task", "Bash"] as const;
+/** A6: the names the pinned CLI 2.1.284 puts on the wire. It has no LS tool, and the sub-agent tool is "Agent" (A1 3.5 wrote "Task"). */
+export const TOOL_SET = ["Read", "Glob", "Grep", "Agent", "Bash"] as const;
 export const BASH_ALLOWED = ["git diff", "git status", "git log", "git show", "git remote show"] as const;
 export const CATEGORY_RE = /auth|authori[sz]|access.?control|permission|privilege|idor|insecure direct|ownership|tenant|bypass/i;
 export const ROUTE_SHAPE_RE = /\b(router|app|server|fastify|express)\.(get|post|put|patch|delete|all|use)\s*\(|@(Get|Post|Put|Patch|Delete|All)\s*\(|\b(publicProcedure|protectedProcedure|procedure)\b|export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\b/;
