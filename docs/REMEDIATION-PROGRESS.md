@@ -2418,6 +2418,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #263 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #264 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #265 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #266 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2680,6 +2681,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #263 | `a81d621` | 2026-10-02 14:15:03 | `measure/opus-arm-run-2026-10-02` (reflog: last move 14:06:31) | `04043ecd`, captured before | 404 on first read after the merge, 14:15:38 | `measure/opus-arm-run-2026-10-02` at `a3bfe07` |
 | #264 | `5302000` | 2026-10-02 23:11:05 | `chore/cloud-session-guards` (reflog: last move 23:01:58) | `747565fe`, captured before | 404 on first read after the merge, 23:11:26 | `chore/cloud-session-guards` at `e3c7179` |
 | #265 | `a40a6a3` | 2026-10-03 00:32:21 | `measure/held-out-3-2026-10-03` (reflog: last move 2026-10-02 23:59:07) | `e01e33f0`, captured before | 404 on first read after the merge, 00:33:08 | `measure/held-out-3-2026-10-03` at `d6c5d4c` |
+| #266 | `5bc1bd8` | 2026-10-04 03:20:11 | `measure/agentic-review-build-2026-10-03` (reflog: last move 2026-10-04 03:07:01) | `9ea56e94`, captured before | 404 on first read after the merge, 03:20:19 | `measure/agentic-review-build-2026-10-03` at `b0f4b29` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -2990,6 +2992,19 @@ git 2.53.0.windows.2. **Totals as a new dated record (2026-10-03), counted from 
 table:** the arm invoked FROM the merged branch reads 41 observations, 2 green and 39 red; the
 THIRD-branch arm is unchanged at 6, all RED; the register carries 53 rows, 51 RED. No cause is
 named. **The merge of this entry will owe the next row.**
+
+**#266 (2026-10-04).** The owner ran `gh pr merge 266 --squash --match-head-commit
+b0f4b29ef4e06a59f6fb9c7da9e6a72de694c347` from the prompt with HEAD on
+`measure/agentic-review-build-2026-10-03`, the merged branch itself; the reflog's last HEAD move
+before the merge is 2026-10-04 03:07:01 (the filing commit), and HEAD was still there after it.
+That is the arm invoked FROM the merged branch. **RED**: `gh` printed nothing; the local ref
+`measure/agentic-review-build-2026-10-03` survived at `b0f4b29`. Assertion 2 held against a tree
+captured before the merge: `9ea56e94` on both. The squash `5bc1bd8` has the single parent
+`a40a6a3`, merged at 03:20:11Z. The head ref answered 404 on the first read after the merge, at
+03:20:19. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-10-04), counted
+from the register table:** the arm invoked FROM the merged branch reads 42 observations, 2 green
+and 40 red; the THIRD-branch arm is unchanged at 6, all RED; the register carries 54 rows, 52 RED.
+No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3597,6 +3612,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #265 | `a40a6a3` | 2026-10-03 00:32:39 | 00:33:11 | not triggered |
+
+  **#266 (added 2026-10-04).** CI (run 37173780209, both Node jobs, `head=5bc1bd8`) and the
+  `secrets` workflow (run 37173780224) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal`, two `PASS: forced-routing
+  rehearsal` and two `PASS: agentic-review rehearsal` lines (once per Node job) and zero `[FAIL]`
+  lines. The Railway and Vercel times are the `success` statuses of their GitHub deployments for
+  `5bc1bd8` (ids 6836302409 and 6836306828), posted by `railway-app[bot]` and `vercel[bot]`; no
+  Railway CLI or dashboard was read. At 03:23:44 the backend answered
+  `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":73}`, which dates the container to about
+  03:22:31, the deploy; the dashboard answered `{"status":"ok","db":"ok"}` at 03:23:36. Not
+  observed: anything in production, because #266 changed test tooling, measurement documents and
+  the tracker only. These reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #266 | `5bc1bd8` | 2026-10-04 03:22:37 | 03:20:50 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -5957,6 +5988,12 @@ because that widening is on the READING side and this argument turns on the RUNN
   Revert-one-guard on the final code: 55 of 56 guards shown, the 56th the known unexercisable
   `git apply` guard. Zero model calls, zero case requests, no API key. Record: the build record's
   2026-10-04 addendum.
+
+  **2026-10-04, later: A5 COMMITTED BEFORE ANY CASE RUN; STILL NOT RUN.** Amendment A5
+  (`agentic-review-amendment-A5-2026-10-04.md`, owner-agreed): the clean bound is A1's rate over
+  the prepared clean changes, floor(3n/10), so **at most 1 of the 6** (A1's 3 of 10 where n = 10).
+  The scorer applied the absolute 3 until this change. Rehearsal 98 checks; both A5 guards fail it
+  when reverted. Open and recorded, not changed: only 2 of the 6 clean changes are route-shaped.
 
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that

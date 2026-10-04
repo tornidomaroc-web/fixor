@@ -44,7 +44,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdir
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { GATE_A_MAX_CLEAN_FLAGS, GATE_A_MIN_HITS, NEUTRAL, RUNS, checkNeutralRepo, defectWindow, estimateTokens, gateA, parseFindings, parseStream, runHit, scoreCases, scoreClean, type PreparedManifest, type RunRecord } from "./lib/agentic-review";
+import { GATE_A_MIN_HITS, NEUTRAL, RUNS, checkNeutralRepo, defectWindow, estimateTokens, gateA, gateAMaxCleanFlags, parseFindings, parseStream, runHit, scoreCases, scoreClean, type PreparedManifest, type RunRecord } from "./lib/agentic-review";
 import { harnessArgv } from "./agentic-review";
 import { sha256File } from "./lib/proxy-judge-wire";
 
@@ -294,7 +294,7 @@ function main(): void {
     [runHit(parseFindings("# Vuln 1: broken_object_level: `src/routes/items.ts:7`\n* Description: any user can read another user's item (IDOR)\n"), files).hit, true, "an access-control word in the description"],
   ] as const;
   for (const [got, want, name] of hits) (got === want ? pass : fail)(`hit rule: ${name} -> ${got}`);
-  const man = (n: number, fixSides = n): PreparedManifest => ({ version: 1, preparedAt: "", root: "/r", cases: Array.from({ length: n }, (_, i) => ({ set: "held-out" as const, case: String(i + 1).padStart(2, "0"), repo: "x", fixCommit: "f", parentCommit: "p", introducing: "i", introducingParent: "ip", accepted: true, rejection: null, files, states: { vulnerable: `v${i}`, fix: i < fixSides ? `f${i}` : null }, fixSideNote: null, treeAtWork: { vulnerable: "t", fix: i < fixSides ? "t2" : null }, diffStats: null })), clean: Array.from({ length: 10 }, (_, i) => ({ case: String(i + 1), repo: "x", path: "p", commit: "c", commitParent: "cp", routeShaped: true, rejection: null, state: `k${i}`, treeAtWork: "t" })) });
+  const man = (n: number, fixSides = n, cleanN = 10): PreparedManifest => ({ version: 1, preparedAt: "", root: "/r", cases: Array.from({ length: n }, (_, i) => ({ set: "held-out" as const, case: String(i + 1).padStart(2, "0"), repo: "x", fixCommit: "f", parentCommit: "p", introducing: "i", introducingParent: "ip", accepted: true, rejection: null, files, states: { vulnerable: `v${i}`, fix: i < fixSides ? `f${i}` : null }, fixSideNote: null, treeAtWork: { vulnerable: "t", fix: i < fixSides ? "t2" : null }, diffStats: null })), clean: Array.from({ length: cleanN }, (_, i) => ({ case: String(i + 1), repo: "x", path: "p", commit: "c", commitParent: "cp", routeShaped: true, rejection: null, state: `k${i}`, treeAtWork: "t" })) });
   const recsFor = (m: PreparedManifest, hitCases: number, cleanFlagged: number, fixHitsOnFirst = 0, vulnHitRuns = 4): RunRecord[] => {
     const r: RunRecord[] = [];
     m.cases.forEach((c, i) => { for (let run = 1; run <= RUNS; run++) { const hit = i < hitCases && run <= vulnHitRuns; r.push({ set: c.set, case: c.case, state: "vulnerable", run, voided: false, findings: hit ? fs : [], hit, anyFinding: hit }); if (c.states.fix) { const fh = i === 0 && run <= fixHitsOnFirst; r.push({ set: c.set, case: c.case, state: "fix", run, voided: false, findings: fh ? fs : [], hit: fh, anyFinding: fh }); } } });
@@ -303,9 +303,14 @@ function main(): void {
   };
   const gate = (m: PreparedManifest, r: RunRecord[], voided = false) => gateA(m, scoreCases(m, r), scoreClean(m, r), voided).label;
   const g = [
-    [gate(man(10), recsFor(man(10), GATE_A_MIN_HITS, GATE_A_MAX_CLEAN_FLAGS)), "AGENTIC-CONTINUE", `${GATE_A_MIN_HITS} hits and ${GATE_A_MAX_CLEAN_FLAGS} clean flags continue`],
+    [gate(man(10), recsFor(man(10), GATE_A_MIN_HITS, 3)), "AGENTIC-CONTINUE", `${GATE_A_MIN_HITS} hits and 3 of 10 clean flags continue`],
     [gate(man(10), recsFor(man(10), GATE_A_MIN_HITS - 1, 0)), "AGENTIC-STOP", `${GATE_A_MIN_HITS - 1} hits stop`],
-    [gate(man(10), recsFor(man(10), 10, GATE_A_MAX_CLEAN_FLAGS + 1)), "AGENTIC-STOP", `${GATE_A_MAX_CLEAN_FLAGS + 1} clean flags stop even with 10 hits`],
+    [gate(man(10), recsFor(man(10), 10, 4)), "AGENTIC-STOP", "4 of 10 clean flags stop even with 10 hits"],
+    // A5: the bound is A1's rate over the prepared clean changes; with the real manifest's 6, at most 1.
+    [gate(man(10, 10, 6), recsFor(man(10, 10, 6), 10, 1)), "AGENTIC-CONTINUE", "A5: 1 of 6 clean flags continue"],
+    [gate(man(10, 10, 6), recsFor(man(10, 10, 6), 10, 2)), "AGENTIC-STOP", "A5: 2 of 6 clean flags stop even with 10 hits (A1's absolute 3 would have continued)"],
+    [gate(man(10, 10, 6), recsFor(man(10, 10, 6), 10, 3)), "AGENTIC-STOP", "A5: 3 of 6 clean flags stop"],
+    [[gateAMaxCleanFlags(10), gateAMaxCleanFlags(6), gateAMaxCleanFlags(2)].join(","), "3,1,0", "A5: the bound is floor(3n/10): 3 of 10, 1 of 6, 0 of 2"],
     [gate(man(10), recsFor(man(10), 10, 0, 2)), "AGENTIC-CONTINUE", "2 of 5 fix-side hits on one case drop that case (9 hits) and still continue"],
     [scoreCases(man(10), recsFor(man(10), 10, 0, 2))[0]!.hit, false, "a case flagged on 2 of 5 fix-side runs is not a hit"],
     [gate(man(10, 6), recsFor(man(10, 6), 10, 0)), "AGENTIC-CONTINUE", "4 cases without a fix side count as misses; 6 hits continue"],
@@ -317,6 +322,9 @@ function main(): void {
     [gate(man(10), recsFor(man(10), 10, 0), true), "AGENTIC-STOP", "a voided series stops"],
   ] as const;
   for (const [got, want, name] of g) (got === want ? pass : fail)(`gate: ${name} -> ${String(got)}`);
+  const g6 = gateA(man(10, 10, 6), scoreCases(man(10, 10, 6), recsFor(man(10, 10, 6), 10, 2)), scoreClean(man(10, 10, 6), recsFor(man(10, 10, 6), 10, 2)), false);
+  if (g6.label === "AGENTIC-STOP" && g6.maxCleanFlags === 1 && g6.plannedClean === 6 && g6.reason.endsWith("2 of 6 clean changes flagged (at most 1 of 6)")) pass(`A5: the verdict reads the bound as 1 of 6: "${g6.reason}"`);
+  else fail(`A5 verdict text: ${JSON.stringify(g6)}`);
   const sample = defectWindow("a\nfunction f() {\n  x();\n  y();\n}\nz();\n", 3);
   if (sample[0] === 1 && sample[1] === 7) pass(`defectWindow on a small function returns the block plus padding, clipped to the file (${sample.join("-")})`);
   else fail(`defectWindow ${sample.join("-")}`);

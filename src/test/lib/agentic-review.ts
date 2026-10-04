@@ -20,7 +20,10 @@ export const RUNS = 5;
 export const HIT_MIN_VULNERABLE = 4; // of 5
 export const HIT_MAX_FIX = 1; // of 5
 export const GATE_A_MIN_HITS = 4;
-export const GATE_A_MAX_CLEAN_FLAGS = 3;
+/** A5: A1's clean bound as its rate, at most 3 in 10, over the prepared clean changes. */
+export const GATE_A_MAX_CLEAN_FLAGS_PER_TEN = 3;
+/** A5: floor(3n/10); 3 of 10 as A1 wrote it, 1 of the 6 the real manifest holds. */
+export const gateAMaxCleanFlags = (plannedClean: number): number => Math.floor((plannedClean * GATE_A_MAX_CLEAN_FLAGS_PER_TEN) / 10);
 export const GATE_A_MIN_ACCEPTED = 8;
 export const CLEAN_FLAG_MIN_RUNS = 4; // of 5
 export const WINDOW_PAD = 3;
@@ -404,7 +407,7 @@ export function scoreClean(manifest: PreparedManifest, records: RunRecord[]): Cl
 }
 
 export type GateLabel = "AGENTIC-INCOMPLETE" | "AGENTIC-PRECONDITION-FAILED" | "AGENTIC-CONTINUE" | "AGENTIC-STOP";
-export function gateA(manifest: PreparedManifest, cases: CaseScore[], clean: CleanScore[], voidedSeries: boolean): { label: GateLabel; heldOutHits: number; heldOutAccepted: number; cleanFlags: number; postCutoffHits: number; postCutoffCases: number; reason: string; unreviewableRuns: number; cleanFlagsIfUnreviewableFlagged: number } {
+export function gateA(manifest: PreparedManifest, cases: CaseScore[], clean: CleanScore[], voidedSeries: boolean): { label: GateLabel; heldOutHits: number; heldOutAccepted: number; cleanFlags: number; postCutoffHits: number; postCutoffCases: number; reason: string; unreviewableRuns: number; cleanFlagsIfUnreviewableFlagged: number; maxCleanFlags: number; plannedClean: number } {
   const held = cases.filter((c) => c.set === "held-out");
   const accepted = held.filter((c) => c.accepted).length;
   const heldOutHits = held.filter((c) => c.hit).length;
@@ -413,13 +416,14 @@ export function gateA(manifest: PreparedManifest, cases: CaseScore[], clean: Cle
   const cleanFlags = clean.filter((k) => k.flagged).length;
   const plannedClean = manifest.clean.filter((k) => k.state).length;
   // A4: an unreviewable run counts as not flagged. The clean count with those runs counted as flagged is reported beside it and never gated on.
-  const a4 = { unreviewableRuns: cases.reduce((n, c) => n + c.unreviewableRuns, 0) + clean.reduce((n, k) => n + k.unreviewableRuns, 0), cleanFlagsIfUnreviewableFlagged: clean.filter((k) => k.runs === RUNS && k.flaggedRuns + k.unreviewableRuns >= CLEAN_FLAG_MIN_RUNS).length };
+  const maxCleanFlags = gateAMaxCleanFlags(plannedClean);
+  const a4 = { maxCleanFlags, plannedClean, unreviewableRuns: cases.reduce((n, c) => n + c.unreviewableRuns, 0) + clean.reduce((n, k) => n + k.unreviewableRuns, 0), cleanFlagsIfUnreviewableFlagged: clean.filter((k) => k.runs === RUNS && k.flaggedRuns + k.unreviewableRuns >= CLEAN_FLAG_MIN_RUNS).length };
   const complete = held.filter((c) => c.accepted).every((c) => c.vulnerableRuns === RUNS && (!c.hasFixSide || c.fixRuns === RUNS)) && clean.every((k) => k.runs === RUNS) && clean.length === plannedClean;
   if (accepted < GATE_A_MIN_ACCEPTED) return { label: "AGENTIC-PRECONDITION-FAILED", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: `${accepted} of 10 held-out cases accepted by the blame rule; the gate needs ${GATE_A_MIN_ACCEPTED}`, ...a4 };
   if (voidedSeries) return { label: "AGENTIC-STOP", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: "a run was voided by a tool call outside the allowed set; the series is void", ...a4 };
   if (!complete) return { label: "AGENTIC-INCOMPLETE", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: "not every state has five runs", ...a4 };
-  const pass = heldOutHits >= GATE_A_MIN_HITS && cleanFlags <= GATE_A_MAX_CLEAN_FLAGS;
-  return { label: pass ? "AGENTIC-CONTINUE" : "AGENTIC-STOP", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: pass ? `${heldOutHits} hits of ${accepted} accepted and ${cleanFlags} of ${plannedClean} clean changes flagged` : `${heldOutHits} hits (needs ${GATE_A_MIN_HITS}) and ${cleanFlags} clean flags (at most ${GATE_A_MAX_CLEAN_FLAGS})`, ...a4 };
+  const pass = heldOutHits >= GATE_A_MIN_HITS && cleanFlags <= maxCleanFlags;
+  return { label: pass ? "AGENTIC-CONTINUE" : "AGENTIC-STOP", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: pass ? `${heldOutHits} hits of ${accepted} accepted and ${cleanFlags} of ${plannedClean} clean changes flagged (at most ${maxCleanFlags} of ${plannedClean})` : `${heldOutHits} hits (needs ${GATE_A_MIN_HITS}) and ${cleanFlags} of ${plannedClean} clean changes flagged (at most ${maxCleanFlags} of ${plannedClean})`, ...a4 };
 }
 
 // ---------------------------------------------------------------------------
