@@ -242,6 +242,12 @@ function main(): void {
   if (checkNeutralRepo(f0, d0 + ".origin.git").length === 0) pass("the neutral check accepts the real state it is about to be shown a broken copy of");
   else fail(`neutral control: ${checkNeutralRepo(f0, d0 + ".origin.git").join("; ")}`);
   for (const [name, facts] of negatives) (checkNeutralRepo(facts, d0 + ".origin.git").length > 0 ? pass : fail)(`the neutral check refuses ${name}`);
+  // The real neutral root has a space in it; the origin path must be read whole.
+  const spaced = "D:/RAGHAD JAD/ws/t/abcd1234.origin.git";
+  const spacedBad = checkNeutralRepo({ ...f0, remotes: [`origin\t${spaced}`] }, spaced);
+  const spacedOther = checkNeutralRepo({ ...f0, remotes: [`origin\t${spaced}`] }, "D:/RAGHAD JAD/ws/t/ffff0000.origin.git");
+  if (spacedBad.length === 0 && spacedOther.some((x) => /origin does not point/.test(x))) pass("the neutral check reads an origin path with a space whole: it accepts its own bare repository and refuses another");
+  else fail(`origin path with a space: ${spacedBad.join("; ")} | ${spacedOther.join("; ")}`);
   if (traceBad === 0) pass("no prepared repository carries an upstream author, message, advisory id or issue number in any ref or reflog");
   else fail(`${traceBad} repositories carry an upstream trace`);
   const manifestText = readFileSync(manifestFile, "utf8");

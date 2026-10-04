@@ -450,7 +450,8 @@ export function checkNeutralRepo(f: RepoFacts, originDir: string): string[] {
   }
   const norm = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
   for (const r of f.remotes) {
-    const m = r.match(/^origin\s+(\S+)/);
+    // The whole rest of the line: the real roots carry a space ("RAGHAD JAD"), which \S+ cut at.
+    const m = r.match(/^origin\s+(.+?)\s*$/);
     if (!m) { bad.push(`unexpected remote line: ${r.slice(0, 60)}`); continue; }
     if (norm(m[1]!) !== norm(originDir)) bad.push("origin does not point at the local bare repository");
   }
