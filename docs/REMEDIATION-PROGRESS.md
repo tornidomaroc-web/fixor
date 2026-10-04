@@ -6034,6 +6034,18 @@ because that widening is on the READING side and this argument turns on the RUNN
   the CLI's names, and the harness now refuses a recorded list that differs from it. Zero judge
   runs, zero case requests.
 
+  **GATE A RAN 2026-10-04: AGENTIC-STOP, THE SERIES IS VOID AFTER RUN 1 OF 115.** Record:
+  `docs/measurements/agentic-review-2026-10-02/gate-a-run-2026-10-04.md`. Run from `8e493c7` (PR
+  #268's head, A1 to A6), on the subscription, no API key. A first attempt stopped before any run
+  on a harness bug (the neutral check cut the origin path at its first space; fixed in `8e493c7`).
+  Run 1 (held-out 01, vulnerable side) was answered by `claude-opus-5-5`, made 31 tool calls and
+  no finding, and was voided: 14 Bash calls wrapped the allowed git reads in `cd <own repository>
+  &&`, `git -C` and pipes to text tools, and 1 Read opened the CLI's own spill file outside the
+  repository. The committed scorer reads `AGENTIC-STOP` ("the series is void"); held-out 0 of 9,
+  clean 0 of 6, 1 of 115 judged. **A1 3.5 answered: sub-agent tool calls are visible in the
+  parent's stream.** This is a stop of the instrument as pre-registered, not a measurement of
+  detection, and A1 section 2 allows no second configuration.
+
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that
   the Opus arm's `results.json` carried the model's reasoning on every verdict, with code quoted
