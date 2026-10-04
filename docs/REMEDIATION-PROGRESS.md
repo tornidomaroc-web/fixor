@@ -2421,6 +2421,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #266 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #267 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #268 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #269 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2686,6 +2687,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #266 | `5bc1bd8` | 2026-10-04 03:20:11 | `measure/agentic-review-build-2026-10-03` (reflog: last move 2026-10-04 03:07:01) | `9ea56e94`, captured before | 404 on first read after the merge, 03:20:19 | `measure/agentic-review-build-2026-10-03` at `b0f4b29` |
 | #267 | `aaa895e` | 2026-10-04 04:38:41 | `measure/agentic-a5-clean-bound-2026-10-04` (reflog: last move 2026-10-04 03:37:47) | `0ffa4363`, captured before | 404 on first read after the merge, 04:38:50 | `measure/agentic-a5-clean-bound-2026-10-04` at `c97bf9f` |
 | #268 | `5ca8768` | 2026-10-04 05:53:57 | `fix/agentic-tool-names-2026-10-04` (reflog: last move 2026-10-04 05:37:52) | `6ac16757`, captured before | 404 on first read after the merge, 05:54:04 | `fix/agentic-tool-names-2026-10-04` at `2bf4282` |
+| #269 | `8011c7d` | 2026-10-04 06:27:45 | `docs/claims-and-268-rows-2026-10-04` (reflog: last move 2026-10-04 06:12:27) | `86a1ccf3`, captured before by the merging session; recomputed by the filing entry from the PR head `de7aae0`, equal | 404 on first read after the merge, 06:27:52 (merging session); 404 again when filed | `docs/claims-and-268-rows-2026-10-04` at `de7aae0` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -3035,6 +3037,20 @@ captured before the merge: `6ac16757` on both. The squash `5ca8768` has the sing
 from the register table:** the arm invoked FROM the merged branch reads 44 observations, 2 green
 and 42 red; the THIRD-branch arm is unchanged at 6, all RED; the register carries 56 rows, 54 RED.
 No cause is named. **The merge of this entry will owe the next row.**
+
+**#269 (2026-10-04).** The owner ran `gh pr merge 269 --squash --match-head-commit
+de7aae0e0daedca391e4e3f7796f312b03f9c6cf` from the prompt with HEAD on
+`docs/claims-and-268-rows-2026-10-04`, the merged branch itself; the reflog's last HEAD move before
+the merge is 2026-10-04 06:12:27 (the filing commit), and HEAD was still there after it. That is
+the arm invoked FROM the merged branch. **RED**: `gh` printed nothing; the local ref
+`docs/claims-and-268-rows-2026-10-04` survived at `de7aae0`, and still stands there when this entry
+is filed. Assertion 2 held against a tree captured before the merge: `86a1ccf3` on both, recomputed
+by this entry from the PR head `de7aae0` and the squash, equal. The squash `8011c7d` has the single
+parent `5ca8768`, merged at 06:27:45Z. The head ref answered 404 on the first read after the merge,
+at 06:27:52, and 404 again when filed. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated
+record (2026-10-04), counted from the register table:** the arm invoked FROM the merged branch reads
+45 observations, 2 green and 43 red; the THIRD-branch arm is unchanged at 6, all RED; the register
+carries 57 rows, 55 RED. No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3690,6 +3706,27 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #268 | `5ca8768` | 2026-10-04 05:55:18 | 05:54:33 | not triggered |
+
+  **#269 (added 2026-10-04).** CI (run 37182871908, both Node jobs, `head=8011c7d`) and the
+  `secrets` workflow (run 37182871941) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal`, two `PASS: forced-routing
+  rehearsal` and two `PASS: agentic-review rehearsal` lines (once per Node job) and zero `[FAIL]`
+  lines. The Railway and Vercel times are the `success` statuses of their GitHub deployments for
+  `8011c7d` (ids 6837714848 and 6837719943), posted by `railway-app[bot]` and `vercel[bot]`; no
+  Railway CLI or dashboard was read. GitHub Pages WAS triggered this time, because #269 changed
+  `landing/index.html`: run 37182871906 and deployment 6837714690 both `success`. At 22:17:00 the
+  dashboard answered `{"status":"ok","db":"ok"}`. **The backend was NOT read by this entry:** no
+  tracked artifact, workflow or local note names the Railway hostname the earlier entries read, and
+  `https://api.fixor.dev/health` (the host the README gives for the API) answered HTTP 404 with a
+  Vercel `DEPLOYMENT_NOT_FOUND` body at 22:16:59, as did `/`, `/api/health` and `/healthz`. That is
+  an observation for the owner, not a verdict on the deploy: either the public API host is not the
+  backend's host, or the public host is dark; which one is not known from here. Observed in
+  production: the landing's new headline, through the Pages run. Nothing else in #269 reaches
+  production. These reads show only that the dashboard did not regress.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #269 | `8011c7d` | 2026-10-04 06:28:56 | 06:28:28 | 06:28:11 (run 37182871906) |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -6085,6 +6122,30 @@ because that widening is on the READING side and this argument turns on the RUNN
   scan pipeline; security, correctness and operations fixes. The agentic harness stays in the tree
   with its keyless rehearsal in `test:ci`; nothing is deleted. Public copy is brought in line with
   the measured result in the same PR as this entry.
+
+  **2026-10-04, LATER: THE STOP IS LIFTED FOR ONE STEP ONLY, THE MAPPING-STAGE MEASUREMENT
+  (owner's decision, recorded with its exact scope).** What led here: a same-day evaluation of
+  ABSENTIA (arXiv 2610.00977, BAC-Bench: 30 advisories, 12 JS/TS, recall 19 of 30 against 0 for
+  CodeQL and Semgrep, LLM-built route graph, 77 reports per repository at 51% confirmed, code
+  unreleased, data unlicensed) found a BAC-Bench attempt unjustified: 9 of its 12 JS/TS repositories
+  are already named in this tree (actual GHSA-qmjj-p7m9-wjrv is Arm A case 04 at the same commits),
+  0 of 12 advisories are dated after 2026-06-30, and the paper publishes no per-language hit list to
+  beat. The stop was kept. The one step named as able to reopen the question is a deterministic,
+  zero-model route-map extractor measured at $0 against public facts, and that step alone is what
+  the owner lifts. **Permitted:** the pre-registration
+  `docs/measurements/route-map-2026-10-04/route-map-prereg-2026-10-04.md` (this PR), then, after it
+  merges, the extractor under `src/test/`, its keyless rehearsal, the draw, the run and the filing of
+  its verdict, each under that file's order of operations and stop conditions. **Still frozen,
+  verbatim from the stop:** no reviewer step, no model call, no detector change, no prompt change, no
+  prefilter or regex change made to raise detection, no new detector, no batch 2 of the third
+  held-out set, no Gate B, no new judge or proxy arm. The extractor changes nothing under
+  `src/analysis-engine/`, ships nothing, emits no finding, and its result may not be cited in public
+  copy. The pre-registration revises one point of the evaluation's own recommendation: the
+  measurement set is drawn from 2024-01-01 onward with the extractor frozen BEFORE the draw, because
+  a deterministic extractor cannot memorise an advisory and the post-cutoff window would spend the
+  only sealed post-cutoff set on a question that does not need it; that set stays untouched. Counted
+  the same day, public data only: 0 new third-set cases since batch 1's listing (38 listed, 1 reached
+  judgment, failed R5); the third set stands at 6 admitted, 4 consistent.
 
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that
