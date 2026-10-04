@@ -1,0 +1,32 @@
+# Agentic review, amendment A1 case list: the held-out ten (anchors from forced routing, parent side), the four sound batch-1 cases (anchor from the fix diff's first hunk), and the first ten auth-bypass rows of the clean draw (repo, head, path). Clean repository names are the full names of the clean draw's short names (dubinc/dub, docmost/docmost, medusajs/medusa, novuhq/novu, outline/outline).
+set	case	repo	fixCommit	parentCommit	path	anchor
+held-out	01	deepstreamIO/deepstream.io	1c2adde6581c53ef47e204364bc740bc3c2e2e2a	3abde8de3df91e1b6d18f719d9e38e94bfa314f6	src/services/permission/valve/rules-map.ts	51
+held-out	02	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	8d2a9ee8ca8cf3f59852c1dcfdec674e934d5605	packages/core/src/data/resolvers/queries/users.ts	393
+held-out	02	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	8d2a9ee8ca8cf3f59852c1dcfdec674e934d5605	packages/gateway/src/index.ts	31
+held-out	02	erxes/erxes	4ed2ca797241d2ba0c9083feeadd9755c1310ce8	8d2a9ee8ca8cf3f59852c1dcfdec674e934d5605	packages/gateway/src/middlewares/userMiddleware.ts	24
+held-out	03	louislam/uptime-kuma	303a609c05d0b174a5045c90f53c2b557d4febae	3aea1dfaaf2598cfa2fe5658c5d918aea2548917	server/routers/api-router.js	172
+held-out	04	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	2d0dae236fd828e4c071fa1fce4dc559d78f6e91	packages/backend/src/core/entities/NoteEntityService.ts	119
+held-out	04	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	2d0dae236fd828e4c071fa1fce4dc559d78f6e91	packages/backend/src/queue/processors/ExportClipsProcessorService.ts	46
+held-out	04	misskey-dev/misskey	dc77d59f8712d3fe0b73cd4af2035133839cd57b	2d0dae236fd828e4c071fa1fce4dc559d78f6e91	packages/backend/src/queue/processors/ExportFavoritesProcessorService.ts	40
+held-out	05	parse-community/parse-dashboard	f92a9ef5246d57e51696bd881a15f3b133b2bb50	8a34c2f0d6af5ad11793f49b9427dad4b26f1b81	Parse-Dashboard/app.js	161
+held-out	06	parse-community/parse-server	053109b3ee71815bc39ed84116c108ff9edbf337	83e794919635ff8b6c86bed8b640222d1c973e03	src/Routers/FilesRouter.js	43
+held-out	07	Unleash/unleash	43e8db37b846921c8a94db58b44935ecbd15d9d1	b38bf1ec4b8c6fd8d82396fa73e7086ad1815826	src/lib/features/feature-toggle/feature-toggle-service.ts	552
+held-out	08	vendurehq/vendure	3bb04718ea4f9395fda731bd2a4bcfc3afb0a485	537b51486fe3fc9bdd0491e6192126b300e39453	packages/core/src/common/error/errors.ts	73
+held-out	08	vendurehq/vendure	3bb04718ea4f9395fda731bd2a4bcfc3afb0a485	537b51486fe3fc9bdd0491e6192126b300e39453	packages/core/src/service/helpers/external-authentication/external-authentication.service.ts	108
+held-out	09	whyour/qinglong	6bec52dca158481258315ba0fc2f11206df7b719	ce599d306f81e3ebb0f6eaa5b540d701a6d4085d	back/loaders/express.ts	123
+held-out	10	Yonle/bostr	49181f4ec9ae1472c6675cab56bbc01e723855af	8b131e239b92db889ac5d8fd02bee1d3a035fd9d	auth.js	21
+post-cutoff	01	toeverything/AFFiNE	1f0bcd01a37a522393fc1b288395e3a72a79ccad	5b7f83a6e3b41d06415fa8eb5c4eb767dcf12a39	packages/backend/server/src/core/workspaces/resolvers/history.ts	hunk
+post-cutoff	02	immich-app/immich	84dff19ca9a467752d848ff54763d62c04ebf960	da8774801bf03cce6be6a22233d447dbb959380c	server/src/services/album.service.ts	hunk
+post-cutoff	03	RocketChat/Rocket.Chat	07091493b8681d54d4105d7a71bc6fd2a6e7902f	6405491559411a702ae4fe0f551a6341cc9dbd1d	apps/meteor/app/meteor-accounts-saml/server/lib/parsers/Response.ts	hunk
+post-cutoff	03	RocketChat/Rocket.Chat	07091493b8681d54d4105d7a71bc6fd2a6e7902f	6405491559411a702ae4fe0f551a6341cc9dbd1d	apps/meteor/server/modules/notifications/notifications.module.ts	hunk
+post-cutoff	04	spacebarchat/server	51da17cf19d476483ee44e5f832d1ebdcd844f88	8d126f401914d68fa8a97f7e5986dcfcc42de9a8	src/api/routes/guilds/#guild_id/roles/#role_id/member-ids.ts	hunk
+clean	01	novuhq/novu	36c5c0cefa400e8edc6ec8b18ac4574288eabd03		libs/testing/src/user.session.ts	
+clean	02	outline/outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788		server/routes/api/integrations/integrations.ts	
+clean	03	medusajs/medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492		packages/medusa/src/api/admin/translations/settings/route.ts	
+clean	04	dubinc/dub	66223ae22cdec9960897507cf86c551b4e333562		apps/web/app/(ee)/api/cron/export/events/workspace/route.ts	
+clean	05	docmost/docmost	6205bbeb908fe846f87dd6a2cbf562e24777db38		apps/client/src/features/space/services/space-service.ts	
+clean	06	medusajs/medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492		packages/medusa/src/api/admin/search/route.ts	
+clean	07	outline/outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788		plugins/figma/server/api/figma.ts	
+clean	08	dubinc/dub	66223ae22cdec9960897507cf86c551b4e333562		apps/web/app/(ee)/api/partners/analytics/route.ts	
+clean	09	outline/outline	f9ae2dcd6d4eec191939d906f6b0d142789f7788		server/routes/api/groups/groups.ts	
+clean	10	medusajs/medusa	48a8812735f6630bcc12b3997b6d1d1f559cd492		packages/medusa/src/api/admin/campaigns/[id]/route.ts	
