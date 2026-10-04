@@ -19,16 +19,22 @@
  *   failAfter     exit 1 with no output once more than N runs have been made
  *   writeFile     write this relative file into the cwd (to test the clean-tree check)
  *   outputTokens  output_tokens to report (default 2000)
+ *   apiError      end the run as the CLI ends one the API refused, after the
+ *                 tool calls, and exit 1: "prompt" (Prompt is too long),
+ *                 "credits" (typed long_context_credits_required) or "other"
+ *                 (a non-size API error); with `apiErrorBare` the result
+ *                 event alone carries the error
+ *   compact       emit one compact_boundary event before the result
  *
  * WIRE CHECK (ANTHROPIC_BASE_URL set): POSTs the request the real CLI was
  * seen to send for the built-in command, bent by `wire` as the proxy-judge
  * stub does, then exits 1 on the recorder's 400.
  */
-import { appendFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { request } from "node:http";
 import { join, relative } from "node:path";
 
-interface Cfg { marker?: string; flagAll?: boolean; category?: string; reportModel?: string; extraTool?: string; extraBash?: string; extraUse?: { name: string; input: Record<string, string> }; failAfter?: number; writeFile?: string; outputTokens?: number; wire?: Record<string, unknown> }
+interface Cfg { marker?: string; flagAll?: boolean; category?: string; reportModel?: string; extraTool?: string; extraBash?: string; extraUse?: { name: string; input: Record<string, string> }; failAfter?: number; writeFile?: string; outputTokens?: number; apiError?: "prompt" | "credits" | "other"; apiErrorBare?: boolean; compact?: boolean; wire?: Record<string, unknown> }
 const here = __dirname;
 const cfgPath = join(here, "stub-config.json");
 const cfg = (existsSync(cfgPath) ? JSON.parse(readFileSync(cfgPath, "utf8")) : {}) as Cfg;
@@ -98,13 +104,21 @@ if (base) {
   }
   const category = cfg.category ?? "missing_authorization";
   const md = findings.length ? findings.map((f, i) => `# Vuln ${i + 1}: ${category}: \`${f.file}:${f.line}\`\n\n* Severity: High\n* Description: stub: no model was consulted\n* Exploit Scenario: none\n* Recommendation: none\n`).join("\n") : "No high-confidence security vulnerabilities were found in this change.";
-  const emit = (o: unknown): void => void process.stdout.write(JSON.stringify(o) + "\n");
+  // Synchronous writes: the apiError path exits with process.exit, which would drop asynchronous pipe writes on Windows.
+  const emit = (o: unknown): void => void writeSync(1, JSON.stringify(o) + "\n");
   emit({ type: "system", subtype: "init", model, tools, apiKeySource: "none", claude_code_version: "stub" });
   emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t1", name: "Read", input: { file_path: "README.md" } }] } });
   emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t2", name: "Bash", input: { command: "git log --no-decorate origin/HEAD..." } }] } });
   if (cfg.extraTool) emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t3", name: cfg.extraTool, input: { url: "http://example.invalid" } }] } });
   if (cfg.extraBash) emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t4", name: "Bash", input: { command: cfg.extraBash } }] } });
   if (cfg.extraUse) emit({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "t5", name: cfg.extraUse.name, input: Object.fromEntries(Object.entries(cfg.extraUse.input).map(([k, v]) => [k, v.replace("{cwd}", cwd)])) }] } });
+  if (cfg.apiError) {
+    const text = cfg.apiError === "other" ? "API Error: 529 Overloaded" : cfg.apiError === "credits" ? "API Error: Usage credits required for 1M context" : "Prompt is too long";
+    if (!cfg.apiErrorBare) emit({ type: "assistant", message: { role: "assistant", model: "<synthetic>", content: [{ type: "text", text }] }, is_api_error_message: true, ...(cfg.apiError === "credits" ? { api_error: "long_context_credits_required" } : {}) });
+    emit({ type: "result", subtype: "success", is_error: true, duration_ms: 1, num_turns: 1, result: text, session_id: "stub", total_cost_usd: 0, usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }, modelUsage: {} });
+    process.exit(1);
+  }
+  if (cfg.compact) emit({ type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "auto" } });
   const inputTokens = Math.ceil(stdin.length / 3.5);
   const outputTokens = cfg.outputTokens ?? 2000;
   emit({ type: "result", subtype: "success", is_error: false, duration_ms: 1, num_turns: 3, result: md, session_id: "stub", total_cost_usd: 0, usage: { input_tokens: inputTokens, output_tokens: outputTokens, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }, modelUsage: { [model]: { inputTokens, outputTokens, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUSD: 0, maxOutputTokens: 128000 } } });

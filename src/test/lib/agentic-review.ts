@@ -25,6 +25,12 @@ export const GATE_A_MIN_ACCEPTED = 8;
 export const CLEAN_FLAG_MIN_RUNS = 4; // of 5
 export const WINDOW_PAD = 3;
 export const NO_BLOCK_PAD = 10;
+/** A4: a state whose expanded prompt is longer than this is unreviewable; no request is sent for it. */
+export const UNREVIEWABLE_PROMPT_CHARS = 300_000;
+/** A4: the API refusing a request for its size, as the pinned CLI words it (its own test is the same two phrases). */
+export const SIZE_REFUSAL_RE = /prompt is too long|input is too long for requested model/i;
+/** A4: the pinned CLI's typed API error for a request over the 200K-token boundary on an account without usage credits. */
+export const SIZE_REFUSAL_API_ERRORS = ["long_context_credits_required"] as const;
 export const NEUTRAL = { name: "contributor", email: "contributor@example.invalid", date: "2000-01-01T00:00:00Z", message: "change" } as const;
 /** The built-in's tools, as A1 3.5 restricts them at the CLI. */
 export const TOOL_SET = ["Read", "Glob", "Grep", "LS", "Task", "Bash"] as const;
@@ -218,23 +224,35 @@ export interface RunParse {
   markdown: string;
   toolCalls: ToolCall[];
   initTools: string[] | null;
+  /** compact_boundary events: the CLI summarised the conversation during the run. Reported, not scored. */
+  compactions: number;
 }
-export type RunParseResult = RunParse | { ok: false; reason: string };
+/** A failed run; `sizeRefusal` is set only when the API refused a request for its size (A4), with the tool calls made before it. */
+export type RunParseResult = RunParse | { ok: false; reason: string; sizeRefusal?: string; toolCalls?: ToolCall[] };
 
 /** Reads every JSON line the CLI printed; collects tool_use blocks, the init tool list and the final result. */
 export function parseStream(stdout: string): RunParseResult {
   const toolCalls: ToolCall[] = [];
   let initTools: string[] | null = null;
   let result: Record<string, unknown> | null = null;
+  let sizeRefusal: string | null = null;
+  let compactions = 0;
   for (const raw of stdout.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line.startsWith("{")) continue;
     let ev: Record<string, unknown>;
     try { ev = JSON.parse(line) as Record<string, unknown>; } catch { continue; }
     if (ev["type"] === "system" && ev["subtype"] === "init" && Array.isArray(ev["tools"])) initTools = (ev["tools"] as unknown[]).map(String);
+    if (ev["type"] === "system" && ev["subtype"] === "compact_boundary") compactions++;
     if (ev["type"] === "assistant") {
-      const msg = ev["message"] as { content?: unknown } | undefined;
+      const msg = ev["message"] as { content?: unknown; is_api_error_message?: unknown; api_error?: unknown } | undefined;
       const content = Array.isArray(msg?.content) ? (msg!.content as Array<Record<string, unknown>>) : [];
+      // A4: only a message the CLI marks as an API error counts; the model's own prose never does.
+      if (ev["is_api_error_message"] === true || msg?.is_api_error_message === true) {
+        const apiError = String(ev["api_error"] ?? msg?.api_error ?? "");
+        const text = content.filter((b) => b["type"] === "text").map((b) => String(b["text"] ?? "")).join(" ");
+        if ((SIZE_REFUSAL_API_ERRORS as readonly string[]).includes(apiError) || SIZE_REFUSAL_RE.test(text)) sizeRefusal = apiError || text.slice(0, 120);
+      }
       for (const b of content) {
         if (b["type"] === "tool_use") {
           const input = (b["input"] ?? {}) as Record<string, unknown>;
@@ -247,7 +265,9 @@ export function parseStream(stdout: string): RunParseResult {
   }
   if (!result) return { ok: false, reason: "no result event in the stream" };
   if (result["is_error"] === true || (result["subtype"] !== undefined && result["subtype"] !== "success")) {
-    return { ok: false, reason: `result subtype ${String(result["subtype"])}, is_error ${String(result["is_error"])}: ${String(result["result"] ?? "").slice(0, 200)}` };
+    const reason = `result subtype ${String(result["subtype"])}, is_error ${String(result["is_error"])}: ${String(result["result"] ?? "").slice(0, 200)}`;
+    if (!sizeRefusal && SIZE_REFUSAL_RE.test(String(result["result"] ?? ""))) sizeRefusal = String(result["result"]).slice(0, 120);
+    return sizeRefusal ? { ok: false, reason, sizeRefusal, toolCalls } : { ok: false, reason };
   }
   const mu = (result["modelUsage"] ?? {}) as Record<string, unknown>;
   const models = Object.keys(mu);
@@ -263,6 +283,7 @@ export function parseStream(stdout: string): RunParseResult {
     markdown: typeof result["result"] === "string" ? (result["result"] as string) : "",
     toolCalls,
     initTools,
+    compactions,
   };
 }
 
@@ -340,6 +361,8 @@ export interface RunRecord {
   findings: Finding[];
   hit: boolean;
   anyFinding: boolean;
+  /** A4: why this run is unreviewable (size rule before sending, or the API's size refusal); it has no finding. */
+  unreviewable?: string | null;
 }
 
 export interface CaseScore {
@@ -352,6 +375,7 @@ export interface CaseScore {
   vulnerableRuns: number;
   fixRuns: number;
   voided: number;
+  unreviewableRuns: number;
   hit: boolean;
   countsForGate: boolean;
 }
@@ -366,21 +390,21 @@ export function scoreCases(manifest: PreparedManifest, records: RunRecord[]): Ca
     const complete = v.length === RUNS && (!hasFixSide || f.length === RUNS);
     // A1 3.1: no fix-side control, no hit for the gate.
     const hit = c.accepted && complete && hasFixSide && vulnerableHits >= HIT_MIN_VULNERABLE && fixHits <= HIT_MAX_FIX;
-    return { set: c.set, case: c.case, accepted: c.accepted, hasFixSide, vulnerableHits, fixHits, vulnerableRuns: v.length, fixRuns: f.length, voided: [...v, ...f].filter((r) => r.voided).length, hit, countsForGate: c.set === "held-out" };
+    return { set: c.set, case: c.case, accepted: c.accepted, hasFixSide, vulnerableHits, fixHits, vulnerableRuns: v.length, fixRuns: f.length, voided: [...v, ...f].filter((r) => r.voided).length, unreviewableRuns: [...v, ...f].filter((r) => r.unreviewable).length, hit, countsForGate: c.set === "held-out" };
   });
 }
 
-export interface CleanScore { case: string; runs: number; flaggedRuns: number; flagged: boolean }
+export interface CleanScore { case: string; runs: number; flaggedRuns: number; unreviewableRuns: number; flagged: boolean }
 export function scoreClean(manifest: PreparedManifest, records: RunRecord[]): CleanScore[] {
   return manifest.clean.filter((k) => k.state).map((k) => {
     const rs = records.filter((r) => r.set === "clean" && r.case === k.case);
     const flaggedRuns = rs.filter((r) => r.anyFinding && !r.voided).length;
-    return { case: k.case, runs: rs.length, flaggedRuns, flagged: rs.length === RUNS && flaggedRuns >= CLEAN_FLAG_MIN_RUNS };
+    return { case: k.case, runs: rs.length, flaggedRuns, unreviewableRuns: rs.filter((r) => r.unreviewable).length, flagged: rs.length === RUNS && flaggedRuns >= CLEAN_FLAG_MIN_RUNS };
   });
 }
 
 export type GateLabel = "AGENTIC-INCOMPLETE" | "AGENTIC-PRECONDITION-FAILED" | "AGENTIC-CONTINUE" | "AGENTIC-STOP";
-export function gateA(manifest: PreparedManifest, cases: CaseScore[], clean: CleanScore[], voidedSeries: boolean): { label: GateLabel; heldOutHits: number; heldOutAccepted: number; cleanFlags: number; postCutoffHits: number; postCutoffCases: number; reason: string } {
+export function gateA(manifest: PreparedManifest, cases: CaseScore[], clean: CleanScore[], voidedSeries: boolean): { label: GateLabel; heldOutHits: number; heldOutAccepted: number; cleanFlags: number; postCutoffHits: number; postCutoffCases: number; reason: string; unreviewableRuns: number; cleanFlagsIfUnreviewableFlagged: number } {
   const held = cases.filter((c) => c.set === "held-out");
   const accepted = held.filter((c) => c.accepted).length;
   const heldOutHits = held.filter((c) => c.hit).length;
@@ -388,12 +412,14 @@ export function gateA(manifest: PreparedManifest, cases: CaseScore[], clean: Cle
   const postCutoffHits = post.filter((c) => c.hit).length;
   const cleanFlags = clean.filter((k) => k.flagged).length;
   const plannedClean = manifest.clean.filter((k) => k.state).length;
+  // A4: an unreviewable run counts as not flagged. The clean count with those runs counted as flagged is reported beside it and never gated on.
+  const a4 = { unreviewableRuns: cases.reduce((n, c) => n + c.unreviewableRuns, 0) + clean.reduce((n, k) => n + k.unreviewableRuns, 0), cleanFlagsIfUnreviewableFlagged: clean.filter((k) => k.runs === RUNS && k.flaggedRuns + k.unreviewableRuns >= CLEAN_FLAG_MIN_RUNS).length };
   const complete = held.filter((c) => c.accepted).every((c) => c.vulnerableRuns === RUNS && (!c.hasFixSide || c.fixRuns === RUNS)) && clean.every((k) => k.runs === RUNS) && clean.length === plannedClean;
-  if (accepted < GATE_A_MIN_ACCEPTED) return { label: "AGENTIC-PRECONDITION-FAILED", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: `${accepted} of 10 held-out cases accepted by the blame rule; the gate needs ${GATE_A_MIN_ACCEPTED}` };
-  if (voidedSeries) return { label: "AGENTIC-STOP", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: "a run was voided by a tool call outside the allowed set; the series is void" };
-  if (!complete) return { label: "AGENTIC-INCOMPLETE", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: "not every state has five runs" };
+  if (accepted < GATE_A_MIN_ACCEPTED) return { label: "AGENTIC-PRECONDITION-FAILED", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: `${accepted} of 10 held-out cases accepted by the blame rule; the gate needs ${GATE_A_MIN_ACCEPTED}`, ...a4 };
+  if (voidedSeries) return { label: "AGENTIC-STOP", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: "a run was voided by a tool call outside the allowed set; the series is void", ...a4 };
+  if (!complete) return { label: "AGENTIC-INCOMPLETE", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: "not every state has five runs", ...a4 };
   const pass = heldOutHits >= GATE_A_MIN_HITS && cleanFlags <= GATE_A_MAX_CLEAN_FLAGS;
-  return { label: pass ? "AGENTIC-CONTINUE" : "AGENTIC-STOP", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: pass ? `${heldOutHits} hits of ${accepted} accepted and ${cleanFlags} of ${plannedClean} clean changes flagged` : `${heldOutHits} hits (needs ${GATE_A_MIN_HITS}) and ${cleanFlags} clean flags (at most ${GATE_A_MAX_CLEAN_FLAGS})` };
+  return { label: pass ? "AGENTIC-CONTINUE" : "AGENTIC-STOP", heldOutHits, heldOutAccepted: accepted, cleanFlags, postCutoffHits, postCutoffCases: post.length, reason: pass ? `${heldOutHits} hits of ${accepted} accepted and ${cleanFlags} of ${plannedClean} clean changes flagged` : `${heldOutHits} hits (needs ${GATE_A_MIN_HITS}) and ${cleanFlags} clean flags (at most ${GATE_A_MAX_CLEAN_FLAGS})`, ...a4 };
 }
 
 // ---------------------------------------------------------------------------

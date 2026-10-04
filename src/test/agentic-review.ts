@@ -14,10 +14,16 @@
  *        [--model claude-opus-5-5] [--effort high] [--runs 5] [--max-runs N]
  *        [--prompt <builtin-security-review-2.1.284.md>]
  *        [--stub <stub.js>]        rehearsal only: no model, no network, no pin
+ *        [--unreviewable-chars N]  rehearsal only (with --stub): the A4 size limit
  *        [--recorder-check <repo dir>]  capture the real request (no model reached),
  *                                   compare the harness prompt with the CLI's own
  *                                   /security-review expansion, record the tool list
  *        [--score-only]
+ *
+ * A4: a state whose expanded prompt exceeds UNREVIEWABLE_PROMPT_CHARS is
+ * recorded unreviewable for all its runs and never sent; a run the API
+ * refuses for its size is recorded unreviewable and the series continues.
+ * An unreviewable run has no finding. Every other failure still stops.
  *
  * Exit codes: 0 complete and scored, or a passing check; 2 stopped (model
  * mismatch, a voided run, a changed tree, an infrastructure failure, a wire
@@ -32,8 +38,8 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, write
 import { isAbsolute, join, resolve, sep } from "node:path";
 
 import {
-  BASH_ALLOWED, RUNS, TOOL_SET, auditToolCalls, bangCommands, checkNeutralRepo, estimateTokens, expandPrompt, gateA, parseFindings, parseStream, promptBody, runHit, scoreCases, scoreClean, sha256,
-  type Finding, type PreparedManifest, type RunRecord, type StateKind,
+  BASH_ALLOWED, RUNS, TOOL_SET, UNREVIEWABLE_PROMPT_CHARS, auditToolCalls, bangCommands, checkNeutralRepo, estimateTokens, expandPrompt, gateA, parseFindings, parseStream, promptBody, runHit, scoreCases, scoreClean, sha256,
+  type Finding, type PreparedManifest, type RunRecord, type StateKind, type ToolCall,
 } from "./lib/agentic-review";
 import { JUDGE_MODEL_SHAPE, WORK_ROOT_FORBIDDEN, credentialGate, scrubbedEnv, settingsGate, EFFORT_LEVELS } from "./lib/proxy-judge";
 import { WIRE_TIMEOUT_MS, binaryGate, canonical, captureWire, sha256File, wireFacts, wireFingerprint, type WireFacts } from "./lib/proxy-judge-wire";
@@ -113,6 +119,9 @@ async function main(): Promise<number> {
   const maxRuns = arg("--max-runs") !== undefined ? Number(arg("--max-runs")) : Infinity;
   if (!(maxRuns > 0)) { out.write("refused: --max-runs must be a positive integer\n"); return 3; }
   const stub = arg("--stub");
+  if (arg("--unreviewable-chars") !== undefined && !stub) { out.write("refused: --unreviewable-chars is a rehearsal knob and needs --stub; the real run uses the A4 limit\n"); return 3; }
+  const sizeLimit = arg("--unreviewable-chars") !== undefined ? Number(arg("--unreviewable-chars")) : UNREVIEWABLE_PROMPT_CHARS;
+  if (!(sizeLimit > 0)) { out.write("refused: --unreviewable-chars must be a positive number\n"); return 3; }
   const recorderRepo = arg("--recorder-check");
   const scoreOnly = process.argv.includes("--score-only");
   const repoRoot = process.cwd();
@@ -230,10 +239,10 @@ async function main(): Promise<number> {
     const voided = recs.some((r) => r.voided) || done.has("VOID") || existsSync(join(recDir, "VOID"));
     const gate = gateA(manifest, cases, clean, voided);
     const planned = states.length * runs;
-    writeFileSync(join(outDir, "results.json"), JSON.stringify({ instrument: "AGENTIC", stub: !!stub, model, effort, runs, planned, judged: recs.length, updatedAt: new Date().toISOString(), stop, gate, cases, clean, perRun: recs.map((r) => ({ set: r.set, case: r.case, state: r.state, run: r.run, voided: r.voided, findings: r.findings.length, hit: r.hit })) }, null, 2));
+    writeFileSync(join(outDir, "results.json"), JSON.stringify({ instrument: "AGENTIC", stub: !!stub, model, effort, runs, planned, judged: recs.length, updatedAt: new Date().toISOString(), stop, gate, cases, clean, perRun: recs.map((r) => ({ set: r.set, case: r.case, state: r.state, run: r.run, voided: r.voided, unreviewable: !!r.unreviewable, findings: r.findings.length, hit: r.hit })) }, null, 2));
     // A stopped series prints its reason and no figure: nothing names a hit before the series is complete.
     const complete = gate.label !== "AGENTIC-INCOMPLETE" && !stop;
-    if (complete || scoreOnly) out.write(`${stub ? "STUB/" : ""}${gate.label} | held-out hits ${gate.heldOutHits} of ${gate.heldOutAccepted} accepted; clean flags ${gate.cleanFlags}; post-cutoff hits ${gate.postCutoffHits} of ${gate.postCutoffCases}; ${gate.reason}\n`);
+    if (complete || scoreOnly) out.write(`${stub ? "STUB/" : ""}${gate.label} | held-out hits ${gate.heldOutHits} of ${gate.heldOutAccepted} accepted; clean flags ${gate.cleanFlags}; post-cutoff hits ${gate.postCutoffHits} of ${gate.postCutoffCases}; ${gate.reason}; unreviewable runs ${gate.unreviewableRuns} (A4: no finding); clean flags with those counted as flagged ${gate.cleanFlagsIfUnreviewableFlagged}\n`);
     else out.write(`AGENTIC-INCOMPLETE | judged ${recs.length} of ${planned}${stop ? `; STOPPED (${stop})` : ""}; no figure is printed below completeness\n`);
     return stop ? 2 : 0;
   };
@@ -251,6 +260,15 @@ async function main(): Promise<number> {
       const treeBefore = gitIn(s.dir, ["rev-parse", "HEAD^{tree}"]).trim();
       if (treeBefore !== s.tree) { log(`STOP ${s.token}: tree ${treeBefore} != prepared ${s.tree}`); return finish(`repository ${s.token} is not at its prepared tree`); }
       const prompt = expandIn(body, s.dir);
+      // A4: a prompt over the limit is never sent; the run is recorded unreviewable, with no finding.
+      if (prompt.length > sizeLimit) {
+        const rec = { token: s.token, set: s.set, case: s.case, state: s.kind, run, voided: false, voidReason: null, unreviewable: `size rule: prompt ${prompt.length} chars, limit ${sizeLimit}; not sent`, sentToModel: false, findings: [], hit: false, anyFinding: false, promptChars: prompt.length, stub: !!stub, at: new Date().toISOString() };
+        writeFileSync(join(recDir, recName(s.token, run)), JSON.stringify(rec, null, 2));
+        done.add(recName(s.token, run));
+        log(`unreviewable ${s.token} r${run}: prompt ${prompt.length} chars over ${sizeLimit}; not sent`);
+        out.write(`${s.token} run ${run}: UNREVIEWABLE (A4 size rule), prompt ${prompt.length} chars ~${estimateTokens(prompt.length)} tokens; not sent\n`);
+        continue;
+      }
       if (wireToken !== s.token) {
         const refused = await wireGate(s, prompt);
         if (refused) { log(`${judgedNow === 0 ? "REFUSED" : "STOP"} wire check for ${s.token}: ${refused}`); if (judgedNow === 0 && done.size === 0) { out.write(`refused: wire check for ${s.token}: ${refused}. No judge run was made\n`); return 3; } return finish(`wire check for ${s.token}: ${refused}`); }
@@ -259,28 +277,39 @@ async function main(): Promise<number> {
       const t0 = Date.now();
       const p = spawnSync(cmd, [...prefix, ...argv], { cwd: s.dir, env, input: prompt, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, windowsHide: true, timeout: RUN_TIMEOUT_MS });
       const wallMs = Date.now() - t0;
-      if (p.error || p.status !== 0) { log(`STOP ${s.token} r${run}: exited ${p.status ?? "signal"} ${(p.stderr ?? "").trim().slice(0, 200)}`); return finish(`infrastructure: ${s.token} run ${run} exited ${p.status ?? "signal"}${p.error ? ` (${p.error.message})` : ""}`); }
+      if (p.error) { log(`STOP ${s.token} r${run}: ${p.error.message}`); return finish(`infrastructure: ${s.token} run ${run} exited ${p.status ?? "signal"} (${p.error.message})`); }
       const parsed = parseStream(p.stdout ?? "");
-      if (!parsed.ok) { log(`STOP ${s.token} r${run}: ${parsed.reason}`); return finish(`infrastructure: ${s.token} run ${run}: ${parsed.reason}`); }
+      // A4: the API's refusal of a request for its size makes the run unreviewable; any other failure stops the series.
+      const unreviewable = !parsed.ok && parsed.sizeRefusal ? `API size refusal: ${parsed.sizeRefusal}` : null;
+      if (!unreviewable && p.status !== 0) { log(`STOP ${s.token} r${run}: exited ${p.status ?? "signal"} ${(p.stderr ?? "").trim().slice(0, 200)}`); return finish(`infrastructure: ${s.token} run ${run} exited ${p.status ?? "signal"}`); }
+      if (!parsed.ok && !unreviewable) { log(`STOP ${s.token} r${run}: ${parsed.reason}`); return finish(`infrastructure: ${s.token} run ${run}: ${parsed.reason}`); }
       // After the run: the tree is unchanged and nothing was added.
       const after = repoFacts(s.dir);
       const treeAfter = gitIn(s.dir, ["rev-parse", "HEAD^{tree}"]).trim();
       if (after.status.trim() !== "" || treeAfter !== s.tree) { log(`STOP ${s.token} r${run}: tree changed`); return finish(`repository ${s.token} changed during run ${run}; no record written`); }
-      const mismatch = parsed.models.some((m) => m !== model);
-      const bad = auditToolCalls(parsed.toolCalls, s.dir);
-      const findings: Finding[] = parseFindings(parsed.markdown);
+      const ok = parsed.ok ? parsed : null;
+      const calls: ToolCall[] = ok ? ok.toolCalls : (parsed as { toolCalls?: ToolCall[] }).toolCalls ?? [];
+      const mismatch = ok ? ok.models.some((m) => m !== model) : false;
+      // An unreviewable run is audited too: a call made before the refusal still voids the series.
+      const bad = auditToolCalls(calls, s.dir);
+      const findings: Finding[] = ok ? parseFindings(ok.markdown) : [];
       const caseRec = manifest.cases.find((c) => c.set === s.set && c.case === s.case);
-      const hit = s.kind === "clean" ? false : runHit(findings, caseRec?.files ?? []).hit;
-      const rec = { token: s.token, set: s.set, case: s.case, state: s.kind, run, voided: bad.length > 0, voidReason: bad.length ? bad.map((b) => `${b.name}${b.command ? ` ${b.command}` : ""}${!b.command && b.paths.length ? ` ${b.paths.join(" ")}` : ""}`).join("; ") : null, models: parsed.models, usage: parsed.usage, numTurns: parsed.numTurns, durationMs: parsed.durationMs, wallMs, reportedCostUsd: parsed.reportedCostUsd, toolCalls: parsed.toolCalls.length, toolCallsByName: parsed.toolCalls.reduce<Record<string, number>>((a, c) => ((a[c.name] = (a[c.name] ?? 0) + 1), a), {}), subTaskCallsVisible: parsed.toolCalls.some((c) => !c.parent), initTools: parsed.initTools, promptChars: prompt.length, findings, hit, anyFinding: findings.length > 0, markdownSha256: sha256(parsed.markdown), stub: !!stub, startedAt: new Date(t0).toISOString(), endedAt: new Date().toISOString() };
-      if (mismatch) { writeFileSync(join(recDir, `${s.token}-r${run}.model-mismatch.json`), JSON.stringify(rec, null, 2)); log(`STOP ${s.token} r${run}: answered by ${parsed.models.join("+")}`); return finish(`model mismatch: ${s.token} run ${run} was answered by ${parsed.models.join("+")}, not ${model}; run stopped`); }
-      mkdirSync(join(outDir, "reports"), { recursive: true });
-      writeFileSync(join(outDir, "reports", `${s.token}-r${run}.md`), parsed.markdown);
+      const hit = s.kind === "clean" || !ok ? false : runHit(findings, caseRec?.files ?? []).hit;
+      const rec = { token: s.token, set: s.set, case: s.case, state: s.kind, run, voided: bad.length > 0, voidReason: bad.length ? bad.map((b) => `${b.name}${b.command ? ` ${b.command}` : ""}${!b.command && b.paths.length ? ` ${b.paths.join(" ")}` : ""}`).join("; ") : null, unreviewable, sentToModel: true, models: ok?.models ?? [], usage: ok?.usage ?? null, numTurns: ok?.numTurns ?? null, durationMs: ok?.durationMs ?? null, wallMs, reportedCostUsd: ok?.reportedCostUsd ?? null, compactions: ok?.compactions ?? null, toolCalls: calls.length, toolCallsByName: calls.reduce<Record<string, number>>((a, c) => ((a[c.name] = (a[c.name] ?? 0) + 1), a), {}), subTaskCallsVisible: calls.some((c) => !c.parent), initTools: ok?.initTools ?? null, promptChars: prompt.length, findings, hit, anyFinding: findings.length > 0, markdownSha256: ok ? sha256(ok.markdown) : null, stub: !!stub, startedAt: new Date(t0).toISOString(), endedAt: new Date().toISOString() };
+      if (ok && mismatch) { writeFileSync(join(recDir, `${s.token}-r${run}.model-mismatch.json`), JSON.stringify(rec, null, 2)); log(`STOP ${s.token} r${run}: answered by ${ok.models.join("+")}`); return finish(`model mismatch: ${s.token} run ${run} was answered by ${ok.models.join("+")}, not ${model}; run stopped`); }
+      if (ok) { mkdirSync(join(outDir, "reports"), { recursive: true }); writeFileSync(join(outDir, "reports", `${s.token}-r${run}.md`), ok.markdown); }
       writeFileSync(join(recDir, recName(s.token, run)), JSON.stringify(rec, null, 2));
       done.add(recName(s.token, run));
       judgedNow++;
-      usageTotals.input += parsed.usage.input; usageTotals.output += parsed.usage.output; usageTotals.cacheWrite += parsed.usage.cacheWrite; usageTotals.cacheRead += parsed.usage.cacheRead; usageTotals.costUsd += parsed.reportedCostUsd ?? 0; usageTotals.promptChars += prompt.length;
-      log(`ok ${s.token} r${run} model=${parsed.models[0]} in=${parsed.usage.input} out=${parsed.usage.output} turns=${String(parsed.numTurns)} tools=${parsed.toolCalls.length} voided=${rec.voided}`);
-      out.write(`${s.token} run ${run}: ${parsed.models[0]}, input ${parsed.usage.input} (cache write ${parsed.usage.cacheWrite}, read ${parsed.usage.cacheRead}), output ${parsed.usage.output}, turns ${String(parsed.numTurns)}, tool calls ${parsed.toolCalls.length}, prompt ~${estimateTokens(prompt.length)} tokens${rec.voided ? "; VOIDED" : ""}\n`);
+      usageTotals.promptChars += prompt.length;
+      if (ok) {
+        usageTotals.input += ok.usage.input; usageTotals.output += ok.usage.output; usageTotals.cacheWrite += ok.usage.cacheWrite; usageTotals.cacheRead += ok.usage.cacheRead; usageTotals.costUsd += ok.reportedCostUsd ?? 0;
+        log(`ok ${s.token} r${run} model=${ok.models[0]} in=${ok.usage.input} out=${ok.usage.output} turns=${String(ok.numTurns)} tools=${ok.toolCalls.length} compactions=${ok.compactions} voided=${rec.voided}`);
+        out.write(`${s.token} run ${run}: ${ok.models[0]}, input ${ok.usage.input} (cache write ${ok.usage.cacheWrite}, read ${ok.usage.cacheRead}), output ${ok.usage.output}, turns ${String(ok.numTurns)}, tool calls ${ok.toolCalls.length}, compactions ${ok.compactions}, prompt ~${estimateTokens(prompt.length)} tokens${rec.voided ? "; VOIDED" : ""}\n`);
+      } else {
+        log(`unreviewable ${s.token} r${run}: ${unreviewable} tools=${calls.length} voided=${rec.voided}`);
+        out.write(`${s.token} run ${run}: UNREVIEWABLE (${unreviewable}), prompt ~${estimateTokens(prompt.length)} tokens${rec.voided ? "; VOIDED" : ""}\n`);
+      }
       if (rec.voided) { writeFileSync(join(recDir, "VOID"), rec.voidReason ?? ""); log(`VOID ${rec.voidReason}`); return finish(`run voided by a tool call outside the allowed set or reaching outside the repository (${rec.voidReason}); the series is void`); }
     }
   }

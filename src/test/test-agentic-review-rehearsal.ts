@@ -31,7 +31,12 @@
  *      stops; a run that writes into the repository stops with no record; a
  *      cut-off resumes with no run repeated; a wrong cap, model, tool list or
  *      login on the wire refuses before any run; the recorder check records
- *      the tool list.
+ *      the tool list. A4: a size refusal (either wording) is an unreviewable
+ *      run with no finding and the series completes, also when only the
+ *      result event carries it; another API error
+ *      stops it; a refused run is still audited; a state over the size
+ *      limit never reaches the process; a compaction is recorded, not read
+ *      as a refusal; the size knob refuses without --stub.
  *   F. Token volume per state from the expanded prompts, printed.
  */
 import { spawnSync, execFileSync } from "node:child_process";
@@ -39,7 +44,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdir
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { GATE_A_MAX_CLEAN_FLAGS, GATE_A_MIN_HITS, NEUTRAL, RUNS, checkNeutralRepo, defectWindow, estimateTokens, gateA, parseFindings, runHit, scoreCases, scoreClean, type PreparedManifest, type RunRecord } from "./lib/agentic-review";
+import { GATE_A_MAX_CLEAN_FLAGS, GATE_A_MIN_HITS, NEUTRAL, RUNS, checkNeutralRepo, defectWindow, estimateTokens, gateA, parseFindings, parseStream, runHit, scoreCases, scoreClean, type PreparedManifest, type RunRecord } from "./lib/agentic-review";
 import { harnessArgv } from "./agentic-review";
 import { sha256File } from "./lib/proxy-judge-wire";
 
@@ -477,6 +482,59 @@ function main(): void {
     if (res.status === 3 && w.expect.test(res.stdout) && stub.count() === 0 && stub.wireCount() === 1) pass(`${w.name}: refused before any run, one wire check`);
     else fail(`${w.name}: status ${res.status}, calls ${stub.count()}, wire ${stub.wireCount()}: ${res.stdout.slice(-300)}`);
   }
+  // A4: a run the API refuses for its size is unreviewable, has no finding, and the series continues; any other API error stops it.
+  type A4Results = { gate: { label: string; heldOutHits: number; cleanFlags: number; unreviewableRuns: number; cleanFlagsIfUnreviewableFlagged: number }; judged: number };
+  const readA4 = (d: string): A4Results | null => (existsSync(join(d, "results.json")) ? (JSON.parse(readFileSync(join(d, "results.json"), "utf8")) as A4Results) : null);
+  const cleanStates = M.clean.filter((k) => k.state).length;
+  for (const kind of ["prompt", "credits", "bare"] as const) {
+    stub.reset(); stub.config({ marker: MARKER, apiError: kind === "bare" ? "prompt" : kind, apiErrorBare: kind === "bare" });
+    const d = join(scratch, `a4-${kind}`);
+    const res = run(HARNESS, common(d));
+    const r = readA4(d);
+    const recs = existsSync(join(d, "runs")) ? readdirSync(join(d, "runs")).filter((x) => /-r\d\.json$/.test(x)).map((x) => JSON.parse(readFileSync(join(d, "runs", x), "utf8")) as { unreviewable: string | null; anyFinding: boolean; sentToModel: boolean }) : [];
+    if (res.status === 0 && r && r.judged === planned && stub.count() === planned && recs.length === planned && recs.every((x) => x.unreviewable && /API size refusal/.test(x.unreviewable) && !x.anyFinding && x.sentToModel) && r.gate.label !== "AGENTIC-INCOMPLETE" && r.gate.heldOutHits === 0 && r.gate.cleanFlags === 0 && r.gate.unreviewableRuns === planned && r.gate.cleanFlagsIfUnreviewableFlagged === cleanStates && /unreviewable runs \d+ \(A4: no finding\)/.test(res.stdout)) pass(`A4: the API refusing every request for its size (${kind}) records ${planned} unreviewable runs with no finding, the series completes, and the clean count with them flagged (${cleanStates}) is reported beside the gate`);
+    else fail(`A4 ${kind}: status ${res.status}, judged ${r?.judged}, calls ${stub.count()}, gate ${JSON.stringify(r?.gate)}: ${res.stdout.slice(-300)}`);
+  }
+  stub.reset(); stub.config({ marker: MARKER, apiError: "other" });
+  const dOther = join(scratch, "a4-other");
+  const rOther = run(HARNESS, common(dOther));
+  const otherRecs = existsSync(join(dOther, "runs")) ? readdirSync(join(dOther, "runs")).filter((x) => /-r\d\.json$/.test(x)) : [];
+  if (rOther.status === 2 && /infrastructure/.test(rOther.stdout) && stub.count() === 1 && otherRecs.length === 0) pass("A4: an API error that is not a size refusal stops the series on the first run with no record");
+  else fail(`A4 other error: status ${rOther.status}, calls ${stub.count()}, records ${otherRecs.length}: ${rOther.stdout.slice(-300)}`);
+  stub.reset(); stub.config({ marker: MARKER, apiError: "prompt", extraTool: "WebFetch" });
+  const dRefVoid = join(scratch, "a4-void");
+  const rRefVoid = run(HARNESS, common(dRefVoid));
+  if (rRefVoid.status === 2 && /voided by a tool call/.test(rRefVoid.stdout) && existsSync(join(dRefVoid, "runs", "VOID")) && stub.count() === 1) pass("A4: a size-refused run is still audited; a tool call outside the set before the refusal voids the series");
+  else fail(`A4 refused+void: status ${rRefVoid.status}, calls ${stub.count()}: ${rRefVoid.stdout.slice(-300)}`);
+  // A4 size rule: a state whose prompt is over the limit is never sent to the process, and all its runs are unreviewable.
+  const sizes = new Map<string, number>();
+  for (const cap of capsC) sizes.set(resolve(cap.cwd).slice(resolve(root).length + 1), cap.stdin.length);
+  const largest = Math.max(...sizes.values());
+  const over = [...sizes].filter(([, n]) => n > largest - 1).map(([t]) => t);
+  stub.reset(); stub.config({ marker: MARKER });
+  const dSize = join(scratch, "a4-size");
+  const rSize = run(HARNESS, common(dSize, ["--unreviewable-chars", String(largest - 1)]));
+  const sentTo = new Set(stub.captures().map((cap) => resolve(cap.cwd).slice(resolve(root).length + 1)));
+  const sizeRecs = existsSync(join(dSize, "runs")) ? readdirSync(join(dSize, "runs")).filter((x) => /-r\d\.json$/.test(x)).map((x) => JSON.parse(readFileSync(join(dSize, "runs", x), "utf8")) as { token: string; unreviewable: string | null; sentToModel: boolean }) : [];
+  const sizeUnrev = sizeRecs.filter((x) => x.unreviewable);
+  if (rSize.status === 0 && over.length >= 1 && over.length < sizes.size && over.every((t) => !sentTo.has(t)) && stub.count() === planned - over.length * RUNS && sizeRecs.length === planned && sizeUnrev.length === over.length * RUNS && sizeUnrev.every((x) => over.includes(x.token) && !x.sentToModel && /size rule/.test(x.unreviewable!)) && !/AGENTIC-INCOMPLETE/.test(rSize.stdout)) pass(`A4 size rule: ${over.length} state(s) over the limit never reached the process; their ${over.length * RUNS} runs are unreviewable and the series completes`);
+  else fail(`A4 size rule: status ${rSize.status}, over ${over.length}/${sizes.size}, calls ${stub.count()} of ${planned}, records ${sizeRecs.length}, unreviewable ${sizeUnrev.length}: ${rSize.stdout.slice(-300)}`);
+  // A4: compaction is recorded on the run, never read as a refusal.
+  stub.reset(); stub.config({ marker: MARKER, compact: true });
+  const dCompact = join(scratch, "a4-compact");
+  run(HARNESS, common(dCompact, ["--max-runs", "1"]));
+  const cRec = existsSync(join(dCompact, "runs")) ? readdirSync(join(dCompact, "runs")).filter((x) => /-r\d\.json$/.test(x)).map((x) => JSON.parse(readFileSync(join(dCompact, "runs", x), "utf8")) as { compactions: number; unreviewable: string | null }) : [];
+  if (cRec.length === 1 && cRec[0]!.compactions === 1 && !cRec[0]!.unreviewable) pass("A4: a compaction during a run is recorded on the run (1) and the run is scored as made");
+  else fail(`A4 compaction: ${JSON.stringify(cRec)}`);
+  // A4: only a message the CLI marks as an API error is read as a size refusal; the model's own words are not.
+  const prose = [JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "The prompt is too long to review fully." }] } }), JSON.stringify({ type: "result", subtype: "success", is_error: true, result: "API Error: 529 Overloaded" })].join("\n");
+  const pp = parseStream(prose);
+  if (!pp.ok && !pp.sizeRefusal) pass("A4: the model's own prose naming a long prompt, before a non-size error, is not a size refusal");
+  else fail(`A4 prose: ${JSON.stringify(pp)}`);
+  stub.reset();
+  const rKnob = run(HARNESS, ["--prepared", manifestFile, "--out", join(scratch, "a4-knob"), "--expect-tools", recFile, "--claude", stub.script, "--claude-sha256", "0".repeat(64), "--unreviewable-chars", "10"]);
+  if (rKnob.status === 3 && /rehearsal knob/.test(rKnob.stdout) && stub.count() === 0 && stub.wireCount() === 0) pass("A4: --unreviewable-chars without --stub refuses before any process starts; the real run uses the committed limit");
+  else fail(`A4 knob: status ${rKnob.status}: ${rKnob.stdout}`);
   if (sha256File(stub.script).length === 64) pass("sha256File hashes the stub (the pin path is exercised above with a wrong pin)"); else fail("sha256File");
 
   out.write("\nF. token volume per state, from the expanded prompts the stub received\n");
