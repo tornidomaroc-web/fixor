@@ -242,6 +242,12 @@ function main(): void {
   if (checkNeutralRepo(f0, d0 + ".origin.git").length === 0) pass("the neutral check accepts the real state it is about to be shown a broken copy of");
   else fail(`neutral control: ${checkNeutralRepo(f0, d0 + ".origin.git").join("; ")}`);
   for (const [name, facts] of negatives) (checkNeutralRepo(facts, d0 + ".origin.git").length > 0 ? pass : fail)(`the neutral check refuses ${name}`);
+  // The real neutral root has a space in it; the origin path must be read whole.
+  const spaced = "D:/RAGHAD JAD/ws/t/abcd1234.origin.git";
+  const spacedBad = checkNeutralRepo({ ...f0, remotes: [`origin\t${spaced}`] }, spaced);
+  const spacedOther = checkNeutralRepo({ ...f0, remotes: [`origin\t${spaced}`] }, "D:/RAGHAD JAD/ws/t/ffff0000.origin.git");
+  if (spacedBad.length === 0 && spacedOther.some((x) => /origin does not point/.test(x))) pass("the neutral check reads an origin path with a space whole: it accepts its own bare repository and refuses another");
+  else fail(`origin path with a space: ${spacedBad.join("; ")} | ${spacedOther.join("; ")}`);
   if (traceBad === 0) pass("no prepared repository carries an upstream author, message, advisory id or issue number in any ref or reflog");
   else fail(`${traceBad} repositories carry an upstream trace`);
   const manifestText = readFileSync(manifestFile, "utf8");
@@ -335,7 +341,7 @@ function main(): void {
   const recRun = run(HARNESS, ["--prepared", manifestFile, "--out", recorderOut, "--stub", stub.script, "--recorder-check", join(root, a1.states.vulnerable!)]);
   const recFile = join(recorderOut, "recorded-tools.json");
   const recorded = existsSync(recFile) ? (JSON.parse(readFileSync(recFile, "utf8")) as { tools: string[]; harnessPromptReachedWire: boolean }) : null;
-  if (recRun.status === 0 && recorded && recorded.tools.join(",") === "Bash,Glob,Grep,LS,Read,Task" && recorded.harnessPromptReachedWire) pass("the recorder check records the tool list from the wire and sees the harness prompt there");
+  if (recRun.status === 0 && recorded && recorded.tools.join(",") === "Agent,Bash,Glob,Grep,Read" && recorded.harnessPromptReachedWire) pass("the recorder check records the tool list from the wire and sees the harness prompt there");
   else fail(`recorder check: status ${recRun.status} ${JSON.stringify(recorded)} ${recRun.stdout}`);
   const common = (o: string, extra: string[] = []) => ["--prepared", manifestFile, "--out", o, "--stub", stub.script, "--expect-tools", recFile, ...extra];
   stub.reset();
@@ -400,6 +406,7 @@ function main(): void {
     { name: "a wrong pin", args: ["--prepared", manifestFile, "--out", join(scratch, "x3"), "--expect-tools", recFile, "--claude", stub.script, "--claude-sha256", "0".repeat(64)], expect: /not the pinned/ },
     { name: "no recorded tool list", args: ["--prepared", manifestFile, "--out", join(scratch, "x4"), "--stub", stub.script], expect: /--expect-tools <recorded-tools.json> is required/ },
     { name: "a prepared root inside the repository", args: ["--prepared", (() => { const p = join(scratch, "bad.json"); writeFileSync(p, JSON.stringify({ ...M, root: join(REPO, "tmp-ar") })); return p; })(), "--out", join(scratch, "x5"), "--stub", stub.script, "--expect-tools", recFile], expect: /inside the repository or names/ },
+    { name: "A6: a recorded tool list that is not the audited set (the pre-A6 names Task and LS)", args: ["--prepared", manifestFile, "--out", join(scratch, "x7"), "--stub", stub.script, "--expect-tools", (() => { const p = join(scratch, "old-tools.json"); writeFileSync(p, JSON.stringify({ tools: ["Bash", "Glob", "Grep", "LS", "Read", "Task"] })); return p; })()], expect: /recorded tool list \[Bash, Glob, Grep, LS, Read, Task\] is not the audited set \[Agent, Bash, Glob, Grep, Read\]/ },
     { name: "a partial prepared manifest", args: ["--prepared", (() => { const p = join(scratch, "partial-for-harness.json"); writeFileSync(p, JSON.stringify({ ...M, complete: false })); return p; })(), "--out", join(scratch, "x6"), "--stub", stub.script, "--expect-tools", recFile], expect: /manifest is partial/ },
   ];
   const modifiedPrompt = join(scratch, "prompt-modified.md");
@@ -440,6 +447,15 @@ function main(): void {
   const rin = run(HARNESS, common(dIn));
   if (rin.status === 0 && !/voided/i.test(rin.stdout) && !existsSync(join(dIn, "runs", "VOID"))) pass("A3 control: a Read of an absolute path inside the repository and a dotted git range are not voided");
   else fail(`A3 control: status ${rin.status}: ${rin.stdout.slice(-300)}`);
+  // A6: the CLI's sub-agent tool is "Agent"; a call to it is in the set, and the pre-A6 name "Task" is not.
+  stub.reset(); stub.config({ marker: MARKER, extraUse: { name: "Agent", input: { description: "filter findings", prompt: "review" } } });
+  const dAgent = join(scratch, "a6-agent");
+  const rAgent = run(HARNESS, common(dAgent));
+  stub.reset(); stub.config({ marker: MARKER, extraUse: { name: "Task", input: { description: "filter findings", prompt: "review" } } });
+  const dTask = join(scratch, "a6-task");
+  const rTask = run(HARNESS, common(dTask));
+  if (rAgent.status === 0 && !existsSync(join(dAgent, "runs", "VOID")) && rTask.status === 2 && existsSync(join(dTask, "runs", "VOID")) && /voided by a tool call outside the allowed set or reaching outside the repository \(Task\)/.test(rTask.stdout)) pass("A6: an Agent call is in the audited set and the series completes; a call named Task voids it");
+  else fail(`A6 Agent/Task: ${rAgent.status}/${rTask.status}: ${rAgent.stdout.slice(-200)} ${rTask.stdout.slice(-200)}`);
   // A state that stopped being neutral after preparation (a third commit, same tree, neutral identity) is refused before it is run.
   const vDir = join(root, a1.states.vulnerable!);
   const neutralEnv = { ...process.env, GIT_AUTHOR_NAME: NEUTRAL.name, GIT_AUTHOR_EMAIL: NEUTRAL.email, GIT_COMMITTER_NAME: NEUTRAL.name, GIT_COMMITTER_EMAIL: NEUTRAL.email, GIT_AUTHOR_DATE: NEUTRAL.date, GIT_COMMITTER_DATE: NEUTRAL.date };
@@ -478,7 +494,7 @@ function main(): void {
   const wireRefusals: Array<{ name: string; wire: Record<string, unknown>; expect: RegExp }> = [
     { name: "a wrong cap on the wire", wire: { maxTokens: 128000 }, expect: /max_tokens on the wire is 128000, pinned 32000/ },
     { name: "a wrong model on the wire", wire: { model: "claude-sonnet-4-6" }, expect: /model on the wire is/ },
-    { name: "a tool list that differs from the recorded one", wire: { tools: ["Read", "Glob", "Grep", "LS", "Task", "Bash", "WebFetch"] }, expect: /tools on the wire are/ },
+    { name: "a tool list that differs from the recorded one", wire: { tools: ["Read", "Glob", "Grep", "Agent", "Bash", "WebFetch"] }, expect: /tools on the wire are/ },
     { name: "an x-api-key header", wire: { apiKeyHeader: true }, expect: /x-api-key header is sent/ },
     { name: "a non-OAuth bearer", wire: { auth: "Bearer not-the-login" }, expect: /authorization is bearer-other/ },
     { name: "another effort", wire: { effort: "medium" }, expect: /output_config on the wire is/ },
