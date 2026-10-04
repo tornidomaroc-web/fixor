@@ -10,6 +10,10 @@ The contract has three goals:
 2. **Make negative claims first-class.** The "does not claim" rows protect us when a sophisticated reviewer asks "does Fixor handle X?" — the honest answer needs to be reachable, not buried.
 3. **Tie claims to measured baselines.** Every CLAIMS row is backed by fixture pass counts saved in `test-output/`. If a baseline is missing, the claim is degraded to "shipping but unbaselined."
 
+## Measured on real code (added 2026-10-04)
+
+Fixture baselines below are not real-code results. On real code: the secrets check is measured (2026-09-12; counts on the landing page and in `docs/measurements/fix-pairs-2026-09-11/`); for auth-bypass, admin-check and IDOR, on 12 published access-control vulnerabilities in real open-source projects, the shipped pipeline flagged none (field trial, 2026-09-19) (`docs/measurements/field-trial-2026-09-19/`); env-exposure and webhook-unverified have no real-code result. Detection development stopped on 2026-10-04 (tracker, "DETECTION R&D STOPPED"). No public surface may state or imply a detection rate for any detector.
+
 ## How to read each detector entry
 
 - **CLAIMS** — what the detector will catch today, enumerated concretely (specific patterns, libraries, frameworks, languages where applicable).

@@ -7,9 +7,10 @@ description: "Common questions about Fixor: pricing, privacy, accuracy, and oper
 
 <AccordionGroup>
   <Accordion title="Is the free tier really free?">
-    Yes. 5 scans / month on public repos with all 6 detectors,
-    no card. The cap exists because every scan calls Anthropic and
-    that has a real cost; we'd rather pause than overspend on
+    Yes. Currently a $5 / month model-spend cap, public and private
+    repos, all 6 detectors, no card. The cap is the only limit: scans
+    are not counted. It exists because scans call Anthropic and that
+    has a real cost; we'd rather pause than overspend on
     someone who hasn't subscribed.
   </Accordion>
   <Accordion title="What does my card statement say?">
@@ -69,9 +70,11 @@ description: "Common questions about Fixor: pricing, privacy, accuracy, and oper
 
 <AccordionGroup>
   <Accordion title="What's the false-positive rate?">
-    We don't publish a single FP-rate number. The driver is Claude
-    reasoning per finding rather than a tunable rate, and the real
-    number varies hugely by codebase shape. The
+    We publish counts, not rates. For the hardcoded-secrets check,
+    on 13 mature open-source projects (65,566 files) all 15 flags were
+    false alarms, and on 43 customer-shaped repositories 2 of 5 flags
+    were (2026-09-12). For the other five detectors no real-code
+    false-positive count exists. The
     [no-warranty section](https://fixor.dev/terms.html) of our
     terms says it plainly: every finding is a suggestion, not a
     guarantee. The [detector catalogue](/detectors) lists the
@@ -79,10 +82,11 @@ description: "Common questions about Fixor: pricing, privacy, accuracy, and oper
     a noisy result is most likely.
   </Accordion>
   <Accordion title="Will Fixor catch every vulnerability?">
-    No security tool will. Fixor is a signal in a layered defense:
-    code review + pen testing + a SAST/SCA scanner sit alongside
-    it. Use it where its detector families fit and don't pretend
-    it covers what it doesn't (yet).
+    No. And for most classes it has not been shown to catch real ones:
+    on 12 published access-control vulnerabilities in real open-source projects, the shipped pipeline flagged none (field trial, 2026-09-19).
+    Only the hardcoded-secrets check has a real-code result. Keep code
+    review and a SAST/SCA scanner; treat Fixor as an extra check, not
+    as coverage. A run with no findings is not a security sign-off.
   </Accordion>
   <Accordion title="A finding is wrong for my code. What do I do?">
     Two options in the dashboard's `/orgs/<id>/settings`:

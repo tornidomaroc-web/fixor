@@ -2420,6 +2420,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #265 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #266 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #267 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #268 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2684,6 +2685,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #265 | `a40a6a3` | 2026-10-03 00:32:21 | `measure/held-out-3-2026-10-03` (reflog: last move 2026-10-02 23:59:07) | `e01e33f0`, captured before | 404 on first read after the merge, 00:33:08 | `measure/held-out-3-2026-10-03` at `d6c5d4c` |
 | #266 | `5bc1bd8` | 2026-10-04 03:20:11 | `measure/agentic-review-build-2026-10-03` (reflog: last move 2026-10-04 03:07:01) | `9ea56e94`, captured before | 404 on first read after the merge, 03:20:19 | `measure/agentic-review-build-2026-10-03` at `b0f4b29` |
 | #267 | `aaa895e` | 2026-10-04 04:38:41 | `measure/agentic-a5-clean-bound-2026-10-04` (reflog: last move 2026-10-04 03:37:47) | `0ffa4363`, captured before | 404 on first read after the merge, 04:38:50 | `measure/agentic-a5-clean-bound-2026-10-04` at `c97bf9f` |
+| #268 | `5ca8768` | 2026-10-04 05:53:57 | `fix/agentic-tool-names-2026-10-04` (reflog: last move 2026-10-04 05:37:52) | `6ac16757`, captured before | 404 on first read after the merge, 05:54:04 | `fix/agentic-tool-names-2026-10-04` at `2bf4282` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -3019,6 +3021,19 @@ captured before the merge: `0ffa4363` on both. The squash `aaa895e` has the sing
 04:38:50. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-10-04), counted
 from the register table:** the arm invoked FROM the merged branch reads 43 observations, 2 green
 and 41 red; the THIRD-branch arm is unchanged at 6, all RED; the register carries 55 rows, 53 RED.
+No cause is named. **The merge of this entry will owe the next row.**
+
+**#268 (2026-10-04).** The owner ran `gh pr merge 268 --squash --match-head-commit
+2bf428271785530e9278a60f64871e5bca03da0a` from the prompt with HEAD on
+`fix/agentic-tool-names-2026-10-04`, the merged branch itself; the reflog's last HEAD move before
+the merge is 2026-10-04 05:37:52 (the filing commit), and HEAD was still there after it. That is
+the arm invoked FROM the merged branch. **RED**: `gh` printed nothing; the local ref
+`fix/agentic-tool-names-2026-10-04` survived at `2bf4282`. Assertion 2 held against a tree
+captured before the merge: `6ac16757` on both. The squash `5ca8768` has the single parent
+`aaa895e`, merged at 05:53:57Z. The head ref answered 404 on the first read after the merge, at
+05:54:04. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-10-04), counted
+from the register table:** the arm invoked FROM the merged branch reads 44 observations, 2 green
+and 42 red; the THIRD-branch arm is unchanged at 6, all RED; the register carries 56 rows, 54 RED.
 No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
@@ -3659,6 +3674,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #267 | `aaa895e` | 2026-10-04 04:39:54 | 04:39:29 | not triggered |
+
+  **#268 (added 2026-10-04).** CI (run 37181194965, both Node jobs, `head=5ca8768`) and the
+  `secrets` workflow (run 37181194954) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal`, two `PASS: forced-routing
+  rehearsal` and two `PASS: agentic-review rehearsal` lines (once per Node job) and zero `[FAIL]`
+  lines. The Railway and Vercel times are the `success` statuses of their GitHub deployments for
+  `5ca8768` (ids 6837448998 and 6837452703), posted by `railway-app[bot]` and `vercel[bot]`; no
+  Railway CLI or dashboard was read. At 05:58:00 the backend answered
+  `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":168}`, which dates the container to about
+  05:55:12, the deploy; the dashboard answered `{"status":"ok","db":"ok"}` at 05:58:01. Not
+  observed: anything in production, because #268 changed test tooling, measurement documents and
+  the tracker only. These reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #268 | `5ca8768` | 2026-10-04 05:55:18 | 05:54:33 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -6045,6 +6076,15 @@ because that widening is on the READING side and this argument turns on the RUNN
   clean 0 of 6, 1 of 115 judged. **A1 3.5 answered: sub-agent tool calls are visible in the
   parent's stream.** This is a stop of the instrument as pre-registered, not a measurement of
   detection, and A1 section 2 allows no second configuration.
+
+  **DETECTION R&D STOPPED 2026-10-04 UNDER A1 SECTION 2 (owner's acceptance of Gate A's
+  AGENTIC-STOP).** Frozen: no third held-out batch 2 (it was due 2026-11-03), no Gate B, no new
+  judge or proxy arm, no prompt, prefilter or regex change made to raise detection, no new
+  detector. F-004 stays open and the readiness verdict stays NOT-READY. Kept as they are: the six
+  shipping detectors and their code; the GitHub App, the dashboard, per-installation caps and the
+  scan pipeline; security, correctness and operations fixes. The agentic harness stays in the tree
+  with its keyless rehearsal in `test:ci`; nothing is deleted. Public copy is brought in line with
+  the measured result in the same PR as this entry.
 
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that

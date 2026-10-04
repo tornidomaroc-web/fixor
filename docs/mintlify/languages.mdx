@@ -3,8 +3,9 @@ title: "Supported languages"
 description: "What Fixor scans today, per detector, and how language coverage expands."
 ---
 
-Coverage varies by detector. JavaScript and TypeScript are full
-across all six detectors. Python and Go have fixtures in all six
+Coverage varies by detector. All six detectors run on JavaScript and
+TypeScript. "Supported" means the detector runs and passes authored
+fixtures in that language; it is not a measured detection rate. Python and Go have fixtures in all six
 detectors today, with two scope limits called out below. Ruby is
 narrower. Java and PHP are not covered yet.
 
@@ -15,8 +16,8 @@ This page summarizes.
 
 | Language | Status | Notes |
 | --- | --- | --- |
-| **JavaScript** | ✅ Full | All 6 detectors |
-| **TypeScript** | ✅ Full | All 6 detectors |
+| **JavaScript** | ✅ Supported | All 6 detectors (route shapes: Express family, Next.js App Router, Remix) |
+| **TypeScript** | ✅ Supported | All 6 detectors (route shapes: Express family, Next.js App Router, Remix) |
 | **Python** | 🟡 Partial | All 6 detectors have fixtures. `auth-bypass` and `admin-check` catch their sentinel/hardcoded shapes, plus FastAPI / Flask route-shape (missing-auth and missing-admin-gate, Python slices 1 and 1b, 2026-05-28); their Express-router route patterns remain JS/TS-only. Cross-file `Depends`/decorators and conditional router mounting are a named slice-2 limit |
 | **Go** | 🟡 Partial | Same shape as Python: all 6 detectors have fixtures; route-shape patterns are JS/TS-only |
 | **Ruby** | 🟡 Limited | `auth-bypass` and `idor` fixtures only |

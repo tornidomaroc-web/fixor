@@ -1,19 +1,31 @@
 ---
 title: "Welcome to Fixor"
-description: "AI-powered security review on every GitHub pull request. Six detectors for business-logic vulnerabilities, structured reports, no setup."
+description: "Six security checks on every GitHub pull request, a structured report, no setup. What has been measured, and what has not, is stated below."
 ---
 
-Fixor is a GitHub App that reviews pull request diffs for
-business-logic security issues and posts a structured report back as
+Fixor is a GitHub App that runs six security checks on pull request
+files and posts a structured report back as
 a PR comment, with a downloadable PDF/SARIF attached. Install once
 on a repo or org, and every subsequent PR gets the same review within
 roughly 10 to 30 seconds.
 
+## What has been measured
+
+The hardcoded-secrets check (fixed patterns, no model) is measured on real
+code: on 43 customer-shaped repositories it raised 5 flags, 3 of them real
+credentials; on 13 mature open-source projects, 15 flags, all false alarms
+(2026-09-12). The three access-control detectors (auth bypass, missing admin
+gates, IDOR) pass their authored fixtures; on 12 published access-control vulnerabilities in real open-source projects, the shipped pipeline flagged none (field trial, 2026-09-19).
+Environment-variable exposure and unverified webhooks have no real-code
+result. Detection development stopped on 2026-10-04; the detectors ship as
+they are.
+
 ## What you get on every PR
 
 - **Findings + severity:** one row per issue, with the file path,
-  line, and a precise rationale produced by Claude reading the diff.
-- **Suggested fixes:** concrete patches for each finding,
+  line, and an explanation (written by Claude for five of the six
+  detectors; the secrets check uses a fixed explanation).
+- **Remediation steps:** written per finding,
   framework-aware. Fixor reasons about Express routing, auth
   middleware patterns, Prisma/Drizzle ownership scoping, role-guard
   conventions, and env/secret handling.
