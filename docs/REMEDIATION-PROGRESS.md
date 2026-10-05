@@ -2423,6 +2423,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #268 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #269 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #270 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #271 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2690,6 +2691,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #268 | `5ca8768` | 2026-10-04 05:53:57 | `fix/agentic-tool-names-2026-10-04` (reflog: last move 2026-10-04 05:37:52) | `6ac16757`, captured before | 404 on first read after the merge, 05:54:04 | `fix/agentic-tool-names-2026-10-04` at `2bf4282` |
 | #269 | `8011c7d` | 2026-10-04 06:27:45 | `docs/claims-and-268-rows-2026-10-04` (reflog: last move 2026-10-04 06:12:27) | `86a1ccf3`, captured before by the merging session; recomputed by the filing entry from the PR head `de7aae0`, equal | 404 on first read after the merge, 06:27:52 (merging session); 404 again when filed | `docs/claims-and-268-rows-2026-10-04` at `de7aae0` |
 | #270 | `ea2b379` | 2026-10-04 23:32:05 | `docs/route-map-prereg-2026-10-04` (reflog: last move 2026-10-04 22:27:31) | `30088c8f`, captured before | 404 on first read after the merge, 23:32:21 | `docs/route-map-prereg-2026-10-04` at `613f777` |
+| #271 | `da451c9` | 2026-10-05 00:14:36 | `docs/arm-a-dev-set-2026-10-04` (reflog: last move 2026-10-04 23:46:11) | `5cd90c7e`, captured before | 404 on first read after the merge, 00:14:48 | `docs/arm-a-dev-set-2026-10-04` at `a511267` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -3065,6 +3067,19 @@ before the merge: `30088c8f` on both. The squash `ea2b379` has the single parent
 2.53.0.windows.2. **Totals as a new dated record (2026-10-05), counted from the register table:** the
 arm invoked FROM the merged branch reads 46 observations, 2 green and 44 red; the THIRD-branch arm is
 unchanged at 6, all RED; the register carries 58 rows, 56 RED. No cause is named. **The merge of
+this entry will owe the next row.**
+
+**#271 (2026-10-05).** The owner ran `gh pr merge 271 --squash --match-head-commit
+a51126701f9a2a64a1d40103394d4e2b17c14d08` from the prompt with HEAD on
+`docs/arm-a-dev-set-2026-10-04`, the merged branch itself; the reflog's last HEAD move before the
+merge is 2026-10-04 23:46:11 (the filing commit), and HEAD was still there after it. That is the arm
+invoked FROM the merged branch. **RED**: `gh` printed nothing; the local ref
+`docs/arm-a-dev-set-2026-10-04` survived at `a511267`. Assertion 2 held against a tree captured
+before the merge: `5cd90c7e` on both. The squash `da451c9` has the single parent `ea2b379`, merged at
+00:14:36Z. The head ref answered 404 on the first read after the merge, at 00:14:48. gh 2.91.0, git
+2.53.0.windows.2. **Totals as a new dated record (2026-10-05), counted from the register table:** the
+arm invoked FROM the merged branch reads 47 observations, 2 green and 45 red; the THIRD-branch arm is
+unchanged at 6, all RED; the register carries 59 rows, 57 RED. No cause is named. **The merge of
 this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
@@ -3781,6 +3796,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #270 | `ea2b379` | 2026-10-04 23:33:02 | 23:32:51 | not triggered |
+
+  **#271 (added 2026-10-05).** CI (run 37246736313, both Node jobs, `head=da451c9`) and the
+  `secrets` workflow (run 37246736354) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal`, two `PASS: forced-routing
+  rehearsal` and two `PASS: agentic-review rehearsal` lines (once per Node job) and zero `[FAIL]`
+  lines. The Railway and Vercel times are the `success` statuses of their GitHub deployments for
+  `da451c9` (ids 6848695896 and 6848702432), posted by `railway-app[bot]` and `vercel[bot]`; no
+  Railway CLI or dashboard was read. At 00:32:46 the backend at its Railway host answered
+  `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":1077}`, which dates the container to about
+  00:14:49, the deploy; the dashboard answered `{"status":"ok","db":"ok"}` at 00:32:47. Not
+  observed: anything in production, because #271 changed measurement documents and the tracker
+  only. These reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #271 | `da451c9` | 2026-10-05 00:14:55 | 00:15:20 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -6217,6 +6248,29 @@ because that widening is on the READING side and this argument turns on the RUNN
   chain-following map addresses, which C2 measures); 7 spanning 2 to 6 files. The verdict against
   the rule as agreed: the build may start. Still at $0, still no parser, still under the
   pre-registration's order of operations: build against these 22, freeze, then draw.
+
+  **2026-10-05: MILESTONE 1 OF THE EXTRACTOR BUILT AND RUN ON THE DEVELOPMENT SET, $0: C2 on 6 of
+  22, C1 on 9, C4 on 22 of 22. Not the measurement.** Record:
+  `docs/measurements/route-map-2026-10-04/m1-dev-run-2026-10-05.md` and its JSON (flags, counts
+  and digests only). Code, all under `src/test/` and `fixtures/route-map/`, nothing under
+  `src/analysis-engine/` touched: `lib/route-map.ts` (Express-family discovery, mount composition
+  across files, guard chain at mount, router and route level, handler resolution through imports,
+  object and class members and wrappers, call following to depth 3, the frozen data-access list,
+  canonical serialisation), `route-map.ts` (entry; `--twice` builds in a second process and
+  compares bytes; refuses any `ANTHROPIC_*` variable and any root inside this checkout),
+  `measure-route-map-dev.ts` (the dev-set scorer: C1, C2, C4 and a mechanical miss cause),
+  `test-route-map-rehearsal.ts` (32 checks over a synthetic fixture, in `test:ci`; negative
+  controls derived from the fixture by one-line edits). Seven single-behaviour mutations of the
+  compiled extractor each fail at least two rehearsal checks. The 22 parent trees were fetched
+  shallow (fix and parent only) into a work folder beside the repository; maps stay there. **Read
+  against section 5's 80% in-scope bar: about 15 of the 22 are Express-family and milestone 1
+  resolves 6 of them, roughly 40%; the single largest in-scope cause is class-based dispatch
+  (`this.<field>.<method>()`), 5 of the 9 in-scope misses; 8 cases are frameworks or conventions
+  outside milestone 1 (decorator controllers, tRPC, Astro, raw servers, GraphQL, apostrophe's
+  module routes).** Guard-blindness (C5) is already visible: more than half the routes carry no
+  guard in 13 of 21 trees. Also in this PR: #271's rows and deploy entry, and the two `curl`
+  examples in `docs/mintlify/api-reference.mdx` now name the backend's Railway host instead of the
+  dark `api.fixor.dev`.
 
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that
