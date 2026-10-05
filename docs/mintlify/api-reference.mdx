@@ -42,7 +42,7 @@ and the id is in the path.
 Pass it as a bearer:
 
 ```bash
-curl https://api.fixor.dev/api/v1/scan \
+curl https://fixor-production.up.railway.app/api/v1/scan \
   -H "Authorization: Bearer fxr_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{ ... }'
@@ -169,7 +169,7 @@ map, not a discriminator-plus-details structure.
 ### cURL example
 
 ```bash
-curl -sS https://api.fixor.dev/api/v1/scan \
+curl -sS https://fixor-production.up.railway.app/api/v1/scan \
   -H "Authorization: Bearer $FIXOR_TOKEN" \
   -H "Content-Type: application/json" \
   -d @scan-payload.json | jq
