@@ -2422,6 +2422,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #267 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #268 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #269 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #270 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2688,6 +2689,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #267 | `aaa895e` | 2026-10-04 04:38:41 | `measure/agentic-a5-clean-bound-2026-10-04` (reflog: last move 2026-10-04 03:37:47) | `0ffa4363`, captured before | 404 on first read after the merge, 04:38:50 | `measure/agentic-a5-clean-bound-2026-10-04` at `c97bf9f` |
 | #268 | `5ca8768` | 2026-10-04 05:53:57 | `fix/agentic-tool-names-2026-10-04` (reflog: last move 2026-10-04 05:37:52) | `6ac16757`, captured before | 404 on first read after the merge, 05:54:04 | `fix/agentic-tool-names-2026-10-04` at `2bf4282` |
 | #269 | `8011c7d` | 2026-10-04 06:27:45 | `docs/claims-and-268-rows-2026-10-04` (reflog: last move 2026-10-04 06:12:27) | `86a1ccf3`, captured before by the merging session; recomputed by the filing entry from the PR head `de7aae0`, equal | 404 on first read after the merge, 06:27:52 (merging session); 404 again when filed | `docs/claims-and-268-rows-2026-10-04` at `de7aae0` |
+| #270 | `ea2b379` | 2026-10-04 23:32:05 | `docs/route-map-prereg-2026-10-04` (reflog: last move 2026-10-04 22:27:31) | `30088c8f`, captured before | 404 on first read after the merge, 23:32:21 | `docs/route-map-prereg-2026-10-04` at `613f777` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -3051,6 +3053,19 @@ at 06:27:52, and 404 again when filed. gh 2.91.0, git 2.53.0.windows.2. **Totals
 record (2026-10-04), counted from the register table:** the arm invoked FROM the merged branch reads
 45 observations, 2 green and 43 red; the THIRD-branch arm is unchanged at 6, all RED; the register
 carries 57 rows, 55 RED. No cause is named. **The merge of this entry will owe the next row.**
+
+**#270 (2026-10-04).** The owner ran `gh pr merge 270 --squash --match-head-commit
+613f777c27c41446a618560717c8eae1ebd382cf` from the prompt with HEAD on
+`docs/route-map-prereg-2026-10-04`, the merged branch itself; the reflog's last HEAD move before the
+merge is 2026-10-04 22:27:31 (the filing commit), and HEAD was still there after it. That is the arm
+invoked FROM the merged branch. **RED**: `gh` printed nothing; the local ref
+`docs/route-map-prereg-2026-10-04` survived at `613f777`. Assertion 2 held against a tree captured
+before the merge: `30088c8f` on both. The squash `ea2b379` has the single parent `8011c7d`, merged at
+23:32:05Z. The head ref answered 404 on the first read after the merge, at 23:32:21. gh 2.91.0, git
+2.53.0.windows.2. **Totals as a new dated record (2026-10-05), counted from the register table:** the
+arm invoked FROM the merged branch reads 46 observations, 2 green and 44 red; the THIRD-branch arm is
+unchanged at 6, all RED; the register carries 58 rows, 56 RED. No cause is named. **The merge of
+this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3727,6 +3742,45 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #269 | `8011c7d` | 2026-10-04 06:28:56 | 06:28:28 | 06:28:11 (run 37182871906) |
+
+  **#270 (added 2026-10-05).** CI (run 37244107797, both Node jobs, `head=ea2b379`) and the
+  `secrets` workflow (run 37244107843) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal`, two `PASS: forced-routing
+  rehearsal` and two `PASS: agentic-review rehearsal` lines (once per Node job) and zero `[FAIL]`
+  lines. The Railway and Vercel times are the `success` statuses of their GitHub deployments for
+  `ea2b379` (ids 6848290732 and 6848296850), posted by `railway-app[bot]` and `vercel[bot]`; no
+  Railway CLI or dashboard was read. At 23:42:25 the backend answered
+  `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":569}`, which dates the container to about
+  23:32:56, the deploy; the dashboard answered `{"status":"ok","db":"ok"}` at 23:42:35. Not
+  observed: anything in production, because #270 changed measurement documents and the tracker
+  only. These reads show only that nothing regressed.
+
+  **Correction to the #269 entry above, and the finding it led to.** The backend host is
+  `fixor-production.up.railway.app`; it is named in the tree only in the PDF footer of
+  `src/services/pdf-report.service.ts`, which is how this entry found it. The #269 entry said the
+  README gives `api.fixor.dev`; it does not. That host appears only in
+  `docs/mintlify/api-reference.mdx` (two `curl` examples for `POST /api/v1/scan`, added by `90edc71`
+  on 2026-04-27) and nowhere in `src/`, `apps/`, the dashboard's configuration or any workflow.
+  Read on 2026-10-04 and 2026-10-05, changing nothing: `api.fixor.dev` and `app.fixor.dev` resolve
+  to the same Cloudflare-proxied addresses; `app.fixor.dev` reaches Vercel and answers; every path
+  on `api.fixor.dev` answers HTTP 404 with Vercel's `DEPLOYMENT_NOT_FOUND`, so its DNS points at
+  Vercel and no Vercel project claims the host. The backend's own host answers `/health` 200 and
+  routes `POST /api/v1/scan` (`webhook-server.ts`; a GET is 404 by design). **What depends on it:**
+  only a customer following the API reference page. The GitHub App's webhook URL is not readable
+  from here (owner's rule: never load the App's key or delivery log), but the App's scan path was
+  observed live on 2026-09-25 and the backend is healthy, so the webhook does not point at the dark
+  host. The dashboard calls no backend URL at all. **Nothing in the scan pipeline is broken; the
+  documented API host is dark.** Two fixes, the owner's choice, neither made here: (a) docs-only,
+  zero risk: change the two `curl` lines to the Railway host, which the PDF footer already
+  publishes; (b) provider-side: add `api.fixor.dev` as a custom domain on the Railway service and
+  point its Cloudflare record at Railway's CNAME target. (b) is reversible and does not touch the
+  webhook path, but it exposes the webhook server under a second host, so it should be done
+  only if a branded API host is wanted; until then (a) stops the page from sending customers to a
+  404.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #270 | `ea2b379` | 2026-10-04 23:33:02 | 23:32:51 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -6146,6 +6200,23 @@ because that widening is on the READING side and this argument turns on the RUNN
   only sealed post-cutoff set on a question that does not need it; that set stays untouched. Counted
   the same day, public data only: 0 new third-set cases since batch 1's listing (38 listed, 1 reached
   judgment, failed R5); the third set stands at 6 admitted, 4 consistent.
+
+  **2026-10-05: ARM A COMPUTED ON THE DEVELOPMENT SET, $0, NOT TRIPPED: 7 of 22 (R1) or 8 of 22
+  (R2) against the 70% rule.** Record: `docs/measurements/route-map-2026-10-04/
+  arm-a-dev-set-2026-10-05.md` and its JSON. Owner-agreed precondition before any parser: compute
+  the pre-registration's falsification arm A on the 22 burned cases (Arm A field trial and the
+  held-out ten) from the fix diffs and parent-side file contents through the GitHub API, against
+  `route-def-pattern.ts` at `ea2b379`. **The inherited "15 of 22, 68%" figure was the single-file
+  count without the route-shaped condition** (it is 14 of 22 counting added files, 15 at the
+  parent); arm A as pre-registered requires the single file to be route-shaped, and that holds for
+  7 (one touched file) or 8 (one parent-side file) of 22. The definition's one ambiguity, whether a
+  file the fix adds breaks "single", is recorded with both readings, and R2 (window-based) is fixed
+  now as the reading for the measurement set. The same table splits the 22 three ways: 7 to 8
+  single route-shaped file (the lanes saw it and missed); **7 single file that is NOT
+  route-shaped** (a service, model, permission or auth helper the lanes never open: a reach gap a
+  chain-following map addresses, which C2 measures); 7 spanning 2 to 6 files. The verdict against
+  the rule as agreed: the build may start. Still at $0, still no parser, still under the
+  pre-registration's order of operations: build against these 22, freeze, then draw.
 
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that

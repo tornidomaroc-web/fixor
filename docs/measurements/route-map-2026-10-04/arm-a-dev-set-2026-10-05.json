@@ -1,0 +1,756 @@
+{
+ "computed": "2026-10-05",
+ "routeDefPatternAt": "ea2b379 (file last changed 05c5792, 2026-09-28)",
+ "readings": {
+  "R1": "exactly one non-test source file touched by the fix, added files included, and it is route-shaped at the parent",
+  "R2": "exactly one non-test source file existing at the parent, and it is route-shaped; files the fix adds are ignored"
+ },
+ "totals": {
+  "cases": 22,
+  "singleFileAnyShape_R1basis": 14,
+  "singleFileAtParent_R2basis": 15,
+  "R1": 7,
+  "R2": 8
+ },
+ "cases": [
+  {
+   "set": "armA",
+   "case": "01",
+   "advisory": null,
+   "repo": "n8n-io/n8n",
+   "fix": "a70b2ea379086da3de103bb84811e88cadf29976",
+   "parent": "2bba053d09e310b142c684a406daa110a5ce3666",
+   "parentCount": 1,
+   "filesTouched": 7,
+   "nonTestSource": [
+    "packages/@n8n/api-types/src/dto/index.ts",
+    "packages/@n8n/api-types/src/dto/user/user-self-settings-update-request.dto.ts",
+    "packages/cli/src/controllers/me.controller.ts",
+    "packages/frontend/@n8n/rest-api-client/src/api/users.ts",
+    "packages/frontend/editor-ui/src/features/settings/users/users.store.ts"
+   ],
+   "addedByFix": [
+    "packages/@n8n/api-types/src/dto/user/user-self-settings-update-request.dto.ts"
+   ],
+   "atParent": [
+    {
+     "path": "packages/@n8n/api-types/src/dto/index.ts",
+     "status": "modified",
+     "bytes": 8398,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/cli/src/controllers/me.controller.ts",
+     "status": "modified",
+     "bytes": 9115,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/frontend/@n8n/rest-api-client/src/api/users.ts",
+     "status": "modified",
+     "bytes": 6834,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/frontend/editor-ui/src/features/settings/users/users.store.ts",
+     "status": "modified",
+     "bytes": 13866,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "02",
+   "advisory": null,
+   "repo": "Budibase/budibase",
+   "fix": "93db77846e68231ba655f180581c94503985421a",
+   "parent": "124e5df31a4725334c65aea3f4b37db6cb10d119",
+   "parentCount": 1,
+   "filesTouched": 2,
+   "nonTestSource": [
+    "packages/worker/src/api/routes/global/groups.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "packages/worker/src/api/routes/global/groups.ts",
+     "status": "modified",
+     "bytes": 2634,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "03",
+   "advisory": null,
+   "repo": "directus/directus",
+   "fix": "22be460c76957708d67fdd52846a9ad1cbb083fb",
+   "parent": "859f664f56fb50401c407b095889cea38ff580e5",
+   "parentCount": 1,
+   "filesTouched": 2,
+   "nonTestSource": [
+    "api/src/flows.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "api/src/flows.ts",
+     "status": "modified",
+     "bytes": 14736,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "04",
+   "advisory": null,
+   "repo": "actualbudget/actual",
+   "fix": "9966c024cb75f57943193cac8e42f401efed9d08",
+   "parent": "ea937d100956ca56689ff852d99c28589e2a7d88",
+   "parentCount": 1,
+   "filesTouched": 4,
+   "nonTestSource": [
+    "packages/sync-server/migrations/1763873600000-backfill-files-owner.js",
+    "packages/sync-server/src/app-sync.ts"
+   ],
+   "addedByFix": [
+    "packages/sync-server/migrations/1763873600000-backfill-files-owner.js"
+   ],
+   "atParent": [
+    {
+     "path": "packages/sync-server/src/app-sync.ts",
+     "status": "modified",
+     "bytes": 10726,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "05",
+   "advisory": null,
+   "repo": "frangoteam/FUXA",
+   "fix": "78534da61a91613712b44bb63c8d7da8c5df5ca4",
+   "parent": "61b5cf41af63a60749ac39a285be66b693d19b94",
+   "parentCount": 1,
+   "filesTouched": 3,
+   "nonTestSource": [
+    "server/api/command/index.js",
+    "server/integrations/node-red/index.js",
+    "server/runtime/scripts/index.js"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "server/api/command/index.js",
+     "status": "modified",
+     "bytes": 7216,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "server/integrations/node-red/index.js",
+     "status": "modified",
+     "bytes": 11979,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "server/runtime/scripts/index.js",
+     "status": "modified",
+     "bytes": 13457,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "06",
+   "advisory": null,
+   "repo": "withstudiocms/studiocms",
+   "fix": "aebe8bcb3618bb07c6753e3f5c982c1fe6adea64",
+   "parent": "9769cc160b06296b1a060389661061daa71ed231",
+   "parentCount": 1,
+   "filesTouched": 2,
+   "nonTestSource": [
+    "packages/studiocms/frontend/pages/studiocms_api/_handlers/rest-api/v1/secure.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "packages/studiocms/frontend/pages/studiocms_api/_handlers/rest-api/v1/secure.ts",
+     "status": "modified",
+     "bytes": 49008,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "07",
+   "advisory": null,
+   "repo": "lobehub/lobe-chat",
+   "fix": "2c1762b85acb84467ed5e799afe1499cd2f912e6",
+   "parent": "a2947c91c712d7f61f6ecade18d6b52baa33709a",
+   "parentCount": 1,
+   "filesTouched": 11,
+   "nonTestSource": [
+    "packages/database/src/models/knowledgeBase.ts",
+    "src/server/modules/S3/index.ts",
+    "src/server/routers/lambda/file.ts",
+    "src/server/services/file/impls/s3.ts",
+    "src/server/services/file/impls/type.ts",
+    "src/server/services/file/index.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "packages/database/src/models/knowledgeBase.ts",
+     "status": "modified",
+     "bytes": 2797,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "src/server/modules/S3/index.ts",
+     "status": "modified",
+     "bytes": 4829,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "src/server/routers/lambda/file.ts",
+     "status": "modified",
+     "bytes": 14799,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "src/server/services/file/impls/s3.ts",
+     "status": "modified",
+     "bytes": 3126,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "src/server/services/file/impls/type.ts",
+     "status": "modified",
+     "bytes": 1044,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "src/server/services/file/index.ts",
+     "status": "modified",
+     "bytes": 6432,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "08",
+   "advisory": null,
+   "repo": "OneUptime/oneuptime",
+   "fix": "07bc6d4edde7397ea6b88f889c065ec392052ab4",
+   "parent": "8642a54fec5e976258f4f95a4dac4b4c8d5ba7de",
+   "parentCount": 1,
+   "filesTouched": 1,
+   "nonTestSource": [
+    "Common/Models/DatabaseModels/User.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "Common/Models/DatabaseModels/User.ts",
+     "status": "modified",
+     "bytes": 16052,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "09",
+   "advisory": null,
+   "repo": "SignalK/signalk-server",
+   "fix": "ead2a03d8994969cafcca0320abee16f0e66e7a9",
+   "parent": "5c211eaf33f0ccadbaed6720264780d92afbd7f8",
+   "parentCount": 1,
+   "filesTouched": 1,
+   "nonTestSource": [
+    "src/tokensecurity.js"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "src/tokensecurity.js",
+     "status": "modified",
+     "bytes": 33474,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "10",
+   "advisory": null,
+   "repo": "apostrophecms/apostrophe",
+   "fix": "d50c6ad61b9c1788958752358f1fca714cc8368c",
+   "parent": "252635917446ec9b30c895181490220cab1fed26",
+   "parentCount": 1,
+   "filesTouched": 3,
+   "nonTestSource": [
+    "packages/apostrophe/modules/@apostrophecms/page/index.js"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "packages/apostrophe/modules/@apostrophecms/page/index.js",
+     "status": "modified",
+     "bytes": 132720,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "11",
+   "advisory": null,
+   "repo": "tinacms/tinacms",
+   "fix": "0a927a4f8d228dd05ee7ca4be32899bc190e73af",
+   "parent": "c2c03c677f67b6fd3a2155d5227b9bf785b43288",
+   "parentCount": 1,
+   "filesTouched": 12,
+   "nonTestSource": [
+    "packages/@tinacms/auth/src/index.ts",
+    "packages/@tinacms/cli/src/cmds/init/prompts/authProvider.ts",
+    "packages/next-tinacms-azure/src/auth.ts",
+    "vitest.config.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "packages/@tinacms/auth/src/index.ts",
+     "status": "modified",
+     "bytes": 3791,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/@tinacms/cli/src/cmds/init/prompts/authProvider.ts",
+     "status": "modified",
+     "bytes": 3519,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/next-tinacms-azure/src/auth.ts",
+     "status": "modified",
+     "bytes": 1636,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "vitest.config.ts",
+     "status": "modified",
+     "bytes": 131,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "armA",
+   "case": "12",
+   "advisory": null,
+   "repo": "backstage/backstage",
+   "fix": "3b62dd2d6bf7623ebd23e4b5a6dceb209f98dfce",
+   "parent": "6042dd0c7f0706e0f473dafa92799ecf19c825ec",
+   "parentCount": 1,
+   "filesTouched": 3,
+   "nonTestSource": [
+    "plugins/scaffolder-backend/src/scaffolder/tasks/NunjucksWorkflowRunner.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "plugins/scaffolder-backend/src/scaffolder/tasks/NunjucksWorkflowRunner.ts",
+     "status": "modified",
+     "bytes": 26816,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "01",
+   "advisory": "GHSA-89vx-jh4q-vg3w",
+   "repo": "deepstreamIO/deepstream.io",
+   "fix": "1c2adde6581c53ef47e204364bc740bc3c2e2e2a",
+   "parent": "3abde8de3df91e1b6d18f719d9e38e94bfa314f6",
+   "parentCount": 1,
+   "filesTouched": 1,
+   "nonTestSource": [
+    "src/services/permission/valve/rules-map.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "src/services/permission/valve/rules-map.ts",
+     "status": "modified",
+     "bytes": 3861,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "02",
+   "advisory": "GHSA-7rhv-xm4q-wh42",
+   "repo": "erxes/erxes",
+   "fix": "4ed2ca797241d2ba0c9083feeadd9755c1310ce8",
+   "parent": "8d2a9ee8ca8cf3f59852c1dcfdec674e934d5605",
+   "parentCount": 1,
+   "filesTouched": 3,
+   "nonTestSource": [
+    "packages/core/src/data/resolvers/queries/users.ts",
+    "packages/gateway/src/index.ts",
+    "packages/gateway/src/middlewares/userMiddleware.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "packages/core/src/data/resolvers/queries/users.ts",
+     "status": "modified",
+     "bytes": 9175,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/gateway/src/index.ts",
+     "status": "modified",
+     "bytes": 2376,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/gateway/src/middlewares/userMiddleware.ts",
+     "status": "modified",
+     "bytes": 5354,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "03",
+   "advisory": "GHSA-c7hf-c5p5-5g6h",
+   "repo": "louislam/uptime-kuma",
+   "fix": "303a609c05d0b174a5045c90f53c2b557d4febae",
+   "parent": "3aea1dfaaf2598cfa2fe5658c5d918aea2548917",
+   "parentCount": 1,
+   "filesTouched": 1,
+   "nonTestSource": [
+    "server/routers/api-router.js"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "server/routers/api-router.js",
+     "status": "modified",
+     "bytes": 24439,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "04",
+   "advisory": "GHSA-496g-mmpw-j9x3",
+   "repo": "misskey-dev/misskey",
+   "fix": "dc77d59f8712d3fe0b73cd4af2035133839cd57b",
+   "parent": "2d0dae236fd828e4c071fa1fce4dc559d78f6e91",
+   "parentCount": 1,
+   "filesTouched": 5,
+   "nonTestSource": [
+    "packages/backend/src/core/entities/NoteEntityService.ts",
+    "packages/backend/src/misc/should-hide-note-by-time.ts",
+    "packages/backend/src/queue/processors/ExportClipsProcessorService.ts",
+    "packages/backend/src/queue/processors/ExportFavoritesProcessorService.ts"
+   ],
+   "addedByFix": [
+    "packages/backend/src/misc/should-hide-note-by-time.ts"
+   ],
+   "atParent": [
+    {
+     "path": "packages/backend/src/core/entities/NoteEntityService.ts",
+     "status": "modified",
+     "bytes": 22878,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/backend/src/queue/processors/ExportClipsProcessorService.ts",
+     "status": "modified",
+     "bytes": 6202,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/backend/src/queue/processors/ExportFavoritesProcessorService.ts",
+     "status": "modified",
+     "bytes": 4981,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "05",
+   "advisory": "GHSA-qwc3-h9mg-4582",
+   "repo": "parse-community/parse-dashboard",
+   "fix": "f92a9ef5246d57e51696bd881a15f3b133b2bb50",
+   "parent": "8a34c2f0d6af5ad11793f49b9427dad4b26f1b81",
+   "parentCount": 1,
+   "filesTouched": 2,
+   "nonTestSource": [
+    "Parse-Dashboard/app.js"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "Parse-Dashboard/app.js",
+     "status": "modified",
+     "bytes": 46044,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "06",
+   "advisory": "GHSA-hpm8-9qx6-jvwv",
+   "repo": "parse-community/parse-server",
+   "fix": "053109b3ee71815bc39ed84116c108ff9edbf337",
+   "parent": "83e794919635ff8b6c86bed8b640222d1c973e03",
+   "parentCount": 1,
+   "filesTouched": 2,
+   "nonTestSource": [
+    "src/Routers/FilesRouter.js"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "src/Routers/FilesRouter.js",
+     "status": "modified",
+     "bytes": 12047,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "07",
+   "advisory": "GHSA-5ffh-6f9q-5hhr",
+   "repo": "Unleash/unleash",
+   "fix": "43e8db37b846921c8a94db58b44935ecbd15d9d1",
+   "parent": "b38bf1ec4b8c6fd8d82396fa73e7086ad1815826",
+   "parentCount": 1,
+   "filesTouched": 2,
+   "nonTestSource": [
+    "src/lib/features/feature-toggle/feature-toggle-service.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "src/lib/features/feature-toggle/feature-toggle-service.ts",
+     "status": "modified",
+     "bytes": 84187,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "08",
+   "advisory": "GHSA-6j36-r6pr-59x4",
+   "repo": "vendurehq/vendure",
+   "fix": "3bb04718ea4f9395fda731bd2a4bcfc3afb0a485",
+   "parent": "537b51486fe3fc9bdd0491e6192126b300e39453",
+   "parentCount": 1,
+   "filesTouched": 5,
+   "nonTestSource": [
+    "packages/core/src/common/error/errors.ts",
+    "packages/core/src/service/helpers/external-authentication/external-authentication.service.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "packages/core/src/common/error/errors.ts",
+     "status": "modified",
+     "bytes": 2900,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    },
+    {
+     "path": "packages/core/src/service/helpers/external-authentication/external-authentication.service.ts",
+     "status": "modified",
+     "bytes": 10315,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "09",
+   "advisory": "GHSA-v667-gc2r-2xm7",
+   "repo": "whyour/qinglong",
+   "fix": "6bec52dca158481258315ba0fc2f11206df7b719",
+   "parent": "ce599d306f81e3ebb0f6eaa5b540d701a6d4085d",
+   "parentCount": 1,
+   "filesTouched": 1,
+   "nonTestSource": [
+    "back/loaders/express.ts"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "back/loaders/express.ts",
+     "status": "modified",
+     "bytes": 5916,
+     "routeShaped": true,
+     "express": true,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  },
+  {
+   "set": "heldout",
+   "case": "10",
+   "advisory": "GHSA-5cf7-cxrf-mq73",
+   "repo": "Yonle/bostr",
+   "fix": "49181f4ec9ae1472c6675cab56bbc01e723855af",
+   "parent": "8b131e239b92db889ac5d8fd02bee1d3a035fd9d",
+   "parentCount": 1,
+   "filesTouched": 1,
+   "nonTestSource": [
+    "auth.js"
+   ],
+   "addedByFix": [],
+   "atParent": [
+    {
+     "path": "auth.js",
+     "status": "modified",
+     "bytes": 1496,
+     "routeShaped": false,
+     "express": false,
+     "appRouter": false,
+     "remix": false
+    }
+   ]
+  }
+ ]
+}
