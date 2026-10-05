@@ -2425,6 +2425,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #270 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #271 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #272 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #273 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2694,6 +2695,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #270 | `ea2b379` | 2026-10-04 23:32:05 | `docs/route-map-prereg-2026-10-04` (reflog: last move 2026-10-04 22:27:31) | `30088c8f`, captured before | 404 on first read after the merge, 23:32:21 | `docs/route-map-prereg-2026-10-04` at `613f777` |
 | #271 | `da451c9` | 2026-10-05 00:14:36 | `docs/arm-a-dev-set-2026-10-04` (reflog: last move 2026-10-04 23:46:11) | `5cd90c7e`, captured before | 404 on first read after the merge, 00:14:48 | `docs/arm-a-dev-set-2026-10-04` at `a511267` |
 | #272 | `0f63029` | 2026-10-05 00:54:37 | `feat/route-map-m1-2026-10-05` (reflog: last move 2026-10-05 00:38:38) | `f6612773`, captured before | 404 on first read after the merge, 00:54:47 | `feat/route-map-m1-2026-10-05` at `27dc154` |
+| #273 | `4e1182e` | 2026-10-05 01:33:55 | `docs/route-map-objections-2026-10-05` (reflog: last move 2026-10-05 01:20:06) | `6a05a9e0`, captured before | 404 on first read after the merge, 01:34:03 | `docs/route-map-objections-2026-10-05` at `a60354e` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -3096,6 +3098,19 @@ before the merge: `f6612773` on both. The squash `0f63029` has the single parent
 arm invoked FROM the merged branch reads 48 observations, 2 green and 46 red; the THIRD-branch arm is
 unchanged at 6, all RED; the register carries 60 rows, 58 RED. No cause is named. **The merge of
 this entry will owe the next row.**
+
+**#273 (2026-10-05).** The owner ran `gh pr merge 273 --squash --match-head-commit
+a60354e5e57b2491f54ebe67d466bd52f2ba55bc` from the prompt with HEAD on
+`docs/route-map-objections-2026-10-05`, the merged branch itself; the reflog's last HEAD move before
+the merge is 2026-10-05 01:20:06 (the filing commit), and HEAD was still there after it. That is the
+arm invoked FROM the merged branch. **RED**: `gh` printed nothing; the local ref
+`docs/route-map-objections-2026-10-05` survived at `a60354e`. Assertion 2 held against a tree
+captured before the merge: `6a05a9e0` on both. The squash `4e1182e` has the single parent `0f63029`,
+merged at 01:33:55Z. The head ref answered 404 on the first read after the merge, at 01:34:03. gh
+2.91.0, git 2.53.0.windows.2. **Totals as a new dated record (2026-10-05), counted from the register
+table:** the arm invoked FROM the merged branch reads 49 observations, 2 green and 47 red; the
+THIRD-branch arm is unchanged at 6, all RED; the register carries 61 rows, 59 RED. No cause is
+named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3845,6 +3860,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #272 | `0f63029` | 2026-10-05 00:55:35 | 00:55:14 | not triggered |
+
+  **#273 (added 2026-10-05).** CI (run 37251914766, both Node jobs, `head=4e1182e`) and the
+  `secrets` workflow (run 37251914811) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal`, two `PASS: forced-routing
+  rehearsal`, two `PASS: agentic-review rehearsal` and two `PASS: route-map rehearsal` lines (once per
+  Node job) and zero `[FAIL]` lines. The Railway and Vercel times are the `success` statuses of their
+  GitHub deployments for `4e1182e` (ids 6849515093 and 6849521641), posted by `railway-app[bot]` and
+  `vercel[bot]`; no Railway CLI or dashboard was read. At 01:43:02 the backend at its Railway host
+  answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":535}`, which dates the container to
+  about 01:34:07, the deploy; the dashboard answered `{"status":"ok","db":"ok"}` at 01:43:04. Not
+  observed: anything in production, because #273 changed measurement documents and the tracker only.
+  These reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #273 | `4e1182e` | 2026-10-05 01:34:14 | 01:34:38 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
