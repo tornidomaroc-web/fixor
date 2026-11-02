@@ -2426,6 +2426,7 @@ moves and it moves in one place. Nothing dated is rewritten to match this table.
 | #271 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #272 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 | #273 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
+| #274 | FROM the merged branch | **RED** | gh 2.91.0, git 2.53.0.windows.2, Windows |
 
 **ROWS #239 TO #244 WERE MISSING FROM THIS TABLE UNTIL 2026-09-25**, although the dated totals
 under "#242 (2026-09-24)" (30 rows) and "#244 (2026-09-24)" (32 rows) counted them: they had been
@@ -2696,6 +2697,7 @@ The tool versions on the machine that ran these merges read gh 2.91.0 and git 2.
 | #271 | `da451c9` | 2026-10-05 00:14:36 | `docs/arm-a-dev-set-2026-10-04` (reflog: last move 2026-10-04 23:46:11) | `5cd90c7e`, captured before | 404 on first read after the merge, 00:14:48 | `docs/arm-a-dev-set-2026-10-04` at `a511267` |
 | #272 | `0f63029` | 2026-10-05 00:54:37 | `feat/route-map-m1-2026-10-05` (reflog: last move 2026-10-05 00:38:38) | `f6612773`, captured before | 404 on first read after the merge, 00:54:47 | `feat/route-map-m1-2026-10-05` at `27dc154` |
 | #273 | `4e1182e` | 2026-10-05 01:33:55 | `docs/route-map-objections-2026-10-05` (reflog: last move 2026-10-05 01:20:06) | `6a05a9e0`, captured before | 404 on first read after the merge, 01:34:03 | `docs/route-map-objections-2026-10-05` at `a60354e` |
+| #274 | `ec40a71` | 2026-10-05 02:44:58 | `docs/judgment-eval-2026-10-05` (reflog: last move 2026-10-05 02:03:54) | `c0a9c505`, captured before by the merging session; recomputed by the filing entry from the PR head `07523fe`, equal | 404 on first read after the merge, 02:45:07 (merging session); absent on `git ls-remote` when filed, 2026-11-02 | `docs/judgment-eval-2026-10-05` at `07523fe` |
 
 **ASSERTION 2 IS TAUTOLOGICAL UNDER THE CURRENT PROTECTION CONFIGURATION ON EVERY ROW**, for the
 reason recorded under "THE STRONG ASSERTION IS TAUTOLOGICAL" below: `strict: true` forces the branch
@@ -3111,6 +3113,22 @@ merged at 01:33:55Z. The head ref answered 404 on the first read after the merge
 table:** the arm invoked FROM the merged branch reads 49 observations, 2 green and 47 red; the
 THIRD-branch arm is unchanged at 6, all RED; the register carries 61 rows, 59 RED. No cause is
 named. **The merge of this entry will owe the next row.**
+
+**#274 (merged 2026-10-05; filed 2026-11-02).** Filed twenty-eight days late, from the merging
+session's own read-back notes and from GitHub and the local reflog read again when filed; the
+late filing is itself the gap this register exists to record, and is not rewritten as if timely.
+The owner merged #274 by squash from the prompt (the flags the command carried were not
+recorded by the merging session) with HEAD on `docs/judgment-eval-2026-10-05`, the merged branch itself; the reflog's last HEAD move before the
+merge is 2026-10-05 02:03:54 (the filing commit), and HEAD was still there after it. That is the
+arm invoked FROM the merged branch. **RED**: `gh` printed nothing; the local ref
+`docs/judgment-eval-2026-10-05` survived at `07523fe`, and still stood there when filed. Assertion
+2 held against a tree captured before the merge: `c0a9c505` on both, recomputed from `07523fe` and
+`ec40a71` when filed, equal. The squash `ec40a71` has the single parent `4e1182e`, merged at
+02:44:58Z. The head ref answered 404 on the first read after the merge, at 02:45:07, and is absent
+on `git ls-remote` when filed. gh 2.91.0, git 2.53.0.windows.2. **Totals as a new dated record
+(2026-11-02), counted from the register table:** the arm invoked FROM the merged branch reads 50
+observations, 2 green and 48 red; the THIRD-branch arm is unchanged at 6, all RED; the register
+carries 62 rows, 60 RED. No cause is named. **The merge of this entry will owe the next row.**
 
 **COUNT UPDATE 2026-08-15 (merge of #172, squash `e400e3b7`): two rows appended to the register
 above, #174 and #172. This entry does not restate the count — the register carries it.**
@@ -3876,6 +3894,22 @@ nothing further is proposed. **No identifier is created and nothing is filed as 
   | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
   |---|---|---|---|---|
   | #273 | `4e1182e` | 2026-10-05 01:34:14 | 01:34:38 | not triggered |
+
+  **#274 (added 2026-11-02).** CI (run 37256609517, both Node jobs, `head=ec40a71`) and the
+  `secrets` workflow (run 37256609518) concluded success on the merge commit; the CI log carries
+  twenty-four `witness: PASS.` lines, two `PASS: proxy-judge rehearsal`, two `PASS: forced-routing
+  rehearsal`, two `PASS: agentic-review rehearsal` and two `PASS: route-map rehearsal` lines (once per
+  Node job) and zero `[FAIL]` lines. The Railway and Vercel times are the `success` statuses of their
+  GitHub deployments for `ec40a71` (ids 6850266851 and 6850273654), posted by `railway-app[bot]` and
+  `vercel[bot]`; no Railway CLI or dashboard was read. Read when filed, on 2026-11-02 at 14:28:15Z,
+  the backend at its Railway host answered `{"status":"ok","db":"ok","anthropic":"ok","uptime_s":2461285}`,
+  which dates the container to about 2026-10-05 02:46:50, this deploy, and shows no restart since; the
+  dashboard answered `{"status":"ok","db":"ok"}` in the same read. Not observed: anything in
+  production, because #274 changed the tracker only. These reads show only that nothing regressed.
+
+  | PR | squash | Railway `amusing-trust / production` | Vercel Production | GitHub Pages |
+  |---|---|---|---|---|
+  | #274 | `ec40a71` | 2026-10-05 02:45:17 | 02:45:36 | not triggered |
 
   **LIVE AT $0 FOR #249, #250 AND #251 TOGETHER (2026-09-25, read by this entry).** Empty commit
   `4417fa0` (built with `git commit-tree` on the parent's tree `08b866fe`; zero files) was pushed as
@@ -6360,6 +6394,31 @@ because that widening is on the READING side and this argument turns on the RUNN
   rehearsal and fixture stay as tooling and nothing is deleted. No public copy may say
   "cross-file", "route graph", "route map" or "application-wide". The measurement population was
   never drawn; the third held-out set stays sealed. Also in this PR: #272's rows and deploy entry.
+
+  **2026-11-02: AN IDOR REWRITE WAS BUILT AND LIVE-TESTED AFTER THE STOP, ON THE OWNER'S OWN
+  AUTHORIZATION, AND IS ARCHIVED ON A LOCAL-ONLY BRANCH AFTER MEETING ITS BAR ON 0 OF 3 PROJECTS.
+  THE STOP STANDS.** Between 2026-10-13 and 2026-10-31, outside any PR and with no pre-registration in
+  this tree, an evidence-based IDOR path ("evidence-v8": structured candidates, bounded head-commit
+  source reads, a new system prompt and tool contract) was written over the shipping IDOR lane in a
+  working tree and tested live on `claude-sonnet-4-6` against three open-source projects, each in a
+  vulnerable and a fixed version, under a per-round budget guard the owner authorised in writing
+  round by round. Cumulative measured spend `$108.15` against a `$115` aggregate ceiling, read from
+  the run's own budget ledger, not from a bill. Final round (30 trials): vulnerable-side detection
+  0 of 5, 3 of 5 and 0 of 5 on the three projects against a bar of 4 of 5, with 5 of 5 required on
+  the fixed side; **0 of 3 projects passed**, and the run's own report says IDOR readiness is not
+  shown. No result from it may be cited in public copy, and nothing from it is in `docs/measurements/`.
+  Disposition on 2026-11-02: the source (eleven modified files, twenty-one new modules, forty keyless
+  tests) is committed on the local branch `feat/idor-evidence-v8` at `1e68fd7`, parent `07523fe`,
+  never pushed and not proposed for merge; the pre-stop detector survives in that commit only as
+  `"historical-v1"`, which the replay gate selects by name. The run folder (24,424 files, 1.1 GB,
+  holding copied third-party source trees and full model request and response bodies) was moved out
+  of the repository, and `docs/evaluations/` is ignored by the same PR as this entry so that no
+  such folder can reach the public repository by a careless `git add`. Nothing was deleted. The six
+  shipping detectors on `main` are unchanged. **Still frozen, verbatim from the stop:** no
+  detector change, no prompt change, no prefilter or regex change made to raise detection, no new
+  detector, no batch 2 of the third held-out set, no Gate B, no new judge or proxy arm. If that
+  branch is ever to be more than an archive, it needs a pre-registration here first and a fresh
+  held-out set it has not seen; the three projects it was tuned against are burned for it.
 
   **RUN ARTIFACTS REDUCED, 2026-10-02 (owner's decision, PR #263): no model reasoning and no quoted
   third-party code in committed run files under `docs/`.** The pre-merge audit of #263 found that
