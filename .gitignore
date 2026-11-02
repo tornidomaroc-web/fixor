@@ -181,3 +181,6 @@ docs/CKSE-SEPARATION.md
 # Prophylactic, by symmetry with CLAUDE.md.bak* above: no AGENTS.md backup
 # exists at the time of writing, four CLAUDE.md backups do.
 /AGENTS.md.bak*
+
+# Local evaluation runs: third-party source trees and full model request/response bodies. Never publish.
+docs/evaluations/
