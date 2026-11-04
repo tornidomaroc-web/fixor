@@ -4,17 +4,17 @@
 
 <br/>
 
-[![Install on GitHub](https://img.shields.io/badge/Install%20on%20GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/apps/fixor-security/installations/new)
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by%20Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
 [![License: MIT](https://img.shields.io/badge/MIT-1D9E75?style=for-the-badge)](LICENSE)
 
 > **Six detectors for Node/TypeScript pull requests: auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, and unverified webhooks.**
 
 [Landing](https://fixor.dev/) ·
-[Dashboard](https://app.fixor.dev) ·
 [Security](https://fixor.dev/security.html)
 
 </div>
+
+> **Status:** Fixor is an open-source project, not a hosted service you can sign up for today. The GitHub App is private and not open for installation, and the hosted dashboard is offline. The code, fixtures and measurements in this repo are the deliverable.
 
 ---
 
@@ -30,9 +30,9 @@
 | 🪝 Unverified webhook handlers: handlers that skip signature verification. URL-name prefilter (router-style frameworks only) plus content-based lib-import / anti-pattern prefilter (any framework; see [`docs/detector-capabilities.md`](docs/detector-capabilities.md) for content-prefilter blind spots). Provider fixtures: Stripe / GitHub / Twilio / Slack / Lemon Squeezy / custom-HMAC | ✅ Shipping · passes its authored fixtures; no real-code result |
 | 📄 Branded PDF report per PR (signed Cloudinary URL, 1h TTL) | ✅ Shipping |
 | 📊 SARIF output (linked from PR comment, drops into Code Scanning et al.) | ✅ Shipping |
-| 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Shipping |
-| 💳 Paddle billing — free / $29 / $199, hosted checkout + portal | ✅ Shipping |
-| 🎛️ Dashboard — scan history, trends, settings, billing | ✅ Shipping |
+| 🔌 Native GitHub App — HMAC webhook, ≤1h installation tokens | ✅ Built · the App is private, not open for installation |
+| 💳 Paddle billing — free / $29 / $199, hosted checkout + portal | ✅ Built · not on sale while the App is private |
+| 🎛️ Dashboard — scan history, trends, settings, billing | ✅ Built · hosted dashboard offline |
 | 💸 Per-org Anthropic budget cap — 80% nudge + hard pause at 100% | ✅ Shipping |
 | 🏗️ Framework scope — route-shape detection covers router-style (`router.METHOD(path, ...)` — Express family) AND Next.js App Router method-named exports (`export const POST = ...` / `export async function GET(...)`) AND Remix v2 file-system-routed handler exports (`export const loader = ...` / `export const action = ...`, added Phase E 2026-05-23). App Router calibration measured against inbox-zero: 182 of 228 routes scanned (~80%, PARTIAL scan, halted for API budget — not a full-corpus sweep): 0 auth-bypass / 0 admin-check findings on the scanned 182, plus 2 webhook findings of documented-limitation classes. Phase F (2026-05-23) lifted the cross-file verifier helper class (c) and the non-HMAC shared-secret challenge class (d) from HIGH to MEDIUM. Phase F's first cut left a window-truncation residual on class (c) (apple/webhook stayed HIGH because the verifier call sat outside the windowed payload); the follow-up structural fix later that day (PR #71) switched the webhook detector to whole-file context for App Router route-def triggers, matching the discipline already in place for auth-bypass and admin-check. Both real-world inbox-zero routes are now judged MEDIUM (as of 2026-08-07 these are REPORTED at medium confidence; before that date they were discarded): outlook/webhook on the verification-suggesting import path, apple/webhook on the verify*Payload cross-file helper name convention now visible in whole-file context. The two classes are fully lifted — no remaining apple-shape residual. **Remix coverage (Phase E):** sibling `REMIX_HANDLER_DEF_RE` matches `export const loader|action`, bounded by an `isRemixRoutePath` path-aware filter (`/routes/` segment or `app/root.{ts,tsx}`) so utility modules under `app/lib/` / `app/utils/` that happen to export `loader`/`action` factories are not misrouted to the LLM. Calibrated against 17 Remix fixtures (auth-bypass 6 + admin-check 6 + webhook 5, including over-match utility anchors), all passed; planted-vuln demo (fixor-demo-remix) flagged 3 planted Remix-shape vulnerabilities with correct detector attribution and reasoning that explicitly named "Remix `action` export". **Two named residuals on the Remix claim:** (i) **real-world production-corpus baseline against a Remix codebase (e.g. Trigger.dev's 411 routes) is deferred** — calibration + demo were scientifically sufficient under the Phase D partial-sample discipline; (ii) **non-conventional wrapper-name divergence on unknown Remix codebases is a known residual** until a real corpus is measured — the path-aware filter bounds (does not eliminate) the divergence class. **Cross-file parent-layout guard (Phase G, 2026-05-28):** auth-bypass and admin-check now recognize a route gated by an ancestor `_layout.tsx` loader and suppress that cross-file false positive — **for Remix / React Router v7 only**, only on structurally PROVEN `+`-folder coverage with a blocking layout loader, and only for read/loader concerns (never a destructive `action`). Validated on the real Documenso clone (3/3 admin read routes: FP before, cleared after). **App Router cross-file auth (middleware matchers, `layout.tsx` / DAL gating) remains a named limitation, addressed in a later phase** — an App Router `layout.tsx` does not wrap Route Handlers, so its coverage is not structurally provable. See [`docs/detector-capabilities.md`](docs/detector-capabilities.md) for the four documented webhook limitations, the unfamiliar-wrapper MEDIUM-confidence handling (as of 2026-08-07 MEDIUM verdicts are REPORTED, carrying medium confidence; before that date they were discarded and never reported), and the deferred Remix baseline. | 🟢 App Router · 🟢 Remix |
 | 🐍 Python · 🐹 Go: IDOR, env-exposure, secrets-exposure, and webhook-unverified run on Python and Go and pass authored fixtures there; auth-bypass and admin-check match their sentinel/hardcoded shapes in both. No real-code result exists for any detector in either language. **auth-bypass, admin-check, and IDOR route-shape now cover FastAPI / Flask-2.0 `@app.METHOD` / `@router.METHOD` decorators (Python slices 1 + 1b, 2026-05-28)**; in-file `Depends`/`Security` name-convention recognition (auth for auth-bypass; `admin`/`superuser`-substring for admin-check, where plain `get_current_user` is NOT sufficient), plus the idiomatic FastAPI typed-path-param IDOR source + SQLAlchemy-2.0 `session.get` sink; all lang-gated to `.py`. Validated on the real `full-stack-fastapi-template`: guarded/admin-gated/ownership-checked routes cleared, the authless `private.py` route flagged. **FastAPI route-shape coverage is in place across all three route-shape detectors.** On a route flagged by more than one detector the labels can cross-wire and a cross-wired finding's mechanism description can be imprecise; that labeling work is tracked but not yet shipped. **Flask added for auth-bypass + admin-check (2026-05-28):** `@app.route`/`@bp.route` + the `@app.get`/`@app.post` shorthand (disambiguated from FastAPI by in-file imports), `@login_required`/`@admin_required`/`current_user`/`g.user` recognition; validated on the real `flaskr` tutorial (login_required-gated routes cleared, no FP). Cross-file Depends/decorators + conditional/router-level mounting remain a named slice-2 limitation; Django is a later slice (likely two). Go route-shape and Express/App-Router/Remix remain as before | 🟡 Partial (FastAPI coverage in place; Flask auth-bypass+admin-check done; Django pending) |
@@ -64,7 +64,7 @@ Detection development stopped on 2026-10-04, after the last pre-registered test 
 
 ## Screenshots
 
-A live Fixor Security Report, posted on a real pull request — [`fixor-demo` PR #1](https://github.com/tornidomaroc-web/fixor-demo/pull/1):
+A Fixor Security Report as posted on a pull request in a private demo repository:
 
 <img src="docs/screenshots/pr-comment.png" alt="Fixor Security Report comment on a pull request, showing a summary table and the four findings from this PR: secrets, env exposure, admin check, and IDOR" width="900"/>
 
@@ -76,13 +76,13 @@ A live Fixor Security Report, posted on a real pull request — [`fixor-demo` PR
 
 | | **Fixor** | Snyk Code | Semgrep (OSS / Pro) |
 |---|---|---|---|
-| Setup time | Install GitHub App, done | CLI / CI step + dashboard config | Add `.semgrep.yml` + CI step |
+| Setup time | Install the GitHub App (currently private) | CLI / CI step + dashboard config | Add `.semgrep.yml` + CI step |
 | Languages | JS/TS · partial Python/Go/Ruby | 10+ | 30+ |
 | Detector focus | auth-bypass · IDOR · admin-check · env-exposure · secrets · unverified-webhooks | Dependency CVEs + injection patterns | 2,000+ pattern rules |
 | False-positive driver | Claude judges the candidates each detector's patterns select (the secrets check uses fixed shapes and no model) | Heuristics + ML | Pattern rules (highest precision when written; brittle on edge cases) |
 | Remediation output | Explanation + remediation steps per finding | Partial auto-patch (Snyk Code Fix) | Rule message only |
 | PDF + SARIF | ✅ Both | ✅ SARIF | ✅ SARIF |
-| Pricing (entry) | $0 (free tier, real) | Free tier; $52/dev/mo Team | OSS free; $40/dev/mo Pro |
+| Pricing (entry) | $0 free tier (not on offer while the App is private) | Free tier; $52/dev/mo Team | OSS free; $40/dev/mo Pro |
 | Open source | ✅ MIT | ❌ | ✅ rules engine |
 | Best for | Zero-setup PR checks on Node/TypeScript (real-code results published for the secrets check only) | Dependency + known-CVE coverage | Teams who want full rule control |
 

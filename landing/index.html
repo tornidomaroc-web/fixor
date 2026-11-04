@@ -1,11 +1,8 @@
 <!--
   Fixor landing page — static HTML hosted on GitHub Pages.
 
-  GitHub App install URL: every "Install on GitHub" CTA points at
-    https://github.com/apps/fixor-security/installations/new
-  If the live App's public slug differs from `fixor`, search-replace
-  that path. (The dashboard reads it from FIXOR_GITHUB_APP_SLUG; this
-  page is static, so the slug is hard-coded.)
+  The GitHub App is private and not open for installation, so no CTA on
+  this page links to it; they point at the open-source repository.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -575,7 +572,7 @@
           </svg>
           <span class="logo-text">Fixor</span>
         </a>
-        <a class="nav-cta" href="https://github.com/apps/fixor-security/installations/new">Install on GitHub</a>
+        <a class="nav-cta" href="https://github.com/tornidomaroc-web/fixor">View on GitHub</a>
       </div>
     </header>
 
@@ -585,8 +582,8 @@
         <p class="lead">
           Auth bypass, missing admin gates, IDOR, environment-variable exposure, hardcoded secrets, unverified webhooks.
         </p>
-        <a class="btn btn-primary" href="https://github.com/apps/fixor-security/installations/new">Install Fixor on GitHub</a>
-        <p class="hero-subnote">Free tier: currently a $5 / month model-spend cap, public and private repos · no card required</p>
+        <a class="btn btn-primary" href="https://github.com/tornidomaroc-web/fixor">Read the code on GitHub</a>
+        <p class="hero-subnote">Open source (MIT). The GitHub App is private and not open for installation, and the hosted dashboard is offline.</p>
       </section>
 
       <section class="wrap" id="measured">
@@ -745,7 +742,7 @@ _Report suitable for sharing with your team._
       <section class="wrap" id="pricing">
         <h2 class="section-title">Pricing</h2>
         <p class="section-sub">
-          Start free, upgrade when you outgrow the budget. The cap is the only limit: Fixor does not count scans or restrict repositories, and a cap of $0 pauses scanning. Prices and caps are current values and may change. Paddle is our merchant of record — they handle VAT and the cancel / update-payment portal.
+          Not on offer while the GitHub App is private; the plans below are what the billing code implements. The cap is the only limit: Fixor does not count scans or restrict repositories, and a cap of $0 pauses scanning. Prices and caps are current values and may change. Paddle is our merchant of record — they handle VAT and the cancel / update-payment portal.
         </p>
         <div class="pricing-grid pricing-grid-3">
           <article class="price-card">
@@ -756,10 +753,9 @@ _Report suitable for sharing with your team._
               <li>Public and private repos</li>
               <li>All 6 detectors</li>
             </ul>
-            <a class="btn btn-primary" href="https://github.com/apps/fixor-security/installations/new">Install free</a>
+            <span class="btn" style="cursor:default">Not open for installation</span>
           </article>
           <article class="price-card featured">
-            <span class="badge-popular">Popular</span>
             <h3>Indie</h3>
             <div class="price">$29<small> / mo</small></div>
             <ul>
@@ -767,7 +763,7 @@ _Report suitable for sharing with your team._
               <li>Public and private repos</li>
               <li>All 6 detectors</li>
             </ul>
-            <a class="btn btn-primary" href="https://github.com/apps/fixor-security/installations/new">Start with Indie</a>
+            <span class="btn" style="cursor:default">Not open for installation</span>
           </article>
           <article class="price-card">
             <h3>Team</h3>
@@ -777,7 +773,7 @@ _Report suitable for sharing with your team._
               <li>Public and private repos</li>
               <li>All 6 detectors + priority support</li>
             </ul>
-            <a class="btn btn-primary" href="https://github.com/apps/fixor-security/installations/new">Start with Team</a>
+            <span class="btn" style="cursor:default">Not open for installation</span>
           </article>
         </div>
       </section>
